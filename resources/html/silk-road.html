@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中国各朝代丝绸之路与海疆发展史 · 世界地图版</title>
+<style>
+  /* ===================== 全局基础样式 ===================== */
+  :root {
+    /* —— 丝路三色：暖色浅底下的语义色（保持语义不变）—— */
+    --land-color: #b8860b;      /* 陆上丝路（暗金棕）*/
+    --sea-color: #3f7cae;       /* 海上丝路（沉静蓝）*/
+    --frontier-color: #4e9a6f;  /* 海疆（青绿）*/
+    /* —— 米黄 / 暖棕 古典浅色外壳配色 —— */
+    --bg: #f3ead6;             /* 暖米底 */
+    --bg-2: #e8dcc0;           /* 较深米端 */
+    --card-bg: rgba(252,248,238,0.92);  /* 浅米卡片 */
+    --card-solid: #fbf6ea;
+    --text-main: #4a3a28;      /* 暖棕主文字 */
+    --text-sub: #7a6a52;       /* 次级暖棕灰 */
+    --gold: #9c4221;           /* 暖棕红强调色 */
+    --border: rgba(156,107,58,0.30);  /* 暖棕细描边 */
+    --shadow: 0 6px 22px rgba(120,90,50,0.16);
+    --glass-blur: blur(6px);
+    /* 浅色背景上的叠加层（替代深色主题的白色半透明叠加）*/
+    --surface: rgba(120,90,50,0.05);
+    --surface-2: rgba(120,90,50,0.08);
+    --surface-3: rgba(120,90,50,0.11);
+    --value-text: #8a4a1e;     /* 价值/强调文本暖棕 */
+    /* —— 地图本体颜色 —— */
+    --map-ocean: #b9d4e8;       /* 海洋底色（加深的蓝）*/
+    --map-land: #dfe9f0;        /* 非当前疆域陆地：浅蓝 */
+    --map-stroke: #b9c9d6;      /* 陆地描边（淡蓝灰）*/
+    --map-territory: #f7e0bc;   /* 当前朝代疆域：极浅暖色,仅比浅蓝陆地略深,柔和不刺眼 */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background:
+      radial-gradient(ellipse at 50% -10%, #faf4e6 0%, var(--bg) 45%, var(--bg-2) 100%);
+    background-attachment: fixed;
+    color: var(--text-main);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===================== 图例色块（左侧面板复用）===================== */
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .line-sample { width: 22px; height: 0; border-top: 2px dashed; display: inline-block; }
+  .line-sample.line-solid { border-top-style: solid; }
+  .sq-sample { width: 11px; height: 11px; display: inline-block; background: var(--frontier-color); border-radius: 2px; }
+  .dot-land { background: var(--land-color); }
+  .dot-sea { background: var(--sea-color); }
+  .dot-frontier { background: var(--frontier-color); }
+
+  /* ===================== 筛选栏 ===================== */
+  .filter-bar {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--card-bg);
+    backdrop-filter: var(--glass-blur);
+    border-bottom: 1px solid var(--border);
+    padding: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  }
+  .filter-btn {
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-sub); padding: 6px 14px; border-radius: 20px;
+    font-size: 14px; cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+  }
+  .filter-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .filter-btn.active {
+    background: var(--gold); border-color: var(--gold);
+    color: #fff; font-weight: 600;
+  }
+
+  /* ===================== 左右布局主体 ===================== */
+  .layout {
+    display: block;            /* 左侧 fixed 脱离文档流，右侧用 margin 让位 */
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* 左侧：朝代导航列表（加宽，粘性跟随滚动）*/
+  .left-panel {
+    position: fixed;           /* 顶满可视区，完全不受页面滚动影响 */
+    top: 0;
+    left: 0;                   /* 贴紧页面左边，无 margin */
+    width: 284px;              /* 比原先略宽 */
+    height: 100vh;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border);
+    border-left: none;         /* 贴边时左侧不留描边 */
+    box-shadow: var(--shadow);
+    padding: 8px 14px;          /* 左右对称留白，分割线/高亮均内缩不顶满 */
+    overflow: hidden;          /* 内部 era-timeline 自行滚动 */
+  }
+  .left-panel .nav-title {
+    font-size: 13px; font-weight: 700; color: var(--accent);
+    letter-spacing: 3px; text-align: left;              /* 左对齐：现代/古代标题左侧对齐 */
+    border-bottom: 1px dashed var(--border); margin-bottom: 10px;
+    padding: 4px 0 10px 0;                              /* 无负 margin，下划线随内容左右内缩 */
+    flex: 0 0 auto;
+  }
+  /* 朝代导航项 */
+  .era-nav {
+    padding: 9px 12px;
+    border-radius: 6px;            /* 高亮态 6px 圆角 */
+    cursor: pointer;
+    margin-bottom: 4px;
+    border-left: 4px solid transparent;
+    transition: all 0.18s ease;
+  }
+  .era-nav:hover { background: rgba(156,66,33,0.10); }
+  .era-nav.active {
+    background: rgba(156,66,33,0.13);
+    border-left-color: transparent;   /* 参考图无左侧色条，仅靠高亮底 + 节点区分 */
+  }
+  .era-nav .era-name { font-size: 16px; font-weight: 800; color: var(--text-main); line-height: 1.25; }
+  .era-nav.active .era-name { color: var(--accent); }
+  .era-nav .era-time { font-size: 12px; color: var(--text-sub); letter-spacing: 0.3px; margin-top: 3px; }
+
+  /* —— 朝代时间轴：竖向虚线 + 圆形节点标记（参考时间轴样式）—— */
+  .era-timeline {
+    position: relative;
+    padding: 6px 0 6px 0;        /* 与古代内容左缘对齐；右侧不留白滚动条贴右 */
+    margin-right: -12px;
+    flex: 1 1 auto; min-height: 0;
+    overflow-y: auto; overflow-x: hidden;
+  }
+  /* 时间轴内部滚动条样式（暖色细滚动条）*/
+  .era-timeline::-webkit-scrollbar { width: 6px; }
+  .era-timeline::-webkit-scrollbar-thumb { background: rgba(156,66,33,0.32); border-radius: 3px; }
+  .era-timeline::-webkit-scrollbar-track { background: transparent; }
+  /* 内层容器：随内容增高，承载贯穿虚线（避免滚动裁剪）*/
+  .era-timeline-inner { position: relative; }
+  /* 贯穿的竖向虚线 —— 锚定内层容器，覆盖全部朝代项 */
+  .era-timeline-inner::before {
+    content: ""; position: absolute; left: 18.75px; top: 12px; bottom: 12px;
+    border-left: 2.5px dashed rgba(156,66,33,0.5);  /* 虚线中心(inner14+10.75+1.25≈26)对齐圆点中心(navLeft14+4+8=26) */
+  }
+  .era-timeline .era-nav {
+    position: relative; border-left: none; padding: 13px 6px 13px 40px; margin: 0 6px 8px 0;  /* 左缘对齐「古代」标题；左 32 让出圆点并给文字留白；右内缩 6px */
+  }
+  /* 节点圆环标记 */
+  .era-timeline .era-nav::before {
+    content: ""; position: absolute; left: 12px; top: 15px;   /* 圆点稍内缩，中心 = navLeft14+4+8 = x26，对齐虚线中心 */
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--card-solid); border: 3px solid var(--gold);
+    box-sizing: border-box; transition: all 0.18s ease; z-index: 1;
+  }
+  .era-timeline .era-nav:hover::before { box-shadow: 0 0 0 3px rgba(156,66,33,0.18); }
+  /* 选中：暗红实心 + 鎏金外环 + 柔和呼吸光晕（呼应参考图秦朝节点）*/
+  .era-timeline .era-nav.active::before {
+    background: var(--accent); border-color: var(--gold);
+    animation: dotBreath 2.4s ease-in-out infinite;
+  }
+  /* 呼吸效果：光晕与亮度在小范围内柔和起伏，不夸张 */
+  @keyframes dotBreath {
+    0%, 100% { box-shadow: 0 0 5px 1px rgba(156,66,33,0.40); filter: brightness(1); }
+    50%      { box-shadow: 0 0 11px 4px rgba(156,66,33,0.65); filter: brightness(1.15); }
+  }
+  /* 尊重「减少动态」无障碍设置 */
+  @media (prefers-reduced-motion: reduce) {
+    .era-timeline .era-nav.active::before { animation: none; box-shadow: 0 0 8px 2px rgba(156,66,33,0.55); }
+  }
+  .era-timeline .era-nav.active { border-left: none; }
+
+  /* 导航分区（现代 / 古代 解耦呈现）—— 三个区域各自设置 padding */
+  .nav-section { margin-bottom: 10px; }
+  /* 区域一：现代 */
+  .nav-section.modern-nav-wrap { flex: 0 0 auto; padding: 4px 0 10px 0; }
+  /* 区域二：古代时间轴 */
+  .nav-section + .nav-section {
+    border-top: 1px dashed var(--border);
+    flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+    padding: 10px 0 6px 0;       /* 无负 margin：内容左对齐，分割线随面板内边距内缩 */
+    margin-top: 0; margin-bottom: 0;
+  }
+  .nav-section + .nav-section .nav-title { flex: 0 0 auto; }
+  /* 区域三：图例 */
+  .panel-legend { flex: 0 0 auto; }
+  /* 现代专题入口：醒目的鎏金描边，区别于朝代项 */
+  /* 未选中：仅淡描边，不填充背景，避免看起来像被选中 */
+  .era-nav.modern-entry {
+    border: 1px solid rgba(156,66,33,0.30); border-left: 4px solid rgba(156,66,33,0.45);
+    background: transparent;
+  }
+  .era-nav.modern-entry .era-name { color: var(--gold); }
+  .era-nav.modern-entry:hover {
+    background: rgba(156,66,33,0.07); border-color: var(--gold);
+  }
+  /* 选中：实金描边 + 渐变填充 + 内阴影，明显区别于未选中 */
+  .era-nav.modern-entry.active {
+    border: 1px solid var(--gold); border-left: 4px solid var(--gold);
+    background: linear-gradient(135deg, rgba(156,66,33,0.28), rgba(156,66,33,0.10));
+    box-shadow: 0 0 0 1px var(--gold) inset;
+  }
+
+  /* —— 左侧底部图例（移自顶部 header）—— */
+  .panel-legend {
+    border-top: 1px dashed var(--border);
+    padding: 10px 0 4px 0;       /* 无负 margin：分割线随面板内边距内缩 */
+  }
+  .panel-legend .legend-title {
+    font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;
+  }
+  .panel-legend .legend-hint { font-weight: 400; font-size: 11px; color: var(--text-sub); margin-left: 4px; }
+  .panel-legend .legend-row {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12.5px; color: var(--text-sub); margin-bottom: 6px;
+  }
+  .panel-legend .legend-note {
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);
+    font-size: 11px; line-height: 1.6; color: var(--text-sub);
+  }
+  .panel-legend .legend-note b { color: var(--text-main); font-weight: 600; }
+  .panel-legend .legend-regions {
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);
+  }
+  .panel-legend .legend-regions-title {
+    font-size: 11.5px; font-weight: 600; color: var(--text-main); margin-bottom: 6px;
+  }
+  .panel-legend .region-swatches {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px;
+  }
+  .panel-legend .region-swatch {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10.5px; line-height: 1.4; color: var(--text-sub);
+  }
+  .panel-legend .region-swatch i {
+    flex: 0 0 auto; width: 11px; height: 11px; border-radius: 2px;
+    border: 1px solid rgba(0,0,0,0.12);
+  }
+  .panel-legend .legend-foot {
+    margin-top: 7px; font-size: 9.5px; line-height: 1.5; color: var(--text-sub); opacity: 0.85;
+  }
+
+  /* 右侧：朝代完整内容（文字 + 地图）*/
+  .right-panel {
+    position: relative;        /* 建立层叠上下文，使内容覆盖页脚声明 */
+    z-index: 2;                /* 高于 .page-foot(z-index:1)，内容置于其上 */
+    margin-left: 302px;        /* 284 侧栏 + 18 间距 */
+    min-width: 0;
+    padding: 20px 16px 64px 0; /* 底部留白避免被吸底声明遮挡 */
+  }
+  /* 右侧内容标题 */
+  .content-head {
+    background: var(--card-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    border-top: 4px solid var(--gold);
+  }
+  .content-head .era-name { font-size: 24px; font-weight: 700; }
+  .content-head .era-time { font-size: 13px; color: var(--text-sub); }
+  .content-head .value {
+    margin-top: 10px; background: rgba(156,66,33,0.10);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; font-size: 13.5px; color: var(--value-text);
+  }
+  /* 文字介绍卡片 */
+  .info-card {
+    background: var(--card-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  /* ===== 三类丝路：铺平分段 + 时间轴步骤流 ===== */
+  /* 每段主题色由 data-type 决定 */
+  .route-sec { --accent: var(--land-color); margin-bottom: 18px; }
+  .route-sec[data-type="land"]     { --accent: var(--land-color); }
+  .route-sec[data-type="sea"]      { --accent: var(--sea-color); }
+  .route-sec[data-type="frontier"] { --accent: var(--frontier-color); }
+  .route-sec:last-child { margin-bottom: 4px; }
+
+  /* —— 分段标题头 —— */
+  .sec-head {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 12px; margin-bottom: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px;
+    border-left: 3px solid var(--accent);
+  }
+  .sec-head .sec-ic {
+    width: 28px; height: 28px; flex: none; display: grid; place-items: center;
+    border-radius: 8px; font-size: 15px; background: var(--surface-2);
+    color: var(--accent);
+  }
+  .sec-head .sec-tx { display: flex; flex-direction: column; line-height: 1.3; }
+  .sec-head .sec-name { font-size: 15px; font-weight: 700; color: var(--accent); }
+  .sec-head .sec-cnt { font-size: 11px; color: var(--text-sub); }
+
+  /* —— 事件:竖向时间轴步骤流 —— */
+  .timeline { position: relative; margin: 4px 0 4px; padding-left: 26px; }
+  .timeline::before {
+    content: ""; position: absolute; left: 7px; top: 4px; bottom: 4px;
+    width: 2px; background: linear-gradient(var(--accent), var(--surface-3));
+  }
+  .tl-item { position: relative; padding: 0 0 14px 0; }
+  .tl-item:last-child { padding-bottom: 2px; }
+  .tl-text {
+    font-size: 13px; line-height: 1.7; color: var(--text-sub);
+  }
+  /* 序号圆点：直接落在竖线上，与时间轴对齐，数字居于圆中 */
+  .tl-item .tl-no {
+    position: absolute; left: -27px; top: 2px;
+    display: grid; place-items: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    font-size: 10.5px; font-weight: 700; color: #fff;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--surface);
+  }
+
+  /* —— 范围 / 价值:面板底部双栏 —— */
+  .panel-foot { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .foot-row {
+    display: flex; gap: 10px; align-items: baseline;
+    font-size: 12.5px; line-height: 1.6;
+    padding: 9px 12px; border-radius: 9px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+  }
+  .foot-row .foot-k {
+    flex: none; font-weight: 700; font-size: 11px; color: var(--text-main);
+    background: var(--surface-2); border-radius: 5px; padding: 2px 8px;
+  }
+  .foot-row.is-value { background: rgba(156,66,33,0.07); }
+  .foot-row.is-value .foot-k { color: var(--value-text); background: rgba(156,66,33,0.16); }
+  .foot-row .foot-v { color: var(--text-sub); }
+
+  /* 关键词高亮 + tooltip 触发点 */
+  .kw {
+    color: var(--gold); font-weight: 600; cursor: help;
+    border-bottom: 1px dashed rgba(156,66,33,0.6);
+    border-radius: 2px; padding: 0 1px; outline: none;
+    transition: background 0.15s ease;
+  }
+  .kw:hover, .kw:focus { background: rgba(156,66,33,0.16); }
+  /* tooltip 浮层 */
+  .kw-tip {
+    position: absolute; z-index: 9999; max-width: 280px;
+    background: var(--card-solid); color: var(--text-main);
+    border: 1px solid var(--gold); border-radius: 8px;
+    padding: 9px 12px; font-size: 12.5px; line-height: 1.6;
+    box-shadow: 0 8px 24px rgba(120,90,50,0.22);
+    opacity: 0; visibility: hidden; transform: translateY(4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    pointer-events: none;
+  }
+  .kw-tip.show { opacity: 1; visibility: visible; transform: translateY(0); }
+
+  /* 现代专题徽标 */
+  .modern-badge {
+    display: inline-block; font-size: 11.5px; font-weight: 600;
+    color: #fff; background: linear-gradient(135deg,var(--gold),#c0632e);
+    border-radius: 14px; padding: 4px 12px; margin-bottom: 12px;
+  }
+  /* 现代发展时间线 */
+  .modern-timeline {
+    margin: 4px 0 16px; padding: 12px 14px;
+    background: rgba(156,66,33,0.06);
+    border: 1px solid var(--border); border-left: 4px solid var(--gold);
+    border-radius: 8px;
+  }
+  .modern-timeline .mt-title {
+    font-size: 13px; font-weight: 700; color: var(--gold); margin-bottom: 10px;
+  }
+  .modern-timeline .mt-item {
+    display: flex; align-items: baseline; gap: 12px;
+    padding: 5px 0; border-bottom: 1px dashed var(--border);
+  }
+  .modern-timeline .mt-item:last-child { border-bottom: none; }
+  .modern-timeline .mt-date {
+    flex: 0 0 64px; font-size: 12.5px; font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums; letter-spacing: 0.3px;
+  }
+  .modern-timeline .mt-desc {
+    flex: 1 1 auto; font-size: 13px; line-height: 1.6; color: var(--text-sub);
+  }
+  .value {
+    margin-top: 8px; background: rgba(156,66,33,0.10);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 12px; font-size: 13px; line-height: 1.65; color: var(--value-text);
+  }
+
+  /* —— 参考资料 / 文献跳转区 —— */
+  .refs-block {
+    margin-top: 16px; padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px;
+  }
+  .refs-title { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; }
+  .refs-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ref-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12.5px; color: var(--gold); text-decoration: none;
+    background: rgba(156,66,33,0.08);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 5px 12px; transition: all 0.15s ease;
+  }
+  .ref-link:hover {
+    background: rgba(156,66,33,0.18); border-color: var(--gold);
+    transform: translateY(-1px);
+  }
+  .ref-ext { font-size: 11px; opacity: 0.75; }
+
+  /* 地图容器 */
+  .map-box {
+    background: var(--map-ocean);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .map-title {
+    background: var(--card-solid);
+    color: var(--text-main);
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .map-title .hint { font-size: 12px; color: var(--text-sub); font-weight: 400; }
+  .map-title--toolsonly { justify-content: flex-end; }
+  .map-tools { display: flex; align-items: center; gap: 10px; }
+  .zoom-btn {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
+    font-size: 12px; padding: 3px 10px; border-radius: 14px; cursor: pointer;
+    transition: all 0.15s ease; white-space: nowrap;
+  }
+  .zoom-btn:hover { border-color: var(--gold); color: var(--gold); }
+  /* 地图严格保持 2:1（720×360 等距经纬度投影），杜绝拉伸压缩变形 */
+  svg.world {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 340 / 236;
+    cursor: zoom-in;            /* 提示：点击放大查看 */
+  }
+  /* 缩放层平滑过渡 */
+  #zoomLayer { transition: transform 0.35s ease; transform-box: view-box; }
+
+  /* 地图上的标注样式 */
+  .route-land { fill: none; stroke: var(--land-color); stroke-width: 1; stroke-linecap: round; }
+  .route-sea  { fill: none; stroke: var(--sea-color); stroke-width: 1; stroke-dasharray: 1.4 4.6; stroke-linecap: round; }
+  /* 朝代疆域范围：直接在陆地上着色（比浅蓝底图深一点），不画线框 */
+  .territory-fill {
+    fill: var(--map-territory); fill-opacity: 0.4;
+    stroke: none;
+  }
+  .territory-label {
+    fill: #7a3322; fill-opacity: 0.92;
+    font-size: 7px; font-weight: 700;
+    paint-order: stroke; stroke: #fff; stroke-width: 2.4; stroke-opacity: 0.8;
+  }
+  /* 现代中国疆域参考线：仅描边、不填充，标示当今中国版图范围 */
+  .china-border {
+    fill: none;
+    stroke: #d98b80; stroke-width: 0.5; stroke-opacity: 0.55;
+    stroke-linejoin: round; stroke-dasharray: 4 2.5;
+    pointer-events: none;
+  }
+  /* 南海断续线（九段线）：用较短实线段表现，去掉虚线 dash */
+  .china-border.nine-dash {
+    stroke-dasharray: none;
+    stroke-width: 0.6; stroke-linecap: round;
+  }
+  /* 标记点：缩小尺寸 + 白色外发光光晕 */
+  .node-halo { fill: #fff; opacity: 0.55; }
+  .node-dot { stroke: #fff; stroke-width: 0.9; filter: url(#nodeGlow); }
+  .frontier-marker { fill: var(--frontier-color); stroke: #fff; stroke-width: 0.9; filter: url(#nodeGlow); }
+  .world.china-scope .node-halo { opacity: 0.4; }
+  .world.china-scope .node-dot,
+  .world.china-scope .frontier-marker { stroke-width: 0.45; }
+  /* 节点标签：紧邻地图标点，古今地名双行，白描边保证压在地图上仍清晰 */
+  .label-leader { stroke: #9a8e72; stroke-width: 0.5; opacity: 0.7; }
+  .label-leader.far { stroke: #7a6f55; stroke-width: 0.6; stroke-dasharray: 2 1.5; opacity: 0.85; } /* 远引线：虚线强化指向 */
+  .leader-knot { fill: #7a6f55; }
+  .node-label { paint-order: stroke; stroke: #fff; stroke-width: 2px; stroke-linejoin: round; }
+  .hist-name { font-size: 5.2px; font-weight: 700; }          /* 历史地名（主）*/
+  .modern-name { font-size: 4px; font-weight: 400; fill: #6f6347; stroke-width: 1px; } /* 今地名（注释）*/
+  .node-label.land .hist-name { fill: #8a5a14; }
+  .node-label.sea  .hist-name { fill: #145a8a; }
+  .node-label.frontier .hist-name { fill: #1f6b41; }
+  .world.china-scope #geoLabels,
+  .world.china-scope #placeLabels { display: none; }
+
+  /* 路线绘制动画 */
+  .route-anim { stroke-dashoffset: 0; }
+
+  .page-foot {
+    position: fixed; left: 302px; right: 0; bottom: 0; z-index: 1; /* 置于内容下方 */
+    font-size: 11px; color: var(--text-sub); line-height: 1.6;
+    padding: 8px 16px; margin-top: 0; border-top: none;
+    background: transparent; /* 不要背景色，内容可覆盖其上 */
+    text-align: left;
+    pointer-events: none;    /* 位于内容下层，不拦截交互 */
+  }
+
+  /* ===================== 移动端适配 ===================== */
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; }
+    /* 左侧导航变为顶部横向滚动条 */
+    .left-panel {
+      position: static;
+      top: auto; left: auto;
+      width: 100%; max-width: 100%; height: auto;
+      z-index: auto; overflow: visible;
+      display: flex; gap: 8px; overflow-x: auto; align-items: stretch;
+      padding: 8px;
+    }
+    .left-panel .nav-title { display: none; }
+    /* 分区与朝代列表在横向滚动中平铺 */
+    .nav-section { margin-bottom: 0; display: flex; gap: 8px; flex: none; }
+    .nav-section + .nav-section { border-top: none; padding-top: 0; border-left: 1px dashed var(--border); padding-left: 8px; }
+    #eraNavList { display: flex; gap: 8px; }
+    /* 移动端：取消竖向时间轴装饰，恢复横向平铺 */
+    .era-timeline { padding-left: 0; }
+    .era-timeline-inner::before { display: none; }
+    .era-timeline .era-nav { padding: 8px 10px; }
+    .era-timeline .era-nav::before { display: none; }
+    .era-nav {
+      flex: 0 0 auto; margin-bottom: 0;
+      border-left: none; border-bottom: 4px solid transparent;
+      white-space: nowrap;
+    }
+    .era-nav.active { border-left: none; border-bottom-color: var(--land-color); }
+    .era-nav .era-name { font-size: 14px; }
+    .era-nav .era-time { display: none; }
+    /* 现代入口在移动端保留鎏金边框，仍可区分 */
+    .era-nav.modern-entry { border: 1px solid var(--gold); border-bottom: 4px solid var(--gold); }
+    .era-nav.modern-entry .era-time { display: block; font-size: 10px; }
+    /* 图例在移动端横向平铺，置于导航条末尾 */
+    .panel-legend {
+      flex: 0 0 auto; margin-top: 0; padding-top: 0;
+      border-top: none; border-left: 1px dashed var(--border); padding-left: 10px;
+      display: flex; align-items: center; gap: 12px; white-space: nowrap;
+    }
+    .panel-legend .legend-title { margin-bottom: 0; }
+    .panel-legend .legend-hint { display: none; }
+    .panel-legend .legend-row { margin-bottom: 0; }
+    .right-panel { width: 100%; margin-left: 0; padding: 12px 0 30px; }
+    /* 移动端：声明恢复常规流，不再吸底固定 */
+    .page-foot { position: static; left: auto; right: auto; bottom: auto; padding: 12px 4px 4px; pointer-events: auto; }
+    .kw-tip { max-width: 240px; }
+  }
+
+  /* ===== 去除圆角：左侧 / 弹窗等容器直角（不影响圆点、方块色标等图形标记）===== */
+  .left-panel, .right-panel,
+  .filter-btn, .zoom-btn, .panel-legend, .kw-tip {
+    border-radius: 0 !important;
+  }
+  /* 右侧内容卡片：轻微圆角 8px */
+  .content-head, .info-card, .map-box, .refs-block {
+    border-radius: 8px !important;
+  }
+  /* 地图框圆角时，标题栏顶部需跟随圆角，避免方角溢出 */
+  .map-box .map-title { border-radius: 8px 8px 0 0 !important; }
+
+  /* ===================== 地图放大弹窗（点击地图弹起，可缩放 / 双向滚动）===================== */
+  .map-modal {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(40,30,18,0.42);
+    backdrop-filter: blur(2px);
+    display: none; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .map-modal.open { display: flex; }
+  .map-modal-frame {
+    position: relative;
+    width: 78vw; height: 80vh;
+    min-width: 320px; min-height: 240px;
+    max-width: 96vw; max-height: 92vh;
+    background: var(--map-ocean);
+    border: 1px solid var(--border);
+    border-radius: 14px;     /* 弹窗圆角 */
+    box-shadow: 0 18px 50px rgba(60,40,20,0.35);
+    resize: both;            /* 可拖拽改变大小（变大变小）*/
+    overflow: hidden;        /* 配合圆角裁切内部内容 */
+    display: flex; flex-direction: column;
+  }
+  .map-modal-head {
+    flex: 0 0 auto;
+    background: var(--card-solid);
+    color: var(--text-main);
+    padding: 9px 14px; font-size: 14px; font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    border-radius: 14px 14px 0 0; /* 跟随弹窗顶部圆角 */
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .map-modal-close {
+    border: none; background: transparent;
+    color: var(--text-sub); cursor: pointer;
+    font-size: 20px; line-height: 1; padding: 2px 6px;
+    display: grid; place-items: center;
+    width: 30px; height: 30px; border-radius: 50%;
+    transition: all 0.15s ease;
+  }
+  .map-modal-close:hover { color: var(--gold); background: rgba(156,66,33,0.10); }
+  /* 滚动视口：横纵向均可滚动 */
+  .map-modal-scroll {
+    flex: 1 1 auto;
+    overflow: auto;             /* 双向滚动 */
+    background: var(--map-ocean);
+  }
+  /* 放大后的画布：固定一个大于视口的尺寸，从而产生横纵滚动条 */
+  .map-modal-scroll svg {
+    display: block;
+    width: 180%;                /* 大于容器 → 出现横向滚动 */
+    height: auto;
+    aspect-ratio: 340 / 236;
+  }
+  /* ===================== 全局加载层 ===================== */
+  .app-loading {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg, #f3ead6);
+    transition: opacity 0.4s ease;
+  }
+  /* 加载完成后淡出并停用交互 */
+  .app-loading.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+  .app-loading .al-inner { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .app-loading .al-spinner {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 4px solid rgba(156,66,33,0.18);
+    border-top-color: var(--accent, #9c4221);
+    animation: alSpin 0.9s linear infinite;
+  }
+  @keyframes alSpin { to { transform: rotate(360deg); } }
+  .app-loading .al-text {
+    font-size: 14px; letter-spacing: 2px; color: var(--accent, #9c4221); font-weight: 600;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .app-loading .al-spinner { animation-duration: 2s; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 全局加载层：进入页面、数据(silk-road-data.js)就绪前显示，初始化完成后由 JS 隐藏 -->
+<div class="app-loading" id="appLoading" role="status" aria-live="polite">
+  <div class="al-inner">
+    <div class="al-spinner" aria-hidden="true"></div>
+    <div class="al-text">丝路图谱加载中…</div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- 左侧：导航（现代专题 + 朝代时间轴，二者解耦）-->
+  <nav class="left-panel" id="leftPanel">
+    <div class="nav-section modern-nav-wrap">
+      <div class="nav-title">现代</div>
+      <div class="era-nav modern-entry" id="modernEntry" data-id="__modern__">
+        <div class="era-name">现代丝绸之路</div>
+        <div class="era-time">一带一路 · 2013年~至今</div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-title">古代</div>
+      <div id="eraNavList" class="era-timeline"><!-- 朝代导航项由 JS 生成 --></div>
+    </div>
+
+    <!-- 图例：悬停查看详细解释（合并地图说明）-->
+    <div class="panel-legend">
+      <div class="legend-title">图例</div>
+      <div class="legend-row"><i class="line-sample" style="border-color:var(--land-color)"></i>陆上丝路</div>
+      <div class="legend-row"><i class="line-sample" style="border-color:var(--sea-color)"></i>海上丝路</div>
+      <div class="legend-row"><i class="dot dot-frontier"></i>圆点 · 路线关键节点（城邑 / 关隘 / 港口）</div>
+      <div class="legend-row"><i class="sq-sample"></i>方形 · 海疆 / 重要据点标记</div>
+    </div>
+  </nav>
+
+  <!-- 右侧：选中朝代的完整内容（文字 + 世界地图）-->
+  <section class="right-panel">
+    <!-- 朝代标题与综合价值 -->
+    <div class="content-head" id="contentHead"></div>
+
+    <!-- 文字介绍 -->
+    <div class="info-card" id="infoCard"></div>
+
+    <!-- 世界地图 · 丝路标注 -->
+    <div class="map-box" id="mapBox">
+      <div class="map-title">
+        <span id="mapTitle">丝路标注</span>
+      </div>
+      <!-- 等距经纬度投影世界地图（裁切为亚欧非：viewBox 320 24 340 236，对应经度约-20~150、纬度约78~-40）-->
+      <svg class="world" id="worldSvg" viewBox="320 24 340 236" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <!-- 标记点光晕滤镜：柔和外发光 -->
+          <filter id="nodeGlow" x="-120%" y="-120%" width="340%" height="340%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="1.6" result="blur"/>
+            <feFlood flood-color="#ffffff" flood-opacity="0.9" result="color"/>
+            <feComposite in="color" in2="blur" operator="in" result="glow"/>
+            <feMerge>
+              <feMergeNode in="glow"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <rect x="320" y="24" width="340" height="236" fill="var(--map-ocean)"/>
+        <!-- 缩放/平移变换包裹层：点击地图放大以此为变换对象 -->
+        <g id="zoomLayer">
+        <g id="continents" fill="var(--map-land)" stroke="var(--map-stroke)" stroke-width="0.3" stroke-opacity="0.6"></g>
+        <g id="provinceLayer"></g>
+        <g id="chinaBorder"></g>
+        <g id="grid" stroke="#ffffff" stroke-width="0.4" opacity="0.5"></g>
+        <g id="geoLabels"></g>
+        <g id="placeLabels"></g>
+        <g id="territoryLayer"></g>
+        <g id="routesLayer"></g>
+        </g>
+      </svg>
+    </div>
+  </section>
+  <!-- 页脚声明：作为 .layout 直接子元素，层级低于 .right-panel(z-index:2)，被内容覆盖 -->
+  <div class="page-foot">本页面内容依据通行史学常识整理，按时间先后排序；世界地图采用真实国界轮廓（等距经纬度投影），节点位置依经纬度近似换算，供学习参考。</div>
+</div>
+
+<!-- 地图放大弹窗：点击地图弹起，可拖拽改变大小、横纵向滚动 -->
+<div class="map-modal" id="mapModal" aria-hidden="true">
+  <div class="map-modal-frame">
+    <div class="map-modal-head">
+      <span id="mapModalTitle">丝路全图 · 拖拽右下角可缩放，滚动查看细节</span>
+      <button class="map-modal-close" id="mapModalClose" type="button" aria-label="关闭">✕</button>
+    </div>
+    <div class="map-modal-scroll" id="mapModalScroll"></div>
+  </div>
+</div>
+
+
+<script type="application/json" id="ndata" data-resource="silk-road.json"></script>
+<script>
+const SILK_ROAD_DATA = JSON.parse(document.getElementById('ndata')?.textContent || '{}');
+const {
+  WORLD_PATH,
+  CHINA_BORDER,
+  TAIWAN_BORDER,
+  NINE_DASH,
+  REGION_GROUPS,
+  PROVINCES,
+  PLACE_LABELS,
+  REGION_NOTES,
+  COUNTRY_LABELS,
+  GEO_MARKERS,
+  ERAS,
+  MODERN,
+  GLOSSARY,
+} = SILK_ROAD_DATA;
+/* ============================================================
+   一、经纬度 → SVG 像素坐标（等距经纬度投影）
+   viewBox 720×360，经度[-180,180]映射[0,720]，纬度[90,-90]映射[0,360]
+   ============================================================ */
+function ll(lon, lat) {
+  const x = (lon + 180) / 360 * 720;
+  const y = (90 - lat) / 180 * 360;
+  return [+x.toFixed(1), +y.toFixed(1)];
+}
+
+/* ============================================================
+   二、现代世界地图轮廓（真实国界，等距经纬度投影）
+   数据源：Natural Earth 衍生的世界国界 GeoJSON，经 ll() 投影
+   预转换为 viewBox 720×360 坐标系下的单一 SVG path d 字符串。
+   ============================================================ */
+/* 数据已抽离至 resources/html-data/silk-road.json，由资源加载器注入。 */
+(function drawChinaBorder() {
+  const g = document.getElementById('chinaBorder');
+  if (!g) return;
+  const NS='http://www.w3.org/2000/svg';
+  [CHINA_BORDER, TAIWAN_BORDER].forEach(d => {
+    if (!d) return;
+    const p=document.createElementNS(NS,'path');
+    p.setAttribute('d',d); p.setAttribute('class','china-border');
+    g.appendChild(p);
+  });
+  if (NINE_DASH) {
+    const nd=document.createElementNS(NS,'path');
+    nd.setAttribute('d',NINE_DASH); nd.setAttribute('class','china-border nine-dash');
+    g.appendChild(nd);
+  }
+})();
+
+/* 绘制大陆（真实轮廓，单 path）*/
+(function drawContinents() {
+  const g = document.getElementById('continents');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', WORLD_PATH);
+  path.setAttribute('fill-rule', 'evenodd');
+  g.appendChild(path);
+})();
+
+/* ============================================================
+   二·省级行政区底图（秦三十六郡分大区着色，参考图1）
+   数据：DataV 省级 GeoJSON，经 ll() 投影；按战国-秦郡大区着色。
+   ============================================================ */
+
+
+/* 绘制省级色块 */
+(function drawProvinces() {
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const g = document.getElementById('provinceLayer');
+  // 省份不再按固定的秦三十六郡着色；统一作为浅蓝陆地底色，
+  // 当前朝代疆域改由 drawTerritory() 动态高亮。
+  // 同时用各省轮廓拼出 landClip 裁剪区，供疆域着色裁到陆地范围内（不溢到海里）。
+  const svgRoot = g.ownerSVGElement || g.closest('svg');
+  let defs = svgRoot.querySelector('defs');
+  if (!defs) { defs = document.createElementNS(SVGNS, 'defs'); svgRoot.insertBefore(defs, svgRoot.firstChild); }
+  const clip = document.createElementNS(SVGNS, 'clipPath');
+  clip.setAttribute('id', 'landClip');
+  clip.setAttribute('clip-rule', 'evenodd');
+  PROVINCES.forEach(p => {
+    const path = document.createElementNS(SVGNS, 'path');
+    path.setAttribute('d', p.d);
+    path.setAttribute('fill', 'var(--map-land)');
+    path.setAttribute('fill-rule', 'evenodd');
+    path.setAttribute('stroke', 'var(--map-stroke)');
+    path.setAttribute('stroke-width', '0.3');
+    path.setAttribute('stroke-opacity', '0.6');
+    path.setAttribute('stroke-linejoin', 'round');
+    g.appendChild(path);
+    // 加入裁剪区
+    const cp = document.createElementNS(SVGNS, 'path');
+    cp.setAttribute('d', p.d);
+    clip.appendChild(cp);
+  });
+  defs.appendChild(clip);
+})();
+
+(function drawPlaceLayer() {
+  const g = document.getElementById('placeLabels');
+  g.setAttribute('opacity', '0.55');
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  // 郡区注记（块内文字）—— 秦专属注记不再固定显示
+  [].forEach(r => {
+    const [x, y] = ll(r.lon, r.lat);
+    const t = document.createElementNS(SVGNS, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '4.2');
+    t.setAttribute('font-weight', '700');
+    t.setAttribute('fill', '#4a3b2a');
+    t.setAttribute('paint-order', 'stroke');
+    t.setAttribute('stroke', '#fff');
+    t.setAttribute('stroke-width', '1.1');
+    t.setAttribute('stroke-opacity', '0.7');
+    t.textContent = r.name;
+    g.appendChild(t);
+  });
+  // 城邑（圆点 + 名称，都城用★）—— 秦专属城邑不再固定显示
+  [].forEach(p => {
+    const [x, y] = ll(p.lon, p.lat);
+    if (p.capital) {
+      const star = document.createElementNS(SVGNS, 'text');
+      star.setAttribute('x', x - 3.2); star.setAttribute('y', y + 1.4);
+      star.setAttribute('text-anchor', 'middle');
+      star.setAttribute('font-size', '5');
+      star.setAttribute('fill', '#1a1a1a');
+      star.textContent = '★';
+      g.appendChild(star);
+    } else {
+      const dot = document.createElementNS(SVGNS, 'circle');
+      dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+      dot.setAttribute('r', '1');
+      dot.setAttribute('fill', '#b03a2e');
+      dot.setAttribute('stroke', '#fff');
+      dot.setAttribute('stroke-width', '0.4');
+      g.appendChild(dot);
+    }
+    const t = document.createElementNS(SVGNS, 'text');
+    t.setAttribute('x', x + 1.6); t.setAttribute('y', y + 1.6);
+    t.setAttribute('font-size', '4.2');
+    t.setAttribute('font-weight', '700');
+    t.setAttribute('fill', '#3a2a1a');
+    t.setAttribute('paint-order', 'stroke');
+    t.setAttribute('stroke', '#fff');
+    t.setAttribute('stroke-width', '1.1');
+    t.setAttribute('stroke-opacity', '0.75');
+    t.textContent = p.name;
+    g.appendChild(t);
+  });
+  // 特殊地物（▲ 西沙群岛）—— 不再固定显示
+  [].forEach(m => {
+    const [x, y] = ll(m.lon, m.lat);
+    const tri = document.createElementNS(SVGNS, 'text');
+    tri.setAttribute('x', x); tri.setAttribute('y', y);
+    tri.setAttribute('text-anchor', 'middle');
+    tri.setAttribute('font-size', '4');
+    tri.setAttribute('fill', '#5a4a3a');
+    tri.textContent = '▲';
+    g.appendChild(tri);
+    const t = document.createElementNS(SVGNS, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y + 4.2);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '4');
+    t.setAttribute('font-weight', '700');
+    t.setAttribute('fill', '#5a4a3a');
+    t.setAttribute('paint-order', 'stroke');
+    t.setAttribute('stroke', '#fff');
+    t.setAttribute('stroke-width', '1');
+    t.setAttribute('stroke-opacity', '0.7');
+    t.textContent = m.name;
+    g.appendChild(t);
+  });
+  // 周边国名（灰褐色，斜体感）
+  COUNTRY_LABELS.forEach(c => {
+    const [x, y] = ll(c.lon, c.lat);
+    const t = document.createElementNS(SVGNS, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '4');
+    t.setAttribute('font-weight', '600');
+    t.setAttribute('fill', '#9a8c72');
+    t.setAttribute('letter-spacing', '0.3');
+    t.textContent = c.name;
+    g.appendChild(t);
+  });
+})();
+
+/* 绘制经纬网格（每30度）*/
+(function drawGrid() {
+  const g = document.getElementById('grid');
+  for (let lon = -180; lon <= 180; lon += 30) {
+    const [x1] = ll(lon, 90), [x2] = ll(lon, -90);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', ll(lon,90)[0]); line.setAttribute('y1', 0);
+    line.setAttribute('x2', ll(lon,-90)[0]); line.setAttribute('y2', 360);
+    g.appendChild(line);
+  }
+  for (let lat = -60; lat <= 60; lat += 30) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', 0); line.setAttribute('y1', ll(0,lat)[1]);
+    line.setAttribute('x2', 720); line.setAttribute('y2', ll(0,lat)[1]);
+    g.appendChild(line);
+  }
+})();
+
+/* ============================================================
+   二·补、固定地理标注（大洲名 + 主要海域名）
+   始终显示，为丝路路线提供地理参照。
+   ============================================================ */
+(function drawGeoLabels() {
+  const g = document.getElementById('geoLabels');
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  // 大洲标注 [名称, 经度, 纬度]（仅亚欧非，地图已裁切为东半球且不绘制大洋洲）
+  const continents = [
+    ['欧洲', 18, 50], ['亚洲', 95, 48], ['非洲', 20, 5]
+  ];
+  // 海域标注（斜体浅色，仅保留东半球海域）
+  const oceans = [
+    ['印度洋', 75, -25],
+    ['南海', 114, 12], ['地中海', 18, 35], ['阿拉伯海', 63, 14],
+    ['孟加拉湾', 88, 13]
+  ];
+  continents.forEach(([name, lon, lat]) => {
+    const [x, y] = ll(lon, lat);
+    const t = document.createElementNS(SVGNS, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '11');
+    t.setAttribute('font-weight', '700');
+    t.setAttribute('fill', '#8a7a55');
+    t.setAttribute('opacity', '0.75');
+    t.textContent = name;
+    g.appendChild(t);
+  });
+  oceans.forEach(([name, lon, lat]) => {
+    const [x, y] = ll(lon, lat);
+    const t = document.createElementNS(SVGNS, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '8');
+    t.setAttribute('font-style', 'italic');
+    t.setAttribute('fill', '#5a8bb0');
+    t.setAttribute('opacity', '0.8');
+    t.textContent = name;
+    g.appendChild(t);
+  });
+})();
+
+/* ============================================================
+   三、各朝代数据：文字线索 + 地图路线/节点（经纬度）
+   routes: { land:[[lon,lat],...], sea:[[lon,lat],...] }  线路途经点
+   nodes:  [{name, lon, lat, type:'land'|'sea'|'frontier'}] 关键标注点
+   史实依据通行史学常识，不虚构。
+   ============================================================ */
+
+/* ============================================================
+   四·五、现代丝绸之路（一带一路）专题数据
+   与朝代时间轴解耦：作为独立模块，不参与朝代切换的高亮与排序。
+   内容依据公开通行资料整理。
+   ============================================================ */
+
+/* ============================================================
+   四、渲染左侧导航 + 右侧内容
+   ============================================================ */
+const leftPanel = document.getElementById('leftPanel');
+const contentHead = document.getElementById('contentHead');
+const infoCard = document.getElementById('infoCard');
+const routesLayer = document.getElementById('routesLayer');
+const territoryLayer = document.getElementById('territoryLayer');
+const mapTitle = document.getElementById('mapTitle');
+const SVGNS = 'http://www.w3.org/2000/svg';
+const worldSvg = document.getElementById('worldSvg');
+const WORLD_VIEW_BOX = [320, 24, 340, 236];
+const CHINA_VIEW_BOX = [480, 62, 165, 112];
+let currentMapViewBox = WORLD_VIEW_BOX;
+
+function isInChinaRegion(point) {
+  const [lon, lat] = point;
+  return lon >= 73 && lon <= 135 && lat >= 18 && lat <= 54;
+}
+
+function getMapPoints(source) {
+  return [
+    ...(source?.routes?.land || []),
+    ...(source?.routes?.sea || []),
+    ...(source?.nodes || []).map(node => [node.lon, node.lat]),
+  ];
+}
+
+function setMapScope(source) {
+  const points = getMapPoints(source);
+  const isChinaScope = points.length > 0 && points.every(isInChinaRegion);
+  currentMapViewBox = isChinaScope ? CHINA_VIEW_BOX : WORLD_VIEW_BOX;
+  worldSvg.setAttribute('viewBox', currentMapViewBox.join(' '));
+  worldSvg.classList.toggle('china-scope', isChinaScope);
+}
+
+function getCurrentMapBounds(padding = 2) {
+  const [x, y, width, height] = currentMapViewBox;
+  return {
+    maxX: x + width - padding,
+    maxY: y + height - padding,
+    minX: x + padding,
+    minY: y + padding,
+  };
+}
+
+/* ------------------------------------------------------------
+   关键词词条库：人物 / 制度 / 地名 / 事件 等
+   命中文本中的关键词后高亮，鼠标悬停（移动端点击）显示解释。
+   说明均依据通行史学常识整理，不臆造史实。
+   ------------------------------------------------------------ */
+// 关键词按长度降序，优先匹配更长词条，避免「市舶司」被「市舶使」截断等问题
+const GLOSSARY_KEYS = Object.keys(GLOSSARY).sort((a,b)=>b.length-a.length);
+
+/* 转义正则元字符（词条含「·」「(」等）*/
+function escapeReg(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+const GLOSSARY_RE = new RegExp(GLOSSARY_KEYS.map(escapeReg).join('|'), 'g');
+
+/* 给一段纯文本中的关键词包裹高亮 + tooltip。先转义 HTML 再替换，安全。*/
+function highlight(text){
+  if (!text) return '';
+  const esc = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return esc.replace(GLOSSARY_RE, m => {
+    const tip = GLOSSARY[m].replace(/"/g,'&quot;');
+    return `<span class="kw" tabindex="0" data-tip="${tip}">${m}</span>`;
+  });
+}
+
+/* 参考资料区块：可点击跳转的外部文献链接 */
+function renderRefs(refs) {
+  if (!refs || !refs.length) return '';
+  let h = `<div class="refs-block"><div class="refs-title">📚 参考资料 · 文献（点击跳转）</div><div class="refs-list">`;
+  refs.forEach(r => {
+    h += `<a class="ref-link" href="${r.u}" target="_blank" rel="noopener noreferrer">${r.t}<span class="ref-ext">↗</span></a>`;
+  });
+  return h + '</div></div>';
+}
+
+/* 单类丝路分段（陆上/海上/海疆）—— 标题头 + 时间轴步骤流 + 底部范围/价值 */
+function renderPanel(type, name, icon, data) {
+  if (!data) return '';
+  const cnt = (data.events || []).length;
+  let h = `<div class="route-sec" data-type="${type}">`;
+  // 分段标题头
+  h += `<div class="sec-head">
+      <span class="sec-ic">${icon}</span>
+      <span class="sec-tx"><span class="sec-name">${name}</span><span class="sec-cnt">${cnt} 条史实</span></span>
+    </div>`;
+  // 事件:竖向时间轴
+  const events = data.events || [];
+  if (events.length) {
+    h += `<div class="timeline">`;
+    events.forEach((e, i) => {
+      h += `<div class="tl-item"><span class="tl-no">${i+1}</span><div class="tl-text">${highlight(e)}</div></div>`;
+    });
+    h += `</div>`;
+  }
+  // 底部:路线范围 / 历史价值
+  if (data.range || data.value) {
+    h += `<div class="panel-foot">`;
+    if (data.range) h += `<div class="foot-row"><span class="foot-k">路线范围</span><span class="foot-v">${highlight(data.range)}</span></div>`;
+    if (data.value) h += `<div class="foot-row is-value"><span class="foot-k">历史价值</span><span class="foot-v">${highlight(data.value)}</span></div>`;
+    h += `</div>`;
+  }
+  return h + '</div>';
+}
+
+/* 三类丝路:全部铺平顺序展示（不使用选项卡切换）*/
+function renderTabs(era) {
+  const META = [
+    { type:'land',     icon:'⛰', name:'陆上丝绸之路', data:era.land },
+    { type:'sea',      icon:'⛵', name:'海上丝绸之路', data:era.sea },
+    { type:'frontier', icon:'⚓', name:'海疆发展',     data:era.frontier },
+  ].filter(m => m.data);
+  if (!META.length) return '';
+  let h = '';
+  META.forEach(m => { h += renderPanel(m.type, m.name, m.icon, m.data); });
+  return h;
+}
+
+/* 铺平形态无需交互绑定，保留空函数以兼容调用点 */
+function bindTabs(root) {}
+
+/* 左侧：朝代导航列表（仅名称 + 年代）*/
+function renderNav() {
+  const list = document.getElementById('eraNavList');
+  // 内层容器随内容增高，使贯穿虚线覆盖全部朝代项（含明、清）
+  const inner = document.createElement('div');
+  inner.className = 'era-timeline-inner';
+  ERAS.forEach(era => {
+    const item = document.createElement('div');
+    item.className = 'era-nav';
+    item.dataset.id = era.id;
+    item.innerHTML =
+      `<div class="era-name">${era.name}</div>
+       <div class="era-time">${era.time}</div>`;
+    item.addEventListener('click', () => selectEra(era.id));
+    inner.appendChild(item);
+  });
+  list.appendChild(inner);
+}
+
+/* 右侧：渲染选中朝代的文字介绍 */
+function renderContent(era) {
+  // 标题与综合价值
+  contentHead.innerHTML =
+    `<div class="era-name">${era.name}</div>
+     <div class="era-time">${era.time}</div>` +
+    (era.value ? `<div class="value">综合价值：${highlight(era.value)}</div>` : '');
+  // 三类丝路线索:选项卡形态
+  infoCard.innerHTML =
+    renderTabs(era) +
+    renderRefs(era.refs);
+  bindTabs(infoCard);
+}
+
+/* ============================================================
+   六、地图标注绘制
+   ============================================================ */
+function drawPolyline(points, cls) {
+  if (!points || points.length < 2) return;
+  const d = points.map((p,i) => {
+    const [x,y] = ll(p[0],p[1]);
+    return (i===0?'M':'L') + x + ' ' + y;
+  }).join(' ');
+  const path = document.createElementNS(SVGNS,'path');
+  path.setAttribute('d', d);
+  path.setAttribute('class', cls);
+  routesLayer.appendChild(path);
+  // 用 stroke-dashoffset 做路线生长动画
+  const len = path.getTotalLength();
+  path.style.strokeDasharray = len;
+  path.style.strokeDashoffset = len;
+  path.style.transition = 'none';
+  requestAnimationFrame(() => {
+    path.style.transition = 'stroke-dashoffset 1.1s ease';
+    path.style.strokeDashoffset = '0';
+    // 动画结束后恢复虚线样式
+    setTimeout(() => {
+      path.style.transition = 'none';
+      path.style.strokeDasharray = cls.includes('land') ? '4 4' : '1.4 4.6';
+      path.style.strokeDashoffset = '0';
+    }, 1150);
+  });
+}
+
+/* ------------------------------------------------------------
+   疆域范围标注：依据当时朝代大致控制区域，绘半透明填充多边形
+   territory: { range:[[lon,lat],...], label:"…", labelAt:[lon,lat] }
+   仅作示意性范围，史实依据通行史学常识，不精确到边界。
+   ------------------------------------------------------------ */
+function drawTerritory(t) {
+  if (!t || !t.range || t.range.length < 3) return;
+  const pts = t.range.map(p => ll(p[0], p[1]).join(',')).join(' ');
+  const poly = document.createElementNS(SVGNS, 'polygon');
+  poly.setAttribute('points', pts);
+  poly.setAttribute('class', 'territory-fill');
+  poly.setAttribute('clip-path', 'url(#landClip)');
+  territoryLayer.appendChild(poly);
+  // 范围标签
+  if (t.label && t.labelAt) {
+    const [lx, ly] = ll(t.labelAt[0], t.labelAt[1]);
+    const tx = document.createElementNS(SVGNS, 'text');
+    tx.setAttribute('x', lx);
+    tx.setAttribute('y', ly);
+    tx.setAttribute('text-anchor', 'middle');
+    tx.setAttribute('class', 'territory-label');
+    tx.textContent = t.label;
+    territoryLayer.appendChild(tx);
+  }
+}
+
+/* ------------------------------------------------------------
+   节点标注：标记 + 紧邻地图标点的「古名 / 今名」双行标签
+   通过碰撞检测自动避让，让标签直接落在地图点位旁，
+   既补充了点位信息，也同时呈现古代与现代地名，不再依赖左下角图例。
+   ------------------------------------------------------------ */
+const COLOR_MAP = { land:'var(--land-color)', sea:'var(--sea-color)', frontier:'var(--frontier-color)' };
+// 估算标签宽度（按缩小后的地图标注字号粗略测算），用于碰撞框
+function estLabelWidth(node) {
+  const hist = node.name || '';
+  const modern = node.modern || '';
+  const measure = s => [...s].reduce((w,ch)=> w + (/[一-龥]/.test(ch)?4.5:2.6), 0);
+  return Math.max(measure(hist), measure('今'+modern)) + 4; // 取古今两行较宽者
+}
+// 候选放置方位：8 个方向（含正上/正下）×多档引线距离，距离越大引线越长。
+// 标点过密时，自动用更长的引线把标签引到远处空白处标注，避免互相遮盖。
+const DIRECTIONS = [
+  { ux: 1,  uy: 0,   anchor:'start' },  // 右
+  { ux:-1,  uy: 0,   anchor:'end'   },  // 左
+  { ux: 1,  uy: 1,   anchor:'start' },  // 右下
+  { ux:-1,  uy: 1,   anchor:'end'   },  // 左下
+  { ux: 1,  uy:-1,   anchor:'start' },  // 右上
+  { ux:-1,  uy:-1,   anchor:'end'   },  // 左上
+  { ux: 0,  uy: 1,   anchor:'middle'},  // 正下
+  { ux: 0,  uy:-1,   anchor:'middle'}   // 正上
+];
+const LEADER_DISTS = [7, 16, 26, 38, 52]; // 引线长度档位：先近后远
+const LABEL_H = 10.6; // 双行标签高度（含古名行+今名行）
+
+/* 生成所有候选放置点：方向 × 距离，按"先近后远、先右后左"排序 */
+function buildPlacements() {
+  const list = [];
+  LEADER_DISTS.forEach(dist => {
+    DIRECTIONS.forEach(d => {
+      // 标签锚点（文字起始）相对标记的偏移
+      const dx = d.ux * dist;
+      const dy = d.uy * dist + (d.uy === 0 ? -1 : 0); // 水平方向略上移使双行居中
+      list.push({ dx, dy, anchor:d.anchor, dist });
+    });
+  });
+  return list;
+}
+const PLACEMENTS = buildPlacements();
+
+function getNodeMarkerMetrics() {
+  return worldSvg.classList.contains('china-scope')
+    ? { dotR: 1, haloR: 1.9, obstacle: 3.2, square: 2 }
+    : { dotR: 2.2, haloR: 4, obstacle: 6, square: 4.2 };
+}
+
+/* 绘制全部节点：先画标记，再用避让算法逐个放置文字标签 */
+function drawNodes(nodes) {
+  if (!nodes || !nodes.length) return;
+  const marker = getNodeMarkerMetrics();
+  const markerPts = (nodes||[]).map(n => { const [x,y]=ll(n.lon,n.lat); return {x,y}; });
+  // 已占用矩形：先把所有标记点本身作为障碍，避免标签压住别的标点
+  const placed = markerPts.map(pt => ({
+    x:pt.x-marker.obstacle/2,
+    y:pt.y-marker.obstacle/2,
+    w:marker.obstacle,
+    h:marker.obstacle,
+  }));
+  // 1) 先画所有标记点（缩小尺寸 + 光晕；保证标签压在标记之上）
+  nodes.forEach(node => {
+    const [x,y] = ll(node.lon, node.lat);
+    // 光晕底圈（柔和白晕，先绘于标记之下）
+    const halo = document.createElementNS(SVGNS,'circle');
+    halo.setAttribute('cx', x); halo.setAttribute('cy', y); halo.setAttribute('r', marker.haloR);
+    halo.setAttribute('class','node-halo');
+    routesLayer.appendChild(halo);
+    if (node.type === 'frontier') {
+      const r = document.createElementNS(SVGNS,'rect');
+      r.setAttribute('x', x-marker.square/2); r.setAttribute('y', y-marker.square/2);
+      r.setAttribute('width', marker.square); r.setAttribute('height', marker.square);
+      r.setAttribute('class','frontier-marker');
+      routesLayer.appendChild(r);
+    } else {
+      const c = document.createElementNS(SVGNS,'circle');
+      c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', marker.dotR);
+      c.setAttribute('fill', COLOR_MAP[node.type]);
+      c.setAttribute('class','node-dot');
+      routesLayer.appendChild(c);
+    }
+  });
+  // 2) 逐节点放置标签：先近后远尝试，碰撞则换方向/拉长引线引到远处
+  nodes.forEach(node => {
+    const [x,y] = ll(node.lon, node.lat);
+    const w = estLabelWidth(node);
+    let chosen = null;
+    for (const p of PLACEMENTS) {
+      const rect = labelRect(x, y, p, w);
+      // 不超出当前可见地图边界；中国范围视图会随朝代动态收紧。
+      const bounds = getCurrentMapBounds();
+      if (rect.x < bounds.minX || rect.x + rect.w > bounds.maxX || rect.y < bounds.minY || rect.y + rect.h > bounds.maxY) continue;
+      const hit = placed.some(r => !(rect.x+rect.w < r.x || rect.x > r.x+r.w || rect.y+rect.h < r.y || rect.y > r.y+r.h));
+      if (!hit) { chosen = { p, rect }; break; }
+    }
+    // 全部候选都冲突时，退而取最远档的右侧位（信息不丢，仅轻微叠放）
+    if (!chosen) {
+      const p = PLACEMENTS[PLACEMENTS.length - DIRECTIONS.length]; // 最远档第一个方向
+      chosen = { p, rect: labelRect(x, y, p, w) };
+    }
+    placed.push(chosen.rect);
+    drawNodeLabel(node, x, y, chosen.p, w);
+  });
+}
+
+/* 计算某放置点下标签的包围盒（左上角 + 宽高）。middle 锚点居中展开。*/
+function labelRect(x, y, p, w) {
+  let bx;
+  if (p.anchor === 'end') bx = x + p.dx - w;
+  else if (p.anchor === 'middle') bx = x + p.dx - w/2;
+  else bx = x + p.dx;
+  const by = y + p.dy - LABEL_H/2;
+  return { x:bx, y:by, w, h:LABEL_H };
+}
+
+/* 绘制单个节点的双行文字标签（古名 + 今名），含连接引线。
+   p.dist 越大引线越长，用于把过密的标点引到远处空白处。*/
+function drawNodeLabel(node, x, y, p, w) {
+  const tx = x + p.dx;
+  const histY = y + p.dy;
+  // 引线终点：连到标签的靠近标记一侧
+  let ex;
+  if (p.anchor === 'end') ex = tx + 1;          // 标签在左，连到其右端
+  else if (p.anchor === 'middle') ex = tx;       // 居中
+  else ex = tx - 1;                              // 标签在右，连到其左端
+  const ey = histY - 2;
+  const line = document.createElementNS(SVGNS,'line');
+  line.setAttribute('x1', x); line.setAttribute('y1', y);
+  line.setAttribute('x2', ex); line.setAttribute('y2', ey);
+  // 引线较长时（被引到远处）用更明显的虚线样式，便于追踪到对应标点
+  line.setAttribute('class', p.dist >= 26 ? 'label-leader far' : 'label-leader');
+  routesLayer.appendChild(line);
+  // 远引线在标签端补一个小连接点，强化指向关系
+  if (p.dist >= 26) {
+    const k = document.createElementNS(SVGNS,'circle');
+    k.setAttribute('cx', ex); k.setAttribute('cy', ey); k.setAttribute('r', 1.1);
+    k.setAttribute('class','leader-knot');
+    routesLayer.appendChild(k);
+  }
+  // 文字（两行：古名为主，今名为辅注释）
+  const text = document.createElementNS(SVGNS,'text');
+  text.setAttribute('x', tx); text.setAttribute('y', histY);
+  text.setAttribute('text-anchor', p.anchor);
+  text.setAttribute('class', 'node-label '+node.type);
+  // 第1行：历史地名
+  const t1 = document.createElementNS(SVGNS,'tspan');
+  t1.setAttribute('x', tx);
+  t1.setAttribute('class','hist-name');
+  t1.textContent = node.name;
+  text.appendChild(t1);
+  // 第2行：今地名
+  if (node.modern) {
+    const t2 = document.createElementNS(SVGNS,'tspan');
+    t2.setAttribute('x', tx);
+    t2.setAttribute('dy', '4.8');
+    t2.setAttribute('class','modern-name');
+    t2.textContent = node.modern;
+    text.appendChild(t2);
+  }
+  routesLayer.appendChild(text);
+}
+
+/* ============================================================
+   七、选中朝代 → 更新导航高亮 + 渲染右侧文字 + 重绘地图
+   ============================================================ */
+function selectEra(id) {
+  const era = ERAS.find(e => e.id === id);
+  if (!era) return;
+
+  // 左侧导航高亮（同时取消现代专题高亮）
+  document.querySelectorAll('.era-nav').forEach(n =>
+    n.classList.toggle('active', n.dataset.id === id));
+
+  // 渲染右侧文字介绍
+  renderContent(era);
+
+
+  // 清空旧标注
+  routesLayer.innerHTML = '';
+  territoryLayer.innerHTML = '';
+  setMapScope(era);
+  // 地图标题：朝代 · 时间 · 丝路标注
+  mapTitle.textContent = era.name + ' · ' + era.time + ' · 丝路标注';
+  // 绘疆域范围（先绘，压在路线/节点下方）
+  drawTerritory(era.territory);
+  // 绘路线
+  drawPolyline(era.routes.land, 'route-land');
+  drawPolyline(era.routes.sea, 'route-sea');
+  // 绘节点（后绘保证压在线上方）：标记 + 古今地名标签，自动避让
+  drawNodes(era.nodes);
+}
+
+/* 选中「现代丝绸之路」专题 —— 与朝代切换相互独立 */
+function selectModern() {
+  // 高亮现代入口，清除所有朝代高亮
+  document.querySelectorAll('.era-nav').forEach(n =>
+    n.classList.toggle('active', n.dataset.id === '__modern__'));
+
+  // 标题与导语
+  contentHead.innerHTML =
+    `<div class="era-name">${MODERN.name}</div>
+     <div class="era-time">${MODERN.subtitle}</div>
+     <div class="value">${highlight(MODERN.intro)}</div>`;
+
+  // 两条现代脉络:铺平分段形态
+  const mTabs =
+    renderPanel('land', MODERN.belt.title, '🚄', MODERN.belt) +
+    renderPanel('sea', MODERN.road.title, '🚢', MODERN.road);
+  // 现代发展大事时间线（具体年月）
+  let mTimeline = '';
+  if (MODERN.timeline && MODERN.timeline.length) {
+    mTimeline =
+      `<div class="modern-timeline"><div class="mt-title">🗓 发展时间线</div>` +
+      MODERN.timeline.map(it => {
+        const sp = it.indexOf('　') >= 0 ? it.indexOf('　') : it.indexOf(' ');
+        const date = it.slice(0, sp).trim();
+        const desc = it.slice(sp).trim();
+        return `<div class="mt-item"><span class="mt-date">${date}</span><span class="mt-desc">${highlight(desc)}</span></div>`;
+      }).join('') +
+      `</div>`;
+  }
+
+  infoCard.innerHTML =
+    `<div class="modern-badge">现代专题 · 与古代朝代时间轴解耦</div>` +
+    mTimeline +
+    mTabs +
+    `<div class="value" style="margin-top:12px">综合价值：${highlight(MODERN.value)}</div>` +
+    renderRefs(MODERN.refs);
+  bindTabs(infoCard);
+
+  // 重绘地图标注
+  routesLayer.innerHTML = '';
+  territoryLayer.innerHTML = '';
+  setMapScope(MODERN);
+  mapTitle.textContent = MODERN.name + ' · 2013年~至今 · 丝路标注';
+  drawPolyline(MODERN.routes.land, 'route-land');
+  drawPolyline(MODERN.routes.sea, 'route-sea');
+  drawNodes(MODERN.nodes);
+}
+
+/* ============================================================
+   七·五、点击地图 → 弹出放大弹窗（可拖拽缩放、横纵向滚动）
+   - 点击右侧地图：克隆当前 SVG 注入弹窗并打开
+   - 弹窗右下角可拖拽改变大小；内容大于视口时双向滚动
+   - 点击「关闭」、遮罩或按 Esc 关闭
+   ============================================================ */
+const mapModal = document.getElementById('mapModal');
+const mapModalScroll = document.getElementById('mapModalScroll');
+const mapModalClose = document.getElementById('mapModalClose');
+
+function openMapModal() {
+  // 克隆当前地图 SVG（含本次朝代的全部标注），放入可滚动视口
+  const clone = worldSvg.cloneNode(true);
+  clone.removeAttribute('id');
+  clone.classList.remove('zoomed');
+  mapModalScroll.innerHTML = '';
+  mapModalScroll.appendChild(clone);
+  mapModal.classList.add('open');
+  mapModal.setAttribute('aria-hidden', 'false');
+}
+function closeMapModal() {
+  mapModal.classList.remove('open');
+  mapModal.setAttribute('aria-hidden', 'true');
+  mapModalScroll.innerHTML = '';
+}
+
+worldSvg.addEventListener('click', openMapModal);
+mapModalClose.addEventListener('click', closeMapModal);
+mapModal.addEventListener('click', e => { if (e.target === mapModal) closeMapModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && mapModal.classList.contains('open')) closeMapModal(); });
+
+
+/* ============================================================
+   七·八、关键词 tooltip 浮层（悬停 / 聚焦 / 移动端点击 显示解释）
+   ============================================================ */
+const kwTip = document.createElement('div');
+kwTip.className = 'kw-tip';
+kwTip.setAttribute('role','tooltip');
+document.body.appendChild(kwTip);
+let kwTipPinned = null; // 移动端点击锁定的当前关键词
+
+function showKwTip(el){
+  kwTip.textContent = el.dataset.tip || '';
+  kwTip.classList.add('show');
+  const r = el.getBoundingClientRect();
+  // 先显示以测量尺寸，再定位（默认置于词上方，空间不足则下方）
+  const tw = kwTip.offsetWidth, th = kwTip.offsetHeight;
+  let left = r.left + r.width/2 - tw/2 + window.scrollX;
+  left = Math.max(8, Math.min(left, window.scrollX + document.documentElement.clientWidth - tw - 8));
+  let top = r.top + window.scrollY - th - 8;
+  kwTip.classList.remove('below');
+  if (top < window.scrollY + 4) { top = r.bottom + window.scrollY + 8; kwTip.classList.add('below'); }
+  kwTip.style.left = left + 'px';
+  kwTip.style.top = top + 'px';
+}
+function hideKwTip(){ kwTip.classList.remove('show'); }
+
+// 事件委托：悬停 / 键盘聚焦显示，移开 / 失焦隐藏
+document.addEventListener('mouseover', e => {
+  const kw = e.target.closest('.kw'); if (kw && !kwTipPinned) showKwTip(kw);
+});
+document.addEventListener('mouseout', e => {
+  const kw = e.target.closest('.kw'); if (kw && !kwTipPinned) hideKwTip();
+});
+document.addEventListener('focusin', e => {
+  const kw = e.target.closest('.kw'); if (kw) showKwTip(kw);
+});
+document.addEventListener('focusout', e => {
+  const kw = e.target.closest('.kw'); if (kw) hideKwTip();
+});
+// 移动端 / 触屏：点击关键词锁定显示，点击别处关闭
+document.addEventListener('click', e => {
+  const kw = e.target.closest('.kw');
+  if (kw) { kwTipPinned = kw; showKwTip(kw); e.stopPropagation(); }
+  else if (kwTipPinned) { kwTipPinned = null; hideKwTip(); }
+});
+
+/* ============================================================
+   八、初始化
+   ============================================================ */
+(function bootstrap() {
+  const loading = document.getElementById('appLoading');
+  // 数据来自 resources/html-data/silk-road.json；防御性校验
+  if (typeof ERAS === 'undefined' || !Array.isArray(ERAS) || ERAS.length === 0) {
+    if (loading) {
+      const txt = loading.querySelector('.al-text');
+      const spin = loading.querySelector('.al-spinner');
+      if (spin) spin.style.display = 'none';
+      if (txt) txt.textContent = '数据加载失败，请检查网络后刷新重试';
+    }
+    return;  // 无数据则保留加载层并提示，不继续初始化
+  }
+  renderNav();
+  document.getElementById('modernEntry').addEventListener('click', selectModern);
+  selectEra(ERAS[0].id);  // 默认展示第一个朝代
+  // 地图默认最小态：不自动放大，待用户「展开地图」后再以中国为中心查看
+
+  // 初始化完成：淡出全局加载层（下一帧触发过渡，保证首屏内容已绘制）
+  if (loading) {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => loading.classList.add('hidden'));
+    });
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中华非遗 · 二十项瑰宝</title>
+<style>
+/* ===================== 设计变量 ===================== */
+:root{
+  --bg:#efe6d6; --bg-deep:#e6dac6; --panel:#fbf7ef; --ink:#2b2722; --ink-soft:#6b6155;
+  --red:#9e2b25; --red-deep:#7a201c; --gold:#b08d57; --gold-soft:#cdb389; --jade:#4a6c5d;
+  --line:#ddcfb6; --shadow:0 18px 50px rgba(43,39,34,.16);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:"Songti SC","STSong","SimSun","FangSong",serif;
+  color:var(--ink); background:var(--bg);
+  background-image:radial-gradient(circle at 20% 10%, rgba(176,141,87,.10), transparent 45%),
+                   radial-gradient(circle at 85% 90%, rgba(74,108,93,.08), transparent 40%);
+  overflow:hidden; /* 由内部两栏各自滚动 */
+}
+
+/* ===================== 布局：左右两栏，各自独立滚动 ===================== */
+.layout{display:flex; height:100vh;}
+.sidebar{
+  flex:0 0 320px; width:320px; height:100%;
+  display:flex; flex-direction:column;
+  background:var(--bg-deep); border-right:1px solid var(--line);
+}
+.side-head{flex:0 0 auto; padding:20px 14px 12px; border-bottom:1px solid var(--line);}
+.menu-scroll{flex:1 1 auto; min-height:0; overflow-y:auto; padding:14px 14px 40px;}
+.content{flex:1 1 auto; min-width:0; height:100%; overflow-y:auto; padding:34px 46px 80px;}
+
+/* 自定义滚动条 */
+.menu-scroll::-webkit-scrollbar,.content::-webkit-scrollbar{width:10px;}
+.menu-scroll::-webkit-scrollbar-thumb,.content::-webkit-scrollbar-thumb{
+  background:var(--gold-soft); border-radius:6px; border:2px solid var(--bg-deep);
+}
+.content::-webkit-scrollbar-thumb{border-color:var(--bg);}
+.menu-scroll::-webkit-scrollbar-track,.content::-webkit-scrollbar-track{background:transparent;}
+
+/* ===================== 筛选区 ===================== */
+.filters{padding:0 10px 4px;}
+.filter-group{display:flex; align-items:flex-start; gap:8px; margin-bottom:10px;}
+.filter-group:last-child{margin-bottom:2px;}
+.filter-label{flex:0 0 32px; font-size:12px; letter-spacing:2px; color:var(--ink-soft); padding-top:6px;}
+.chips{display:flex; flex-wrap:wrap; gap:6px; flex:1;}
+.chip{
+  font-family:inherit; font-size:12.5px; letter-spacing:1px; cursor:pointer;
+  padding:4px 11px; border-radius:20px; color:var(--ink-soft);
+  background:rgba(251,247,239,.6); border:1px solid var(--line); transition:.18s;
+}
+.chip:hover{border-color:var(--gold-soft); color:var(--ink);}
+.chip.active{
+  background:linear-gradient(135deg,var(--red),var(--red-deep));
+  color:#f7ecd6; border-color:var(--red-deep); box-shadow:0 4px 12px rgba(158,43,37,.25);
+}
+.menu-item.hide{display:none;}
+.menu-empty{display:none; text-align:center; color:var(--ink-soft); font-size:13px; letter-spacing:1px; padding:30px 10px;}
+.menu-empty.show{display:block;}
+
+/* ===================== 菜单项 ===================== */
+.menu{list-style:none;}
+.menu-item{
+  display:flex; align-items:center; gap:12px;
+  padding:10px 12px; margin-bottom:8px; border-radius:12px;
+  cursor:pointer; transition:.22s; position:relative;
+  background:rgba(251,247,239,.5); border:1px solid transparent;
+}
+.menu-item:hover{background:var(--panel); border-color:var(--line); transform:translateX(2px);}
+.menu-item.active{
+  background:linear-gradient(135deg,#fff,#f6efe0);
+  border-color:var(--gold-soft); box-shadow:0 6px 18px rgba(176,141,87,.22);
+}
+.menu-item.active::before{
+  content:""; position:absolute; left:-14px; top:14px; bottom:14px; width:4px;
+  background:var(--red); border-radius:0 4px 4px 0;
+}
+.thumb{
+  width:46px; height:46px; flex:0 0 46px; border-radius:9px;
+  object-fit:cover; object-position:center; display:block;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
+}
+.menu-text{display:flex; flex-direction:column; min-width:0; flex:1;}
+.menu-name{font-size:16px; font-weight:700; letter-spacing:1px;}
+.menu-en{font-size:11px; color:var(--ink-soft); letter-spacing:.5px;
+  font-family:Georgia,serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.menu-tag{
+  font-size:10px; color:var(--red-deep); background:rgba(158,43,37,.10);
+  padding:3px 7px; border-radius:20px; white-space:nowrap; letter-spacing:.5px;
+}
+
+/* ===================== 详情：英雄横幅 ===================== */
+.project{display:none; animation:fade .5s ease;}
+.project.active{display:block;}
+@keyframes fade{from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;}}
+.hero{
+  position:relative; height:330px; border-radius:18px; overflow:hidden;
+  box-shadow:var(--shadow); margin-bottom:30px;
+}
+/* 实拍图改为独立资源后由 img 承载，等价于原来的 background-size/position:cover */
+.hero-img{
+  position:absolute; inset:0; width:100%; height:100%; display:block;
+  object-fit:cover; object-position:center;
+}
+.hero::after{content:""; position:absolute; inset:0;
+  background:linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.55) 100%);}
+.hero-stamp{
+  position:absolute; top:22px; right:24px; z-index:2;
+  width:60px; height:60px; border-radius:8px;
+  background:linear-gradient(145deg,var(--red),var(--red-deep));
+  color:#f7ecd6; display:flex; align-items:center; justify-content:center;
+  font-size:32px; font-weight:700; box-shadow:inset 0 0 0 2px rgba(255,255,255,.25), 0 6px 16px rgba(0,0,0,.3);
+}
+.hero-overlay{position:absolute; left:34px; bottom:28px; right:34px; z-index:2; color:#fdf6e8;}
+.hero-idx{font-family:Georgia,serif; font-size:13px; letter-spacing:5px; color:var(--gold-soft); margin-bottom:6px;}
+.hero-title{font-size:40px; letter-spacing:5px; font-weight:700; display:flex; align-items:baseline; gap:14px; text-shadow:0 2px 12px rgba(0,0,0,.5);}
+.hero-title small{font-size:16px; letter-spacing:1px; font-weight:400; color:var(--gold-soft); font-family:Georgia,serif;}
+.hero-sub{margin-top:10px; font-size:14px; letter-spacing:1.5px; color:#efe3cc;}
+
+/* ===================== 模块卡片 ===================== */
+.module{
+  background:var(--panel); border:1px solid var(--line); border-radius:16px;
+  padding:26px 30px; margin-bottom:24px; box-shadow:0 8px 26px rgba(43,39,34,.06);
+}
+.module-title{
+  font-size:21px; letter-spacing:3px; color:var(--red-deep);
+  display:flex; align-items:center; gap:12px; margin-bottom:16px;
+  padding-bottom:12px; border-bottom:1px dashed var(--gold-soft);
+}
+.mt-icon{
+  width:34px; height:34px; flex:0 0 34px; border-radius:50%;
+  background:linear-gradient(145deg,var(--gold),#9c7c45); color:#fff7e6;
+  display:flex; align-items:center; justify-content:center; font-size:16px;
+}
+.prose{font-size:16px; line-height:2.05; color:#3a342c; text-align:justify;}
+.story p{margin-bottom:12px;}
+.story blockquote{
+  margin:14px 0; padding:14px 20px; border-left:4px solid var(--red);
+  background:linear-gradient(90deg, rgba(158,43,37,.06), transparent);
+  border-radius:0 10px 10px 0; color:var(--ink-soft); font-style:italic; line-height:1.95;
+}
+
+/* ===================== 关键词 hover 提示 ===================== */
+.term{color:var(--red-deep); font-weight:700; cursor:help; position:relative;
+  border-bottom:1px dotted var(--red); padding:0 1px;}
+.term .tip{
+  visibility:hidden; opacity:0; position:absolute; left:50%; bottom:140%;
+  transform:translateX(-50%) translateY(6px);
+  width:max-content; max-width:300px; padding:11px 15px; z-index:30;
+  background:#2b2722; color:#f3ead8; font-size:13px; font-weight:400; font-style:normal;
+  line-height:1.7; letter-spacing:.5px; border-radius:9px; text-align:left;
+  box-shadow:0 12px 30px rgba(0,0,0,.3); transition:.22s; pointer-events:none;
+}
+.term .tip::after{content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:7px solid transparent; border-top-color:#2b2722;}
+.term:hover .tip{visibility:visible; opacity:1; transform:translateX(-50%) translateY(0);}
+
+/* ===================== 工艺步骤 ===================== */
+.steps{list-style:none;}
+.steps li{display:flex; gap:16px; padding:14px 0; border-bottom:1px dotted var(--line);}
+.steps li:last-child{border-bottom:none;}
+.step-no{
+  flex:0 0 38px; height:38px; border-radius:10px;
+  background:linear-gradient(145deg,var(--jade),#3a5849); color:#f0f6f1;
+  display:flex; align-items:center; justify-content:center;
+  font-family:Georgia,serif; font-size:15px; font-weight:700;
+}
+.step-body{display:flex; flex-direction:column; gap:3px;}
+.step-body strong{font-size:16px; letter-spacing:1px; color:var(--ink);}
+.step-body span{font-size:14.5px; line-height:1.85; color:var(--ink-soft); text-align:justify;}
+
+/* ===================== 响应式 ===================== */
+@media (max-width:880px){
+  .layout{flex-direction:column;}
+  .sidebar{flex:0 0 220px; width:100%; height:220px; border-right:none; border-bottom:1px solid var(--line);}
+  .content{padding:22px 18px 60px;}
+  .hero{height:240px;}
+  .hero-title{font-size:30px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 页面结构：仅空容器，无任何项目内容 ============ -->
+<div class="layout">
+  <nav class="sidebar">
+    <div class="side-head">
+      <div class="filters">
+        <div class="filter-group" data-dim="level">
+          <span class="filter-label">名录</span>
+          <div class="chips">
+            <button class="chip active" data-val="all">全部</button>
+            <button class="chip" data-val="world">人类非遗</button>
+            <button class="chip" data-val="national">国家级</button>
+          </div>
+        </div>
+        <div class="filter-group" data-dim="type">
+          <span class="filter-label">类型</span>
+          <div class="chips">
+            <button class="chip active" data-val="all">全部</button>
+            <button class="chip" data-val="craft">技艺</button>
+            <button class="chip" data-val="perform">表演</button>
+            <button class="chip" data-val="folk">民俗时序</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-scroll">
+      <ul class="menu" id="menu"></ul>
+      <div class="menu-empty" id="menuEmpty">该筛选条件下暂无项目</div>
+    </div>
+  </nav>
+  <main class="content" id="content"></main>
+</div>
+
+<!-- ============ 页面数据：纯 JSON，与结构、逻辑完全分离 ============ -->
+<script type="application/json" id="ndata" data-resource="intangible-culture-heritage.json"></script>
+
+<!-- ============ 渲染逻辑：从数据生成结构，逻辑与数据无关 ============ -->
+<script>
+(function(){
+  "use strict";
+  var DATA = JSON.parse(document.getElementById('ndata').textContent);
+
+  // —— 文本解析工具（构建期逻辑下沉到运行期）——
+  function escapeHTML(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  // 双引号属性上下文转义：插值到 src="..." 时防止属性被提前闭合
+  function escapeAttr(s){
+    return escapeHTML(String(s)).replace(/"/g,'&quot;');
+  }
+  // 将 <T t='解释'>关键词</T> 渲染为 hover 提示 span，其余文本转义
+  function renderTerms(text){
+    var re = /<T t='([\s\S]*?)'>([\s\S]*?)<\/T>/g;
+    var out = '', last = 0, m;
+    while((m = re.exec(text)) !== null){
+      out += escapeHTML(text.slice(last, m.index));
+      out += '<span class="term">' + escapeHTML(m[2]) +
+             '<span class="tip">' + escapeHTML(m[1]) + '</span></span>';
+      last = m.index + m[0].length;
+    }
+    out += escapeHTML(text.slice(last));
+    return out;
+  }
+  // story 以 @ 分隔：奇数段为引用块，其余为普通段落
+  function renderStory(story){
+    var parts = story.split('@').map(function(s){return s.trim();}).filter(Boolean);
+    return parts.map(function(seg, i){
+      var html = renderTerms(seg);
+      return (i % 2 === 1) ? '<blockquote>'+html+'</blockquote>' : '<p>'+html+'</p>';
+    }).join('\n');
+  }
+  // craft：每项 "标题|描述"，渲染为编号步骤
+  function renderCraft(list){
+    return list.map(function(item, i){
+      var idx = item.indexOf('|');
+      var title = idx >= 0 ? item.slice(0, idx) : item;
+      var desc  = idx >= 0 ? item.slice(idx + 1) : '';
+      var no = (i + 1 < 10 ? '0' : '') + (i + 1);
+      return '<li><span class="step-no">'+no+'</span>'+
+             '<div class="step-body"><strong>'+renderTerms(title)+'</strong>'+
+             '<span>'+renderTerms(desc)+'</span></div></li>';
+    }).join('\n');
+  }
+
+  var menu = document.getElementById('menu');
+  var content = document.getElementById('content');
+  var empty = document.getElementById('menuEmpty');
+
+  // —— 渲染菜单项 + 详情区 ——
+  DATA.forEach(function(p, i){
+    var li = document.createElement('li');
+    li.className = 'menu-item' + (i === 0 ? ' active' : '');
+    li.setAttribute('data-target', p.id);
+    li.setAttribute('data-level', p.level);
+    li.setAttribute('data-type', p.type);
+    li.innerHTML =
+      '<img class="thumb" src="'+escapeAttr(p.img)+'" alt="" loading="lazy" decoding="async">'+
+      '<span class="menu-text"><span class="menu-name">'+escapeHTML(p.name)+'</span>'+
+      '<span class="menu-en">'+escapeHTML(p.en)+'</span></span>'+
+      '<span class="menu-tag">'+escapeHTML(p.tag)+'</span>';
+    menu.appendChild(li);
+
+    var sec = document.createElement('section');
+    sec.className = 'project' + (i === 0 ? ' active' : '');
+    sec.id = p.id;
+    sec.innerHTML =
+      '<div class="hero">'+
+        '<img class="hero-img" src="'+escapeAttr(p.img)+'" alt="">'+
+        '<span class="hero-stamp">'+escapeHTML(p.stamp)+'</span>'+
+        '<div class="hero-overlay">'+
+          '<div class="hero-idx">'+escapeHTML(p.idx)+'</div>'+
+          '<h2 class="hero-title">'+escapeHTML(p.name)+'<small>'+escapeHTML(p.en)+'</small></h2>'+
+          '<p class="hero-sub">'+escapeHTML(p.sub)+'</p>'+
+        '</div>'+
+      '</div>'+
+      '<article class="module"><h3 class="module-title"><span class="mt-icon">壹</span>基础介绍</h3>'+
+        '<p class="prose">'+renderTerms(p.intro)+'</p></article>'+
+      '<article class="module"><h3 class="module-title"><span class="mt-icon">贰</span>相关故事</h3>'+
+        '<div class="prose story">'+renderStory(p.story)+'</div></article>'+
+      '<article class="module"><h3 class="module-title"><span class="mt-icon">叁</span>'+escapeHTML(p.craftTitle)+'</h3>'+
+        '<ol class="steps">'+renderCraft(p.craft)+'</ol></article>';
+    content.appendChild(sec);
+  });
+
+  var items = Array.prototype.slice.call(menu.querySelectorAll('.menu-item'));
+  var projects = content.querySelectorAll('.project');
+  var state = {level:'all', type:'all'};
+
+  function selectItem(item){
+    var id = item.getAttribute('data-target');
+    items.forEach(function(i){ i.classList.remove('active'); });
+    projects.forEach(function(p){ p.classList.remove('active'); });
+    item.classList.add('active');
+    var sec = document.getElementById(id);
+    if(sec){ sec.classList.add('active'); }
+    content.scrollTop = 0;
+  }
+  items.forEach(function(item){
+    item.addEventListener('click', function(){ selectItem(item); });
+  });
+
+  function applyFilter(){
+    var visible = [];
+    items.forEach(function(item){
+      var okL = state.level === 'all' || item.getAttribute('data-level') === state.level;
+      var okT = state.type  === 'all' || item.getAttribute('data-type')  === state.type;
+      if(okL && okT){ item.classList.remove('hide'); visible.push(item); }
+      else{ item.classList.add('hide'); }
+    });
+    empty.classList.toggle('show', visible.length === 0);
+    var activeItem = menu.querySelector('.menu-item.active');
+    if(visible.length && (!activeItem || activeItem.classList.contains('hide'))){
+      selectItem(visible[0]);
+    }
+  }
+
+  document.querySelectorAll('.filter-group').forEach(function(group){
+    var dim = group.getAttribute('data-dim');
+    group.querySelectorAll('.chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        group.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('active'); });
+        chip.classList.add('active');
+        state[dim] = chip.getAttribute('data-val');
+        applyFilter();
+      });
+    });
+  });
+
+  applyFilter();
+})();
+</script>
+
+</body>
+</html>

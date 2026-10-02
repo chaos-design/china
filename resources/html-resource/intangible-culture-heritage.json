@@ -1,0 +1,23 @@
+{
+  "homeEntries": [
+    {
+      "icon": "palette",
+      "status": "available",
+      "title": "中华非遗二十项瑰宝",
+      "description": "汇集剪纸、皮影、云锦、昆曲、陶瓷、书法等二十项中华非物质文化遗产。"
+    }
+  ],
+  "aboutItems": [
+    {
+      "title": "非遗技艺图谱",
+      "text": "以原始 HTML 页面保留二十项非遗的项目介绍、故事脉络与工艺步骤，方便集中浏览传统技艺。"
+    }
+  ],
+  "readingGuides": [
+    {
+      "icon": "palette",
+      "title": "浏览非遗瑰宝",
+      "text": "可按菜单切换非遗项目，对照基础介绍、相关故事和制作工艺理解不同技艺的文化内涵。"
+    }
+  ]
+}

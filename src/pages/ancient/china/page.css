@@ -1,0 +1,1131 @@
+/* biome-ignore-all lint/style/noDescendingSpecificity: generated legacy CSS order preserves original visual behavior. */
+/* Extracted from resources/scripts/ancient_china.html.
+ * The root selector is scoped for the React route shell. */
+
+.ancient-china-root {
+  --vermillion: 2 68% 47%;
+  --primary: #f3d28a;
+  --ring: #f3d28a;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #04060d;
+  color: #e6e8ef;
+  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+}
+.ancient-china-root * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+#cv {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.cosmic-flow {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.cosmic-meteor {
+  position: absolute;
+  display: block;
+}
+.cosmic-impact {
+  position: absolute;
+  display: block;
+}
+.cosmic-meteor {
+  --meteor-angle: -18deg;
+  --meteor-x: 118vw;
+  --meteor-y: -38vw;
+  width: 10rem;
+  height: 2px;
+  border-radius: 999px;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(122, 208, 255, 0.22) 46%, #f3d28a 100%);
+  filter: drop-shadow(0 0 8px rgba(243, 210, 138, 0.5));
+  transform: rotate(var(--meteor-angle));
+  transform-origin: right center;
+  animation: meteor-sweep 7s linear infinite;
+}
+.cosmic-meteor-reverse {
+  background: linear-gradient(90deg, #f3d28a 0%, rgba(122, 208, 255, 0.22) 54%, transparent 100%);
+  transform-origin: left center;
+}
+.cosmic-meteor-one {
+  top: 36%;
+  left: -12rem;
+}
+.cosmic-meteor-two {
+  --meteor-angle: 14deg;
+  --meteor-y: 29vw;
+  top: 56%;
+  left: -18rem;
+  animation-delay: 2.4s;
+  animation-duration: 8.5s;
+}
+.cosmic-meteor-three {
+  --meteor-angle: 18deg;
+  --meteor-x: -118vw;
+  --meteor-y: -34vw;
+  top: 76%;
+  right: -14rem;
+  animation-delay: 4.2s;
+  animation-duration: 9.5s;
+}
+.cosmic-meteor-four {
+  --meteor-angle: -16deg;
+  --meteor-x: -118vw;
+  --meteor-y: 32vw;
+  top: 24%;
+  right: -22rem;
+  width: 7rem;
+  animation-delay: 5.8s;
+  animation-duration: 8s;
+}
+.cosmic-meteor-five {
+  --meteor-angle: 52deg;
+  --meteor-x: 74vw;
+  --meteor-y: 92vh;
+  top: -18%;
+  left: 18%;
+  width: 12rem;
+  animation-delay: 7.1s;
+  animation-duration: 10s;
+}
+.cosmic-meteor-six {
+  --meteor-angle: -52deg;
+  --meteor-x: -76vw;
+  --meteor-y: 88vh;
+  top: -14%;
+  right: 16%;
+  width: 11rem;
+  animation-delay: 1.6s;
+  animation-duration: 9s;
+}
+.cosmic-impact {
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 999px;
+  opacity: 0;
+  background:
+    radial-gradient(
+      circle,
+      rgba(255, 244, 190, 0.58) 0 6%,
+      rgba(243, 210, 138, 0.24) 7% 22%,
+      transparent 48%
+    ),
+    conic-gradient(
+      from 15deg,
+      transparent 0 11%,
+      rgba(122, 208, 255, 0.3) 12% 13%,
+      transparent 14% 32%,
+      rgba(243, 210, 138, 0.36) 33% 34%,
+      transparent 35% 60%,
+      rgba(255, 126, 92, 0.24) 61% 63%,
+      transparent 64% 100%
+    );
+  filter: blur(0.8px) drop-shadow(0 0 10px rgba(243, 210, 138, 0.38));
+  transform: translate(-50%, -50%) scale(0.18);
+  animation: impact-burst 10.5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+.cosmic-impact::before,
+.cosmic-impact::after {
+  content: "";
+  position: absolute;
+  inset: 50% -44%;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(243, 210, 138, 0.48), transparent);
+}
+.cosmic-impact::after {
+  transform: rotate(72deg);
+  background: linear-gradient(90deg, transparent, rgba(122, 208, 255, 0.42), transparent);
+}
+.cosmic-impact-one {
+  top: 42%;
+  left: 46%;
+  animation-delay: 2.2s;
+}
+.cosmic-impact-two {
+  top: 59%;
+  left: 63%;
+  animation-delay: 5.2s;
+  animation-duration: 11.5s;
+}
+.cosmic-impact-three {
+  top: 34%;
+  left: 31%;
+  animation-delay: 7.4s;
+  animation-duration: 12s;
+}
+
+@keyframes meteor-sweep {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(var(--meteor-angle));
+  }
+  8% {
+    opacity: 0.85;
+  }
+  24% {
+    opacity: 0;
+    transform: translate3d(var(--meteor-x), var(--meteor-y), 0) rotate(var(--meteor-angle));
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--meteor-x), var(--meteor-y), 0) rotate(var(--meteor-angle));
+  }
+}
+
+@keyframes impact-burst {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.22) rotate(0deg);
+  }
+  24% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(0.54) rotate(12deg);
+  }
+  36% {
+    opacity: 0.18;
+    transform: translate(-50%, -50%) scale(1.05) rotate(28deg);
+  }
+  54%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.35) rotate(44deg);
+  }
+}
+
+/* 顶部标题 */
+#header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 14px 22px;
+  z-index: 10;
+  background: linear-gradient(180deg, rgba(4, 6, 13, 0.95), rgba(4, 6, 13, 0));
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  pointer-events: none;
+}
+#header .sub {
+  font-size: 12px;
+  color: #9aa3b8;
+  pointer-events: auto;
+}
+
+/* 工具栏 */
+#toolbar {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(8, 12, 28, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 5px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+  backdrop-filter: blur(6px);
+}
+#toolbar button {
+  padding: 6px 13px;
+  font-size: 12px;
+  color: #d8dceb;
+  background: transparent;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+#toolbar button:hover {
+  background: rgba(243, 210, 138, 0.15);
+  color: #f3d28a;
+}
+#toolbar button.active {
+  background: #f3d28a;
+  color: #0b1020;
+  font-weight: 600;
+}
+
+/* 筛选条 — 左下角 */
+#filterbar {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  background: rgba(8, 12, 28, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px 14px;
+  z-index: 120;
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 480px;
+  max-width: calc(100% - 28px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+#filterbar .fbar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #cbd2e2;
+  flex-wrap: wrap;
+}
+#filterbar.is-collapsed {
+  width: 230px;
+}
+#filterbar.is-collapsed .fbar-collapsible {
+  display: none;
+}
+#filterbar .fbar-row-title {
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  /* border-bottom: 1px dashed rgba(255, 255, 255, 0.08); */
+  /* padding-bottom: 4px; */
+}
+#filterbar .ancient-china-year-title {
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+#filterbar .fbar-label {
+  color: #f3d28a;
+  letter-spacing: 1px;
+}
+#filterbar .fbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#filterbar input[type="range"] {
+  flex: 1;
+  accent-color: #f3d28a;
+  height: 4px;
+  min-width: 0;
+}
+#filterbar #yr-row {
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+#filterbar #yr-display {
+  color: #7ad0ff;
+  font-family: monospace;
+  font-size: 11px;
+}
+#filterbar .yr-scale {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  width: 100%;
+  color: rgba(203, 210, 226, 0.7);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+#filterbar .yr-scale span:nth-child(2) {
+  text-align: center;
+}
+#filterbar .yr-scale span:nth-child(3) {
+  text-align: right;
+}
+#filterbar .fbar-btn {
+  background: rgba(243, 210, 138, 0.15);
+  color: #f3d28a;
+  border: 1px solid rgba(243, 210, 138, 0.3);
+  border-radius: 5px;
+  padding: 2px 10px;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+#filterbar .fbar-btn:hover {
+  background: rgba(243, 210, 138, 0.3);
+}
+/* 朝代按钮组 (横向铺平 + 自动换行) */
+#dyn-buttons {
+  gap: 4px;
+  position: relative;
+}
+#dyn-buttons .dyn-btn {
+  padding: 3px 8px;
+  font-size: 10.5px;
+  color: #cbd2e2;
+  background: rgba(40, 50, 80, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1.2;
+}
+#dyn-buttons .dyn-btn:hover {
+  border-color: #f3d28a;
+  color: #f3d28a;
+}
+#dyn-buttons .dyn-btn.active {
+  background: #f3d28a;
+  color: #0b1020;
+  font-weight: 600;
+  border-color: #f3d28a;
+}
+/* 五代十国分组按钮 + 弹出列表 */
+.dyn-group-wrap {
+  position: relative;
+  display: inline-block;
+}
+.dyn-btn.dyn-group-btn::after {
+  content: " ▴";
+  font-size: 10px;
+  opacity: 0.8;
+}
+.dyn-popover {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 80;
+  background: rgba(10, 14, 30, 0.96);
+  border: 1px solid rgba(243, 210, 138, 0.35);
+  border-radius: 8px;
+  padding: 6px;
+  display: none;
+  min-width: 260px;
+  max-width: 360px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+}
+.dyn-popover::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 14px;
+  border: 6px solid transparent;
+  border-top-color: rgba(243, 210, 138, 0.35);
+}
+.dyn-popover.show {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.dyn-popover .dyn-sub {
+  padding: 3px 8px;
+  font-size: 10.5px;
+  border-radius: 10px;
+  background: rgba(40, 50, 80, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd2e2;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1.2;
+}
+.dyn-popover .dyn-sub:hover {
+  border-color: #f3d28a;
+  color: #f3d28a;
+}
+.dyn-popover .dyn-sub.active {
+  background: #f3d28a;
+  color: #0b1020;
+  font-weight: 600;
+  border-color: #f3d28a;
+}
+
+#hint {
+  margin-top: 12px;
+  font-size: 10px;
+  color: #9aa3b8;
+}
+
+#hint .ancient-china-legend-help-row {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+#hint .ancient-china-legend-help-row + .ancient-china-legend-help-row {
+  margin-top: 4px;
+}
+
+#hint .ancient-china-legend-help-row span {
+  color: #f3d28a;
+  font-weight: 600;
+}
+
+#hint .ancient-china-legend-help-copy {
+  min-width: 0;
+}
+
+#hint .ancient-china-legend-help-highlight {
+  border-radius: 2px;
+  background: rgba(243, 210, 138, 0.12);
+  color: #eef3ff;
+}
+
+#hint kbd {
+  display: inline-block;
+  min-width: auto;
+  height: auto;
+  padding: 0 3px;
+  border: 1px solid rgba(243, 210, 138, 0.35);
+  border-radius: 3px;
+  background: rgba(243, 210, 138, 0.12);
+  color: #f3d28a;
+  font-size: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  line-height: 1.15;
+  vertical-align: 0;
+}
+
+#legend {
+  position: absolute;
+  left: 14px;
+  top: 56px;
+  background: rgba(8, 12, 28, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 11px;
+  z-index: 10;
+  backdrop-filter: blur(6px);
+  max-width: 245px;
+}
+#legend h3 {
+  font-size: 12px;
+  color: #f3d28a;
+  margin-bottom: 5px;
+}
+#legend .item {
+  display: flex;
+  align-items: center;
+  margin: 3px 0;
+  color: #cbd2e2;
+}
+#legend .swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 8px;
+}
+#legend .ancient-china-swatch-main {
+  background: #f3d28a;
+}
+#legend .ancient-china-swatch-north {
+  background: #7ad0ff;
+}
+#legend .ancient-china-swatch-northeast {
+  background: #a0e87a;
+}
+#legend .ancient-china-swatch-west {
+  background: #ffa07a;
+}
+#legend .ancient-china-swatch-war {
+  background: #ff5a5a;
+}
+#legend .ancient-china-swatch-annex {
+  background: #ffa040;
+}
+#legend .ancient-china-legend-divider {
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 6px;
+}
+#legend .ring {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid;
+  margin-right: 8px;
+  background: transparent;
+}
+
+/* 右侧详情面板 */
+#panel {
+  position: absolute;
+  right: 14px;
+  top: 56px;
+  width: 420px;
+  max-height: calc(100% - 100px);
+  background: rgba(10, 14, 30, 0.93);
+  border: 1px solid rgba(243, 210, 138, 0.28);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 60;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  transform: translateX(120%);
+  transition: transform 0.35s ease;
+}
+#panel.show {
+  transform: translateX(0);
+}
+#panel .panel-head {
+  flex: 0 0 auto;
+  padding: 18px 16px 12px;
+}
+#panel h2 {
+  color: #f3d28a;
+  font-size: 20px;
+  margin-bottom: 4px;
+  letter-spacing: 1.5px;
+  flex-shrink: 0;
+}
+#panel .p-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+#panel .p-header .tribes {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+#panel .meta {
+  color: #9aa3b8;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+#panel .tribes {
+  margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  row-gap: 14px;
+  padding-top: 8px;
+  margin-top: -10px;
+}
+#panel .tribes .tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid currentColor;
+}
+#panel .tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 7px;
+}
+#panel .tab {
+  font-size: 12px;
+  color: #9aa3b8;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+#panel .tab.active {
+  color: #f3d28a;
+  background: rgba(243, 210, 138, 0.15);
+}
+#panel .tab:hover {
+  color: #f3d28a;
+}
+
+/* 少数民族面板 */
+#minority-panel {
+  position: absolute;
+  right: 14px;
+  top: 56px;
+  width: 400px;
+  max-height: calc(100% - 100px);
+  background: rgba(10, 14, 30, 0.94);
+  border: 1px solid rgba(122, 208, 255, 0.38);
+  border-radius: 14px;
+  padding: 18px 20px;
+  overflow-y: auto;
+  z-index: 60;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+  transform: translateX(120%);
+  transition: transform 0.35s ease;
+}
+#minority-panel.show {
+  transform: translateX(0);
+}
+#minority-panel h2 {
+  color: #7ad0ff;
+  font-size: 20px;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+#minority-panel .meta {
+  color: #9aa3b8;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+#minority-panel .mp-desc {
+  color: #cbd2e2;
+  font-size: 13px;
+  line-height: 1.7;
+  margin-bottom: 14px;
+  padding: 10px;
+  background: rgba(122, 208, 255, 0.06);
+  border-radius: 8px;
+  border-left: 3px solid rgba(122, 208, 255, 0.5);
+}
+#minority-panel .mp-section-title {
+  color: #f3d28a;
+  font-size: 13px;
+  margin: 12px 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+#minority-panel .mp-item {
+  color: #cbd2e2;
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  line-height: 1.6;
+}
+#minority-panel .mp-item .yr {
+  color: #f3d28a;
+  margin-right: 6px;
+  font-weight: bold;
+}
+#minority-panel .mp-item .parties {
+  color: #ff9a9a;
+}
+#mp-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  color: #9aa3b8;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+#mp-close:hover {
+  color: #7ad0ff;
+}
+
+/* 时间线 */
+#p-timeline {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 16px 18px 42px;
+}
+/* 虚线主轴 - 轴心精确穿过圆点几何中心 (x=14px)
+   圆点 left:-20px width:12px border:2px → 实际中心 = 26 + (-20) + 6 + 2 = 14px
+   border-left:2px 中线 = left + 1px,所以 left=13 → 中线 14px ✓ */
+#p-timeline::before {
+  content: "";
+  position: absolute;
+  left: 25px;
+  top: 10px;
+  bottom: 18px;
+  width: 0;
+  border-left: 2px dashed rgba(243, 210, 138, 0.55);
+  z-index: 0;
+}
+.tl-item {
+  position: relative;
+  padding: 16px 0 0 6px;
+  /* border-bottom: 1px dashed rgba(255, 255, 255, 0.06); */
+}
+.tl-item:last-child {
+  /* border-bottom: none; */
+}
+/* 圆点几何中心精确落在虚线轴心 (x=12px) 上
+   tl-item 左缘 = 父 padding-left = 26px → 圆点 left = 12 - 26 = -14px,再 -dotR(=6) = -20px
+   12px 圆点,top:50% transform:translateY(-50%) → 垂直居中
+   z-index:1 让圆点叠在虚线之上;box-shadow 用半透明边框,虚线穿过不被截断 */
+.tl-item::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f3d28a;
+  box-shadow: 0 0 10px #f3d28a;
+  border: 2px solid #0b1020;
+  box-sizing: content-box;
+  z-index: 1;
+}
+.tl-item.relation::before {
+  background: #7ad0ff;
+  box-shadow: 0 0 10px #7ad0ff;
+}
+.tl-item.event::before {
+  background: #a0e87a;
+  box-shadow: 0 0 10px #a0e87a;
+}
+.tl-item.war::before {
+  background: #ff5a5a;
+  box-shadow: 0 0 10px #ff5a5a;
+}
+.tl-item .yr {
+  display: inline-block;
+  font-size: 11px;
+  color: #f3d28a;
+  font-weight: 600;
+  background: rgba(243, 210, 138, 0.1);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+.tl-item .txt {
+  font-size: 13px;
+  color: #cbd2e2;
+  line-height: 1.6;
+}
+.tl-item .factions {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #9aa3b8;
+}
+.tl-item .factions .f {
+  display: inline-block;
+  color: #ff8a8a;
+  background: rgba(255, 90, 90, 0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin: 0 2px;
+  font-weight: 600;
+}
+
+/* 人物徽章 — 朴素版:角色图标 + 实线边框 + 单色文字 + hover 反色 */
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  margin: 6px 2px;
+  border-radius: 5px;
+  font-weight: 700;
+  cursor: help;
+  font-size: 13px;
+  line-height: 1.4;
+  border: 1px solid var(--pc);
+  color: var(--pc);
+  background: transparent;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+  white-space: nowrap;
+  position: relative;
+}
+.person::before {
+  content: attr(data-icon);
+  font-size: 15px;
+  opacity: 0.95;
+  font-weight: normal;
+  line-height: 1;
+}
+.person:hover {
+  background: var(--pc);
+  color: #0b1020;
+  z-index: 2;
+}
+.person:hover::before {
+  opacity: 1;
+  color: #0b1020;
+}
+.person.emperor {
+  --pc: #f3d28a;
+}
+.person.general {
+  --pc: #ff8a6a;
+}
+.person.advisor {
+  --pc: #7ad0ff;
+}
+.person.envoy {
+  --pc: #a0e87a;
+}
+.person.tribe {
+  --pc: #c89dff;
+}
+
+/* 人物词卡 - 信息更丰富 */
+#person-card {
+  position: fixed;
+  display: none;
+  z-index: 200;
+  width: 320px;
+  background: linear-gradient(135deg, rgba(20, 26, 50, 0.97), rgba(10, 14, 30, 0.97));
+  border: 1px solid rgba(243, 210, 138, 0.4);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  font-size: 12px;
+  pointer-events: none;
+}
+#person-card .pc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+#person-card .pc-name {
+  font-size: 17px;
+  color: #f3d28a;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+/* 拼音注音 - rt 绝对定位向上"溢出"父容器,完全不改变父容器尺寸/对齐 */
+ruby {
+  display: inline-block;
+  position: relative;
+  line-height: inherit;
+  vertical-align: baseline;
+  text-align: center;
+  /* 主字间加大横向间距,给上方拼音让出空间 */
+  margin: 0 4px;
+}
+ruby rt {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 3px);
+  transform: translateX(-50%);
+  font-size: 9px;
+  line-height: 1;
+  white-space: nowrap;
+  color: #9aa3b8;
+  font-weight: 400;
+  /* 拼音字母之间留 0.6px,避免单个拼音内部太挤 */
+  letter-spacing: 0.6px;
+  pointer-events: none;
+  /* text-shadow:
+    0 0 3px rgba(8, 12, 22, 0.95),
+    0 0 2px rgba(8, 12, 22, 0.95); */
+  z-index: 3;
+  /* 限制拼音最大宽度,超过则不放大 ruby */
+  max-width: none;
+}
+/* 标题和大字号场景下,拼音可以略大一点,因为父容器汉字本身就宽 */
+#p-title ruby rt,
+#mp-title ruby rt {
+  font-size: 11px;
+  letter-spacing: 0.6px;
+}
+#person-card .pc-name ruby rt {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+/* 关键: 不给父容器加 padding/margin,只确保 overflow 不裁切 */
+.person,
+.tag,
+.pc-name,
+#p-title,
+#mp-title {
+  overflow: visible;
+}
+/* 含 ruby 的容器需要更宽松的字间距(汉字之间疏一点,给拼音呼吸空间) */
+.person:has(ruby),
+.tag:has(ruby),
+#p-title:has(ruby),
+#mp-title:has(ruby),
+.pc-name:has(ruby) {
+  letter-spacing: 3px;
+}
+/* 标题场景需要更大一档字距,因为字号本身就大 */
+#p-title:has(ruby),
+#mp-title:has(ruby) {
+  letter-spacing: 4px;
+}
+/* 多行文字容器:含 ruby 时,加大行高 + 顶部 padding,让上一行不被拼音压到 */
+.tl-item .txt:has(ruby),
+#person-card .pc-desc:has(ruby),
+#person-card .pc-evt:has(ruby),
+#minority-panel .mp-item:has(ruby),
+#minority-panel .mp-desc:has(ruby) {
+  line-height: 2.4;
+  padding-top: 10px;
+}
+/* 颜色微调 */
+#person-card .pc-name ruby rt {
+  color: #f3d28a;
+}
+.person ruby rt {
+  color: #fff;
+}
+#p-title ruby rt,
+#mp-title ruby rt {
+  color: #cbd2e2;
+}
+#person-card .pc-role {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid currentColor;
+  font-weight: 600;
+}
+#person-card .pc-meta {
+  font-size: 11px;
+  color: #9aa3b8;
+  margin-bottom: 6px;
+}
+#person-card .pc-meta .pc-dyn {
+  color: #f3d28a;
+  background: rgba(243, 210, 138, 0.12);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 4px;
+}
+#person-card .pc-desc {
+  font-size: 12px;
+  color: #cbd2e2;
+  line-height: 1.65;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border-left: 3px solid currentColor;
+  margin-bottom: 8px;
+}
+#person-card .pc-sec {
+  font-size: 10.5px;
+  color: #f3d28a;
+  margin: 6px 0 3px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  opacity: 0.85;
+}
+#person-card .pc-evt {
+  font-size: 11px;
+  color: #aeb8cc;
+  line-height: 1.55;
+  padding: 3px 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.06);
+}
+#person-card .pc-evt:first-child {
+  border-top: none;
+}
+#person-card .pc-evt .y {
+  color: #f3d28a;
+  font-weight: 600;
+  margin-right: 6px;
+}
+#person-card .pc-rel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+#person-card .pc-rel .r {
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid currentColor;
+  font-weight: 600;
+}
+
+/* 战争 hover 浮窗 — 层级要低于介绍面板/筛选条/朝代按钮组,避免遮挡 */
+#tip {
+  position: fixed;
+  display: none;
+  z-index: 5;
+  background: rgba(8, 12, 28, 0.95);
+  border: 1px solid rgba(243, 210, 138, 0.35);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #e6e8ef;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  max-width: 260px;
+}
+#tip .y {
+  color: #f3d28a;
+  font-weight: 600;
+  margin-right: 6px;
+}
+#tip .f {
+  display: inline-block;
+  color: #ff8a8a;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255, 90, 90, 0.12);
+  margin: 0 2px;
+  font-weight: 600;
+}
+
+#close-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: #9aa3b8;
+  cursor: pointer;
+  font-size: 18px;
+}
+#close-btn:hover {
+  color: #f3d28a;
+}
+
+#loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99;
+  background: #04060d;
+  color: #f3d28a;
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+#loading.hidden {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  #panel {
+    width: calc(100% - 28px);
+    top: auto;
+    bottom: 230px;
+    max-height: 40%;
+  }
+  #minority-panel {
+    width: calc(100% - 28px);
+    top: auto;
+    bottom: 230px;
+    max-height: 40%;
+  }
+  #legend {
+    display: none;
+  }
+  #filterbar {
+    width: calc(100% - 28px);
+  }
+  #filterbar #yr-row {
+    gap: 6px;
+  }
+}

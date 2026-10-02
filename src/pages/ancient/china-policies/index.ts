@@ -1,0 +1,1 @@
+export { AncientChinaPoliciesReactPage } from "./page";

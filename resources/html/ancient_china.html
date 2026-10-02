@@ -1,0 +1,2954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>朝代浮岛 · 时间长河 · 中国朝代与少数民族 3D 编年图</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#04060d;color:#e6e8ef;
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif}
+#app{position:relative;width:100%;height:100%}
+#cv{position:absolute;inset:0}
+
+/* 顶部标题 */
+#header{position:absolute;top:0;left:0;right:0;padding:14px 22px;z-index:10;
+  background:linear-gradient(180deg,rgba(4,6,13,.95),rgba(4,6,13,0));
+  display:flex;justify-content:space-between;align-items:center;pointer-events:none}
+#header h1{font-size:18px;letter-spacing:2px;color:#f3d28a;pointer-events:auto;
+  text-shadow:0 0 8px rgba(243,210,138,.4)}
+#header .sub{font-size:12px;color:#9aa3b8;pointer-events:auto}
+
+/* 工具栏 */
+#toolbar{position:absolute;top:56px;left:50%;transform:translateX(-50%);
+  background:rgba(8,12,28,.78);border:1px solid rgba(255,255,255,.08);
+  border-radius:24px;padding:5px;display:flex;gap:4px;z-index:10;backdrop-filter:blur(6px)}
+#toolbar button{padding:6px 13px;font-size:12px;color:#d8dceb;background:transparent;
+  border:none;border-radius:20px;cursor:pointer;transition:all .2s}
+#toolbar button:hover{background:rgba(243,210,138,.15);color:#f3d28a}
+#toolbar button.active{background:#f3d28a;color:#0b1020;font-weight:600}
+
+/* 筛选条 — 左下角 */
+#filterbar{position:absolute;left:14px;bottom:14px;
+  background:rgba(8,12,28,.88);border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;padding:10px 14px;z-index:70;backdrop-filter:blur(8px);
+  display:flex;flex-direction:column;gap:6px;width:480px;max-width:calc(100% - 28px);
+  box-shadow:0 8px 28px rgba(0,0,0,.5)}
+#filterbar .fbar-row{display:flex;align-items:center;gap:6px;font-size:11px;color:#cbd2e2;flex-wrap:wrap}
+#filterbar .fbar-row-title{justify-content:space-between;font-size:11.5px;font-weight:600;border-bottom:1px dashed rgba(255,255,255,.08);padding-bottom:4px}
+#filterbar .fbar-label{color:#f3d28a;letter-spacing:1px}
+#filterbar input[type=range]{flex:1;accent-color:#f3d28a;height:4px;min-width:0}
+#filterbar #yr-row{gap:8px;flex-wrap:nowrap}
+#filterbar #yr-display{color:#7ad0ff;font-family:monospace;font-size:11px}
+#filterbar .fbar-btn{background:rgba(243,210,138,.15);color:#f3d28a;border:1px solid rgba(243,210,138,.3);
+  border-radius:5px;padding:2px 10px;font-size:10.5px;cursor:pointer}
+#filterbar .fbar-btn:hover{background:rgba(243,210,138,.3)}
+/* 朝代按钮组 (横向铺平 + 自动换行) */
+#dyn-buttons{gap:4px;position:relative}
+#dyn-buttons .dyn-btn{padding:3px 8px;font-size:10.5px;color:#cbd2e2;
+  background:rgba(40,50,80,.55);border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;cursor:pointer;transition:all .15s;line-height:1.2}
+#dyn-buttons .dyn-btn:hover{border-color:#f3d28a;color:#f3d28a}
+#dyn-buttons .dyn-btn.active{background:#f3d28a;color:#0b1020;font-weight:600;border-color:#f3d28a}
+/* 五代十国分组按钮 + 弹出列表 */
+.dyn-group-wrap{position:relative;display:inline-block}
+.dyn-btn.dyn-group-btn::after{content:" ▴";font-size:10px;opacity:.8}
+.dyn-popover{position:absolute;bottom:calc(100% + 6px);left:0;z-index:80;
+  background:rgba(10,14,30,.96);border:1px solid rgba(243,210,138,.35);
+  border-radius:8px;padding:6px;display:none;min-width:260px;max-width:360px;
+  box-shadow:0 -8px 24px rgba(0,0,0,.6);backdrop-filter:blur(6px)}
+.dyn-popover::after{content:"";position:absolute;top:100%;left:14px;
+  border:6px solid transparent;border-top-color:rgba(243,210,138,.35)}
+.dyn-popover.show{display:flex;flex-wrap:wrap;gap:4px}
+.dyn-popover .dyn-sub{padding:3px 8px;font-size:10.5px;border-radius:10px;
+  background:rgba(40,50,80,.55);border:1px solid rgba(255,255,255,.12);
+  color:#cbd2e2;cursor:pointer;transition:all .15s;line-height:1.2}
+.dyn-popover .dyn-sub:hover{border-color:#f3d28a;color:#f3d28a}
+.dyn-popover .dyn-sub.active{background:#f3d28a;color:#0b1020;font-weight:600;border-color:#f3d28a}
+
+#hint{position:absolute;bottom:14px;right:14px;font-size:11px;
+  color:#9aa3b8;background:rgba(8,12,28,.6);padding:5px 12px;border-radius:18px;
+  border:1px solid rgba(255,255,255,.06);z-index:10;text-align:center;max-width:340px}
+
+#legend{position:absolute;left:14px;top:56px;background:rgba(8,12,28,.78);
+  border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 12px;
+  font-size:11px;z-index:10;backdrop-filter:blur(6px);max-width:230px}
+#legend h3{font-size:12px;color:#f3d28a;margin-bottom:5px}
+#legend .item{display:flex;align-items:center;margin:3px 0;color:#cbd2e2}
+#legend .swatch{width:12px;height:12px;border-radius:3px;margin-right:8px}
+#legend .ring{width:12px;height:12px;border-radius:50%;border:2px solid;margin-right:8px;background:transparent}
+
+/* 右侧详情面板 */
+#panel{position:absolute;right:14px;top:56px;width:420px;max-height:calc(100% - 100px);
+  background:rgba(10,14,30,.93);border:1px solid rgba(243,210,138,.28);
+  border-radius:14px;padding:18px 20px;overflow-y:auto;z-index:60;
+  box-shadow:0 12px 40px rgba(0,0,0,.7);backdrop-filter:blur(10px);
+  transform:translateX(120%);transition:transform .35s ease}
+#panel.show{transform:translateX(0)}
+#panel h2{color:#f3d28a;font-size:20px;margin-bottom:4px;letter-spacing:1.5px;flex-shrink:0}
+#panel .p-header{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap}
+#panel .p-header .tribes{margin-bottom:0;flex:1;min-width:0}
+#panel .meta{color:#9aa3b8;font-size:12px;margin-bottom:10px}
+#panel .tribes{margin-bottom:12px;display:flex;flex-wrap:wrap;column-gap:8px;row-gap:14px;padding-top:8px}
+#panel .tribes .tag{font-size:11px;padding:2px 8px;border-radius:12px;
+  background:rgba(255,255,255,.05);border:1px solid currentColor}
+#panel .tabs{display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:7px}
+#panel .tab{font-size:12px;color:#9aa3b8;padding:4px 10px;border-radius:6px;cursor:pointer}
+#panel .tab.active{color:#f3d28a;background:rgba(243,210,138,.15)}
+#panel .tab:hover{color:#f3d28a}
+
+/* 少数民族面板 */
+#minority-panel{position:absolute;right:14px;top:56px;width:400px;max-height:calc(100% - 100px);
+  background:rgba(10,14,30,.94);border:1px solid rgba(122,208,255,.38);
+  border-radius:14px;padding:18px 20px;overflow-y:auto;z-index:60;
+  box-shadow:0 12px 40px rgba(0,0,0,.75);backdrop-filter:blur(10px);
+  transform:translateX(120%);transition:transform .35s ease}
+#minority-panel.show{transform:translateX(0)}
+#minority-panel h2{color:#7ad0ff;font-size:20px;margin-bottom:4px;letter-spacing:1px}
+#minority-panel .meta{color:#9aa3b8;font-size:12px;margin-bottom:8px}
+#minority-panel .mp-desc{color:#cbd2e2;font-size:13px;line-height:1.7;margin-bottom:14px;
+  padding:10px;background:rgba(122,208,255,.06);border-radius:8px;border-left:3px solid rgba(122,208,255,.5)}
+#minority-panel .mp-section-title{color:#f3d28a;font-size:13px;margin:12px 0 6px;padding-bottom:4px;
+  border-bottom:1px solid rgba(255,255,255,.08)}
+#minority-panel .mp-item{color:#cbd2e2;font-size:12px;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,.06);line-height:1.6}
+#minority-panel .mp-item .yr{color:#f3d28a;margin-right:6px;font-weight:bold}
+#minority-panel .mp-item .parties{color:#ff9a9a}
+#mp-close{position:absolute;top:10px;right:12px;width:24px;height:24px;
+  background:none;border:none;color:#9aa3b8;font-size:20px;cursor:pointer;line-height:1}
+#mp-close:hover{color:#7ad0ff}
+
+/* 时间线 */
+#p-timeline{position:relative;padding-left:26px}
+/* 虚线主轴 - 轴心精确穿过圆点几何中心 (x=14px)
+   圆点 left:-20px width:12px border:2px → 实际中心 = 26 + (-20) + 6 + 2 = 14px
+   border-left:2px 中线 = left + 1px,所以 left=13 → 中线 14px ✓ */
+#p-timeline::before{content:"";position:absolute;left:13px;top:4px;bottom:4px;width:0;
+  border-left:2px dashed rgba(243,210,138,.55);z-index:0}
+.tl-item{position:relative;padding:16px 0 16px 8px;border-bottom:1px dashed rgba(255,255,255,.06)}
+.tl-item:last-child{border-bottom:none}
+/* 圆点几何中心精确落在虚线轴心 (x=12px) 上
+   tl-item 左缘 = 父 padding-left = 26px → 圆点 left = 12 - 26 = -14px,再 -dotR(=6) = -20px
+   12px 圆点,top:50% transform:translateY(-50%) → 垂直居中
+   z-index:1 让圆点叠在虚线之上;box-shadow 用半透明边框,虚线穿过不被截断 */
+.tl-item::before{content:"";position:absolute;left:-20px;top:50%;transform:translateY(-50%);
+  width:12px;height:12px;border-radius:50%;background:#f3d28a;
+  box-shadow:0 0 10px #f3d28a;border:2px solid #0b1020;box-sizing:content-box;z-index:1}
+.tl-item.relation::before{background:#7ad0ff;box-shadow:0 0 10px #7ad0ff}
+.tl-item.event::before{background:#a0e87a;box-shadow:0 0 10px #a0e87a}
+.tl-item.war::before{background:#ff5a5a;box-shadow:0 0 10px #ff5a5a}
+.tl-item .yr{display:inline-block;font-size:11px;color:#f3d28a;font-weight:600;
+  background:rgba(243,210,138,.1);padding:1px 6px;border-radius:3px;margin-right:6px}
+.tl-item .txt{font-size:13px;color:#cbd2e2;line-height:1.6}
+.tl-item .factions{margin-top:4px;font-size:11px;color:#9aa3b8}
+.tl-item .factions .f{display:inline-block;color:#ff8a8a;background:rgba(255,90,90,.1);
+  padding:1px 5px;border-radius:3px;margin:0 2px;font-weight:600}
+
+/* 人物徽章 — 朴素版:角色图标 + 实线边框 + 单色文字 + hover 反色 */
+.person{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;margin:6px 2px;
+  border-radius:5px;font-weight:700;cursor:help;font-size:13px;line-height:1.4;
+  border:1px solid var(--pc);color:var(--pc);background:transparent;
+  transition:background-color .15s, color .15s;white-space:nowrap;position:relative}
+.person::before{content:attr(data-icon);font-size:15px;opacity:.95;font-weight:normal;line-height:1}
+.person:hover{background:var(--pc);color:#0b1020;z-index:2}
+.person:hover::before{opacity:1;color:#0b1020}
+.person.emperor{--pc:#f3d28a}
+.person.general{--pc:#ff8a6a}
+.person.advisor{--pc:#7ad0ff}
+.person.envoy  {--pc:#a0e87a}
+.person.tribe  {--pc:#c89dff}
+
+/* 人物词卡 - 信息更丰富 */
+#person-card{position:fixed;display:none;z-index:200;width:320px;
+  background:linear-gradient(135deg,rgba(20,26,50,.97),rgba(10,14,30,.97));
+  border:1px solid rgba(243,210,138,.4);border-radius:10px;padding:12px 14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.7);font-size:12px;pointer-events:none}
+#person-card .pc-head{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08)}
+#person-card .pc-name{font-size:17px;color:#f3d28a;font-weight:700;letter-spacing:1px}
+/* 拼音注音 - rt 绝对定位向上"溢出"父容器,完全不改变父容器尺寸/对齐 */
+ruby{
+  display:inline-block;
+  position:relative;
+  line-height:inherit;
+  vertical-align:baseline;
+  text-align:center;
+  /* 主字间加大横向间距,给上方拼音让出空间 */
+  margin:0 4px;
+}
+ruby rt{
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 3px);
+  transform:translateX(-50%);
+  font-size:9px;
+  line-height:1;
+  white-space:nowrap;
+  color:#9aa3b8;
+  font-weight:400;
+  /* 拼音字母之间留 0.6px,避免单个拼音内部太挤 */
+  letter-spacing:0.6px;
+  pointer-events:none;
+  text-shadow:0 0 3px rgba(8,12,22,0.95),0 0 2px rgba(8,12,22,0.95);
+  z-index:3;
+  /* 限制拼音最大宽度,超过则不放大 ruby */
+  max-width:none;
+}
+/* 标题和大字号场景下,拼音可以略大一点,因为父容器汉字本身就宽 */
+#p-title ruby rt,#mp-title ruby rt{font-size:11px;letter-spacing:0.6px}
+#person-card .pc-name ruby rt{font-size:10px;letter-spacing:0.5px}
+/* 关键: 不给父容器加 padding/margin,只确保 overflow 不裁切 */
+.person,.tag,.pc-name,#p-title,#mp-title{overflow:visible}
+/* 含 ruby 的容器需要更宽松的字间距(汉字之间疏一点,给拼音呼吸空间) */
+.person:has(ruby),.tag:has(ruby),#p-title:has(ruby),#mp-title:has(ruby),.pc-name:has(ruby){
+  letter-spacing:3px;
+}
+/* 标题场景需要更大一档字距,因为字号本身就大 */
+#p-title:has(ruby),#mp-title:has(ruby){letter-spacing:4px}
+/* 多行文字容器:含 ruby 时,加大行高 + 顶部 padding,让上一行不被拼音压到 */
+.tl-item .txt:has(ruby),
+#person-card .pc-desc:has(ruby),
+#person-card .pc-evt:has(ruby),
+#minority-panel .mp-item:has(ruby),
+#minority-panel .mp-desc:has(ruby){
+  line-height:2.4;
+  padding-top:10px;
+}
+/* 颜色微调 */
+#person-card .pc-name ruby rt{color:#f3d28a}
+.person ruby rt{color:#fff}
+#p-title ruby rt,#mp-title ruby rt{color:#cbd2e2}
+#person-card .pc-role{font-size:11px;padding:2px 8px;border-radius:8px;
+  background:rgba(255,255,255,.06);border:1px solid currentColor;font-weight:600}
+#person-card .pc-meta{font-size:11px;color:#9aa3b8;margin-bottom:6px}
+#person-card .pc-meta .pc-dyn{color:#f3d28a;background:rgba(243,210,138,.12);
+  padding:1px 6px;border-radius:3px;margin-left:4px}
+#person-card .pc-desc{font-size:12px;color:#cbd2e2;line-height:1.65;
+  padding:6px 8px;background:rgba(255,255,255,.03);border-radius:6px;
+  border-left:3px solid currentColor;margin-bottom:8px}
+#person-card .pc-sec{font-size:10.5px;color:#f3d28a;margin:6px 0 3px;font-weight:600;
+  letter-spacing:1px;opacity:.85}
+#person-card .pc-evt{font-size:11px;color:#aeb8cc;line-height:1.55;padding:3px 0;
+  border-top:1px dashed rgba(255,255,255,.06)}
+#person-card .pc-evt:first-child{border-top:none}
+#person-card .pc-evt .y{color:#f3d28a;font-weight:600;margin-right:6px}
+#person-card .pc-rel{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+#person-card .pc-rel .r{font-size:10.5px;padding:1px 6px;border-radius:3px;
+  background:rgba(255,255,255,.05);border:1px solid currentColor;font-weight:600}
+
+/* 战争 hover 浮窗 — 层级要低于介绍面板/筛选条/朝代按钮组,避免遮挡 */
+#tip{position:fixed;display:none;z-index:5;
+  background:rgba(8,12,28,.95);border:1px solid rgba(243,210,138,.35);
+  padding:8px 12px;border-radius:8px;font-size:12px;color:#e6e8ef;
+  box-shadow:0 6px 18px rgba(0,0,0,.6);pointer-events:none;max-width:260px}
+#tip .y{color:#f3d28a;font-weight:600;margin-right:6px}
+#tip .f{display:inline-block;color:#ff8a8a;padding:1px 5px;border-radius:3px;
+  background:rgba(255,90,90,.12);margin:0 2px;font-weight:600}
+
+#close-btn{position:absolute;top:10px;right:12px;width:24px;height:24px;
+  background:transparent;border:none;color:#9aa3b8;cursor:pointer;font-size:18px}
+#close-btn:hover{color:#f3d28a}
+
+#loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  z-index:99;background:#04060d;color:#f3d28a;font-size:14px;letter-spacing:2px}
+#loading.hidden{display:none}
+
+@media (max-width:900px){
+  #panel{width:calc(100% - 28px);top:auto;bottom:230px;max-height:40%}
+  #minority-panel{width:calc(100% - 28px);top:auto;bottom:230px;max-height:40%}
+  #legend{display:none}
+  #filterbar{width:calc(100% - 28px)}
+  #filterbar #yr-row{gap:6px}
+  #hint{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="cv"></div>
+  <div id="header">
+    <h1>朝代浮岛 · 时间长河</h1>
+    <div class="sub">3D 漫游中国朝代与少数民族 (前221 — 1912)</div>
+  </div>
+  <div id="toolbar">
+    <button id="btn-river" class="active">时间主轴</button>
+    <button id="btn-wars" class="active">战争连线</button>
+    <button id="btn-tribes" class="active">少数民族副线</button>
+    <button id="btn-annex" class="active">吞并箭头</button>
+    <button id="btn-tour">巡游</button>
+    <button id="btn-reset">重置视角</button>
+  </div>
+  <div id="filterbar">
+    <div class="fbar-row fbar-row-title">
+      <span class="fbar-label">朝代筛选</span>
+      <button id="btn-clear-filter" class="fbar-btn">清除全部</button>
+    </div>
+    <div class="fbar-row" id="dyn-buttons"></div>
+    <div class="fbar-row fbar-row-title" style="margin-top:6px">
+      <span class="fbar-label">时间范围</span>
+      <span id="yr-display">前280 ~ 1912</span>
+    </div>
+    <div class="fbar-row" id="yr-row">
+      <input type="range" id="yr-min" min="-280" max="1912" value="-280" step="1"/>
+      <input type="range" id="yr-max" min="-280" max="1912" value="1912" step="1"/>
+    </div>
+  </div>
+  <div id="legend">
+    <h3>图例</h3>
+    <div class="item"><span class="swatch" style="background:#f3d28a"></span>汉族王朝主线 (z=0)</div>
+    <div class="item"><span class="swatch" style="background:#7ad0ff"></span>北方游牧副线 (上方)</div>
+    <div class="item"><span class="swatch" style="background:#a0e87a"></span>东北/渔猎副线</div>
+    <div class="item"><span class="swatch" style="background:#ffa07a"></span>西部/西南副线 (下方)</div>
+    <div class="item" style="margin-top:6px;border-top:1px solid rgba(255,255,255,.08);padding-top:6px">
+      <span class="swatch" style="background:#ff5a5a"></span>战争连线 (汉族 ↔ 少数民族)</div>
+    <div class="item"><span class="swatch" style="background:#ffa040"></span>吞并箭头 (少数民族 → 少数民族)</div>
+    <div class="item" style="margin-top:6px;color:#9aa3b8;font-size:10.5px;line-height:1.6">
+      面板内悬停彩色徽章查看人物词卡
+    </div>
+  </div>
+  <div id="hint">左键拖拽旋转 · 滚轮缩放 · 右键平移 · 点击主线/副线/弧线查看详情</div>
+  <div id="panel">
+    <button id="close-btn">×</button>
+    <div class="p-header">
+      <h2 id="p-title">—</h2>
+      <div class="tribes" id="p-tribes"></div>
+    </div>
+    <div class="meta" id="p-meta">—</div>
+    <div class="tabs">
+      <div class="tab active" data-tab="all">综合时间线</div>
+      <div class="tab" data-tab="relation">关系</div>
+      <div class="tab" data-tab="event">事件</div>
+      <div class="tab" data-tab="war">战争</div>
+      <div class="tab" data-tab="people">人物</div>
+    </div>
+    <div id="p-timeline"></div>
+  </div>
+  <div id="minority-panel">
+    <button id="mp-close">×</button>
+    <h2 id="mp-title">—</h2>
+    <div class="meta" id="mp-meta">—</div>
+    <div class="mp-desc" id="mp-desc"></div>
+    <h3 class="mp-section-title">相关战争</h3>
+    <div id="mp-wars"></div>
+    <h3 class="mp-section-title">相关吞并事件</h3>
+    <div id="mp-annex"></div>
+  </div>
+  <div id="tip"></div>
+  <div id="person-card"></div>
+  <div id="loading">加载中 · 3D 朝代长河</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>if(typeof THREE==='undefined'){document.write('<script src="https://unpkg.com/three@0.128.0/build/three.min.js"><\/script>');}</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>if(!THREE.OrbitControls){document.write('<script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>');}</script>
+<script>
+/* ===== 数据层 (Dynasty Data) - 与渲染解耦 =====
+   PEOPLE / PERSON_ALIAS / DYNASTIES / TRIBE_TYPE / TYPE_COLOR / MINORITIES / ANNEXATIONS
+*/
+
+/* ===================== 人物词典 =====================
+   role: emperor / general / advisor / envoy / tribe
+*/
+const PEOPLE = {
+  /* 秦 */
+  "秦始皇":{role:"emperor",life:"前259–前210",dyn:"秦",desc:"嬴政，首位皇帝，统一六国建立秦朝，推行郡县制、书同文车同轨。"},
+  "蒙恬"  :{role:"general",life:"？–前210",dyn:"秦",desc:"秦名将，率三十万大军北逐匈奴，收复河南地并主持修筑长城。"},
+  "王翦"  :{role:"general",life:"?–?",dyn:"秦",desc:"秦灭六国主将，率六十万灭楚，功成名退。"},
+  "赵佗"  :{role:"general",life:"前240–前137",dyn:"秦",desc:"秦平定百越主将，后自立为南越王。"},
+  "李斯"  :{role:"advisor",life:"前284–前208",dyn:"秦",desc:"秦丞相，助始皇统一文字法度，后与赵高篡诏，腰斩于咸阳。"},
+  "陈胜"  :{role:"general",life:"？–前208",dyn:"秦",desc:"大泽乡起义首领，'王侯将相宁有种乎'，揭竿反秦第一人。"},
+
+  /* 西汉 */
+  "汉高祖":{role:"emperor",life:"前256–前195",dyn:"西汉",desc:"刘邦，西汉开国皇帝，白登之围后定下和亲政策。"},
+  "汉武帝":{role:"emperor",life:"前156–前87",dyn:"西汉",desc:"刘彻，雄才大略，反击匈奴、开西域、罢黜百家独尊儒术。"},
+  "汉宣帝":{role:"emperor",life:"前91–前49",dyn:"西汉",desc:"刘询，设西域都护府，孝宣中兴。"},
+  "卫青"  :{role:"general",life:"？–前106",dyn:"西汉",desc:"汉武帝大将军，七击匈奴，收复河朔，奠定汉对匈奴战略主动。"},
+  "霍去病":{role:"general",life:"前140–前117",dyn:"西汉",desc:"骠骑将军，封狼居胥，北伐匈奴威震漠北，英年早逝。"},
+  "李广"  :{role:"general",life:"？–前119",dyn:"西汉",desc:"飞将军，长期镇守北疆，与匈奴大小七十余战。"},
+  "张骞"  :{role:"envoy",life:"？–前114",dyn:"西汉",desc:"两次出使西域，凿空丝绸之路，带回西域各国政情。"},
+  "王昭君":{role:"envoy",life:"约前54–前19",dyn:"西汉",desc:"宫女，出塞嫁呼韩邪单于，促成汉匈和平六十年。"},
+  "冒顿单于":{role:"tribe",life:"？–前174",dyn:"匈奴",desc:"匈奴雄主，统一草原，白登之围围困汉高祖。"},
+
+  /* 东汉 */
+  "汉光武":{role:"emperor",life:"前5–57",dyn:"东汉",desc:"刘秀，东汉开国皇帝，光武中兴。"},
+  "窦宪"  :{role:"general",life:"?–92",dyn:"东汉",desc:"车骑将军，大破北匈奴于稽落山，勒石燕然。"},
+  "班超"  :{role:"general",life:"32–102",dyn:"东汉",desc:"投笔从戎，以少胜多平定西域五十余国，任西域都护。"},
+  "马援"  :{role:"general",life:"前14–49",dyn:"东汉",desc:"伏波将军，平交趾、征羌乱，马革裹尸而还。"},
+  "蔡伦"  :{role:"advisor",life:"约63–121",dyn:"东汉",desc:"改进造纸术，使纸张成为主要书写材料，影响深远。"},
+  "张衡"  :{role:"advisor",life:"78–139",dyn:"东汉",desc:"制造候风地动仪，天文学家、文学家。"},
+
+  /* 三国 (附在东汉 / 西晋之间) */
+  "诸葛亮":{role:"advisor",life:"181–234",dyn:"蜀汉",desc:"蜀汉丞相，七擒孟获稳定南中，五次北伐曹魏。"},
+  "曹操"  :{role:"general",life:"155–220",dyn:"曹魏",desc:"东汉末政治军事家，北征乌桓，统一北方。"},
+  "刘备"  :{role:"emperor",life:"161–223",dyn:"蜀汉",desc:"蜀汉昭烈帝，三顾茅庐得诸葛亮，称帝于成都。"},
+  "孙权"  :{role:"emperor",life:"182–252",dyn:"东吴",desc:"东吴大帝，割据江东，赤壁破曹奠定三分天下。"},
+  "关羽"  :{role:"general",life:"?–220",dyn:"蜀汉",desc:"武圣，忠义化身，水淹七军威震华夏。"},
+  "周瑜"  :{role:"general",life:"175–210",dyn:"东吴",desc:"赤壁之战主帅，以少胜多大破曹军。"},
+  "司马懿":{role:"advisor",life:"179–251",dyn:"曹魏",desc:"高平陵之变夺权，奠定司马氏代魏建晋基础。"},
+  "陆逊"  :{role:"general",life:"183–245",dyn:"东吴",desc:"夷陵之战火烧连营七百里大破刘备。"},
+
+  /* 西晋 */
+  "司马炎":{role:"emperor",life:"236–290",dyn:"西晋",desc:"晋武帝，代魏建晋并灭吴统一，晚年大封宗室埋八王之乱祸根。"},
+  "刘渊"  :{role:"tribe",life:"?–310",dyn:"匈奴",desc:"南匈奴贵族，建汉赵政权，开五胡十六国序幕。"},
+
+  /* 东晋 */
+  "祖逖"  :{role:"general",life:"266–321",dyn:"东晋",desc:"闻鸡起舞，中流击楫北伐，收复黄河以南。"},
+  "谢玄"  :{role:"general",life:"343–388",dyn:"东晋",desc:"淝水之战指挥北府兵以八万破前秦八十余万。"},
+  "苻坚"  :{role:"tribe",life:"338–385",dyn:"前秦",desc:"氐族，统一北方，淝水之战大败致前秦瓦解。"},
+
+  /* 隋 */
+  "隋文帝":{role:"emperor",life:"541–604",dyn:"隋",desc:"杨坚，结束南北分裂，开皇之治。"},
+  "隋炀帝":{role:"emperor",life:"569–618",dyn:"隋",desc:"杨广，开凿大运河，三征高句丽致国力崩溃。"},
+
+  /* 唐 */
+  "唐高祖":{role:"emperor",life:"566–635",dyn:"唐",desc:"李渊，太原起兵入长安建唐，在位九年后禅位太宗。"},
+  "唐太宗":{role:"emperor",life:"598–649",dyn:"唐",desc:"李世民，贞观之治，被尊为天可汗，征突厥、平吐谷浑。"},
+  "唐高宗":{role:"emperor",life:"628–683",dyn:"唐",desc:"李治，灭西突厥、高句丽，唐疆域达到极盛。"},
+  "武则天":{role:"emperor",life:"624–705",dyn:"唐",desc:"中国唯一正统女皇帝，改唐为周，承贞观启开元。"},
+  "唐玄宗":{role:"emperor",life:"685–762",dyn:"唐",desc:"李隆基，开元盛世，晚年安史之乱埋下衰亡伏笔。"},
+  "唐德宗":{role:"emperor",life:"742–805",dyn:"唐",desc:"李适，泾原兵变奔奉天，后推行两税法改革财政。"},
+  "唐宪宗":{role:"emperor",life:"778–820",dyn:"唐",desc:"李纯，元和中兴，削平藩镇恢复唐室权威。"},
+  "李靖"  :{role:"general",life:"571–649",dyn:"唐",desc:"凌烟阁名将，夜袭阴山生擒颉利可汗，灭东突厥。"},
+  "李勣"  :{role:"general",life:"594–669",dyn:"唐",desc:"原名徐世勣，平薛延陀、灭高句丽。"},
+  "苏定方":{role:"general",life:"592–667",dyn:"唐",desc:"灭西突厥、平葱岭、夷百济、伐高句丽，前后灭三国擒三主。"},
+  "薛仁贵":{role:"general",life:"614–683",dyn:"唐",desc:"三箭定天山，大破铁勒九姓。"},
+  "郭子仪":{role:"general",life:"697–781",dyn:"唐",desc:"平安史之乱中流砥柱，单骑退回纥。"},
+  "李光弼":{role:"general",life:"708–764",dyn:"唐",desc:"契丹裔唐将，与郭子仪齐名，太原保卫战歼灭安史叛军主力。"},
+  "高仙芝":{role:"general",life:"?–756",dyn:"唐",desc:"高句丽裔唐将，远征小勃律，怛罗斯之战兵败。"},
+  "刘仁轨":{role:"general",life:"601–685",dyn:"唐",desc:"白江口之战大破倭国与百济联军，以水师著称。"},
+  "安禄山":{role:"general",life:"703–757",dyn:"唐",desc:"胡人出身节度使，起兵叛乱，安史之乱祸首。"},
+  "史思明":{role:"general",life:"703–761",dyn:"唐",desc:"安禄山部将，安史之乱后期主要叛军首领。"},
+  "黄巢"  :{role:"general",life:"820–884",dyn:"唐",desc:"盐商出身，起义军领袖，一度攻占长安称帝，唐朝由此名存实亡。"},
+  "玄奘"  :{role:"envoy",life:"602–664",dyn:"唐",desc:"西行取经十七年至天竺那烂陀寺，归国译经一千三百多卷。"},
+  "鉴真"  :{role:"envoy",life:"688–763",dyn:"唐",desc:"六次东渡日本传律宗，促进中日文化交流。"},
+  "文成公主":{role:"envoy",life:"?–680",dyn:"唐",desc:"嫁吐蕃赞普松赞干布，带去中原文化典籍。"},
+  "狄仁杰":{role:"advisor",life:"630–700",dyn:"唐",desc:"武周名相，匡复李唐，荐张柬之等人。"},
+  "魏征"  :{role:"advisor",life:"580–643",dyn:"唐",desc:"贞观名臣，犯颜直谏二百余事，太宗称其为镜。"},
+  "姚崇"  :{role:"advisor",life:"651–721",dyn:"唐",desc:"开元贤相，提出十事要说奠定盛世基础。"},
+  "宋璟"  :{role:"advisor",life:"663–737",dyn:"唐",desc:"与姚崇并称'姚宋'，刚正持法，巩固开元之治。"},
+  "房玄龄":{role:"advisor",life:"579–648",dyn:"唐",desc:"贞观名相，与杜如晦并称'房谋杜断'。"},
+  "杜如晦":{role:"advisor",life:"585–630",dyn:"唐",desc:"贞观名相，善于决断，辅佐太宗开创盛世。"},
+  "李白"  :{role:"advisor",life:"701–762",dyn:"唐",desc:"诗仙，浪漫主义诗歌巅峰，供奉翰林。"},
+  "杜甫"  :{role:"advisor",life:"712–770",dyn:"唐",desc:"诗圣，安史之乱中忧国忧民，现实主义诗歌典范。"},
+  "韩愈"  :{role:"advisor",life:"768–824",dyn:"唐",desc:"唐宋八大家之首，古文运动领袖，谏迎佛骨表。"},
+  "颜真卿":{role:"advisor",life:"709–784",dyn:"唐",desc:"书法大家，安史之乱中首举义旗，后出使叛军被杀。"},
+  "朱温"  :{role:"general",life:"852–912",dyn:"唐",desc:"原为黄巢部将降唐，最终篡唐建梁，终结唐朝。"},
+  "颉利可汗":{role:"tribe",life:"?–634",dyn:"东突厥",desc:"东突厥末代可汗，贞观四年被李靖夜袭生擒。"},
+  "松赞干布":{role:"tribe",life:"约617–650",dyn:"吐蕃",desc:"吐蕃王朝奠基者，迎娶文成公主，统一青藏高原。"},
+
+  /* 宋 */
+  "宋太祖":{role:"emperor",life:"927–976",dyn:"北宋",desc:"赵匡胤，陈桥兵变开宋，杯酒释兵权确立文治。"},
+  "宋真宗":{role:"emperor",life:"968–1022",dyn:"北宋",desc:"赵恒，澶渊之盟稳定宋辽百年。"},
+  "宋徽宗":{role:"emperor",life:"1082–1135",dyn:"北宋",desc:"赵佶，艺术天才政治昏君，靖康之变被金掳。"},
+  "宋高宗":{role:"emperor",life:"1107–1187",dyn:"南宋",desc:"赵构，南渡建炎，绍兴和议偏安江南。"},
+  "寇准"  :{role:"advisor",life:"961–1023",dyn:"北宋",desc:"力主真宗亲征，促成澶渊之盟。"},
+  "岳飞"  :{role:"general",life:"1103–1142",dyn:"南宋",desc:"精忠报国，郾城大捷大破金兀术，后被秦桧以莫须有杀害。"},
+  "韩世忠":{role:"general",life:"1090–1151",dyn:"南宋",desc:"黄天荡之战截击金兀术四十余日。"},
+  "孟珙"  :{role:"general",life:"1195–1246",dyn:"南宋",desc:"联蒙灭金主帅，后又屡破蒙古南侵。"},
+  "文天祥":{role:"advisor",life:"1236–1283",dyn:"南宋",desc:"南宋末丞相，起兵勤王，兵败被俘留《正气歌》。"},
+  "阿保机":{role:"tribe",life:"872–926",dyn:"契丹",desc:"耶律阿保机，辽太祖，统一契丹建辽朝。"},
+  "完颜阿骨打":{role:"tribe",life:"1068–1123",dyn:"女真",desc:"金太祖，完颜部首领，起兵反辽建金。"},
+  "成吉思汗":{role:"tribe",life:"1162–1227",dyn:"蒙古",desc:"铁木真，统一蒙古各部，西征东征建立庞大帝国。"},
+
+  /* 元 */
+  "忽必烈":{role:"emperor",life:"1215–1294",dyn:"元",desc:"元世祖，灭南宋统一中国，定都大都。"},
+  "伯颜"  :{role:"general",life:"1236–1295",dyn:"元",desc:"元灭南宋主帅，统兵二十万一举平江南。"},
+  "郭守敬":{role:"advisor",life:"1231–1316",dyn:"元",desc:"天文学家，编制《授时历》精度领先世界三百年。"},
+  "脱脱"  :{role:"advisor",life:"1314–1356",dyn:"元",desc:"元末名相，主修辽金宋三史，治黄河引发红巾起义。"},
+  "马可波罗":{role:"envoy",life:"1254–1324",dyn:"元",desc:"威尼斯商人旅行家，在元朝侍奉忽必烈十七年，著游记传扬东方。"},
+
+  /* 明 */
+  "朱元璋":{role:"emperor",life:"1328–1398",dyn:"明",desc:"明太祖，布衣起兵驱逐蒙元，开创洪武之治。"},
+  "明成祖":{role:"emperor",life:"1360–1424",dyn:"明",desc:"朱棣，靖难之役夺位，五征漠北，郑和下西洋。"},
+  "徐达"  :{role:"general",life:"1332–1385",dyn:"明",desc:"明开国第一名将，北伐攻克大都终结元朝。"},
+  "蓝玉"  :{role:"general",life:"?–1393",dyn:"明",desc:"捕鱼儿海之战大破北元残余。"},
+  "戚继光":{role:"general",life:"1528–1588",dyn:"明",desc:"抗倭名将，后镇守蓟州防御蒙古。"},
+  "李成梁":{role:"general",life:"1526–1615",dyn:"明",desc:"辽东总兵，长期镇压女真各部。"},
+  "袁崇焕":{role:"general",life:"1584–1630",dyn:"明",desc:"宁远大战炮伤努尔哈赤，后被崇祯凌迟。"},
+  "郑和"  :{role:"envoy",life:"1371–1433",dyn:"明",desc:"七下西洋远抵非洲，中国航海史巅峰。"},
+  "王阳明":{role:"advisor",life:"1472–1529",dyn:"明",desc:"心学宗师，知行合一，平定宸濠之乱。"},
+  "张居正":{role:"advisor",life:"1525–1582",dyn:"明",desc:"万历首辅，推行一条鞭法与考成法，明中后期最后改革家。"},
+  "于谦"  :{role:"advisor",life:"1398–1457",dyn:"明",desc:"土木之变后主持北京保卫战，击退瓦剌也先。"},
+  "努尔哈赤":{role:"tribe",life:"1559–1626",dyn:"女真",desc:"建州女真首领，统一女真建后金，萨尔浒大破明军。"},
+  "皇太极":{role:"tribe",life:"1592–1643",dyn:"女真",desc:"改国号大清、族名满洲，五次入塞掠明。"},
+
+  /* 清 */
+  "顺治"  :{role:"emperor",life:"1638–1661",dyn:"清",desc:"福临，清入关首位皇帝，迁都北京。"},
+  "康熙"  :{role:"emperor",life:"1654–1722",dyn:"清",desc:"玄烨，平三藩、收台湾、三征噶尔丹、雅克萨破俄。"},
+  "雍正"  :{role:"emperor",life:"1678–1735",dyn:"清",desc:"胤禛，改土归流、摊丁入亩，加强中央集权。"},
+  "乾隆"  :{role:"emperor",life:"1711–1799",dyn:"清",desc:"弘历，十全武功，平准噶尔、定大小金川，版图极盛。"},
+  "多尔衮":{role:"general",life:"1612–1650",dyn:"清",desc:"睿亲王，摄政王，率清军入关击败李自成。"},
+  "施琅"  :{role:"general",life:"1621–1696",dyn:"清",desc:"福建水师提督，澎湖海战收复台湾。"},
+  "福康安":{role:"general",life:"1754–1796",dyn:"清",desc:"乾隆爱将，平台湾林爽文、击退廓尔喀入侵。"},
+  "左宗棠":{role:"general",life:"1812–1885",dyn:"清",desc:"抬棺西征，收复新疆。"},
+  "林则徐":{role:"advisor",life:"1785–1850",dyn:"清",desc:"虎门销烟，禁鸦片先驱，'苟利国家生死以'。"},
+  "曾国藩":{role:"general",life:"1811–1872",dyn:"清",desc:"创建湘军，平太平天国，晚清中兴名臣之首。"},
+  "李鸿章":{role:"advisor",life:"1823–1901",dyn:"清",desc:"洋务运动主导者，北洋水师创建人，签马关辛丑诸约。"},
+  "噶尔丹":{role:"tribe",life:"1644–1697",dyn:"准噶尔",desc:"准噶尔大汗，三征漠北与康熙对峙，昭莫多兵败身亡。"}
+};
+
+/* 别名 → 主名 (便于事件文本里多种写法都能锚定) */
+const PERSON_ALIAS = {
+  "嬴政":"秦始皇","刘邦":"汉高祖","刘彻":"汉武帝","刘秀":"汉光武","刘询":"汉宣帝",
+  "李世民":"唐太宗","李治":"唐高宗","李隆基":"唐玄宗","赵匡胤":"宋太祖","赵构":"宋高宗",
+  "赵佶":"宋徽宗","赵恒":"宋真宗","李渊":"唐高祖","耶律阿保机":"阿保机",
+  "铁木真":"成吉思汗","朱棣":"明成祖","胤禛":"雍正","弘历":"乾隆","玄烨":"康熙",
+  "福临":"顺治","昭君":"王昭君","卫将军":"卫青","骠骑":"霍去病","岳武穆":"岳飞",
+  "杨坚":"隋文帝","杨广":"隋炀帝","松赞":"松赞干布","颉利":"颉利可汗",
+  "李适":"唐德宗","李纯":"唐宪宗","徐世勣":"李勣","徐懋功":"李勣",
+  "王守仁":"王阳明","张太岳":"张居正","郑三保":"郑和","三宝太监":"郑和"
+};
+
+/* ===================== 朝代数据 ===================== */
+const DYNASTIES = [
+  { name:"秦", yearLabel:"前221 – 前207", start:-221, end:-207, colorKey:"qin",
+    tribes:["匈奴","百越","东胡"],
+    relations:[
+      {y:"前221",t:"秦始皇建立首个大一统王朝，对周边推行攘夷开疆。"},
+      {y:"前214",t:"蒙恬主持修筑长城，西起临洮东至辽东。"}
+    ,
+      {y:"前221",t:"统一文字、货币、度量衡，书同文车同轨。"},
+      {y:"前214",t:"开凿灵渠沟通湘江漓江，粤地与中原连通。"}
+    ],
+    events:[
+      {y:"前215",t:"秦始皇派蒙恬率三十万大军北击匈奴，收复河南地。"},
+      {y:"前214",t:"赵佗率军平定岭南，置桂林、南海、象三郡。"}
+    ,
+      {y:"前213",t:"焚书坑儒，以法家整合思想。"},
+      {y:"前210",t:"秦始皇巡游驾崩沙丘，赵高、李斯篡诏立胡亥。"},
+      {y:"前209",t:"陈胜吴广大泽乡起义，'王侯将相宁有种乎'。"},
+      {y:"前207",t:"巨鹿之战项羽破釜沉舟大败章邯。"}
+    ],
+    wars:[
+      {y:-215,t:"蒙恬北伐匈奴，匈奴北遁七百余里。",factions:["秦","匈奴"]},
+      {y:-219,t:"秦征百越之战，赵佗率四十余万秦军南下。",factions:["秦","百越"]}
+    ,
+      {y:-225,t:"王翦率六十万灭楚，虏楚王负刍。",factions:["秦","楚"]},
+      {y:-221,t:"王贲灭齐，六国尽归秦。",factions:["秦","齐"]}
+    ]},
+  { name:"西汉", yearLabel:"前202 – 公元8", start:-202, end:8, colorKey:"xi_han",
+    tribes:["匈奴","西域诸国","乌孙","羌"],
+    relations:[
+      {y:"前200",t:"白登之围后汉高祖对匈奴推行和亲政策。"},
+      {y:"前138",t:"张骞首次出使西域，开辟丝绸之路。"},
+      {y:"前60",t:"汉宣帝设西域都护府，西域入汉版图。"},
+      {y:"前33",t:"王昭君出塞，呼韩邪单于与汉和亲。"}
+    ,
+      {y:"前202",t:"刘邦垓下歼项羽，定都长安建汉。"},
+      {y:"前154",t:"七国之乱，周亚夫三月平定吴楚等七国。"},
+      {y:"前134",t:"董仲舒'罢黜百家，独尊儒术'。"},
+      {y:"前115",t:"张骞二次出使西域，丝路畅通。"}
+    ],
+    events:[
+      {y:"前119",t:"卫青、霍去病联合北伐匈奴，封狼居胥。"},
+      {y:"前108",t:"汉武帝灭朝鲜置四郡。"}
+    ,
+      {y:"前180",t:"诸吕之乱后文景之治，休养生息。"},
+      {y:"前124",t:"汉武帝设五经博士，正式确立太学。"},
+      {y:"前91",t:"巫蛊之祸，卫太子刘据死。"},
+      {y:"前81",t:"盐铁会议，讨论桑弘羊新政。"},
+      {y:"8",t:"王莽代汉建新，西汉亡。"}
+    ],
+    wars:[
+      {y:-200,t:"白登之围，冒顿单于围困汉高祖七日。",factions:["西汉","匈奴"]},
+      {y:-127,t:"卫青收复河南地，设朔方郡。",factions:["西汉","匈奴"]},
+      {y:-121,t:"霍去病河西之战，大破匈奴浑邪、休屠王。",factions:["西汉","匈奴"]},
+      {y:-119,t:"漠北之战，卫青霍去病二路出塞，匈奴远遁。",factions:["西汉","匈奴"]},
+      {y:-101,t:"李广利二伐大宛，西域震动。",factions:["西汉","西域诸国"]}
+    ,
+      {y:-112,t:"汉武帝灭南越，置九郡。",factions:["西汉","南越"]},
+      {y:-108,t:"汉武帝灭卫氏朝鲜，置乐浪等四郡。",factions:["西汉","朝鲜"]},
+      {y:-99,t:"李陵浚稽山之战兵败投匈奴，司马迁因辩护下蚕室。",factions:["西汉","匈奴"]},
+      {y:-36,t:"陈汤矫诏发兵斩郅支单于，'明犯强汉者，虽远必诛'。",factions:["西汉","匈奴"]}
+    ]},
+  { name:"东汉", yearLabel:"25 – 220", start:25, end:220, colorKey:"dong_han",
+    tribes:["匈奴","鲜卑","乌桓","羌","西域"],
+    relations:[
+      {y:"48",t:"汉光武接纳南匈奴内附，北匈奴渐衰。"},
+      {y:"73",t:"班超出使西域，经营三十余年。"}
+    ,
+      {y:"73",t:"班超出使西域，'不入虎穴焉得虎子'。"},
+      {y:"91",t:"窦宪燕然勒石，北匈奴西迁。"},
+      {y:"97",t:"甘英出使大秦，行至条支。"},
+      {y:"166",t:"大秦王安敦遣使来汉，中西首次官方往来。"}
+    ],
+    events:[
+      {y:"89",t:"窦宪大破北匈奴于稽落山，勒石燕然。"},
+      {y:"91",t:"北匈奴被迫西迁，鲜卑南下占据漠北。"}
+    ,
+      {y:"25",t:"光武中兴，刘秀定都洛阳。"},
+      {y:"105",t:"蔡伦改进造纸术。"},
+      {y:"132",t:"张衡造候风地动仪。"},
+      {y:"184",t:"黄巾之乱爆发，州牧割据始萌。"},
+      {y:"196",t:"曹操迎汉献帝迁许，挟天子以令诸侯。"},
+      {y:"208",t:"赤壁之战，曹操败于孙刘联军。"}
+    ],
+    wars:[
+      {y:73,t:"窦固北伐北匈奴，班超随军经略西域。",factions:["东汉","匈奴"]},
+      {y:89,t:"稽落山之战，窦宪大破北匈奴。",factions:["东汉","匈奴"]},
+      {y:97,t:"班超平定西域五十余国。",factions:["东汉","西域"]},
+      {y:155,t:"鲜卑檀石槐统一漠北，屡犯东汉北疆。",factions:["东汉","鲜卑"]}
+    ,
+      {y:89,t:"窦宪稽落山大破北匈奴，刻石燕然。",factions:["东汉","匈奴"]},
+      {y:159,t:"段颎、皇甫规相继镇压西羌起义。",factions:["东汉","羌"]},
+      {y:200,t:"官渡之战，曹操火烧乌巢以少胜多大破袁绍。",factions:["曹操","袁绍"]}
+    ]},
+  { name:"曹魏", yearLabel:"220 – 266", start:220, end:266,
+    branch:"north", colorKey:"cao_wei",
+    tribes:["鲜卑","乌桓","氐","羌"],
+    relations:[{y:"220",t:"曹丕代汉，北方诸族多遣使内属。"},
+      {y:"220",t:"曹丕受禅称帝，九品中正制确立。"},
+      {y:"238",t:"司马懿平公孙渊，辽东归魏。"}
+    ],
+    events:[{y:"207",t:"曹操北征乌桓，白狼山大破之。"},
+      {y:"249",t:"高平陵之变，司马懿夺权。"},
+      {y:"263",t:"邓艾偷渡阴平，刘禅出降。"}
+    ],
+    wars:[{y:207,t:"白狼山之战，曹操斩蹋顿，乌桓臣服。",factions:["曹魏","乌桓"]},
+      {y:228,t:"诸葛亮一伐祁山，街亭马谡失守。",factions:["曹魏","蜀汉"]},
+      {y:234,t:"五丈原之役，诸葛亮病逝军中。",factions:["曹魏","蜀汉"]}
+    ]},
+  { name:"蜀汉", yearLabel:"221 – 263", start:221, end:263,
+    branch:"center", colorKey:"shu_han",
+    tribes:["南中诸夷","羌"],
+    relations:[{y:"225",t:"诸葛亮平南中，七擒孟获以收人心。"},
+      {y:"221",t:"刘备称帝于成都，以续汉祚。"},
+      {y:"225",t:"诸葛亮南征，七擒孟获平定南中。"}
+    ],
+    events:[{y:"225",t:"诸葛亮南征，渡泸深入不毛。"},
+      {y:"227",t:"诸葛亮《出师表》，北伐中原。"},
+      {y:"234",t:"诸葛亮病逝五丈原。"}
+    ],
+    wars:[{y:225,t:"诸葛亮南征，平定南中四郡。",factions:["蜀汉","南中诸夷"]},
+      {y:222,t:"夷陵之战，陆逊火烧连营七百里。",factions:["蜀汉","东吴"]},
+      {y:263,t:"魏灭蜀，后主刘禅出降。",factions:["蜀汉","曹魏"]}
+    ]},
+  { name:"东吴", yearLabel:"229 – 280", start:229, end:280,
+    branch:"south", colorKey:"dong_wu",
+    tribes:["山越","士燮交州"],
+    relations:[{y:"222",t:"孙权称吴王，与魏蜀鼎立。"},{y:"230",t:"卫温浮海至夷州（台湾）。"},
+      {y:"229",t:"孙权称帝建业，江东三世创业终成。"},
+      {y:"230",t:"卫温率万人浮海至夷洲（台湾），首次大陆对台官方接触。"}
+    ],
+    events:[{y:"234",t:"诸葛恪平山越。"},{y:"242",t:"孙权派聂友、陆凯讨珠崖。"},
+      {y:"252",t:"东兴之战，诸葛恪大破魏军。"},
+      {y:"280",t:"晋灭吴，孙皓出降。"}
+    ],
+    wars:[
+      {y:230,t:"卫温率甲士万人浮海至夷州，是大陆经略台湾之始。",factions:["东吴","山越"]},
+      {y:280,t:"晋将王濬楼船下益州，孙皓出降，三国一统。",factions:["东吴","西晋"]}
+    ,
+      {y:234,t:"合肥之战，张辽威震逍遥津。",factions:["东吴","曹魏"]}
+    ]},
+  { name:"西晋", yearLabel:"265 – 316", start:265, end:316, colorKey:"xi_jin",
+    tribes:["匈奴","鲜卑","羯","氐","羌"],
+    relations:[{y:"280",t:"司马炎灭吴，短暂统一。"},
+      {y:"265",t:"司马炎受魏禅称帝建晋，占田荫客制颁行。"},
+      {y:"280",t:"晋灭吴，天下复归一统。"}
+    ],
+    events:[
+      {y:"304",t:"刘渊起兵，五胡乱华开端。"},
+      {y:"316",t:"匈奴攻陷长安，西晋灭亡。"}
+    ,
+      {y:"291",t:"八王之乱起，皇族内讧十六年。"},
+      {y:"304",t:"刘渊建汉（前赵），五胡乱华开端。"},
+      {y:"311",t:"永嘉之乱，刘聪攻陷洛阳，晋怀帝被俘。"},
+      {y:"316",t:"刘曜陷长安，晋愍帝降，西晋亡。"}
+    ],
+    wars:[
+      {y:304,t:"刘渊建汉赵，起兵反晋。",factions:["西晋","匈奴"]},
+      {y:311,t:"永嘉之乱，匈奴攻破洛阳，晋怀帝被俘。",factions:["西晋","匈奴"]}
+    ,
+      {y:311,t:"永嘉之祸，匈奴攻洛阳，衣冠南渡。",factions:["西晋","匈奴"]}
+    ]},
+  { name:"东晋", yearLabel:"317 – 420", start:317, end:420, colorKey:"dong_jin",
+    tribes:["氐前秦","羌后秦","鲜卑各部"],
+    relations:[{y:"317",t:"司马睿南渡建康，与五胡十六国南北对峙。"},
+      {y:"317",t:"司马睿江左建康称帝，衣冠南渡。"},
+      {y:"339",t:"王导主政'王与马共天下'，世族门阀政治成形。"}
+    ],
+    events:[
+      {y:"313",t:"祖逖中流击楫，北伐收复黄河以南。"},
+      {y:"383",t:"苻坚南侵，谢玄淝水之战以少胜多。"}
+    ,
+      {y:"322",t:"王敦之乱。"},
+      {y:"371",t:"桓温废海西公立简文帝，权倾朝野。"},
+      {y:"399",t:"孙恩、卢循起义，沿海动荡。"},
+      {y:"420",t:"刘裕代晋自立，东晋亡。"}
+    ],
+    wars:[
+      {y:313,t:"祖逖北伐，克复豫州。",factions:["东晋","羯"]},
+      {y:383,t:"淝水之战，谢玄八万破前秦八十余万，苻坚败死。",factions:["东晋","前秦"]}
+    ,
+      {y:347,t:"桓温灭成汉，克成都。",factions:["东晋","成汉"]},
+      {y:369,t:"桓温三伐前燕，枋头败归。",factions:["东晋","前燕"]}
+    ]},
+  { name:"南朝", yearLabel:"420 – 589", start:420, end:589,
+    branch:"south", colorKey:"nan_chao",
+    tribes:["北魏","柔然","吐谷浑","林邑"],
+    relations:[
+      {y:"420",t:"刘裕代晋建宋，南朝肇始。"},
+      {y:"479",t:"萧道成代宋建齐。"},
+      {y:"502",t:"萧衍代齐建梁。"},
+      {y:"557",t:"陈霸先代梁建陈，南朝终至。"}
+    ,
+      {y:"462",t:"祖冲之精算圆周率至小数后七位。"},
+      {y:"515",t:"梁武帝崇佛，'南朝四百八十寺'。"}
+    ],
+    events:[
+      {y:"450",t:"宋魏元嘉北伐失利，瓜步之战北魏饮马长江。"},
+      {y:"548",t:"侯景之乱，梁朝由盛转衰。"}
+    ,
+      {y:"548",t:"侯景之乱，梁武帝饿死台城。"},
+      {y:"589",t:"隋灭陈，南北复归一统。"}
+    ],
+    wars:[
+      {y:430,t:"宋文帝元嘉北伐，到彦之兵败河南。",factions:["南朝","北朝"]},
+      {y:450,t:"宋魏元嘉之战，拓跋焘饮马长江，瓜步对峙。",factions:["南朝","北朝"]},
+      {y:573,t:"陈宣帝太建北伐，吴明彻克寿春。",factions:["南朝","北朝"]}
+    ,
+      {y:450,t:"宋魏瓜步之战，拓跋焘饮马长江。",factions:["南朝","北朝"]}
+    ]},
+  { name:"北朝", yearLabel:"386 – 581", start:386, end:581,
+    branch:"north", colorKey:"bei_chao",
+    tribes:["柔然","高车","吐谷浑","突厥","契丹"],
+    relations:[
+      {y:"386",t:"拓跋珪建北魏。"},
+      {y:"439",t:"北魏太武帝灭北凉统一北方。"},
+      {y:"534",t:"北魏分裂为东魏、西魏。"},
+      {y:"550",t:"高洋代东魏建北齐；557 宇文觉代西魏建北周。"},
+      {y:"577",t:"北周灭北齐，统一北方。"}
+    ,
+      {y:"439",t:"北魏太武帝灭北凉，统一北方，十六国终结。"},
+      {y:"494",t:"北魏孝文帝迁都洛阳，推行汉化。"},
+      {y:"534",t:"北魏分裂为东魏、西魏。"}
+    ],
+    events:[
+      {y:"494",t:"魏孝文帝迁都洛阳，推行汉化改革。"},
+      {y:"523",t:"六镇起义，北魏走向分裂。"}
+    ,
+      {y:"446",t:"北魏太武帝灭佛。"},
+      {y:"523",t:"六镇起义，北魏国力衰微。"},
+      {y:"577",t:"北周武帝灭北齐，统一北方。"}
+    ],
+    wars:[
+      {y:429,t:"魏太武帝拓跋焘北征柔然，大破之于漠南。",factions:["北朝","柔然"]},
+      {y:445,t:"北魏破吐谷浑慕利延部于河西。",factions:["北朝","吐谷浑"]},
+      {y:546,t:"东魏高欢围西魏玉璧，韦孝宽坚守五十日，高欢病退。",factions:["北朝","北朝"]}
+    ,
+      {y:383,t:"淝水之战，前秦苻坚败于东晋。",factions:["北朝","南朝"]}
+    ]},
+  { name:"隋", yearLabel:"581 – 618", start:581, end:618, colorKey:"sui",
+    tribes:["突厥","吐谷浑","高句丽"],
+    relations:[
+      {y:"581",t:"隋文帝代周建隋，分化东西突厥。"},
+      {y:"609",t:"隋炀帝亲征吐谷浑。"}
+    ,
+      {y:"581",t:"杨坚受周禅，改元开皇，均田制、府兵制推行。"},
+      {y:"587",t:"开科取士，科举制萌芽。"},
+      {y:"605",t:"隋炀帝开凿大运河，通济渠贯通南北。"},
+      {y:"609",t:"隋炀帝西巡至张掖，会西域二十七国。"}
+    ],
+    events:[{y:"612",t:"隋炀帝三征高句丽，损兵百万。"},
+      {y:"589",t:"隋灭陈，结束三百年南北分裂。"},
+      {y:"611",t:"王薄长白山起义，隋末大乱开始。"},
+      {y:"618",t:"宇文化及江都弑炀帝，李渊长安建唐。"}
+    ],
+    wars:[
+      {y:599,t:"长孙晟用计分化突厥，大破都蓝可汗。",factions:["隋","突厥"]},
+      {y:612,t:"隋炀帝第一次征高句丽，惨败。",factions:["隋","高句丽"]}
+    ,
+      {y:612,t:"隋炀帝一征高句丽，三十万军北归者数千。",factions:["隋","高句丽"]},
+      {y:613,t:"杨玄感起兵反隋，炀帝二征高句丽中止。",factions:["隋","隋"]}
+    ]},
+  { name:"唐", yearLabel:"618 – 907", start:618, end:907, colorKey:"tang",
+    tribes:["东突厥","西突厥","吐蕃","回纥","薛延陀","高句丽","南诏"],
+    relations:[
+      {y:"630",t:"唐太宗灭东突厥，被尊为天可汗。"},
+      {y:"641",t:"文成公主嫁松赞干布，汉藏和亲。"},
+      {y:"657",t:"唐高宗灭西突厥，置安西都护府。"},
+      {y:"668",t:"李勣灭高句丽，置安东都护府。"},
+      {y:"744",t:"回纥助唐平安史之乱，世为甥舅。"}
+    ,
+      {y:"618",t:"李渊太原起兵入长安称帝建唐。"},
+      {y:"626",t:"玄武门之变，李世民继位，贞观之治启。"},
+      {y:"643",t:"凌烟阁二十四功臣画像。"},
+      {y:"645",t:"玄奘自天竺归长安，译经传法。"},
+      {y:"690",t:"武则天称帝建周，中国唯一女皇。"},
+      {y:"712",t:"唐玄宗即位，开元盛世。"},
+      {y:"754",t:"鉴真东渡日本传戒律。"},
+      {y:"781",t:"《大秦景教流行中国碑》立于长安。"},
+      {y:"821",t:"唐蕃长庆会盟，立碑大昭寺前。"}
+    ],
+    events:[
+      {y:"755",t:"安史之乱爆发，郭子仪、李光弼力挽狂澜。"},
+      {y:"763",t:"吐蕃趁乱攻入长安，郭子仪复京。"}
+    ,
+      {y:"626",t:"玄武门之变，唐太宗继位。"},
+      {y:"684",t:"徐敬业扬州起兵反武，骆宾王作讨武檄。"},
+      {y:"713",t:"开元盛世，户口耕地空前增长。"},
+      {y:"755",t:"安史之乱爆发，'渔阳鼙鼓动地来'。"},
+      {y:"763",t:"安史之乱平，藩镇割据始。"},
+      {y:"783",t:"泾原兵变，德宗奔奉天。"},
+      {y:"805",t:"永贞革新，王叔文集团百日而败。"},
+      {y:"835",t:"甘露之变，宦官夺权，文宗形同囚徒。"},
+      {y:"875",t:"黄巢起义，'冲天香阵透长安'。"},
+      {y:"907",t:"朱温篡唐建梁，唐亡。"}
+    ],
+    wars:[
+      {y:630,t:"李靖夜袭阴山，生擒颉利可汗，东突厥亡。",factions:["唐","东突厥"]},
+      {y:641,t:"文成公主入藏，松赞干布迎娶。",factions:["唐","吐蕃"]},
+      {y:657,t:"苏定方灭西突厥。",factions:["唐","西突厥"]},
+      {y:668,t:"李勣灭高句丽。",factions:["唐","高句丽"]},
+      {y:751,t:"高仙芝怛罗斯之战兵败大食。",factions:["唐","大食"]},
+      {y:763,t:"吐蕃攻陷长安，郭子仪驱逐。",factions:["唐","吐蕃"]}
+    ,
+      {y:621,t:"李世民虎牢关一战擒窦建德、降王世充。",factions:["唐","隋末群雄"]},
+      {y:645,t:"唐太宗亲征高句丽，克辽东。",factions:["唐","高句丽"]},
+      {y:663,t:"白江口之战，刘仁轨大破倭国与百济联军。",factions:["唐","倭国"]},
+      {y:670,t:"大非川之战，薛仁贵败于吐蕃论钦陵。",factions:["唐","吐蕃"]},
+      {y:696,t:"契丹李尽忠营州起兵反武周。",factions:["唐","契丹"]},
+      {y:747,t:"高仙芝远征小勃律，翻越帕米尔。",factions:["唐","小勃律"]},
+      {y:757,t:"郭子仪、李光弼收复两京。",factions:["唐","安史叛军"]},
+      {y:783,t:"四镇之乱，藩镇朱泚称帝长安。",factions:["唐","藩镇"]},
+      {y:880,t:"黄巢攻入长安，僖宗奔成都。",factions:["唐","黄巢"]}
+    ]},
+    /* ===== 五代 (中原正统,时间链式串联,主线 z=0,深浅烟褐色区分) ===== */
+  { name:"后梁", yearLabel:"907 – 923", start:907, end:923, group:"wudai",
+    branch:0, colorKey:"hou_liang",
+    tribes:["契丹","沙陀"],
+    relations:[{y:"907",t:"朱温（朱全忠）代唐建梁，定都开封。"}],
+    events:[{y:"912",t:"朱温被次子朱友珪弑杀。"}],
+    wars:[{y:923,t:"后唐李存勖灭后梁，梁末帝朱友贞自杀。",factions:["后梁","后唐"]}]},
+  { name:"后唐", yearLabel:"923 – 936", start:923, end:936, group:"wudai",
+    branch:0, colorKey:"hou_tang",
+    tribes:["契丹","沙陀","吐谷浑"],
+    relations:[{y:"923",t:"沙陀人李存勖灭梁建唐（史称后唐），自居唐室之后。"}],
+    events:[{y:"926",t:"邺都兵变，李存勖被乱兵所杀，李嗣源继位。"}],
+    wars:[
+      {y:925,t:"后唐遣郭崇韬伐前蜀，七十日灭蜀。",factions:["后唐","前蜀"]},
+      {y:936,t:"石敬瑭引契丹兵灭后唐，末帝李从珂自焚。",factions:["后唐","契丹"]}
+    ]},
+  { name:"后晋", yearLabel:"936 – 947", start:936, end:947, group:"wudai",
+    branch:0, colorKey:"hou_jin",
+    tribes:["契丹","沙陀"],
+    relations:[{y:"936",t:"石敬瑭割燕云十六州给契丹，称儿皇帝换辽援建晋。"}],
+    events:[{y:"944",t:"石重贵称孙不称臣，契丹大举南下。"}],
+    wars:[{y:947,t:"耶律德光攻陷开封，后晋亡，契丹改国号大辽。",factions:["后晋","契丹"]}]},
+  { name:"后汉", yearLabel:"947 – 951", start:947, end:951, group:"wudai",
+    branch:0, colorKey:"hou_han",
+    tribes:["契丹","沙陀"],
+    relations:[{y:"947",t:"沙陀人刘知远在太原称帝，趁辽军北归入主开封。"}],
+    events:[{y:"950",t:"郭威被逼反，起兵入汴。"}],
+    wars:[{y:951,t:"郭威代汉建周，后汉亡（国祚仅四年）。",factions:["后汉","后周"]}]},
+  { name:"后周", yearLabel:"951 – 960", start:951, end:960, group:"wudai",
+    branch:0, colorKey:"hou_zhou",
+    tribes:["契丹","沙陀"],
+    relations:[
+      {y:"951",t:"郭威代后汉建周，休养生息。"},
+      {y:"954",t:"周世宗柴荣继位，锐意改革。"}
+    ],
+    events:[{y:"959",t:"周世宗英年早逝，七岁恭帝继位。"}],
+    wars:[
+      {y:954,t:"高平之战，周世宗大破北汉沙陀及契丹援军。",factions:["后周","北汉"]},
+      {y:956,t:"周世宗三征南唐，夺淮南十四州，南唐去帝号称臣。",factions:["后周","南唐"]},
+      {y:959,t:"周世宗北伐辽，收复瀛、莫、易三州。",factions:["后周","契丹"]},
+      {y:960,t:"陈桥兵变，赵匡胤代周建宋，后周亡。",factions:["后周","北宋"]}
+    ]},
+
+  /* ===== 十国 (按地理三排错开 z 偏移,各国独立配色) =====
+     branch 数值越大 z 越靠南,北汉 = -8 单独北上(山西/中原以北) */
+  { name:"杨吴", yearLabel:"902 – 937", start:902, end:937, group:"shiguo",
+    branch:8, colorKey:"yang_wu",
+    tribes:["契丹"],
+    relations:[{y:"902",t:"杨行密称吴王，据淮南，十国之首。"}],
+    events:[{y:"920",t:"权臣徐温掌国，杨氏成傀儡。"}],
+    wars:[{y:937,t:"徐知诰（李昪）代吴建南唐。",factions:["杨吴","南唐"]}]},
+  { name:"南唐", yearLabel:"937 – 975", start:937, end:975, group:"shiguo",
+    branch:8, colorKey:"nan_tang",
+    tribes:[],
+    relations:[
+      {y:"937",t:"李昪代吴建南唐，定都金陵，文化鼎盛。"},
+      {y:"961",t:"李煜继位，词坛冠绝一时。"}
+    ],
+    events:[{y:"958",t:"南唐去帝号，称江南国主向后周称臣。"}],
+    wars:[
+      {y:945,t:"南唐灭闽，得建州、汀州。",factions:["南唐","闽"]},
+      {y:951,t:"南唐灭楚，得潭州。",factions:["南唐","楚"]},
+      {y:975,t:"曹彬围金陵，李煜出降，南唐亡。",factions:["南唐","北宋"]}
+    ]},
+  { name:"吴越", yearLabel:"907 – 978", start:907, end:978, group:"shiguo",
+    branch:8, colorKey:"wu_yue",
+    tribes:[],
+    relations:[
+      {y:"907",t:"钱镠受后梁封吴越王，据两浙。"},
+      {y:"978",t:"钱俶纳土归宋，免兵戈之灾。"}
+    ],
+    events:[{y:"932",t:"钱镠卒，子钱元瓘继位，事中原如父。"}],
+    wars:[]},
+  { name:"闽", yearLabel:"909 – 945", start:909, end:945, group:"shiguo",
+    branch:8, colorKey:"min",
+    tribes:[],
+    relations:[
+      {y:"909",t:"王审知受后梁封闽王，据福建。"},
+      {y:"933",t:"王延钧称帝，国号大闽。"}
+    ],
+    events:[{y:"943",t:"王延政分裂建殷国，内乱不断。"}],
+    wars:[{y:945,t:"南唐灭闽，闽地分入南唐与吴越。",factions:["闽","南唐"]}]},
+  { name:"前蜀", yearLabel:"907 – 925", start:907, end:925, group:"shiguo",
+    branch:16, colorKey:"qian_shu",
+    tribes:["吐蕃","南诏"],
+    relations:[{y:"907",t:"王建据成都称帝，国号大蜀。"}],
+    events:[{y:"918",t:"王建卒，子王衍奢侈骄淫。"}],
+    wars:[{y:925,t:"后唐郭崇韬七十日灭前蜀，王衍降。",factions:["前蜀","后唐"]}]},
+  { name:"后蜀", yearLabel:"934 – 965", start:934, end:965, group:"shiguo",
+    branch:16, colorKey:"hou_shu",
+    tribes:["吐蕃"],
+    relations:[
+      {y:"934",t:"孟知祥据蜀称帝，继承前蜀疆土。"},
+      {y:"935",t:"孟昶继位，蜀地富庶安定。"}
+    ],
+    events:[{y:"944",t:"后蜀创蜀绣、蜀锦，文风炽盛。"}],
+    wars:[{y:965,t:"宋将王全斌六十六日灭后蜀，孟昶降宋后暴卒。",factions:["后蜀","北宋"]}]},
+  { name:"楚", yearLabel:"907 – 951", start:907, end:951, group:"shiguo",
+    branch:16, colorKey:"chu",
+    tribes:["蛮"],
+    relations:[{y:"907",t:"马殷受后梁封楚王，据湖南，以茶叶通商致富。"}],
+    events:[{y:"930",t:"马殷卒，诸子相争，史称众驹争槽。"}],
+    wars:[{y:951,t:"南唐边镐入潭州，楚亡。",factions:["楚","南唐"]}]},
+  { name:"荆南", yearLabel:"924 – 963", start:924, end:963, group:"shiguo",
+    branch:16, colorKey:"jing_nan",
+    tribes:[],
+    relations:[{y:"924",t:"高季兴据江陵称王，国号荆南（南平），纳贡四方称高赖子。"}],
+    events:[],
+    wars:[{y:963,t:"宋假道伐荆湖，高继冲纳土降宋。",factions:["荆南","北宋"]}]},
+  { name:"南汉", yearLabel:"917 – 971", start:917, end:971, group:"shiguo",
+    branch:24, colorKey:"nan_han",
+    tribes:["俚","僚"],
+    relations:[
+      {y:"917",t:"刘䶮（刘岩）在广州称帝，国号大越，旋改大汉，史称南汉。"},
+      {y:"958",t:"刘鋹继位，任宦官，刑罚酷烈。"}
+    ],
+    events:[{y:"950",t:"南汉沿海设市舶，海贸繁盛。"}],
+    wars:[{y:971,t:"宋将潘美灭南汉，刘鋹降。",factions:["南汉","北宋"]}]},
+  { name:"北汉", yearLabel:"951 – 979", start:951, end:979, group:"shiguo",
+    branch:-8, colorKey:"bei_han",
+    tribes:["契丹","沙陀"],
+    relations:[
+      {y:"951",t:"刘崇据太原称帝，沙陀残脉，称侄于辽以图自存。"}
+    ],
+    events:[{y:"954",t:"高平之战大败，精锐尽损。"}],
+    wars:[
+      {y:954,t:"高平之战，北汉刘崇大败于后周柴荣。",factions:["北汉","后周"]},
+      {y:979,t:"宋太宗亲征北汉，刘继元出降，十国终结。",factions:["北汉","北宋"]}
+    ]},
+
+  { name:"北宋", yearLabel:"960 – 1127", start:960, end:1127, colorKey:"bei_song",
+    tribes:["契丹辽","西夏党项","女真金"],
+    relations:[
+      {y:"1004",t:"宋真宗在寇准力主下亲征，签订澶渊之盟。"},
+      {y:"1044",t:"宋夏庆历和议。"},
+      {y:"1125",t:"金灭辽，与北宋联盟旋即破裂。"}
+    ,
+      {y:"960",t:"陈桥兵变，赵匡胤黄袍加身建宋。"},
+      {y:"961",t:"杯酒释兵权，削藩镇收禁军。"},
+      {y:"1005",t:"澶渊之盟，宋辽兄弟之国百年和。"},
+      {y:"1042",t:"庆历增币，辽再勒索岁币。"},
+      {y:"1044",t:"庆历和议，西夏臣服，宋赐岁币。"},
+      {y:"1069",t:"王安石变法启，青苗、保甲、市易诸法。"},
+      {y:"1086",t:"司马光相，尽废新法，元祐更化。"}
+    ],
+    events:[
+      {y:"979",t:"宋太宗北伐失败，高梁河之战中流矢遁。"},
+      {y:"1127",t:"靖康之变，金军掳徽钦二帝，宋徽宗北狩。"}
+    ,
+      {y:"979",t:"宋太宗灭北汉，五代十国终结。"},
+      {y:"1004",t:"寇准劝真宗亲征澶州，挫辽军锋。"},
+      {y:"1041",t:"毕昇发明活字印刷术。"},
+      {y:"1084",t:"司马光《资治通鉴》成。"},
+      {y:"1126",t:"靖康之变，金军围汴京。"},
+      {y:"1127",t:"靖康之难，徽钦二帝被掳，北宋亡。"}
+    ],
+    wars:[
+      {y:979,t:"高梁河之战，辽大破宋。",factions:["北宋","契丹"]},
+      {y:1004,t:"澶渊之盟，寇准力主真宗亲征定盟。",factions:["北宋","契丹"]},
+      {y:1038,t:"李元昊建西夏，三川口大败宋军。",factions:["北宋","西夏"]},
+      {y:1127,t:"靖康之变，金军破汴京。",factions:["北宋","女真"]}
+    ,
+      {y:979,t:"高梁河之战，宋太宗北伐失利。",factions:["北宋","辽"]},
+      {y:986,t:"雍熙北伐，杨业陈家谷殉国。",factions:["北宋","辽"]},
+      {y:1004,t:"澶州之战，寇准劝真宗御驾亲征。",factions:["北宋","辽"]},
+      {y:1040,t:"三川口、好水川之战，西夏屡胜。",factions:["北宋","西夏"]},
+      {y:1115,t:"宋金海上之盟，夹击辽。",factions:["北宋","金"]},
+      {y:1126,t:"种师道勤王、李纲东京保卫战。",factions:["北宋","金"]}
+    ]},
+  { name:"南宋", yearLabel:"1127 – 1279", start:1127, end:1279, colorKey:"nan_song",
+    tribes:["女真金","蒙古","西夏"],
+    relations:[
+      {y:"1141",t:"宋高宗与金签绍兴和议，岳飞下狱遇害。"},
+      {y:"1234",t:"孟珙联蒙灭金。"}
+    ,
+      {y:"1127",t:"赵构应天府称帝，南宋立。"},
+      {y:"1138",t:"绍兴和议初签，宋向金称臣。"},
+      {y:"1141",t:"绍兴和议成，杀岳飞，宋金以淮水为界。"},
+      {y:"1164",t:"隆兴和议，改称叔侄之国。"},
+      {y:"1208",t:"嘉定和议，韩侂胄北伐失败被斩。"}
+    ],
+    events:[
+      {y:"1140",t:"岳飞郾城大捷，大破金兀术。"},
+      {y:"1279",t:"崖山海战，陆秀夫负幼帝跳海，南宋亡。"}
+    ,
+      {y:"1130",t:"黄天荡之战，韩世忠困金兀术。"},
+      {y:"1140",t:"郾城大捷，岳飞撼山易撼岳家军难。"},
+      {y:"1142",t:"岳飞莫须有罪死风波亭。"},
+      {y:"1234",t:"宋蒙联合灭金。"},
+      {y:"1273",t:"襄阳陷，蒙古破南宋长江门户。"},
+      {y:"1276",t:"伯颜入临安，恭帝被俘。"},
+      {y:"1279",t:"崖山之战，陆秀夫负幼帝跳海，南宋亡。"}
+    ],
+    wars:[
+      {y:1130,t:"黄天荡之战，韩世忠围金兀术四十八日。",factions:["南宋","女真"]},
+      {y:1140,t:"郾城大捷，岳飞大破金兀术铁浮屠。",factions:["南宋","女真"]},
+      {y:1234,t:"孟珙联蒙灭金。",factions:["南宋","女真","蒙古"]},
+      {y:1259,t:"钓鱼城之战，蒙哥汗战死城下。",factions:["南宋","蒙古"]},
+      {y:1279,t:"崖山海战，文天祥兵败被俘后殉国。",factions:["南宋","蒙古"]}
+    ,
+      {y:1140,t:"郾城大捷，岳飞重创金军主力。",factions:["南宋","金"]},
+      {y:1161,t:"采石矶之战，虞允文以少胜多挫完颜亮。",factions:["南宋","金"]},
+      {y:1235,t:"端平入洛失败，蒙宋战争全面爆发。",factions:["南宋","蒙古"]},
+      {y:1259,t:"钓鱼城之战，蒙哥汗中流矢死。",factions:["南宋","蒙古"]}
+    ]},
+  { name:"元", yearLabel:"1271 – 1368", start:1271, end:1368, colorKey:"yuan",
+    tribes:["蒙古各部","畏兀儿","藏","汉"],
+    relations:[
+      {y:"1271",t:"忽必烈定国号大元。"},
+      {y:"1280",t:"伯颜灭南宋统一全国。"}
+    ,
+      {y:"1271",t:"忽必烈建国号大元，定都大都。"},
+      {y:"1287",t:"郭守敬《授时历》颁行，精度领先世界。"},
+      {y:"1313",t:"恢复科举，蒙汉分榜。"},
+      {y:"1330",t:"忽思慧《饮膳正要》成，营养学先驱。"},
+      {y:"1340",t:"脱脱主修《辽》《金》《宋》三史。"}
+    ],
+    events:[{y:"1351",t:"红巾军起义席卷中原。"},
+      {y:"1281",t:"二征日本，神风袭舰，元军全军覆没。"},
+      {y:"1294",t:"马可波罗自大都返威尼斯。"},
+      {y:"1351",t:"红巾起义，韩山童、刘福通举义。"},
+      {y:"1363",t:"鄱阳湖之战，朱元璋击败陈友谅。"},
+      {y:"1368",t:"朱元璋北伐入大都，元顺帝北遁，北元始。"}
+    ],
+    wars:[
+      {y:1275,t:"伯颜南下灭宋，克临安。",factions:["元","南宋"]},
+      {y:1281,t:"元第二次东征日本失败。",factions:["元","日本"]}
+    ,
+      {y:1274,t:"元日文永之役，飓风毁元舰。",factions:["元","日本"]},
+      {y:1287,t:"元征安南、占城接连受挫。",factions:["元","安南"]},
+      {y:1293,t:"史弼远征爪哇，虽胜而难守。",factions:["元","爪哇"]}
+    ]},
+  { name:"明", yearLabel:"1368 – 1644", start:1368, end:1644, colorKey:"ming",
+    tribes:["北元蒙古","瓦剌","鞑靼","女真","倭寇"],
+    relations:[
+      {y:"1368",t:"朱元璋驱逐蒙元光复中原。"},
+      {y:"1571",t:"俺答封贡，明蒙边境止戈。"}
+    ,
+      {y:"1368",t:"朱元璋应天称帝建明，北伐驱蒙。"},
+      {y:"1380",t:"胡惟庸案，废丞相，六部直属皇帝。"},
+      {y:"1403",t:"郑和首次下西洋准备启动。"},
+      {y:"1405",t:"郑和首下西洋，远抵非洲。"},
+      {y:"1421",t:"明成祖迁都北京。"},
+      {y:"1567",t:"隆庆开关，部分解除海禁。"},
+      {y:"1572",t:"张居正主政，推一条鞭法。"},
+      {y:"1601",t:"利玛窦入北京，西学东渐。"}
+    ],
+    events:[
+      {y:"1421",t:"明成祖迁都北京，天子守国门。"},
+      {y:"1449",t:"土木堡之变，英宗被瓦剌也先俘获。"}
+    ,
+      {y:"1399",t:"靖难之役起，朱棣四年取京。"},
+      {y:"1421",t:"迁都北京，五次北征鞑靼。"},
+      {y:"1449",t:"土木之变，英宗北俘。"},
+      {y:"1457",t:"夺门之变，英宗复辟。"},
+      {y:"1522",t:"嘉靖朝大礼议之争。"},
+      {y:"1582",t:"张居正卒，新政废。"},
+      {y:"1626",t:"宁远大捷，袁崇焕红衣炮挫努尔哈赤。"},
+      {y:"1644",t:"李自成入北京，崇祯煤山自缢，明亡。"}
+    ],
+    wars:[
+      {y:1370,t:"徐达北伐，克应昌追北元。",factions:["明","北元"]},
+      {y:1388,t:"蓝玉捕鱼儿海之战，大破北元。",factions:["明","北元"]},
+      {y:1410,t:"明成祖第一次北征漠北。",factions:["明","鞑靼"]},
+      {y:1449,t:"土木堡之变，瓦剌也先俘明英宗。",factions:["明","瓦剌"]},
+      {y:1592,t:"万历援朝战争，抗倭援朝。",factions:["明","倭寇"]},
+      {y:1619,t:"萨尔浒之战，努尔哈赤大破明军四路。",factions:["明","女真"]},
+      {y:1626,t:"宁远大战，袁崇焕炮伤努尔哈赤。",factions:["明","女真"]}
+    ,
+      {y:1410,t:"明成祖五征蒙古，封狼居胥。",factions:["明","鞑靼"]},
+      {y:1449,t:"土木堡之变，五十万明军溃，英宗被俘。",factions:["明","瓦剌"]},
+      {y:1550,t:"庚戌之变，俺答汗围北京。",factions:["明","蒙古"]},
+      {y:1561,t:"戚继光台州九战九捷，大破倭寇。",factions:["明","倭寇"]},
+      {y:1592,t:"万历朝鲜之役，援朝抗倭七年。",factions:["明","日本"]},
+      {y:1619,t:"萨尔浒之战，后金以少胜多大败明军。",factions:["明","后金"]},
+      {y:1641,t:"松锦大战，洪承畴降清，关外尽失。",factions:["明","清"]}
+    ]},
+  { name:"清", yearLabel:"1636 – 1912", start:1636, end:1912, colorKey:"qing",
+    tribes:["蒙古","准噶尔","回部","藏","苗"],
+    relations:[
+      {y:"1644",t:"多尔衮率清军入关，顺治迁都北京。"},
+      {y:"1689",t:"康熙与俄签尼布楚条约。"},
+      {y:"1727",t:"雍正在西藏驻藏大臣。"}
+    ,
+      {y:"1636",t:"皇太极改国号大清，称帝沈阳。"},
+      {y:"1644",t:"清军入关，迁都北京。"},
+      {y:"1683",t:"施琅率师收台湾，郑克塽降。"},
+      {y:"1689",t:"中俄《尼布楚条约》，确立东段边界。"},
+      {y:"1727",t:"中俄《恰克图条约》，划定北段。"},
+      {y:"1757",t:"乾隆设广州一口通商。"},
+      {y:"1793",t:"马戛尔尼使团来华，中英礼仪之争。"},
+      {y:"1842",t:"《南京条约》割香港、开五口、赔银。"},
+      {y:"1860",t:"英法联军火烧圆明园，签《北京条约》。"},
+      {y:"1895",t:"《马关条约》割台湾、赔二亿两。"},
+      {y:"1901",t:"《辛丑条约》赔款四亿五千万两。"},
+      {y:"1911",t:"武昌起义，辛亥革命起。"}
+    ],
+    events:[
+      {y:"1683",t:"施琅收复台湾。"},
+      {y:"1755",t:"乾隆平准噶尔，西域并入版图。"}
+    ,
+      {y:"1673",t:"三藩之乱起，吴三桂等举兵。"},
+      {y:"1729",t:"雍正设军机处，皇权集中。"},
+      {y:"1751",t:"清平准噶尔，设伊犁将军。"},
+      {y:"1799",t:"嘉庆诛和珅，'和珅跌倒嘉庆吃饱'。"},
+      {y:"1851",t:"金田起义，洪秀全建太平天国。"},
+      {y:"1864",t:"湘军破天京，太平天国亡。"},
+      {y:"1898",t:"戊戌变法，百日维新失败。"},
+      {y:"1900",t:"义和团事变，八国联军侵华。"},
+      {y:"1905",t:"科举制废除。"},
+      {y:"1908",t:"光绪、慈禧相继崩，溥仪即位。"},
+      {y:"1912",t:"清帝退位，中华民国立。"}
+    ],
+    wars:[
+      {y:1644,t:"多尔衮山海关之战，联吴三桂破李自成。",factions:["清","明"]},
+      {y:1685,t:"康熙雅克萨之战，大破沙俄。",factions:["清","俄罗斯"]},
+      {y:1690,t:"康熙乌兰布通之战，大破噶尔丹。",factions:["清","准噶尔"]},
+      {y:1696,t:"昭莫多之战，噶尔丹兵败身亡。",factions:["清","准噶尔"]},
+      {y:1755,t:"乾隆平准噶尔，达瓦齐被擒。",factions:["清","准噶尔"]},
+      {y:1759,t:"清军平大小和卓，统一回部。",factions:["清","回部"]},
+      {y:1788,t:"福康安击退廓尔喀入侵西藏。",factions:["清","廓尔喀"]},
+      {y:1878,t:"左宗棠收复新疆。",factions:["清","阿古柏"]}
+    ,
+      {y:1685,t:"雅克萨之战，清军大败沙俄。",factions:["清","沙俄"]},
+      {y:1696,t:"昭莫多之战，康熙亲征噶尔丹。",factions:["清","准噶尔"]},
+      {y:1755,t:"清灭准噶尔，平定西域。",factions:["清","准噶尔"]},
+      {y:1788,t:"清军征廓尔喀（尼泊尔）入藏。",factions:["清","廓尔喀"]},
+      {y:1840,t:"鸦片战争爆发，英国坚船利炮叩国门。",factions:["清","英国"]},
+      {y:1856,t:"第二次鸦片战争，英法联军北上。",factions:["清","英法"]},
+      {y:"1862",t:"陕甘回乱，左宗棠率湘军剿之十余年。",factions:["清","回民"]},
+      {y:1883,t:"中法战争，镇南关大捷，冯子材老将出马。",factions:["清","法国"]},
+      {y:1894,t:"甲午战争，黄海海战、辽东失陷。",factions:["清","日本"]},
+      {y:1900,t:"八国联军侵华，慈禧西逃。",factions:["清","八国联军"]}
+    ]}
+];
+
+/* 族群分类 (用于图腾旗颜色) */
+const TRIBE_TYPE = {
+  "匈奴":"north","鲜卑":"north","柔然":"north","突厥":"north","东突厥":"north","西突厥":"north",
+  "回纥":"north","薛延陀":"north","契丹":"north","契丹辽":"north","蒙古":"north","蒙古各部":"north",
+  "瓦剌":"north","鞑靼":"north","北元":"north","北元蒙古":"north","准噶尔":"north","噶尔丹":"north",
+  "东胡":"north","乌桓":"north","氐":"northeast","羯":"northeast","氐前秦":"northeast","前秦":"northeast",
+  "女真":"northeast","女真金":"northeast","建州女真":"northeast","高句丽":"northeast",
+  "羌":"west","羌后秦":"west","西夏":"west","西夏党项":"west","吐蕃":"west","吐谷浑":"west",
+  "西域":"west","西域诸国":"west","乌孙":"west","大食":"west","回部":"west","藏":"west",
+  "畏兀儿":"west","廓尔喀":"west","阿古柏":"west","俄罗斯":"west","日本":"west",
+  "南诏":"south","百越":"south","南中诸夷":"south","苗":"south","汉":"south","明":"south",
+  "南宋":"south","鲜卑各部":"north"
+};
+const TYPE_COLOR = {
+  north:0x7ad0ff, northeast:0xa0e87a, west:0xffa07a, south:0xc89dff, han:0xf3d28a,
+  /* 主线汉族大一统朝代 (每朝独色,跨色相区分相邻时期) */
+  qin:0xe85838,        /* 秦:朱赤 (帝制开端) */
+  xi_han:0xf3d28a,     /* 西汉:汉宫金 */
+  dong_han:0xe0b850,   /* 东汉:汉砖赭金 */
+  xi_jin:0x6ad1ff,     /* 西晋:玉璧青 */
+  dong_jin:0x4cb8d8,   /* 东晋:江南青蓝 */
+  sui:0xa080ff,        /* 隋:皇袍紫 */
+  tang:0xff8050,       /* 唐:盛唐橘 */
+  bei_song:0x80b8e8,   /* 北宋:汴京天青 */
+  nan_song:0x60d0c0,   /* 南宋:临安湖绿 */
+  yuan:0x90a8d8,       /* 元:草原灰蓝 */
+  ming:0xd83a3a,       /* 明:朱明赤 */
+  qing:0xf0d048,       /* 清:八旗明黄 */
+  /* 南北朝 */
+  nan_chao:0x6ad1ff, bei_chao:0xd97a5a,
+  /* 三国 */
+  cao_wei:0x9b8cff, shu_han:0x59d39a, dong_wu:0xff9d6a,
+  /* 五代 (暖色系:红橙黄,串联但深浅区分) */
+  hou_liang:0xe07060,  /* 后梁:朱红 */
+  hou_tang:0xe09040,   /* 后唐:橙黄 */
+  hou_jin:0xd8b050,    /* 后晋:金黄 */
+  hou_han:0xc06848,    /* 后汉:赭红 */
+  hou_zhou:0xe85838,   /* 后周:朱砂 */
+  /* 十国-东南 (z=+8):青蓝系 */
+  yang_wu:0x6abfd0,    /* 杨吴:湖青 */
+  nan_tang:0x4090c8,   /* 南唐:江南蓝 */
+  wu_yue:0x80d8b0,     /* 吴越:水绿 */
+  min:0x5cb88a,        /* 闽:闽南绿 */
+  /* 十国-西南/华中 (z=+16):紫粉系 */
+  qian_shu:0xb878d0,   /* 前蜀:蜀道紫 */
+  hou_shu:0xc888c0,    /* 后蜀:绯紫 */
+  chu:0xa898d8,        /* 楚:洞庭蓝紫 */
+  jing_nan:0x9890b0,   /* 荆南:江陵灰紫 */
+  /* 十国-岭南 (z=+24) */
+  nan_han:0xd060a0,    /* 南汉:岭南桃红 */
+  /* 十国-中原以北 (z=-8) */
+  bei_han:0x607890     /* 北汉:太原冷灰 */
+};
+
+/* ===================== 少数民族派系生卒数据 (副线) =====================
+   side: 'top' = 河北侧(北方游牧/东北),  'bottom' = 河南侧(西部/西南)
+   row : 同侧内的轨道编号(0-上,1-中,2-下,数字越大离河越远)
+*/
+const MINORITIES = [
+  {name:"匈奴",     side:"top", row:0, life:[-300, 220], type:"north",     desc:"草原最早霸主"},
+  {name:"东胡",     side:"top", row:2, life:[-300,-200], type:"north",     desc:"被冒顿击破"},
+  {name:"乌桓",     side:"top", row:2, life:[-200, 207], type:"north",     desc:"东胡余部，曹操北征所灭"},
+  {name:"鲜卑",     side:"top", row:1, life:[ 100, 581], type:"north",     desc:"檀石槐统一漠北，后入主中原建北朝"},
+  {name:"柔然",     side:"top", row:0, life:[ 330, 555], type:"north",     desc:"漠北霸主，被突厥所灭"},
+  {name:"突厥",     side:"top", row:1, life:[ 552, 745], type:"north",     desc:"破柔然崛起，后分东西突厥"},
+  {name:"东突厥",   side:"top", row:1, life:[ 583, 630], type:"north",     desc:"贞观四年被李靖所灭"},
+  {name:"西突厥",   side:"top", row:0, life:[ 583, 657], type:"north",     desc:"被苏定方所灭"},
+  {name:"回纥",     side:"top", row:1, life:[ 744, 840], type:"north",     desc:"灭后突厥，助唐平安史之乱"},
+  {name:"契丹",     side:"top", row:0, life:[ 916,1125], type:"north",     desc:"耶律阿保机建辽，被金所灭"},
+  {name:"女真",     side:"top", row:1, life:[1115,1234], type:"northeast", desc:"完颜阿骨打建金，被蒙古所灭"},
+  {name:"蒙古",     side:"top", row:0, life:[1206,1635], type:"north",     desc:"成吉思汗统一，后裂为瓦剌/鞑靼"},
+  {name:"瓦剌",     side:"top", row:1, life:[1399,1635], type:"north",     desc:"也先曾俘明英宗"},
+  {name:"鞑靼",     side:"top", row:2, life:[1388,1635], type:"north",     desc:"北元东蒙古"},
+  {name:"后金",     side:"top", row:2, life:[1616,1636], type:"northeast", desc:"努尔哈赤建，后改国号大清"},
+  {name:"准噶尔",   side:"top", row:1, life:[1635,1759], type:"north",     desc:"瓦剌后裔，被乾隆所灭"},
+
+  {name:"百越",     side:"bottom", row:2, life:[-300,-110], type:"south", desc:"秦征岭南三郡而置"},
+  {name:"南越",     side:"bottom", row:2, life:[-203,-111], type:"south", desc:"赵佗自立，被汉武帝所灭"},
+  {name:"羌",       side:"bottom", row:1, life:[-300, 600], type:"west",  desc:"长期与中原对峙"},
+  {name:"西域诸国", side:"bottom", row:0, life:[-200, 658], type:"west",  desc:"前60汉宣帝置西域都护府"},
+  {name:"乌孙",     side:"bottom", row:1, life:[-200, 437], type:"west",  desc:"汉之西域大国，与汉和亲"},
+  {name:"吐谷浑",   side:"bottom", row:0, life:[ 313, 670], type:"west",  desc:"被吐蕃所灭"},
+  {name:"吐蕃",     side:"bottom", row:1, life:[ 618, 877], type:"west",  desc:"松赞干布建，曾攻陷长安"},
+  {name:"南诏",     side:"bottom", row:2, life:[ 738, 902], type:"south", desc:"云南六诏统一为南诏"},
+  {name:"大理",     side:"bottom", row:2, life:[ 937,1253], type:"south", desc:"段氏大理，被蒙古忽必烈所灭"},
+  {name:"西夏",     side:"bottom", row:0, life:[1038,1227], type:"west",  desc:"党项李元昊建，被蒙古所灭"},
+  {name:"高句丽",   side:"bottom", row:2, life:[ -37, 668], type:"northeast", desc:"被唐李勣所灭"},
+  {name:"沙陀",     side:"top",    row:2, life:[ 808, 979], type:"north",     desc:"西突厥别部，后唐/后晋/后汉建立者。"},
+  {name:"林邑",     side:"bottom", row:2, life:[ 192, 757], type:"south",     desc:"占婆国前身，频与中原南朝交战。"},
+  {name:"高车",     side:"top",    row:2, life:[ 390, 541], type:"north",     desc:"漠北游牧，屡攻北魏，后被柔然吞并。"},
+  {name:"山越",     side:"bottom", row:2, life:[ 200, 280], type:"south",     desc:"东南山地族群，被吴诸葛恪平定后大量内迁。"},
+];
+
+/* ===================== 吞并事件 (副线之间) ===================== */
+const ANNEXATIONS = [
+  {y:-209, by:"匈奴", target:"东胡",   desc:"冒顿单于击破东胡，统一草原。"},
+  {y:-111, by:"西汉", target:"南越",   desc:"汉武帝灭南越，置九郡。"},
+  {y:155,  by:"鲜卑", target:"匈奴",   desc:"檀石槐崛起，北匈奴西迁，鲜卑占据漠北。"},
+  {y:207,  by:"曹魏", target:"乌桓",   desc:"曹操白狼山斩蹋顿，乌桓臣服。"},
+  {y:555,  by:"突厥", target:"柔然",   desc:"突厥木杆可汗灭柔然。"},
+  {y:630,  by:"唐",   target:"东突厥", desc:"李靖夜袭阴山，生擒颉利可汗。"},
+  {y:657,  by:"唐",   target:"西突厥", desc:"苏定方灭阿史那贺鲁。"},
+  {y:668,  by:"唐",   target:"高句丽", desc:"李勣破平壤，置安东都护府。"},
+  {y:670,  by:"吐蕃", target:"吐谷浑", desc:"吐蕃灭吐谷浑，占据青海。"},
+  {y:744,  by:"回纥", target:"突厥",   desc:"回纥联唐灭后突厥。"},
+  {y:840,  by:"黠戛斯",target:"回纥",  desc:"黠戛斯破回纥，回鹘西迁。"},
+  {y:902,  by:"南诏", target:"南诏",   desc:"南诏内乱亡，演化为大理前身。"},
+  {y:1125, by:"女真", target:"契丹",   desc:"金完颜宗翰灭辽天祚帝。"},
+  {y:1227, by:"蒙古", target:"西夏",   desc:"成吉思汗灭西夏，本人病逝六盘山。"},
+  {y:1234, by:"蒙古", target:"女真",   desc:"蒙宋联军破蔡州，金哀宗自缢。"},
+  {y:1253, by:"蒙古", target:"大理",   desc:"忽必烈灭大理，云南入元版图。"},
+  {y:1635, by:"后金", target:"蒙古",   desc:"皇太极征服漠南蒙古，获传国玉玺。"},
+  {y:1635, by:"准噶尔",target:"瓦剌",  desc:"准噶尔噶尔丹崛起，统合漠西蒙古。"},
+  {y:1759, by:"清",   target:"准噶尔", desc:"乾隆平准噶尔，西域并入清版图。"},
+  {y:439, by:"北朝", target:"北凉", desc:"魏太武帝拓跋焘西征，北凉沮渠牧犍降，北方一统。"},
+  {y:541, by:"柔然", target:"高车", desc:"柔然乌怀汗破高车阿伏至罗，高车并入。"},
+  {y:589, by:"隋",   target:"南朝", desc:"隋灭陈，自西晋以来南北分裂结束。"},
+  {y:923, by:"后唐", target:"后梁", desc:"沙陀李存勖灭朱梁，入主中原。"},
+  {y:936, by:"后晋", target:"后唐", desc:"石敬瑭引契丹兵灭后唐，割燕云。"},
+  {y:947, by:"契丹", target:"后晋", desc:"耶律德光攻灭后晋，改国号大辽。"},
+  {y:951, by:"后周", target:"后汉", desc:"郭威代汉建周。"},
+  {y:960, by:"北宋", target:"后周", desc:"陈桥兵变，赵匡胤代周建宋。"},
+  {y:925, by:"后唐", target:"前蜀", desc:"郭崇韬七十日灭前蜀。"},
+  {y:937, by:"南唐", target:"杨吴", desc:"徐知诰（李昪）代吴建南唐。"},
+  {y:945, by:"南唐", target:"闽",   desc:"南唐攻闽，得建汀二州，余地入吴越。"},
+  {y:951, by:"南唐", target:"楚",   desc:"南唐边镐入潭州，马氏楚国亡。"},
+  {y:963, by:"北宋", target:"荆南", desc:"宋假道伐荆湖，高继冲纳土。"},
+  {y:965, by:"北宋", target:"后蜀", desc:"宋将王全斌六十六日灭后蜀。"},
+  {y:971, by:"北宋", target:"南汉", desc:"潘美灭南汉，刘鋹降。"},
+  {y:975, by:"北宋", target:"南唐", desc:"曹彬围金陵，李煜出降。"},
+  {y:978, by:"北宋", target:"吴越", desc:"钱俶纳土归宋，免兵戈之灾。"},
+  {y:979, by:"北宋", target:"北汉", desc:"宋太宗灭北汉，十国终结，中原一统。"},
+];
+
+/* 难字 / 多音字 / 异读字 拼音表 */
+const PINYIN = {
+"嬴": "yíng",
+"佗": "tuó",
+"翦": "jiǎn",
+"彻": "chè",
+"骞": "qiān",
+"卫": "wèi",
+"霍": "huò",
+"冒": "mò",
+"顿": "dú",
+"单": "chán",
+"于": "yú",
+"窦": "dòu",
+"蔡": "cài",
+"葛": "gé",
+"懿": "yì",
+"逊": "xùn",
+"渊": "yuān",
+"逖": "tì",
+"苻": "fú",
+"炀": "yáng",
+"勣": "jì",
+"薛": "xuē",
+"弼": "bì",
+"仙": "xiān",
+"禄": "lù",
+"巢": "cháo",
+"奘": "zàng",
+"狄": "dí",
+"璟": "jǐng",
+"晦": "huì",
+"颜": "yán",
+"颉": "jié",
+"可": "kè",
+"汗": "hán",
+"赞": "zàn",
+"干": "gān",
+"匡": "kuāng",
+"胤": "yìn",
+"佶": "jí",
+"寇": "kòu",
+"岳": "yuè",
+"珙": "gǒng",
+"祥": "xiáng",
+"耶": "yē",
+"律": "lǜ",
+"阿": "ā",
+"保": "bǎo",
+"完": "wán",
+"骨": "gǔ",
+"忽": "hū",
+"烈": "liè",
+"伯": "bó",
+"脱": "tuō",
+"棣": "dì",
+"棫": "yù",
+"戚": "qī",
+"焕": "huàn",
+"和": "hé",
+"守": "shǒu",
+"敬": "jìng",
+"璁": "cōng",
+"弘": "hóng",
+"衮": "gǔn",
+"琅": "láng",
+"棠": "táng",
+"藩": "fān",
+"鸿": "hóng",
+"噶": "gá",
+"曾": "zēng",
+"鞨": "hé",
+"靺": "mò",
+"羯": "jié",
+"氐": "dī",
+"羌": "qiāng",
+"鲜": "xiān",
+"卑": "bēi",
+"柔": "róu",
+"然": "rán",
+"蠕": "rú",
+"回": "huí",
+"鹘": "hú",
+"纥": "hé",
+"吐": "tǔ",
+"蕃": "bō",
+"谷": "yù",
+"浑": "hún",
+"厥": "jué",
+"突": "tū",
+"勿": "wù",
+"粟": "sù",
+"特": "tè",
+"延": "yán",
+"陀": "tuó",
+"契": "qì",
+"丹": "dān",
+"党": "dǎng",
+"项": "xiàng",
+"勃": "bó",
+"海": "hǎi",
+"渤": "bó",
+"瓦": "wǎ",
+"剌": "là",
+"鞑": "dá",
+"靼": "dá",
+"鄂": "è",
+"锡": "xī",
+"苗": "miáo",
+"壮": "zhuàng",
+"黎": "lí",
+"傣": "dǎi",
+"彝": "yí",
+"藏": "zàng",
+"蒙": "měng",
+"古": "gǔ",
+"维": "wéi",
+"吾": "wú",
+"尔": "ěr",
+"处": "chǔ",
+"月": "yuè",
+"逻": "luó",
+"夏": "xià",
+"辽": "liáo",
+"金": "jīn",
+"西": "xī",
+"燕": "yān",
+"韩": "hán",
+"魏": "wèi",
+"晋": "jìn",
+"陈": "chén",
+"齐": "qí",
+"梁": "liáng",
+"唐": "táng",
+"宋": "sòng",
+"元": "yuán",
+"明": "míng",
+"清": "qīng",
+"蜀": "shǔ",
+"吴": "wú",
+"周": "zhōu",
+"汉": "hàn",
+"前": "qián",
+"后": "hòu",
+"南": "nán",
+"北": "běi",
+"东": "dōng",
+"隋": "suí",
+"秦": "qín",
+"凉": "liáng",
+"代": "dài",
+"楚": "chǔ",
+"瓯": "ōu",
+"闽": "mǐn",
+"粤": "yuè",
+"百": "bǎi",
+"越": "yuè",
+"夜": "yè",
+"郎": "láng",
+"牂": "zāng",
+"柯": "kē",
+"羁": "jī",
+"縻": "mí",
+"渝": "yú",
+"陇": "lǒng"
+};
+
+/* 词组级拼音 - 优先按整词匹配,解决多音字"句/蕃/氏/纥/鹘"等在不同词里读法不同的问题 */
+const PINYIN_PHRASE = {
+  "高句丽":"gāo gōu lí",
+  "吐蕃":"tǔ bō",
+  "吐谷浑":"tǔ yù hún",
+  "回纥":"huí hé",
+  "回鹘":"huí hú",
+  "突厥":"tū jué",
+  "东突厥":"dōng tū jué",
+  "西突厥":"xī tū jué",
+  "鲜卑":"xiān bēi",
+  "柔然":"róu rán",
+  "瓦剌":"wǎ là",
+  "鞑靼":"dá dá",
+  "契丹":"qì dān",
+  "女真":"nǚ zhēn",
+  "匈奴":"xiōng nú",
+  "乌桓":"wū huán",
+  "乌孙":"wū sūn",
+  "羌":"qiāng",
+  "氐":"dī",
+  "羯":"jié",
+  "沙陀":"shā tuó",
+  "薛延陀":"xuē yán tuó",
+  "高车":"gāo chē",
+  "靺鞨":"mò hé",
+  "勿吉":"wù jí",
+  "林邑":"lín yì",
+  "南诏":"nán zhào",
+  "大理":"dà lǐ",
+  "畏兀儿":"wèi wù ér",
+  "准噶尔":"zhǔn gá ěr",
+  "蒙古":"měng gǔ",
+  "西夏":"xī xià",
+  "百越":"bǎi yuè",
+  "山越":"shān yuè",
+  "南越":"nán yuè",
+  "东胡":"dōng hú",
+  "后金":"hòu jīn",
+  "冒顿":"mò dú",
+  "单于":"chán yú",
+  "可汗":"kè hán",
+  "颉利":"jié lì",
+  "阏氏":"yān zhī",
+  "北元蒙古":"běi yuán měng gǔ",
+  "蒙古各部":"měng gǔ gè bù",
+  "西夏党项":"xī xià dǎng xiàng",
+  "鲜卑各部":"xiān bēi gè bù",
+  "契丹辽":"qì dān liáo",
+  "女真金":"nǚ zhēn jīn",
+  "氐前秦":"dī qián qín",
+  "羌后秦":"qiāng hòu qín"
+};
+</script>
+
+<script>
+/* 数据层已抽取到 dynasty_data.js (PEOPLE / DYNASTIES / MINORITIES / ANNEXATIONS / TYPE_COLOR) */
+
+/* ===================== Three.js 场景 ===================== */
+let scene, camera, renderer, controls, raycaster, mouse;
+let starGroup, riverMesh, islands=[], tribeFlags=[], warBeams=[];
+let allPickable=[];
+let currentTab='all', activeDynastyIdx=-1;
+let showRiver=true, showWars=true, showTribes=true, tourMode=false;
+let tourAngle=0;
+
+const T_MIN=-280, T_MAX=1950;
+// 旧坐标遗留:仅保留 yearToT/yearToPos (会被后面的 yearToX/yearToPos 覆盖),不再重复声明 RIVER_LEN
+function yearToT(y){ return (y-T_MIN)/(T_MAX-T_MIN); }
+/* (旧代码已清理) */
+
+/* 时间→3D 坐标:横向时间轴(直线),Y/Z 由"轨道"决定 */
+const RIVER_LEN = 360;
+function yearToX(y){
+  const t = (y-T_MIN)/(T_MAX-T_MIN);
+  return -RIVER_LEN/2 + RIVER_LEN*t;
+}
+// 主线汉族居中(z=0,y=0), 北族在 z<0 (远), 南族在 z>0 (近);上下分行
+const LANE_GAP = 12;
+/* 贪心动态分轨:对每个 side 内的族群按 start 升序遍历,
+   找到第一条"上一条已结束 + 间隙"的轨道放进去;放不下再开新轨道。
+   保证时间重叠的族群一定不共用 z。结果写回 m._row。 */
+function assignMinorityRows(){
+  const GAP = 4; // 轨道空闲判定的最小年份缓冲
+  ['top','bottom'].forEach(side=>{
+    const list = MINORITIES.filter(m=>m.side===side)
+                           .sort((a,b)=> a.life[0]-b.life[0]);
+    const laneEnd = []; // 每条轨道当前末尾年份
+    list.forEach(m=>{
+      let placed = -1;
+      for(let k=0;k<laneEnd.length;k++){
+        if(m.life[0] >= laneEnd[k] + GAP){ placed = k; break; }
+      }
+      if(placed === -1){ placed = laneEnd.length; laneEnd.push(0); }
+      laneEnd[placed] = m.life[1];
+      m._row = placed; // 覆盖原 row,确保不重叠
+    });
+  });
+}
+function minorityZ(side, row){
+  // side: 'top' (北族,z<0), 'bottom' (南族,z>0); row 越大离主线越远
+  // 轨道间距随 row 增大略微收紧,避免远端飞出视野(top 最多 5 行/bottom 6 行)
+  const sign = side==='top' ? -1 : 1;
+  const STEP = 7;          // 每条轨道步进(原 LANE_GAP*0.85=10.2 过宽)
+  return sign * (LANE_GAP + row*STEP);
+}
+function yearToPos(y){ return new THREE.Vector3(yearToX(y), 0, 0); }
+
+function init(){
+ try {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x04060d);
+  scene.fog = new THREE.FogExp2(0x04060d, 0.0022);
+
+  camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 2000);
+  // 默认俯视:相机在正上方,屏幕"上方"对应 -X(秦/先),屏幕"下方"对应 +X(清/后)
+  camera.up.set(-1, 0, 0);
+  camera.position.set(0, 260, 0.01); // y 高位俯视,z 给极小值避免 lookAt 退化
+
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(devicePixelRatio);
+  renderer.setSize(innerWidth, innerHeight);
+  document.getElementById('cv').appendChild(renderer.domElement);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.minDistance = 30; controls.maxDistance = 600;
+  // 允许从俯视一直旋转到接近水平
+  controls.maxPolarAngle = Math.PI*0.49;
+  controls.minPolarAngle = 0;
+  controls.target.set(0, 0, 0);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const d1 = new THREE.DirectionalLight(0xfff4d8, 0.8); d1.position.set(80,120,60); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0x6fa8ff, 0.4); d2.position.set(-60,80,-80); scene.add(d2);
+
+  buildStars();
+  buildRiver();
+  buildIslands();
+  buildMinorityBands();
+  buildWarBeams();
+  buildAnnexArrows();
+  buildTimeAxis();
+
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+  addEventListener('resize', onResize);
+  renderer.domElement.addEventListener('pointermove', onPointerMove);
+  renderer.domElement.addEventListener('click', onClick);
+
+  bindUI();
+  document.getElementById('loading').classList.add('hidden');
+  animate();
+  // 默认保持俯视视角(秦在上、清在下),不再自动飞向唐朝
+ } catch(err) {
+   console.error('init() crashed:', err);
+   const el = document.getElementById('loading');
+   if(el){
+     el.classList.remove('hidden');
+     el.style.flexDirection='column';
+     el.style.padding='20px';
+     el.style.textAlign='left';
+     el.innerHTML = '<div style="color:#ff6b6b;font-size:18px;margin-bottom:10px">页面初始化失败</div>'
+       + '<div style="color:#aaa;font-size:13px;max-width:80vw;word-break:break-all;white-space:pre-wrap">'
+       + (err && err.stack ? err.stack : String(err)) + '</div>';
+   }
+ }
+}
+
+function buildStars(){
+  const N=1800;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    const r=400+Math.random()*500;
+    const theta=Math.random()*Math.PI*2;
+    const phi=Math.acos(2*Math.random()-1);
+    pos[i*3]=r*Math.sin(phi)*Math.cos(theta);
+    pos[i*3+1]=Math.abs(r*Math.cos(phi))*0.5+50;
+    pos[i*3+2]=r*Math.sin(phi)*Math.sin(theta);
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  starGroup = new THREE.Points(geo, new THREE.PointsMaterial({
+    color:0xffffff,size:0.9,transparent:true,opacity:.65,sizeAttenuation:true
+  }));
+  scene.add(starGroup);
+}
+
+/* 主线时间长河:中央直线管状 */
+function buildRiver(){
+  const curve = new THREE.LineCurve3(
+    new THREE.Vector3(-RIVER_LEN/2, 0, 0),
+    new THREE.Vector3( RIVER_LEN/2, 0, 0)
+  );
+  const tube = new THREE.TubeGeometry(curve, 80, 4, 12, false);
+  const mat = new THREE.MeshStandardMaterial({
+    color:0xc99a3a, emissive:0xf3d28a, emissiveIntensity:0.45,
+    metalness:0.7, roughness:0.3, transparent:true, opacity:0.65
+  });
+  riverMesh = new THREE.Mesh(tube, mat);
+  riverMesh.position.y = -2;
+  scene.add(riverMesh);
+
+  // 中线粒子
+  const PN=400;
+  const g2=new THREE.BufferGeometry();
+  const p2=new Float32Array(PN*3);
+  for(let i=0;i<PN;i++){
+    p2[i*3]   = -RIVER_LEN/2 + Math.random()*RIVER_LEN;
+    p2[i*3+1] = 0.3+Math.random()*1.2;
+    p2[i*3+2] = (Math.random()-.5)*3;
+  }
+  g2.setAttribute('position', new THREE.BufferAttribute(p2,3));
+  const riverPoints = new THREE.Points(g2, new THREE.PointsMaterial({
+    color:0xfff060,size:0.55,transparent:true,opacity:0.9
+  }));
+  riverPoints.userData.kind='river_dust';
+  scene.add(riverPoints);
+}
+
+/* 汉族浮岛:沿主线居中,高度=国祚
+   南北朝/三国/五代十国(branch=='south'/'north' 或数字 z)错位到主线两侧。
+   branch 字段支持两种格式:
+   - 字符串: 'south' = +9, 'north' = -9, 'center' = 0
+   - 数字  : 直接作为 z 偏移量,适合需要密集错开的多政权场景(五代十国 15 国)
+*/
+function buildIslands(){
+  DYNASTIES.forEach((d,idx)=>{
+    const xS = yearToX(d.start);
+    const xE = yearToX(d.end);
+    const cx = (xS+xE)/2;
+    // 朝代间留 0.4 单位间隙,避免相邻 island 边面 z-fight 抖动
+    const len = Math.max(5, xE-xS) - 0.4;
+    // 五代十国 (branch 为数字) 用更瘦的岛屿,避免在 z 方向互相穿插
+    const isFiveTen = (typeof d.branch === 'number');
+    const w = isFiveTen
+      ? Math.min(7, len*0.35+3)
+      : Math.min(13, len*0.5+5);
+    // 汉族朝代统一高度,不再按时长高低不同(用户要求"不需要高低之分")
+    // 五代十国仍保留略低高度,以与主线区分
+    const h = isFiveTen ? 8 : 12;
+    let cz = 0;
+    if(typeof d.branch === 'number'){
+      // 数字 branch 视为"轨道编号",拉开间距(原 8/16/24/-8 太挤)
+      cz = d.branch * 1.6;
+    }
+    else if(d.branch === 'south') cz = 9;
+    else if(d.branch === 'north') cz = -9;
+    const geo = new THREE.BoxGeometry(len, h, w*0.9);
+    const c = (d.colorKey && TYPE_COLOR[d.colorKey]) ? TYPE_COLOR[d.colorKey] : TYPE_COLOR.han;
+    const mat = new THREE.MeshStandardMaterial({
+      color:c, emissive:c, emissiveIntensity:0.22,
+      metalness:0.5, roughness:0.45, flatShading:true,
+      transparent:false, opacity:1, depthWrite:true, depthTest:true
+    });
+    const island = new THREE.Mesh(geo, mat);
+    island.position.set(cx, h/2+1, cz);
+    island.userData = {kind:'island', idx, name:d.name, group:d.group||null, top:h+1, y0:d.start, y1:d.end};
+    scene.add(island); islands.push(island); allPickable.push(island);
+    // 该朝代附属装饰物(旗杆/标签/年代/环带)用一个 Group 持有,
+    // 便于 applyFilter 时随 island 一起隐藏
+    const deco = new THREE.Group();
+    deco.userData = {kind:'island_deco', idx};
+    scene.add(deco);
+    island.userData.deco = deco;
+
+    // 旗杆
+    const pole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.2,0.2,7,6),
+      new THREE.MeshBasicMaterial({color:c})
+    );
+    pole.position.set(cx, h+5, cz);
+    deco.add(pole);
+
+    // 朝代名(适中字号),颜色随分支着色;带半透明深色底,防止与背景文字混读
+    // 相机俯视 up=(-1,0,0): -x 在屏幕上方,+x 在屏幕下方
+    // 朝代名居中略向"屏幕上方"(即 -x 方向)偏移,年代条放在"屏幕下方"(+x),二者上下不重叠
+    const labColor = '#'+c.toString(16).padStart(6,'0');
+    const lab = makeTextSprite(d.name, labColor, 30, {bg:true});
+    lab.position.set(cx - Math.max(2.5, w*0.55), h+9, cz);
+    deco.add(lab);
+
+    // 年代:放在岛屿"屏幕下方",并把高度抬高让它压在朝代名之上的 z-buffer 顺序里不冲突
+    const yr = makeTextSprite(d.yearLabel, '#cbd2e2', 18, {bg:true});
+    yr.position.set(cx + Math.max(2.5, w*0.55), h+9, cz);
+    deco.add(yr);
+
+    // (已移除岛屿环带 TorusGeometry — 用户反馈不需要)
+
+    d._cx = cx; d._cz = cz; d._top = h+1; d._w = w; d._len = len;
+    d._center = new THREE.Vector3(cx, h/2+1, cz);
+  });
+}
+
+/* 少数民族副线:每个族群一根独立的横条 (BoxGeometry),
+   长度=存续期, 颜色=类型, 上方北族 / 下方南族 */
+const minorityIndex = new Map(); // name -> minority mesh
+function buildMinorityBands(){
+  assignMinorityRows();
+  MINORITIES.forEach((m,i)=>{
+    const xS = yearToX(m.life[0]);
+    const xE = yearToX(m.life[1]);
+    const cx = (xS+xE)/2;
+    const z  = minorityZ(m.side, m._row);
+    const len = Math.max(2, xE-xS);
+    const c = TYPE_COLOR[m.type] || 0xffffff;
+    const h = 2.6;
+    const w = 2.8;
+    const geo = new THREE.BoxGeometry(len, h, w);
+    const mat = new THREE.MeshStandardMaterial({
+      color:c, emissive:c, emissiveIntensity:0.7,
+      metalness:0.3, roughness:0.45
+    });
+    const band = new THREE.Mesh(geo, mat);
+    band.position.set(cx, h/2, z);
+    band.userData = {kind:'minority', name:m.name, desc:m.desc, life:m.life, side:m.side, type:m.type};
+    scene.add(band); tribeFlags.push(band); allPickable.push(band);
+    minorityIndex.set(m.name, band);
+
+    // 顶部一根细线(描边)让条带在远处也可辨
+    const edge = new THREE.Mesh(
+      new THREE.BoxGeometry(len, 0.18, w*0.6),
+      new THREE.MeshBasicMaterial({color:c, transparent:true, opacity:0.85})
+    );
+    edge.position.set(cx, h+0.1, z);
+    scene.add(edge);
+
+    // 名称标签
+    const lab = makeTextSprite(m.name, '#'+c.toString(16).padStart(6,'0'), 22);
+    lab.position.set(xS-3.5, h/2+0.5, z);
+    lab.center.set(1, 0.5);
+    scene.add(lab);
+
+    // 生卒小字
+    const lifeLbl = `${m.life[0]<0?'前'+(-m.life[0]):m.life[0]}~${m.life[1]}`;
+    const yrLab = makeTextSprite(lifeLbl, '#9aa3b8', 12);
+    yrLab.position.set(cx, h+1.2, z);
+    scene.add(yrLab);
+
+    // 两端发光点
+    [xS, xE].forEach(xx=>{
+      const dot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.45, 12, 8),
+        new THREE.MeshBasicMaterial({color:c, transparent:true, opacity:0.95})
+      );
+      dot.position.set(xx, h/2, z); scene.add(dot);
+    });
+  });
+}
+
+/* 战争连线:从汉族浮岛顶部 → 对应少数民族条带 (加粗+描边+实心箭头) */
+function buildWarBeams(){
+  DYNASTIES.forEach(d=>{
+    d.wars.forEach(w=>{
+      const facs = w.factions||[]; if(facs.length<2) return;
+      const dynName = d.name;
+      const opps = facs.filter(f=>f!==dynName);
+      opps.forEach(opp=>{
+        const band = minorityIndex.get(opp);
+        if(!band) return;
+        let xW = yearToX(w.y);
+        const dz = d._cz || 0;  // 南北朝主线错位 z
+        // 把起点夹紧到 island 的水平范围内,避免箭头从岛外悬空冒出
+        if(typeof d._cx==='number' && typeof d._len==='number'){
+          const half = d._len/2;
+          const xMin = d._cx - half + 0.4;
+          const xMax = d._cx + half - 0.4;
+          xW = Math.max(xMin, Math.min(xMax, xW));
+        }
+        // 起点设在 island 顶部外侧 (避免管线穿入 island 体内)
+        const startRaw = new THREE.Vector3(xW, (d._top||10)+1.5, dz);
+        const rawEnd = new THREE.Vector3(yearToX(w.y), band.position.y, band.position.z);
+        const color = 0xff3030;
+        const haloColor = 0xff8a8a;
+        // 箭头尺寸
+        const TIP_H = 2.6;
+        const TIP_R = 0.95;
+        // 将两端从中心回退到表面外缘,避免穿透
+        const SURFACE = 1.4;
+        const rawDir = new THREE.Vector3().subVectors(rawEnd, startRaw).normalize();
+        const start = startRaw.clone().addScaledVector(rawDir, SURFACE);
+        // 弧线终点比 cone 底端再退一格,让管子不会穿过 cone
+        const tipBaseCenter = rawEnd.clone().addScaledVector(rawDir, -SURFACE);    // cone 锥尖位置(贴在 band 表面)
+        const end = tipBaseCenter.clone().addScaledVector(rawDir, -TIP_H);          // 管线末端 = cone 底盘中心
+        // 上拱弧线 - 充分抬高,完全跨过任何岛屿(岛屿统一高度 12,弧顶至少到 25+)
+        const peakY = Math.max(start.y, end.y) + 14;
+        const mid = new THREE.Vector3(xW, peakY, (start.z+end.z)/2);
+        const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+        // 外层粗描边(半透明发光)
+        const halo = new THREE.Mesh(
+          new THREE.TubeGeometry(curve, 32, 0.55, 10, false),
+          new THREE.MeshBasicMaterial({color:haloColor, transparent:true, opacity:0.35, depthWrite:false})
+        );
+        halo.userData = {kind:'war', year:w.y, from:dynName, to:opp, desc:w.t, dynasty:dynName, isHan:true};
+        scene.add(halo); allPickable.push(halo); warBeams.push({mesh:halo, year:w.y, isHan:true});
+        // 内层实心粗管
+        const tube = new THREE.TubeGeometry(curve, 32, 0.32, 10, false);
+        const mat  = new THREE.MeshBasicMaterial({color, transparent:false, opacity:1.0});
+        const arc  = new THREE.Mesh(tube, mat);
+        arc.userData = halo.userData;
+        scene.add(arc); allPickable.push(arc); warBeams.push({mesh:arc, year:w.y, isHan:true});
+
+        // 末端箭头 — 沿曲线末端真实切线方向,锥尖刚好触及 band 表面
+        // 曲线末端的切线 (从 t=0.96 到 t=1.0)
+        const tipDir = new THREE.Vector3().subVectors(curve.getPoint(1.0), curve.getPoint(0.96)).normalize();
+        const tip = new THREE.Mesh(
+          new THREE.ConeGeometry(TIP_R, TIP_H, 12),
+          new THREE.MeshBasicMaterial({color, depthTest:false, depthWrite:false, transparent:true})
+        );
+        // ConeGeometry 默认底盘在 -y/2,锥尖在 +y/2; 把锥尖对齐到 tipBaseCenter (band 表面)
+        // 即 cone 中心 = tipBaseCenter - tipDir * (TIP_H/2)
+        tip.position.copy(tipBaseCenter).addScaledVector(tipDir, -TIP_H/2);
+        tip.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), tipDir);
+        tip.renderOrder = 999;
+        tip.userData = halo.userData;
+        scene.add(tip); allPickable.push(tip);
+        warBeams.push({mesh:tip, year:w.y, isHan:true, pulse:true});
+
+        // 起点也加个小六边形发光块,强化"从汉族出发"的视觉
+        const origin = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.7, 0),
+          new THREE.MeshBasicMaterial({color:0xfff2a0})
+        );
+        origin.position.copy(start);
+        origin.userData = halo.userData;
+        scene.add(origin);
+        warBeams.push({mesh:origin, year:w.y, isHan:true});
+
+        // 年份大标:加描边背板
+        const yrLbl = '⚔ ' + (w.y<0?'前'+(-w.y):''+w.y);
+        const txt = makeTextSprite(yrLbl, '#ffd0d0', 16);
+        txt.position.copy(mid); txt.position.y += 1.4;
+        txt.userData = halo.userData;
+        scene.add(txt);
+        warBeams.push({mesh:txt, year:w.y, isHan:true});
+      });
+    });
+  });
+}
+
+/* 少数民族吞并箭头: 副线 A → 副线 B (加粗描边+大箭头+背板年份) */
+let annexArrows = [];
+function buildAnnexArrows(){
+  ANNEXATIONS.forEach(a=>{
+    const A = minorityIndex.get(a.by);
+    let B = minorityIndex.get(a.target);
+    const xW = yearToX(a.y);
+
+    // 起点
+    let startRaw;
+    if(A){
+      startRaw = new THREE.Vector3(xW, A.position.y, A.position.z);
+    } else {
+      const d = DYNASTIES.find(d=>d.name===a.by);
+      if(d){
+        let xClamped = xW;
+        if(typeof d._cx==='number' && typeof d._len==='number'){
+          const half = d._len/2;
+          xClamped = Math.max(d._cx-half+0.4, Math.min(d._cx+half-0.4, xW));
+        }
+        startRaw = new THREE.Vector3(xClamped, (d._top||10)+1.5, d._cz||0);
+      }
+      else  { startRaw = new THREE.Vector3(xW, 12, 0); }
+    }
+
+    // 终点: B 为少数民族 band -> 用 band 位置; 否则尝试找朝代 (target 为汉族王朝时)
+    let end_raw, targetIsDyn=false, targetDyn=null;
+    if(B){
+      end_raw = new THREE.Vector3(xW, B.position.y, B.position.z);
+    } else {
+      targetDyn = DYNASTIES.find(d=>d.name===a.target);
+      if(targetDyn){
+        targetIsDyn = true;
+        let xC = xW;
+        if(typeof targetDyn._cx==='number' && typeof targetDyn._len==='number'){
+          const half = targetDyn._len/2;
+          xC = Math.max(targetDyn._cx-half+0.4, Math.min(targetDyn._cx+half-0.4, xW));
+        }
+        // 终点设在岛屿"顶部表面"上方 1.5,而不是岛屿内部
+        end_raw = new THREE.Vector3(xC, (targetDyn._top||10)+1.5, targetDyn._cz||0);
+      } else {
+        return; // 真找不到目标
+      }
+    }
+
+    const color    = A ? 0xff9020 : 0xff3030;   // 少→少 鲜橙;汉灭少 鲜红
+    const haloCol  = A ? 0xffd080 : 0xff8a8a;
+    const ARR_H = 3.0;
+    const ARR_R = targetIsDyn ? 1.35 : 1.1;
+    const rawDir = new THREE.Vector3().subVectors(end_raw, startRaw).normalize();
+    const SURFACE = 1.4;
+    const start = startRaw.clone().addScaledVector(rawDir, SURFACE);
+    // cone 锥尖位置 = 目标表面外侧;管线终点 = cone 底盘中心
+    const tipBaseCenter = end_raw.clone().addScaledVector(rawDir, -SURFACE);
+    const end = tipBaseCenter.clone().addScaledVector(rawDir, -ARR_H);
+    // 弧顶充分抬高 - 跨过任何岛屿(岛屿统一高度 12 -> 顶部 ~13,弧顶到 27+)
+    const peakY = Math.max(start.y, end.y) + 14;
+    const mid = new THREE.Vector3(xW, peakY, (start.z+end.z)/2);
+    const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+
+    // 外圈发光描边
+    const halo = new THREE.Mesh(
+      new THREE.TubeGeometry(curve, 28, 0.6, 10, false),
+      new THREE.MeshBasicMaterial({color:haloCol, transparent:true, opacity:0.4, depthWrite:false})
+    );
+    halo.userData = {kind:'annex', year:a.y, by:a.by, target:a.target, desc:a.desc, isAnnex:true};
+    scene.add(halo); allPickable.push(halo); annexArrows.push({mesh:halo, year:a.y});
+
+    // 内层实心粗管
+    const tube = new THREE.TubeGeometry(curve, 28, 0.38, 10, false);
+    const mat  = new THREE.MeshBasicMaterial({color});
+    const arc  = new THREE.Mesh(tube, mat);
+    arc.userData = halo.userData;
+    scene.add(arc); allPickable.push(arc); annexArrows.push({mesh:arc, year:a.y});
+
+    // 箭头锥 - 沿曲线末端真实切线方向,锥尖严格落在 tipBaseCenter
+    const tipDir = new THREE.Vector3().subVectors(curve.getPoint(1.0), curve.getPoint(0.96)).normalize();
+    const arrowMat = new THREE.MeshBasicMaterial({
+      color,
+      depthTest: false,            // 始终可见,任何指向都不被遮挡
+      depthWrite: false,
+      transparent: true
+    });
+    const arrow = new THREE.Mesh(
+      new THREE.ConeGeometry(ARR_R, ARR_H, 14),
+      arrowMat
+    );
+    // 锥尖对准 tipBaseCenter (位于 +y 方向),所以 cone 中心 = tipBaseCenter - tipDir*(ARR_H/2)
+    arrow.position.copy(tipBaseCenter).addScaledVector(tipDir, -ARR_H/2);
+    arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), tipDir);
+    arrow.renderOrder = 999;
+    arrow.userData = halo.userData;
+    scene.add(arrow); allPickable.push(arrow);
+    annexArrows.push({mesh:arrow, year:a.y, pulse:true});
+
+    // 指向汉族岛屿时,在岛屿顶部再加一个 ✕ / 圆环标记,作为命中点的清晰提示
+    if(targetIsDyn){
+      // 命中圆环
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xff3030, transparent:true, opacity:0.9,
+        depthTest:false, depthWrite:false, side:THREE.DoubleSide
+      });
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(1.4, 1.9, 24),
+        ringMat
+      );
+      ring.position.copy(end_raw);
+      ring.position.y -= 0.3;
+      ring.lookAt(end_raw.x, end_raw.y+10, end_raw.z); // 朝上
+      ring.renderOrder = 998;
+      ring.userData = halo.userData;
+      scene.add(ring); allPickable.push(ring);
+      annexArrows.push({mesh:ring, year:a.y, pulse:true});
+
+      // 中心十字标记
+      const dotMat = new THREE.MeshBasicMaterial({
+        color: 0xfff0c0, depthTest:false, depthWrite:false
+      });
+      const dot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.45, 12, 10), dotMat
+      );
+      dot.position.copy(end_raw);
+      dot.renderOrder = 999;
+      dot.userData = halo.userData;
+      scene.add(dot); allPickable.push(dot);
+      annexArrows.push({mesh:dot, year:a.y});
+    }
+
+    // 起点小标识(被动方那侧不显示)
+    if(A){
+      const tag = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5,10,8),
+        new THREE.MeshBasicMaterial({color})
+      );
+      tag.position.copy(start);
+      scene.add(tag);
+      annexArrows.push({mesh:tag, year:a.y});
+    }
+
+    // 中点醒目大标签 "前209 匈奴吞并东胡"
+    const yrTxt = a.y<0?'前'+(-a.y):''+a.y;
+    const lab = makeTextSprite(`${yrTxt}  ${a.by} 吞并 ${a.target}`, '#ffe0a0', 15);
+    lab.position.copy(mid); lab.position.y += 1.6;
+    scene.add(lab);
+    annexArrows.push({mesh:lab, year:a.y});
+  });
+}
+
+/* 时间刻度:沿主线下方 */
+function buildTimeAxis(){
+  for(let y=-200;y<=1900;y+=200){
+    const x = yearToX(y);
+    const lbl = (y<0?'前'+(-y):''+y);
+    const s = makeTextSprite(lbl, '#f3d28a', 20);
+    s.position.set(x, -4, 4);
+    scene.add(s);
+    const tick = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12,0.12,1.5,4),
+      new THREE.MeshBasicMaterial({color:0xf3d28a, transparent:true, opacity:0.7})
+    );
+    tick.position.set(x, -1.5, 0);
+    scene.add(tick);
+  }
+  // 100年小刻度
+  for(let y=-200;y<=1900;y+=100){
+    if(y%200===0) continue;
+    const x = yearToX(y);
+    const tick = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06,0.06,0.8,4),
+      new THREE.MeshBasicMaterial({color:0xf3d28a, transparent:true, opacity:0.35})
+    );
+    tick.position.set(x, -1.5, 0);
+    scene.add(tick);
+  }
+}
+
+
+function makeTextSprite(text,color='#fff',fontSize=22, opts={}){
+  const c = document.createElement('canvas');
+  const pad = 10;
+  const ctx = c.getContext('2d');
+  ctx.font = `bold ${fontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+  const m = ctx.measureText(text);
+  c.width = Math.ceil(m.width)+pad*2;
+  c.height = fontSize+pad*2;
+  ctx.font = `bold ${fontSize}px "PingFang SC","Microsoft YaHei",sans-serif`;
+  // 如果调用方需要"被挡住才不可见",绘制一层半透明深色底,把文字本身的描边和背景一起做出来,
+  // 这样即便 depthTest 开启,文字也保持高对比、易读
+  if(opts.bg){
+    ctx.fillStyle = 'rgba(8,12,22,0.78)';
+    // 圆角矩形底
+    const r=6;
+    ctx.beginPath();
+    ctx.moveTo(r,0); ctx.lineTo(c.width-r,0); ctx.quadraticCurveTo(c.width,0,c.width,r);
+    ctx.lineTo(c.width,c.height-r); ctx.quadraticCurveTo(c.width,c.height,c.width-r,c.height);
+    ctx.lineTo(r,c.height); ctx.quadraticCurveTo(0,c.height,0,c.height-r);
+    ctx.lineTo(0,r); ctx.quadraticCurveTo(0,0,r,0); ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor='rgba(0,0,0,.95)'; ctx.shadowBlur=8;
+  ctx.fillText(text, pad, c.height/2);
+  const tex = new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter;
+  // depthTest 默认开启:被前面的岛屿挡住时文字不再"透显",防止视觉错位看错朝代
+  const depthTest = (opts.depthTest !== false);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, transparent:true, depthTest, depthWrite:false}));
+  const sc = 0.06;
+  sp.scale.set(c.width*sc, c.height*sc, 1);
+  return sp;
+}
+
+/* ===================== 交互 ===================== */
+function onResize(){
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+}
+function onPointerMove(e){
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(allPickable);
+  const tip = document.getElementById('tip');
+  const war = hits.find(h=>h.object.userData.kind==='war');
+  const annex = hits.find(h=>h.object.userData.kind==='annex');
+  const minority = hits.find(h=>h.object.userData.kind==='minority');
+  const island = hits.find(h=>h.object.userData.kind==='island');
+  if(war){
+    const u=war.object.userData;
+    const yr=u.year<0?'前'+(-u.year):''+u.year;
+    tip.innerHTML=`<span class="y">${yr} 年</span><span class="f">${u.from}</span> ⚔ <span class="f">${u.to}</span><br/><span style="color:#cbd2e2;font-size:11px">${u.desc||''}</span>`;
+    tip.style.display='block';
+    tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+14)+'px';
+  } else if(annex){
+    const u=annex.object.userData;
+    const yr=u.year<0?'前'+(-u.year):''+u.year;
+    tip.innerHTML=`<span class="y">${yr} 年 吞并</span><span class="f">${u.by}</span> → <span class="f">${u.target}</span><br/><span style="color:#cbd2e2;font-size:11px">${u.desc||''}</span>`;
+    tip.style.display='block';
+    tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+14)+'px';
+  } else if(minority){
+    const u=minority.object.userData;
+    const life = `${u.life[0]<0?'前'+(-u.life[0]):u.life[0]} ~ ${u.life[1]}`;
+    tip.innerHTML=`<span class="y">少数民族</span> ${u.name}<br/><span style="color:#9aa3b8;font-size:11px">${life} · 点击查看详情</span>`;
+    tip.style.display='block';
+    tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+14)+'px';
+  } else if(island){
+    const u=island.object.userData;
+    tip.innerHTML=`<span class="y">朝代</span> ${u.name}<br/><span style="color:#9aa3b8;font-size:11px">点击查看详情</span>`;
+    tip.style.display='block';
+    tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+14)+'px';
+  } else {
+    tip.style.display='none';
+  }
+}
+function onClick(){
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(allPickable);
+  if(!hits.length) return;
+  const u = hits[0].object.userData;
+  if(u.kind==='island') showDynasty(u.idx);
+  else if(u.kind==='war'){
+    const dIdx = DYNASTIES.findIndex(d=>d.name===u.dynasty);
+    if(dIdx>=0){ showDynasty(dIdx); currentTab='war'; setActiveTab('war'); renderTimeline(DYNASTIES[dIdx], 'war'); }
+  } else if(u.kind==='minority'){
+    showMinority(u.name);
+  } else if(u.kind==='annex'){
+    showMinority(u.target);
+  }
+}
+
+/* ===================== 面板与人物徽章 ===================== */
+
+/* 少数民族详情面板 */
+function showMinority(name){
+  const m = MINORITIES.find(x=>x.name===name);
+  if(!m) return;
+  // 关闭汉族面板
+  document.getElementById('panel').classList.remove('show');
+  const mp = document.getElementById('minority-panel');
+  document.getElementById('mp-title').innerHTML = withRuby(m.name);
+  const lifeStr = `${m.life[0]<0?'前'+(-m.life[0]):m.life[0]} ~ ${m.life[1]}`;
+  const typeLabel = {north:'北方游牧',northeast:'东北渔猎',west:'西部政权',south:'南方政权',mixed:'综合'}[m.type]||m.type;
+  document.getElementById('mp-meta').textContent = `${typeLabel}  ·  ${lifeStr}`;
+  document.getElementById('mp-desc').textContent = m.desc||'暂无详细描述。';
+
+  // 相关战争:从所有朝代 wars 中筛选与本族相关的
+  const warsDiv = document.getElementById('mp-wars');
+  warsDiv.innerHTML='';
+  DYNASTIES.forEach(d=>{
+    d.wars.forEach(w=>{
+      const facs = w.factions||[];
+      if(facs.includes(m.name)){
+        const yr = w.y<0?'前'+(-w.y):''+w.y;
+        const others = facs.filter(f=>f!==m.name).join('、');
+        const el = document.createElement('div'); el.className='mp-item';
+        el.innerHTML=`<span class="yr">${yr}年</span> <span class="parties">${m.name} ⚔ ${others}</span> <span style="color:#9aa3b8">[${d.name}]</span><br/><span style="color:#aeb8cc">${annotatePeople(w.t)}</span>`;
+        warsDiv.appendChild(el);
+      }
+    });
+  });
+  if(!warsDiv.children.length) warsDiv.innerHTML='<div class="mp-item" style="color:#666">暂无记录</div>';
+
+  // 相关吞并
+  const annexDiv = document.getElementById('mp-annex');
+  annexDiv.innerHTML='';
+  ANNEXATIONS.forEach(a=>{
+    if(a.by===m.name || a.target===m.name){
+      const yr = a.y<0?'前'+(-a.y):''+a.y;
+      const role = a.by===m.name ? '<span style="color:#ff9a5a">吞并方</span>' : '<span style="color:#7ad0ff">被吞并方</span>';
+      const el = document.createElement('div'); el.className='mp-item';
+      el.innerHTML=`<span class="yr">${yr}年</span> <span class="parties">${a.by} 吞并 ${a.target}</span> ${role}<br/><span style="color:#aeb8cc">${annotatePeople(a.desc)}</span>`;
+      annexDiv.appendChild(el);
+    }
+  });
+  if(!annexDiv.children.length) annexDiv.innerHTML='<div class="mp-item" style="color:#666">暂无记录</div>';
+
+  mp.classList.add('show');
+
+  // 镜头平移到该族条带(保持当前角度,不旋转)
+  const band = minorityIndex.get(m.name);
+  if(band){
+    const pos = band.position;
+    panToTarget({x:pos.x, y:pos.y, z:pos.z});
+  }
+}
+
+function showDynasty(i){
+  document.getElementById('minority-panel').classList.remove('show');
+  activeDynastyIdx=i;
+  const d=DYNASTIES[i];
+  document.getElementById('p-title').innerHTML=withRuby(d.name);
+  document.getElementById('p-meta').textContent=d.yearLabel;
+  const tb=document.getElementById('p-tribes'); tb.innerHTML='';
+  (d.tribes||[]).forEach(t=>{
+    const tp = TRIBE_TYPE[t]||'west';
+    const c = TYPE_COLOR[tp]||0xffffff;
+    const sp=document.createElement('span'); sp.className='tag'; sp.innerHTML=withRuby(t);
+    sp.style.color='#'+c.toString(16).padStart(6,'0');
+    tb.appendChild(sp);
+  });
+  renderTimeline(d, currentTab);
+  document.getElementById('panel').classList.add('show');
+
+  // 镜头平移+放大到该朝代,并高亮岛
+  const dst = d._center.clone();
+  const zd = Math.max(70, (d._len||60) * 1.4);
+  panAndZoomToTarget({x:dst.x, y:dst.y, z:dst.z}, zd);
+  highlightDynasty(i);
+}
+
+function setActiveTab(tab){
+  document.querySelectorAll('#panel .tab').forEach(x=>x.classList.toggle('active', x.dataset.tab===tab));
+}
+
+/* 把文本中所有匹配到 PEOPLE 主名或别名的子串包裹成人物徽章 */
+const ROLE_ICON = {emperor:'♕', general:'⚔', advisor:'✦', envoy:'✉', tribe:'⚑'};
+const ROLE_LABEL = {emperor:'帝王', general:'主将', advisor:'谋臣', envoy:'使节', tribe:'少数民族首领'};
+function annotatePeople(text){
+  let html = escapeHtml(text);
+  const cands = [...Object.keys(PEOPLE), ...Object.keys(PERSON_ALIAS)]
+                .sort((a,b)=>b.length-a.length);
+  // 记录已经被包裹过的区间,避免别名是主名子串导致嵌套标记
+  const marks = []; // [start, end]
+  cands.forEach(name=>{
+    if(!name) return;
+    const target = PERSON_ALIAS[name] || name;
+    const info = PEOPLE[target]; if(!info) return;
+    // 用循环扫描,跳过已落在标记内的位置
+    let result = '';
+    let i = 0;
+    const len = html.length;
+    const nlen = name.length;
+    while(i < len){
+      // 检查当前位置是否已在标记区间内
+      let inMark = false;
+      for(const [s,e] of marks){
+        if(i >= s && i < e){ inMark = true; break; }
+      }
+      if(!inMark && html.substr(i, nlen) === name){
+        const wrapped = `\x01${target}\x02${name}\x03`;
+        const newStart = result.length;
+        result += wrapped;
+        // 更新已有 marks 的偏移?这里 marks 基于旧 html 索引,改为基于新 result 重建
+        i += nlen;
+        marks.push([newStart, newStart + wrapped.length]);
+      } else {
+        result += html[i];
+        i++;
+      }
+    }
+    // 重建 marks 索引,使其指向新 html 中的位置
+    // 简化:每轮重新扫描整个新串收集所有 \x01...\x03 区间
+    html = result;
+    marks.length = 0;
+    let p = 0;
+    while(p < html.length){
+      const a = html.indexOf('\x01', p);
+      if(a < 0) break;
+      const b = html.indexOf('\x03', a);
+      if(b < 0) break;
+      marks.push([a, b+1]);
+      p = b+1;
+    }
+  });
+  html = html.replace(/\x01([^\x02\x01]+)\x02([^\x03\x01]+)\x03/g,(m,target,label)=>{
+    const info = PEOPLE[target];
+    if(!info) return label; // 防御性回退
+    const icon = ROLE_ICON[info.role] || '·';
+    return `<span class="person ${info.role}" data-person="${target}" data-icon="${icon}">${withRuby(label)}</span>`;
+  });
+  // 清理任何残留的控制字符,避免脏字符显示
+  html = html.replace(/[\x01\x02\x03]/g, '');
+  return html;
+}
+
+function renderTimeline(d, tab){
+  const items=[];
+  if(tab==='all'||tab==='relation') d.relations.forEach(r=>items.push({y:r.y,_y:parseY(r.y),t:r.t,type:'relation'}));
+  if(tab==='all'||tab==='event')    d.events.forEach(r=>items.push({y:r.y,_y:parseY(r.y),t:r.t,type:'event'}));
+  if(tab==='all'||tab==='war')      d.wars.forEach(r=>{const ny=parseY(r.y); items.push({y:(ny<0?'前'+(-ny):''+ny),_y:ny,t:r.t,type:'war',factions:r.factions});});
+  if(tab==='people'){
+    // 抽取所有出现在该朝代事件文本中的人物
+    const found = new Set();
+    const allText = [...d.relations,...d.events,...d.wars].map(x=>x.t).join(' ');
+    [...Object.keys(PEOPLE),...Object.keys(PERSON_ALIAS)].forEach(n=>{
+      if(allText.indexOf(n)>=0) found.add(PERSON_ALIAS[n]||n);
+    });
+    const box=document.getElementById('p-timeline'); box.innerHTML='';
+    [...found].forEach(name=>{
+      const p=PEOPLE[name]; if(!p) return;
+      const div=document.createElement('div'); div.className='tl-item '+(p.role==='emperor'?'event':p.role==='general'?'war':'relation');
+      div.innerHTML=`<span class="yr">${escapeHtml(p.life)}</span><span class="person ${p.role}" data-person="${name}" data-icon="${ROLE_ICON[p.role]||'·'}">${withRuby(name)}</span>
+        <div class="factions" style="margin-top:6px;color:#cbd2e2">${escapeHtml(p.desc)}</div>`;
+      box.appendChild(div);
+    });
+    if(!found.size) box.innerHTML='<div style="color:#9aa3b8;font-size:12px;padding:6px 0">未识别人物</div>';
+    return;
+  }
+  items.sort((a,b)=>a._y-b._y);
+  const box=document.getElementById('p-timeline'); box.innerHTML='';
+  items.forEach(it=>{
+    const div=document.createElement('div'); div.className='tl-item '+it.type;
+    let html=`<span class="yr">${escapeHtml(it.y)}</span><span class="txt">${annotatePeople(it.t)}</span>`;
+    if(it.type==='war' && it.factions){
+      const fac = it.factions.map(f=>`<span class="f">${escapeHtml(f)}</span>`).join(' ⚔ ');
+      html += `<div class="factions">参战：${fac}</div>`;
+    }
+    div.innerHTML=html;
+    box.appendChild(div);
+  });
+  if(!items.length) box.innerHTML='<div style="color:#9aa3b8;font-size:12px;padding:6px 0">暂无该类型内容</div>';
+}
+
+function parseY(s){
+  const m=String(s).match(/前?(\d+)/);
+  if(!m) return 0;
+  const n=parseInt(m[1]);
+  return String(s).startsWith('前')?-n:n;
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
+
+/* 拼音注音工具 - 词组优先匹配,回退逐字 */
+function hasPinyin(text){
+  if(!text) return false;
+  const s=String(text);
+  if(typeof PINYIN_PHRASE!=='undefined' && PINYIN_PHRASE[s]) return true;
+  if(typeof PINYIN==='undefined') return false;
+  for(const ch of s){ if(PINYIN[ch]) return true; }
+  return false;
+}
+function getPinyin(text){
+  if(!text) return '';
+  const s=String(text);
+  if(typeof PINYIN_PHRASE!=='undefined' && PINYIN_PHRASE[s]) return PINYIN_PHRASE[s];
+  if(typeof PINYIN==='undefined') return '';
+  const parts=[];
+  for(const ch of s){ if(PINYIN[ch]) parts.push(PINYIN[ch]); }
+  return parts.join(' ');
+}
+/*
+ * withRuby(text):
+ * 1. 若整个 text 在 PINYIN_PHRASE 里命中 -> 按空格分割拼音,逐字配对生成 ruby
+ * 2. 否则尝试贪心最长匹配 PINYIN_PHRASE 子串 -> 匹配段按词组注音,非匹配段逐字查 PINYIN
+ * 3. 未命中的字原样输出(转义)
+ */
+function withRuby(text){
+  if(!text) return '';
+  const s = String(text);
+  if(typeof PINYIN==='undefined' && typeof PINYIN_PHRASE==='undefined') return escapeHtml(s);
+
+  // 构建词组列表,按长度降序(贪心最长匹配)
+  const phrases = (typeof PINYIN_PHRASE!=='undefined') ? Object.keys(PINYIN_PHRASE).sort((a,b)=>b.length-a.length) : [];
+
+  let out = '';
+  let i = 0;
+  while(i < s.length){
+    // 尝试最长词组匹配
+    let matched = false;
+    for(const ph of phrases){
+      if(s.substr(i, ph.length) === ph){
+        // 匹配到词组,按空格分割拼音逐字配对
+        const pys = PINYIN_PHRASE[ph].split(/\s+/);
+        const chars = [...ph]; // 支持多字节
+        for(let j=0;j<chars.length;j++){
+          const py = pys[j] || '';
+          if(py){
+            out += '<ruby>'+escapeHtml(chars[j])+'<rt>'+py+'</rt></ruby>';
+          } else {
+            out += escapeHtml(chars[j]);
+          }
+        }
+        i += ph.length;
+        matched = true;
+        break;
+      }
+    }
+    if(!matched){
+      const ch = s[i];
+      if(typeof PINYIN!=='undefined' && PINYIN[ch]){
+        out += '<ruby>'+escapeHtml(ch)+'<rt>'+PINYIN[ch]+'</rt></ruby>';
+      } else {
+        out += escapeHtml(ch);
+      }
+      i++;
+    }
+  }
+  return out;
+}
+
+/* 人物词卡 hover - 增强版:补 相关事件 / 同朝代相关人物 */
+const pcEl = document.getElementById('person-card');
+
+// 查找该人物出现在哪些朝代的 wars/events/relations
+function findPersonEvents(name, p){
+  const alias = Object.keys(PERSON_ALIAS).filter(a=>(PERSON_ALIAS[a]||a)===name);
+  const keys = [name, ...alias];
+  const out = [];
+  DYNASTIES.forEach(d=>{
+    const buckets = [
+      {arr:d.relations||[], type:'关系'},
+      {arr:d.events||[],    type:'事件'},
+      {arr:d.wars||[],      type:'战争'}
+    ];
+    buckets.forEach(b=>{
+      b.arr.forEach(it=>{
+        if(keys.some(k=>String(it.t).indexOf(k)>=0)){
+          out.push({y:it.y, t:it.t, type:b.type, dyn:d.name});
+        }
+      });
+    });
+  });
+  // 去重 + 按年份
+  const seen=new Set();
+  return out.filter(o=>{const k=o.y+'|'+o.t;if(seen.has(k))return false;seen.add(k);return true;})
+            .sort((a,b)=>{
+              const pa=String(a.y).replace('前','-').replace(/[^\-\d]/g,'');
+              const pb=String(b.y).replace('前','-').replace(/[^\-\d]/g,'');
+              return (parseInt(pa)||0)-(parseInt(pb)||0);
+            });
+}
+
+// 查找同朝代的其他人物(同角色优先)
+function findRelatedPeople(name, p){
+  const peers = Object.entries(PEOPLE)
+    .filter(([n,info])=>n!==name && info.dyn===p.dyn)
+    .map(([n,info])=>({n,info}));
+  // 同 role 优先
+  peers.sort((a,b)=>{
+    const sa = (a.info.role===p.role)?0:1;
+    const sb = (b.info.role===p.role)?0:1;
+    return sa-sb;
+  });
+  return peers.slice(0,6);
+}
+
+document.addEventListener('mouseover', e=>{
+  // 在浮卡内部不触发隐藏(也不重新渲染)
+  if(e.target.closest('#person-card')) return;
+  const t=e.target.closest('.person');
+  if(!t) return;
+  const name = t.dataset.person;
+  const p = PEOPLE[name]; if(!p) return;
+  const roleLabel = ROLE_LABEL[p.role]||p.role;
+  const icon = ROLE_ICON[p.role]||'·';
+
+  // 相关事件 (最多 4 条)
+  const evts = findPersonEvents(name, p).slice(0,4);
+  let evtHtml = '';
+  if(evts.length){
+    evtHtml = '<div class="pc-sec">相关事件 · ' + evts.length + '</div>' +
+      evts.map(o=>{
+        const yr = (typeof o.y==='number' && o.y<0)?'前'+(-o.y):o.y;
+        return `<div class="pc-evt"><span class="y">${yr}</span><span style="color:#7ad0ff">[${o.type}]</span> ${escapeHtml(String(o.t).slice(0,50))}${String(o.t).length>50?'…':''}</div>`;
+      }).join('');
+  }
+
+  // 同朝代相关人物
+  const peers = findRelatedPeople(name, p);
+  let relHtml = '';
+  if(peers.length){
+    relHtml = '<div class="pc-sec">同代人物</div><div class="pc-rel">' +
+      peers.map(x=>{
+        const ic = ROLE_ICON[x.info.role]||'·';
+        return `<span class="r" style="background:rgba(255,255,255,.04);color:#cbd2e2;border:1px solid rgba(255,255,255,.1);padding:1px 6px;border-radius:3px;font-size:10.5px">${ic} ${x.n}</span>`;
+      }).join('') + '</div>';
+  }
+
+  pcEl.innerHTML = `<div class="pc-head">
+      <span class="pc-name">${icon} ${withRuby(name)}</span>
+      <span class="pc-role person ${p.role}" data-icon="${icon}">${roleLabel}</span>
+    </div>
+    <div class="pc-meta">生卒 <span style="color:#cbd2e2">${p.life}</span> <span class="pc-dyn">${p.dyn}</span></div>
+    <div class="pc-desc" style="background:transparent;border:none;padding:0">${escapeHtml(p.desc)}</div>
+    ${evtHtml}
+    ${relHtml}`;
+  pcEl.style.display='block';
+  const r=t.getBoundingClientRect();
+  let left = r.left;
+  let top  = r.bottom+6;
+  // 避免溢出
+  const cardW = 330, cardH = pcEl.offsetHeight || 200;
+  if(left+cardW > innerWidth) left = innerWidth - cardW - 8;
+  if(left < 8) left = 8;
+  if(top+cardH > innerHeight) top = Math.max(8, r.top - cardH - 6);
+  pcEl.style.left=left+'px';
+  pcEl.style.top =top+'px';
+});
+document.addEventListener('mouseout', e=>{
+  const fromPerson = e.target.closest('.person');
+  if(!fromPerson) return;
+  // 如果 relatedTarget 仍在徽章或卡内,不隐藏
+  const to = e.relatedTarget;
+  if(to && (to.closest && (to.closest('.person') || to.closest('#person-card')))) return;
+  pcEl.style.display='none';
+});
+// 离开浮卡本身时也隐藏
+pcEl.addEventListener('mouseleave', ()=>{ pcEl.style.display='none'; });
+
+function bindUI(){
+  document.getElementById('close-btn').onclick=()=>document.getElementById('panel').classList.remove('show');
+  document.getElementById('mp-close').onclick=()=>document.getElementById('minority-panel').classList.remove('show');
+  document.querySelectorAll('#panel .tab').forEach(t=>{
+    t.onclick=()=>{
+      document.querySelectorAll('#panel .tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      currentTab=t.dataset.tab;
+      if(activeDynastyIdx>=0) renderTimeline(DYNASTIES[activeDynastyIdx], currentTab);
+    };
+  });
+  document.getElementById('btn-river').onclick=function(){
+    showRiver=!showRiver; this.classList.toggle('active',showRiver);
+    if(riverMesh) riverMesh.visible=showRiver;
+  };
+  document.getElementById('btn-wars').onclick=function(){
+    showWars=!showWars; this.classList.toggle('active',showWars);
+    applyFilter();
+  };
+  document.getElementById('btn-tribes').onclick=function(){
+    showTribes=!showTribes; this.classList.toggle('active',showTribes);
+    applyFilter();
+  };
+  let showAnnex=true;
+  const btnAnnex=document.getElementById('btn-annex');
+  if(btnAnnex){
+    btnAnnex.onclick=function(){
+      showAnnex=!showAnnex;
+      this.classList.toggle('active', showAnnex);
+      annexArrows.forEach(a=>a.mesh.visible = showAnnex);
+      if(showAnnex) applyFilter();
+    };
+  }
+  document.getElementById('btn-tour').onclick=function(){
+    tourMode=!tourMode; this.classList.toggle('active',tourMode);
+  };
+  document.getElementById('btn-reset').onclick=()=>{
+    tourMode=false;
+    document.getElementById('btn-tour').classList.remove('active');
+    // 复位为俯视
+    camera.up.set(-1,0,0);
+    tweenCamera({x:0,y:260,z:0.01},{x:0,y:0,z:0});
+  };
+
+  /* ===== 朝代按钮组 + 时间滑块筛选 ===== */
+  const dynBtnGroup = document.getElementById('dyn-buttons');
+  let activeDynFilter = -1; // -1 = 全部 ; 单朝代的索引
+  let activeGroupFilter = null; // 例如 'wudai_shiguo' 代表筛选整个组
+  // 收集分组成员的索引集合,便于隐藏判断
+  const GROUP_MEMBERS = {}; // {wudai_shiguo: Set([idx,...])}
+  DYNASTIES.forEach((d,i)=>{
+    if(d.group){
+      (GROUP_MEMBERS[d.group] = GROUP_MEMBERS[d.group] || new Set()).add(i);
+    }
+  });
+
+  // 清空所有 active 视觉态(单按钮 + 组按钮 + 子项 + 3D 高亮)
+  function clearAllActiveBtn(){
+    dynBtnGroup.querySelectorAll('.dyn-btn').forEach(x=>{
+      x.classList.remove('active');
+      if(x.dataset.themeColor){ x.style.background=''; x.style.color=x.dataset.themeColor; }
+    });
+    dynBtnGroup.querySelectorAll('.dyn-sub').forEach(x=>x.classList.remove('active'));
+    if(typeof clearHighlight==='function') clearHighlight();
+  }
+  function paintBtnActive(b){
+    b.classList.add('active');
+    if(b.dataset.themeColor){
+      b.style.background = b.dataset.themeColor;
+      b.style.color = '#0b1020';
+    }
+  }
+
+  const renderedGroups = new Set();
+  DYNASTIES.forEach((d,i)=>{
+    // 分组成员:跳过单独按钮,统一渲染一次分组按钮
+    if(d.group){
+      if(renderedGroups.has(d.group)) return;
+      renderedGroups.add(d.group);
+      // —— 分组按钮(五代十国 ▾) ——
+      const wrap = document.createElement('span');
+      wrap.className = 'dyn-group-wrap';
+      const gb = document.createElement('button');
+      gb.className = 'dyn-btn dyn-group-btn';
+      const GROUP_LABELS = {wudai:'五代', shiguo:'十国', wudai_shiguo:'五代十国'};
+      const groupName = GROUP_LABELS[d.group] || d.group;
+      gb.textContent = groupName;
+      gb.title = '点击展开：' + groupName + ' 各政权';
+      gb.dataset.group = d.group;
+      const pop = document.createElement('div');
+      pop.className = 'dyn-popover';
+      // 子项:"全部 五代十国"
+      const subAll = document.createElement('button');
+      subAll.className = 'dyn-sub';
+      subAll.textContent = '全部 （' + GROUP_MEMBERS[d.group].size + ')';
+      subAll.onclick = (ev)=>{
+        ev.stopPropagation();
+        const already = (activeGroupFilter===d.group && activeDynFilter===-1);
+        clearAllActiveBtn();
+        if(already){
+          activeGroupFilter = null;
+        } else {
+          activeGroupFilter = d.group;
+          activeDynFilter = -1;
+          paintBtnActive(gb);
+          subAll.classList.add('active');
+        }
+        pop.classList.remove('show');
+        applyFilter();
+      };
+      pop.appendChild(subAll);
+      // 子项:每个政权
+      DYNASTIES.forEach((dd,ii)=>{
+        if(dd.group !== d.group) return;
+        const sb = document.createElement('button');
+        sb.className = 'dyn-sub';
+        sb.textContent = dd.name;
+        sb.title = dd.yearLabel;
+        if(dd.colorKey && TYPE_COLOR[dd.colorKey]){
+          const hex = '#'+TYPE_COLOR[dd.colorKey].toString(16).padStart(6,'0');
+          sb.style.color = hex; sb.style.borderColor = hex+'80';
+        }
+        sb.onclick = (ev)=>{
+          ev.stopPropagation();
+          const already = (activeDynFilter===ii);
+          clearAllActiveBtn();
+          if(already){
+            activeDynFilter = -1;
+            activeGroupFilter = null;
+            document.getElementById('panel').classList.remove('show');
+          } else {
+            activeDynFilter = ii;
+            activeGroupFilter = null;
+            paintBtnActive(gb);
+            sb.classList.add('active');
+            if(dd._center){
+              // showDynasty 内部统一处理:面板内容刷新 + 居中放大 + 高亮
+              showDynasty(ii);
+            }
+          }
+          pop.classList.remove('show');
+          applyFilter();
+        };
+        pop.appendChild(sb);
+      });
+      gb.onclick = (ev)=>{
+        ev.stopPropagation();
+        // 关闭其它 popover
+        dynBtnGroup.querySelectorAll('.dyn-popover.show').forEach(p=>{ if(p!==pop) p.classList.remove('show'); });
+        pop.classList.toggle('show');
+      };
+      wrap.appendChild(gb); wrap.appendChild(pop);
+      dynBtnGroup.appendChild(wrap);
+      return;
+    }
+    // —— 普通单朝代按钮 ——
+    const b=document.createElement('button');
+    b.className='dyn-btn'; b.textContent=d.name;
+    b.title=d.yearLabel;
+    b.dataset.idx=i;
+    if(d.colorKey && TYPE_COLOR[d.colorKey]){
+      const hex = '#'+TYPE_COLOR[d.colorKey].toString(16).padStart(6,'0');
+      b.style.color = hex;
+      b.style.borderColor = hex+'80';
+      b.dataset.themeColor = hex;
+    }
+    b.onclick=()=>{
+      const already = (activeDynFilter===i && !activeGroupFilter);
+      clearAllActiveBtn();
+      if(already){
+        activeDynFilter=-1;
+        activeGroupFilter=null;
+        document.getElementById('panel').classList.remove('show');
+      } else {
+        activeDynFilter=i;
+        activeGroupFilter=null;
+        paintBtnActive(b);
+        if(d._center){
+          showDynasty(i);
+        }
+      }
+      applyFilter();
+    };
+    dynBtnGroup.appendChild(b);
+  });
+  // 点击页面其它处关闭 popover
+  document.addEventListener('click', (e)=>{
+    if(!dynBtnGroup.contains(e.target)){
+      dynBtnGroup.querySelectorAll('.dyn-popover.show').forEach(p=>p.classList.remove('show'));
+    }
+  });
+  const yrMin = document.getElementById('yr-min');
+  const yrMax = document.getElementById('yr-max');
+  const yrDisplay = document.getElementById('yr-display');
+  function fmtYr(y){ return y<0 ? '前'+(-y) : ''+y; }
+  function refreshYrDisplay(){
+    let a=parseInt(yrMin.value), b=parseInt(yrMax.value);
+    if(a>b){ [a,b]=[b,a]; }
+    yrDisplay.textContent = `${fmtYr(a)} ~ ${fmtYr(b)}`;
+  }
+  function applyFilter(){
+    let yMin=parseInt(yrMin.value), yMax=parseInt(yrMax.value);
+    if(yMin>yMax) [yMin,yMax]=[yMax,yMin];
+    const dynIdx = activeDynFilter;
+    const grp    = activeGroupFilter;
+    const selDyn = dynIdx>=0 ? DYNASTIES[dynIdx] : null;
+
+    // 选中朝代集合(支持分组):被选中视为"相关朝代"
+    const selectedIdxSet = new Set();
+    const selectedNameSet = new Set();
+    if(grp && GROUP_MEMBERS[grp]){
+      GROUP_MEMBERS[grp].forEach(ix=>{ selectedIdxSet.add(ix); selectedNameSet.add(DYNASTIES[ix].name); });
+    } else if(selDyn){
+      selectedIdxSet.add(dynIdx); selectedNameSet.add(selDyn.name);
+    }
+    const hasSel = selectedIdxSet.size>0;
+
+    // 该筛选范围相关的派系集合(用于决定少数民族/箭头是否显示)
+    const facs = new Set();
+    selectedIdxSet.forEach(ix=>{
+      const d = DYNASTIES[ix];
+      facs.add(d.name);
+      (d.wars||[]).forEach(w=>(w.factions||[]).forEach(f=>facs.add(f)));
+      (d.tribes||[]).forEach(t=>facs.add(t));
+    });
+
+    // 主线汉族浮岛(+ 装饰组)
+    islands.forEach(isl=>{
+      const u=isl.userData;
+      const inYear = !(u.y1 < yMin || u.y0 > yMax);
+      const inDyn  = !hasSel || selectedIdxSet.has(u.idx);
+      const vis = inYear && inDyn;
+      isl.visible = vis;
+      if(u.deco) u.deco.visible = vis;
+    });
+    // 少数民族副线
+    tribeFlags.forEach(b=>{
+      const u=b.userData;
+      if(u.kind!=='minority') return;
+      const inYear = !(u.life[1] < yMin || u.life[0] > yMax);
+      const inDyn = !hasSel || facs.has(u.name);
+      b.visible = showTribes && inYear && inDyn;
+    });
+    // 战争连线
+    warBeams.forEach(wb=>{
+      const u=wb.mesh.userData||{};
+      const yr = wb.year;
+      const inYear = (yr>=yMin && yr<=yMax);
+      const inDyn  = !hasSel || (u.dynasty && selectedNameSet.has(u.dynasty));
+      wb.mesh.visible = showWars && inYear && inDyn;
+    });
+    // 吞并箭头
+    annexArrows.forEach(ab=>{
+      const u=ab.mesh.userData||{};
+      const yr = ab.year;
+      const inYear = (yr>=yMin && yr<=yMax);
+      let inDyn = true;
+      if(hasSel){
+        inDyn = (u.by && facs.has(u.by)) || (u.target && facs.has(u.target));
+      }
+      ab.mesh.visible = showAnnex && inYear && inDyn;
+    });
+  }
+  yrMin.oninput = yrMax.oninput = ()=>{ refreshYrDisplay(); applyFilter(); };
+  document.getElementById('btn-clear-filter').onclick = ()=>{
+    activeDynFilter=-1;
+    activeGroupFilter=null;
+    clearAllActiveBtn();
+    yrMin.value=-280; yrMax.value=1912;
+    refreshYrDisplay(); applyFilter();
+  };
+  refreshYrDisplay();
+}
+
+function tweenCamera(toPos,toTarget,dur=900){
+  const sP=camera.position.clone(), sT=controls.target.clone();
+  const start=performance.now();
+  function step(now){
+    const t=Math.min(1,(now-start)/dur);
+    const e=t<.5?2*t*t:-1+(4-2*t)*t;
+    camera.position.lerpVectors(sP,new THREE.Vector3(toPos.x,toPos.y,toPos.z),e);
+    controls.target.lerpVectors(sT,new THREE.Vector3(toTarget.x,toTarget.y,toTarget.z),e);
+    controls.update();
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* 仅平移视角:保持当前相机相对 target 的偏移(角度/距离不变),把 target 平移到 toTarget。
+   用于点击朝代按钮时只居中,不旋转。 */
+function panToTarget(toTarget, dur=700){
+  const sT = controls.target.clone();
+  const sP = camera.position.clone();
+  const dest = new THREE.Vector3(toTarget.x, toTarget.y, toTarget.z);
+  const delta = dest.clone().sub(sT);
+  const destP = sP.clone().add(delta);
+  const start = performance.now();
+  function step(now){
+    const t = Math.min(1, (now-start)/dur);
+    const e = t<.5 ? 2*t*t : -1+(4-2*t)*t;
+    camera.position.lerpVectors(sP, destP, e);
+    controls.target.lerpVectors(sT, dest, e);
+    controls.update();
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* 居中 + 放大:方向不变,按目标尺寸把相机距离收到 zoomDist。 */
+function panAndZoomToTarget(toTarget, zoomDist=70, dur=750){
+  const sT = controls.target.clone();
+  const sP = camera.position.clone();
+  const dest = new THREE.Vector3(toTarget.x, toTarget.y, toTarget.z);
+  // 保持方向:取当前 camera→target 的单位向量,反向乘 zoomDist 得到 destP
+  let dir = sP.clone().sub(sT);
+  if(dir.lengthSq() < 1e-6) dir.set(0,1,0.0001); // 退化时给一个默认俯视
+  dir.normalize();
+  const destP = dest.clone().addScaledVector(dir, zoomDist);
+  const start = performance.now();
+  function step(now){
+    const t = Math.min(1, (now-start)/dur);
+    const e = t<.5 ? 2*t*t : -1+(4-2*t)*t;
+    camera.position.lerpVectors(sP, destP, e);
+    controls.target.lerpVectors(sT, dest, e);
+    controls.update();
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* 朝代浮岛高亮:目标朝代 emissive 调亮,其它复原。 */
+const HL_BASE_EI = 0.22;   // 原始自发光强度
+const HL_PEAK_EI = 0.55;   // 高亮自发光强度(温和,不刺眼)
+function highlightDynasty(idx){
+  islands.forEach(isl=>{
+    if(!isl.material || !isl.material.emissive) return;
+    const isSel = (idx>=0 && isl.userData.idx===idx);
+    isl.material.emissiveIntensity = isSel ? HL_PEAK_EI : HL_BASE_EI;
+    if(isl.userData.deco){
+      // 旗杆/环带轻微亮一点;标签 sprite 不变
+      isl.userData.deco.children.forEach(ch=>{
+        if(ch.material && ch.material.color && !ch.isSprite){
+          if(isSel){
+            ch.material.opacity = Math.min(1, (ch.material.opacity||1)*1.0);
+          }
+        }
+      });
+    }
+  });
+}
+function clearHighlight(){ highlightDynasty(-1); }
+
+function animate(){
+  requestAnimationFrame(animate);
+  const t = performance.now()*0.001;
+  if(starGroup) starGroup.rotation.y += 0.00015;
+  // 副线条带轻微呼吸
+  tribeFlags.forEach((g,i)=>{
+    if(!g.material || !g.material.emissiveIntensity && g.material.emissiveIntensity!==0) return;
+    g.material.emissiveIntensity = 0.45 + 0.18*Math.sin(t*1.2 + i*0.7);
+  });
+  // 战争光柱脉冲
+  warBeams.forEach(b=>{
+    if(b.pulse && b.mesh.scale){
+      const s = 1+0.3*Math.sin(t*3+b.year);
+      b.mesh.scale.setScalar(s);
+    }
+  });
+  // 吞并箭头脉冲
+  annexArrows.forEach(b=>{
+    if(b.pulse && b.mesh.scale){
+      const s = 1+0.25*Math.sin(t*2.5+b.year*0.01);
+      b.mesh.scale.setScalar(s);
+    }
+  });
+  // 河面荧光偏移(简单旋转)
+  scene.children.forEach(c=>{
+    if(c.userData && c.userData.kind==='river_dust'){
+      c.rotation.y += 0.0005;
+    }
+  });
+  // 巡游模式:镜头绕场景缓慢转
+  if(tourMode){
+    tourAngle += 0.002;
+    const r=160;
+    camera.position.x = Math.cos(tourAngle)*r;
+    camera.position.z = Math.sin(tourAngle)*r;
+    camera.position.y = 70+Math.sin(tourAngle*0.5)*20;
+    controls.target.set(0,5,0);
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+addEventListener('load', ()=>{
+  if(typeof THREE==='undefined'||!THREE.OrbitControls){
+    document.getElementById('loading').textContent='Three.js 加载失败，请检查网络后刷新';
+    return;
+  }
+  if(typeof DYNASTIES==='undefined'){
+    document.getElementById('loading').textContent='数据文件加载失败 (DYNASTIES 未定义），请确认 dynasty_data.js 与 HTML 在同一目录';
+    return;
+  }
+  init();
+});
+window.addEventListener('error', function(e){
+  const el = document.getElementById('loading');
+  if(el && !el.classList.contains('hidden')){
+    el.style.flexDirection='column';
+    el.style.padding='20px';
+    el.style.textAlign='left';
+    el.innerHTML = '<div style="color:#ff6b6b;font-size:16px;margin-bottom:8px">JS 错误</div>'
+      + '<div style="color:#aaa;font-size:12px;max-width:80vw;word-break:break-all">'
+      + (e.message||'unknown') + ' @ ' + (e.filename||'') + ':' + (e.lineno||'') + '</div>';
+  }
+});
+</script>
+</body>
+</html>
+
+
+

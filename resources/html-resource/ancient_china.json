@@ -1,0 +1,24 @@
+{
+  "showInHome": false,
+  "homeEntries": [
+    {
+      "icon": "landmark",
+      "status": "available",
+      "title": "朝代浮岛旧版页",
+      "description": "保留原始 HTML 版朝代浮岛页面，便于对照 React 时间长河的演进版本。"
+    }
+  ],
+  "aboutItems": [
+    {
+      "title": "旧版朝代浮岛",
+      "text": "以隔离 iframe 承载原始 HTML 页面，保留早期 3D 朝代编年图的完整交互与视觉参考。"
+    }
+  ],
+  "readingGuides": [
+    {
+      "icon": "landmark",
+      "title": "对照旧版浮岛",
+      "text": "需要比对交互细节或视觉演进时，可打开旧版 HTML 页面作为参考。"
+    }
+  ]
+}

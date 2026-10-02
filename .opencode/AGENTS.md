@@ -1,0 +1,1 @@
+Please read the unified agent instructions at [`../.agents/instructions.md`](../.agents/instructions.md).

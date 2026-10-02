@@ -1,0 +1,179 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { AncientChinaPoliciesReactPage } from "./page";
+
+describe("<AncientChinaPoliciesReactPage />", () => {
+  let scrollIntoView: ReturnType<typeof vi.fn<HTMLElement["scrollIntoView"]>>;
+
+  beforeEach(() => {
+    scrollIntoView = vi.fn<HTMLElement["scrollIntoView"]>();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 240 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 160 });
+  });
+
+  afterEach(() => {
+    document.querySelectorAll("body > input").forEach((input) => {
+      input.remove();
+    });
+    vi.restoreAllMocks();
+  });
+
+  it("switches dynasties from the timeline and ignores arrow keys from form fields", () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    const hanButton = screen.getByRole("button", { name: /^汉 公元前 202/ });
+    fireEvent.click(hanButton);
+
+    expect(screen.getByRole("heading", { name: /汉 朝/ })).toBeInTheDocument();
+    expect(hanButton).toHaveClass("active");
+    expect(scrollIntoView).toHaveBeenCalled();
+
+    const input = document.createElement("input");
+    document.body.append(input);
+    fireEvent.keyDown(input, { key: "ArrowRight" });
+    expect(screen.getByRole("heading", { name: /汉 朝/ })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "ArrowLeft" });
+    expect(screen.getByRole("heading", { name: /秦 朝/ })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "ArrowLeft" });
+    expect(screen.getByRole("heading", { name: /秦 朝/ })).toBeInTheDocument();
+  });
+
+  it("keeps the selected dimension per dynasty and renders optional card sections", () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "军事·武力征服" }));
+
+    expect(screen.getByRole("button", { name: "军事·武力征服" })).toHaveClass("active");
+    expect(document.body).toHaveTextContent("销兵铸十二金人");
+
+    fireEvent.click(screen.getByRole("button", { name: /^元 / }));
+    fireEvent.click(screen.getByRole("button", { name: "工艺·古法制造" }));
+
+    expect(screen.getByRole("button", { name: "工艺·古法制造" })).toHaveClass("active");
+    expect(screen.getAllByText("【古法工序】").length).toBeGreaterThan(0);
+    expect(document.body).toHaveTextContent("绞盘");
+
+    fireEvent.click(screen.getByRole("button", { name: /^秦 / }));
+    expect(screen.getByRole("button", { name: "军事·武力征服" })).toHaveClass("active");
+  });
+
+  it("renders the territory SVG figure for every dynasty without falling back to img", async () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    const dynastyButtons = screen.getAllByRole("button").filter((button) => {
+      return /^(秦|汉|魏晋南北朝|隋|唐|宋|元|明|清)\s/.test(button.textContent ?? "");
+    });
+
+    for (const dynastyButton of dynastyButtons) {
+      fireEvent.click(dynastyButton);
+      fireEvent.click(screen.getByRole("button", { name: "疆域·地区划分" }));
+
+      const activeSection = document.querySelector<HTMLElement>(".dim-section.active");
+      expect(activeSection).toBeInTheDocument();
+
+      // Figures are code-split chunks, so the inline SVG arrives after the click settles.
+      await waitFor(() => {
+        expect(activeSection?.querySelector(".policy-figure svg")).toBeInTheDocument();
+      });
+      expect(activeSection?.querySelector("img")).not.toBeInTheDocument();
+    }
+  });
+
+  it("keeps territory map labels as plain SVG text without label frames", async () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    const dynastyButtons = screen.getAllByRole("button").filter((button) => {
+      return /^(秦|汉|魏晋南北朝|隋|唐|宋|元|明|清)\s/.test(button.textContent ?? "");
+    });
+
+    for (const dynastyButton of dynastyButtons) {
+      fireEvent.click(dynastyButton);
+      fireEvent.click(screen.getByRole("button", { name: "疆域·地区划分" }));
+
+      const activeSection = document.querySelector<HTMLElement>(".dim-section.active");
+
+      await waitFor(() => {
+        expect(activeSection?.querySelector(".policy-figure svg")).toBeInTheDocument();
+      });
+
+      const framedLabels = Array.from(
+        activeSection?.querySelectorAll<SVGRectElement>(
+          'svg > rect[fill="#fdf6e3"][fill-opacity="0.88"][stroke="#a89070"]',
+        ) ?? [],
+      );
+
+      expect(framedLabels).toHaveLength(0);
+    }
+  });
+
+  it("shows, moves, and hides glossary tooltips with viewport clamping", () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    const term = document.querySelector<HTMLElement>('[data-term="秦始皇"]');
+    const tooltip = document.querySelector<HTMLElement>(".acp-tooltip");
+
+    if (!term || !tooltip) {
+      throw new Error("Expected glossary term and tooltip to render");
+    }
+
+    Object.defineProperty(tooltip, "offsetWidth", { configurable: true, value: 320 });
+    Object.defineProperty(tooltip, "offsetHeight", { configurable: true, value: 220 });
+
+    fireEvent.mouseMove(term, { clientX: 12, clientY: 12 });
+    expect(tooltip).not.toHaveClass("show");
+
+    fireEvent.mouseOver(term, { clientX: 230, clientY: 150 });
+
+    expect(tooltip).toHaveClass("show");
+    expect(tooltip).toHaveTextContent("秦始皇 嬴政");
+    expect(tooltip).toHaveTextContent("人物");
+    expect(tooltip).toHaveTextContent("中国首位皇帝");
+    expect(tooltip.style.left).toBe("4px");
+    expect(tooltip.style.top).toBe("4px");
+
+    fireEvent.mouseMove(term, { clientX: 20, clientY: 20 });
+    expect(tooltip).toHaveClass("show");
+
+    fireEvent.mouseOut(term);
+    expect(tooltip).not.toHaveClass("show");
+  });
+
+  it("opens the SVG figure lightbox from policy cards and closes it by click or Escape", async () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^元 / }));
+
+    const contentArea = document.getElementById("contentArea");
+    const figureButton = contentArea?.querySelector<HTMLButtonElement>(".policy-figure-button");
+
+    if (!contentArea || !figureButton) {
+      throw new Error("Expected Yuan SVG policy figure card to render");
+    }
+
+    await waitFor(() => {
+      expect(contentArea.querySelector(".card-img svg")).toBeInTheDocument();
+    });
+
+    fireEvent.click(contentArea);
+    expect(screen.queryByRole("img", { name: "放大图" })).not.toBeInTheDocument();
+
+    fireEvent.click(figureButton);
+    expect(
+      await screen.findByRole("img", { name: /放大图：行省制·中国'省'制开端/ }),
+    ).toBeInTheDocument();
+    expect(document.querySelector(".acp-lightbox-figure svg")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "关闭放大图" }));
+    expect(screen.queryByRole("img", { name: /放大图/ })).not.toBeInTheDocument();
+
+    fireEvent.click(figureButton);
+    expect(screen.getByRole("img", { name: /放大图/ })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("img", { name: /放大图/ })).not.toBeInTheDocument();
+  });
+});
