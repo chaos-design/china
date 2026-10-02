@@ -13,12 +13,11 @@ This repository is **中国古代全览**, a React 19 + TypeScript single-page a
 - iframe-isolated HTML resource pages generated from `resources/html/*.html`,
 - a 404 fallback page for unknown routes.
 
-Preview URLs:
+Public URL:
 
-- https://yanhuang.netlify.app/
 - https://china.chaosmic.cn/
 
-Deployment target: **Vercel**, fully declared in `vercel.json` (`framework: vite`, `installCommand: pnpm install --frozen-lockfile`, `buildCommand: pnpm build`, `outputDirectory: dist`, SPA `rewrites` to `/index.html`).
+Deployment target: **Vercel**, fully declared in `vercel.json` (`framework: vite`, `installCommand: pnpm install --frozen-lockfile`, `buildCommand: pnpm build`, `outputDirectory: dist`, SPA `rewrites` to `/index.html`). The Git integration posts a GitHub Deployment whose `environment_url` is the Vercel production URL, but that URL is password-protected — verify against the custom domain instead.
 
 ## Tech Stack
 
@@ -165,9 +164,8 @@ Project-local skills live under `.agents/skills/`. Use the most specific skill f
 
 ## Deployment Notes
 
-Production previews:
+Public URL:
 
-- https://yanhuang.netlify.app/
 - https://china.chaosmic.cn/
 
 The app is a Vite SPA. Any hosting target must support fallback rewrites to `index.html` for deep links such as `/china/timeline`, `/china/policies`, and generated HTML resource routes.
@@ -176,8 +174,9 @@ Vercel specifics:
 
 - `vercel.json` is the single source of truth. Vercel's `rewrites` run **after** the filesystem check, so the catch-all `/(.*)` → `/index.html` rule coexists with hashed assets under `/assets/`.
 - `installCommand` is pinned to `pnpm install --frozen-lockfile`, matching `.github/workflows/ci.yml`. If you change dependencies, regenerate `pnpm-lock.yaml` and commit it, otherwise deploys fail.
-- Node.js version is resolved from `engines.node` (`>=20.19.0`), which Vercel maps to the latest LTS. CI uses Node 22.
-- Verify routing locally with `npx vercel dev`, not just `pnpm preview` — `vercel dev` reads the real `vercel.json`.
+- Node.js version is resolved from `engines.node` (`>=20.19.0`), which Vercel maps to the latest LTS. CI uses Node 22. The build has been verified green on both Node 22 and Node 24.
+- The Vercel Git integration posts a GitHub Deployment for every push to `main`; its `environment_url` is the password-protected production URL. Verify deployments against the custom domain.
+- The `heritage/*.jpg` files under `public/` are served from the site root and intentionally keep stable filenames, so they are **not** covered by the immutable `/assets/*` cache rule.
 
 Do not change build output settings without updating README and deployment config together.
 

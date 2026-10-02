@@ -4,17 +4,20 @@
 
 ## 预览地址
 
-- https://yanhuang.netlify.app/
-- https://china.chaosmic.cn/
+线上站点由 Vercel 提供服务：
+
+- 自定义域名：https://china.chaosmic.cn/
+
+> 早期文档中列出的 `https://yanhuang.netlify.app/` 站点已不存在（返回 404），故不再列出。Vercel 自动分配的生产部署 URL 处于密码保护状态，不能作为公开预览地址；对外访问请使用上面的自定义域名。
 
 ## 核心内容与截图
 
 | 页面 | 预览地址 | 内容 | 截图 |
 | --- | --- | --- | --- |
-| 首页 | https://yanhuang.netlify.app/ <br /> https://china.chaosmic.cn/ | 水墨风首页、画卷入场动画与全局换色入口。画卷动画每个浏览器窗口只展示一次，状态存储在 `sessionStorage`；主题色偏好存储在 `localStorage`。 | ![中国古代全览首页](./screenshots/home.webp) |
-| 时间长河 | https://yanhuang.netlify.app/china/timeline <br /> https://china.chaosmic.cn/china/timeline | 基于 Three.js 的 3D 朝代与少数民族关系漫游，包含主时间轴、战争连线、民族副线、吞并箭头、朝代筛选与时间范围筛选。`/china` 会重定向到此页面。 | ![3D 时间长河](./screenshots/china-timeline.webp) |
-| 政策全览 | https://yanhuang.netlify.app/china/policies <br /> https://china.chaosmic.cn/china/policies | 按朝代整理核心政策、制度机构、历史人物、疆域治理与文化科技内容。 | ![朝代政策全览](./screenshots/china-policies.webp) |
-| HTML 专题资源 | https://yanhuang.netlify.app/silk-road <br /> https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片、阅读指南等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
+| 首页 | https://china.chaosmic.cn/ | 水墨风首页、画卷入场动画与全局换色入口。画卷动画每个浏览器窗口只展示一次，状态存储在 `sessionStorage`；主题色偏好存储在 `localStorage`。 | ![中国古代全览首页](./screenshots/home.webp) |
+| 时间长河 | https://china.chaosmic.cn/china/timeline | 基于 Three.js 的 3D 朝代与少数民族关系漫游，包含主时间轴、战争连线、民族副线、吞并箭头、朝代筛选与时间范围筛选。`/china` 会重定向到此页面。 | ![3D 时间长河](./screenshots/china-timeline.webp) |
+| 政策全览 | https://china.chaosmic.cn/china/policies | 按朝代整理核心政策、制度机构、历史人物、疆域治理与文化科技内容。 | ![朝代政策全览](./screenshots/china-policies.webp) |
+| HTML 专题资源 | https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片、阅读指南等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
 
 ## 技术栈
 
@@ -210,11 +213,16 @@ npx vercel dev
 
 ### 部署后自检清单
 
+针对公开地址 `https://china.chaosmic.cn/` 执行：
+
 1. 打开 `/`，首页正常渲染。
 2. 直接访问 `/china/timeline`、`/china/policies` 等深链接，确认不是 404（验证 rewrite）。
 3. 打开任意 `/<html-resource-slug>`，确认 `iframe srcDoc` 内容渲染正常。
 4. 访问不存在的路径，确认落到应用内 404 页面而非 Vercel 错误页。
 5. 在 Network 面板确认 `/assets/*.js` 命中 `Cache-Control: public, max-age=31536000, immutable`。
+6. 确认 `/heritage/*.jpg` 以 `image/jpeg` 返回（该目录使用稳定文件名，不走 immutable 规则）。
+
+> Vercel Git 集成会在每次 push 到 `main` 时创建一个 GitHub Deployment，其 `environment_url` 指向 Vercel 生产部署地址。该地址默认受密码保护，会 302 跳转到 SSO 登录页——**这不是站点故障**，验证请使用自定义域名。
 
 ### 其他托管平台
 

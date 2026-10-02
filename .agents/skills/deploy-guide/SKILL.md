@@ -89,11 +89,25 @@ pnpm build && pnpm preview  # Build + serve dist/ at localhost:4173
 
 ## Post-Deploy Checklist
 
+Run against the public custom domain `https://china.chaosmic.cn/`:
+
 1. `/` renders the home page.
 2. `/china/timeline` and `/china/policies` deep links do not 404.
 3. A generated `/<html-resource-slug>` route renders its iframe.
 4. An unknown path lands on the in-app 404, not a Vercel error page.
 5. `/assets/*.js` responses carry `Cache-Control: public, max-age=31536000, immutable`.
+6. `/heritage/*.jpg` responds with `content-type: image/jpeg`.
+
+**Do not verify against the Vercel `environment_url` from the GitHub Deployment record.**
+That URL is password-protected and 302-redirects every request to a Vercel SSO page, which
+looks like a healthy 200 with an unrelated HTML body. Use the custom domain.
+
+To confirm a push deployed without hitting the Vercel dashboard:
+
+```bash
+curl -s https://api.github.com/repos/chaos-design/china/deployments?per_page=1
+# then fetch the deployment's statuses_url -> state should be "success"
+```
 
 ## Best Practices
 
