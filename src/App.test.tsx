@@ -178,6 +178,21 @@ describe("<App /> routing", () => {
     expect(screen.queryByRole("heading", { name: "此页未载入史册" })).not.toBeInTheDocument();
   });
 
+  it("animates the menu underline in both directions between nav routes", async () => {
+    renderAt("/china/timeline");
+    const nav = await screen.findByRole("navigation");
+
+    // Forward: 时间长河 (index 0) -> 政策全览 (index 1).
+    fireEvent.click(within(nav).getByRole("link", { name: /政策全览/ }));
+    expect(within(nav).getByText("政策全览")).toHaveClass("nav-underline-forward");
+    expect(within(nav).getByText("时间长河")).toHaveClass("nav-underline-leaving-forward");
+
+    // Backward: 政策全览 (index 1) -> 时间长河 (index 0).
+    fireEvent.click(within(nav).getByRole("link", { name: /时间长河/ }));
+    expect(within(nav).getByText("时间长河")).toHaveClass("nav-underline-backward");
+    expect(within(nav).getByText("政策全览")).toHaveClass("nav-underline-leaving-backward");
+  });
+
   it("lets users change the accent color from the floating picker", async () => {
     renderAt("/");
     await screen.findByRole("heading", { level: 1, name: /中国古代全览/ });

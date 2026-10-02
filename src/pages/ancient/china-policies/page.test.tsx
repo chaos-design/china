@@ -3,6 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AncientChinaPoliciesReactPage } from "./page";
 
+// Each test in this file renders the full policy atlas: ~385 cards, 10 dimensions and the
+// glossary tree, built from a 246kB dynasty JSON. That is by far the heaviest render in the
+// suite, so this file gets a larger budget than the global testTimeout.
+vi.setConfig({ testTimeout: 45000 });
+
 describe("<AncientChinaPoliciesReactPage />", () => {
   let scrollIntoView: ReturnType<typeof vi.fn<HTMLElement["scrollIntoView"]>>;
 
@@ -40,6 +45,46 @@ describe("<AncientChinaPoliciesReactPage />", () => {
 
     fireEvent.keyDown(document, { key: "ArrowLeft" });
     expect(screen.getByRole("heading", { name: /秦 朝/ })).toBeInTheDocument();
+  });
+
+  it("navigates dynasties with every arrow key, not only ArrowLeft", () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    // The timeline label reads "<朝代名><年代>", while the visible heading spaces out each
+    // character of the name, so assert on the timeline node instead of the heading text.
+    const activeDynasty = () =>
+      document.querySelector<HTMLElement>(".tl-node.active")?.textContent?.trim() ?? "";
+
+    expect(activeDynasty()).toMatch(/^秦/);
+
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    expect(activeDynasty()).toMatch(/^汉/);
+
+    fireEvent.keyDown(document, { key: "ArrowRight" });
+    expect(activeDynasty()).toMatch(/^魏/);
+
+    fireEvent.keyDown(document, { key: "ArrowUp" });
+    expect(activeDynasty()).toMatch(/^汉/);
+
+    fireEvent.keyDown(document, { key: "ArrowLeft" });
+    expect(activeDynasty()).toMatch(/^秦/);
+  });
+
+  it("does not open the glossary tooltip over content that has no term", () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    const tooltip = document.querySelector<HTMLElement>(".acp-tooltip");
+    const term = document.querySelector<HTMLElement>('[data-term="秦始皇"]');
+
+    if (!tooltip || !term) {
+      throw new Error("Expected the glossary tooltip and a glossary term to render");
+    }
+
+    fireEvent.mouseOver(screen.getByRole("heading", { level: 2 }));
+    expect(tooltip).not.toHaveClass("show");
+
+    fireEvent.mouseOver(term);
+    expect(tooltip).toHaveClass("show");
   });
 
   it("keeps the selected dimension per dynasty and renders optional card sections", () => {

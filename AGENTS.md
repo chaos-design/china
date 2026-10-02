@@ -55,7 +55,7 @@ pnpm test:coverage
 pnpm build
 ```
 
-Coverage should remain above 90%.
+Coverage thresholds are enforced in `vite.config.ts`; `pnpm test:coverage` exits non-zero below them, so CI catches regressions. The enforced floors are statements 93, lines 94, functions 90, branches 80. Branches are lower on purpose: the remaining uncovered branches are almost entirely environment guards (`typeof window === "undefined"`) and defensive fallbacks for data fields that are always populated — all 385 policy cards carry `bg`/`content`/`impact`, and all 419 glossary terms carry `title`/`type`/`body`. Reaching 90% branches would mean deleting globals or mocking the data files, which makes the tests worse rather than better. If you remove one of those guards, drop the corresponding threshold.
 
 ## Code Conventions
 

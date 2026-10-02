@@ -59,8 +59,14 @@ scripts/             # Build-time Babel plugins
 | `pnpm test:watch`     | Run unit tests in watch mode                 |
 | `pnpm test:coverage`  | Run unit tests with a coverage report        |
 
-Keep coverage above 90%. Note that `testTimeout` is widened to 20s in `vite.config.ts`
-because the policy and timeline pages render data-dense DOM trees under jsdom.
+Note that `testTimeout` is widened to 20s in `vite.config.ts` because the policy and
+timeline pages render data-dense DOM trees under jsdom, and the policy atlas test file
+raises it further to 45s since each of its cases renders ~385 cards.
+
+Coverage floors are enforced by Vitest: statements 93, lines 94, functions 90, branches 80.
+Falling below any of them fails `pnpm test:coverage`, and therefore CI. Branches sit lower
+than the rest because the uncovered remainder is mostly environment guards and defensive
+fallbacks for data fields that are always present in the current datasets.
 
 ## Coding conventions
 

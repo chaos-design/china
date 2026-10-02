@@ -82,7 +82,11 @@ pnpm test:coverage
 pnpm build
 ```
 
-测试覆盖率需保持在 90% 以上。GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检查，见 `.github/workflows/ci.yml`。
+测试覆盖率由 Vitest 强制校验：`statements ≥ 93`、`lines ≥ 94`、`functions ≥ 90`、`branches ≥ 80`。任一项低于阈值，`pnpm test:coverage` 会以非零码退出并让 CI 失败。
+
+分支阈值低于其余三项是有意为之：剩余未覆盖分支几乎全是环境守卫（`typeof window === "undefined"`）和防御性回退——385 张政策卡片全部带有 `bg`/`content`/`impact`，419 条术语全部带有 `title`/`type`/`body`，这些回退在当前数据集下无法触发。把分支覆盖率推到 90% 需要删除全局对象或 mock 数据文件，那会让测试更糟。
+
+GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检查，见 `.github/workflows/ci.yml`。
 
 ### 测试超时说明
 
