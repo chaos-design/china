@@ -68,6 +68,17 @@ describe("html resource metadata", () => {
             ],
           }),
         }),
+        expect.objectContaining({
+          fileName: "taiwan.html",
+          path: "/taiwan",
+          resource: expect.objectContaining({
+            homeEntries: [
+              expect.objectContaining({
+                title: "臺灣 · 山海之間",
+              }),
+            ],
+          }),
+        }),
       ]),
     );
 
@@ -107,6 +118,11 @@ describe("html resource metadata", () => {
     expect(silkRoad.title).toBe("中国各朝代丝绸之路与海疆发展史 · 世界地图版");
     expect(silkRoad.html).toContain('"ERAS": [');
     expect(silkRoad.html).not.toContain('data-resource="silk-road.json"');
+
+    const taiwan = await loadDocument("/taiwan");
+    expect(taiwan.title).toBe("臺灣 · 山海之間的百年");
+    expect(taiwan.html).toContain('"id": "humiliation"');
+    expect(taiwan.html).not.toContain('data-resource="taiwan.json"');
   });
 
   it("reuses one document promise across calls so React use() stays stable", () => {
@@ -241,6 +257,11 @@ describe("html resource metadata", () => {
           status: "available",
           title: "丝绸之路与海疆发展史",
         }),
+        expect.objectContaining({
+          path: "/taiwan",
+          status: "available",
+          title: "臺灣 · 山海之間",
+        }),
       ]),
     );
     // `showInHome: false` keeps the legacy timeline HTML page out of the home blocks.
@@ -268,6 +289,9 @@ describe("html resource metadata", () => {
         }),
         expect.objectContaining({
           title: "对照丝路演变",
+        }),
+        expect.objectContaining({
+          title: "先看剖面，再读近代",
         }),
       ]),
     );

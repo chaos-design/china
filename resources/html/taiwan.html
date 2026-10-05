@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>臺灣 · 山海之間的百年</title>
+<style>
+/* ===================== 设计变量 ===================== */
+:root{
+  --bg:#efe6d6; --bg-deep:#e5dac5; --panel:#fbf7ef; --ink:#2b2722; --ink-soft:#6b6155;
+  --red:#9e2b25; --red-deep:#7a201c; --gold:#b08d57; --gold-soft:#cdb389; --jade:#4a6c5d;
+  --line:#ddcfb6; --shadow:0 18px 50px rgba(43,39,34,.16);
+  --ash:#2f2c2a; --ash-soft:#8b8078;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:"Songti SC","STSong","SimSun","FangSong",serif;
+  color:var(--ink); background:var(--bg);
+  background-image:radial-gradient(circle at 18% 8%, rgba(176,141,87,.12), transparent 46%),
+                   radial-gradient(circle at 88% 92%, rgba(74,108,93,.08), transparent 42%);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ===================== 布局：左右两栏，各自独立滚动 ===================== */
+.layout{display:flex; height:100vh;}
+.sidebar{
+  flex:0 0 302px; width:302px; height:100%;
+  display:flex; flex-direction:column;
+  background:var(--bg-deep); border-right:1px solid var(--line);
+}
+.side-head{flex:0 0 auto; padding:26px 22px 16px; border-bottom:1px solid var(--line); position:relative;}
+.side-scroll{flex:1 1 auto; min-height:0; overflow-y:auto; padding:18px 14px 40px;}
+.content{
+  flex:1 1 auto; min-width:0; height:100%; overflow-y:auto;
+  padding:0 0 140px; scroll-behavior:smooth;
+}
+.side-scroll::-webkit-scrollbar,.content::-webkit-scrollbar{width:11px;}
+.side-scroll::-webkit-scrollbar-thumb,.content::-webkit-scrollbar-thumb{
+  background:var(--gold-soft); border-radius:6px; border:2px solid var(--bg-deep);
+}
+.content::-webkit-scrollbar-thumb{border-color:var(--bg);}
+.side-scroll::-webkit-scrollbar-track,.content::-webkit-scrollbar-track{background:transparent;}
+
+/* ===================== 侧栏品牌区 ===================== */
+.brand-kicker{
+  font-family:Georgia,serif; font-size:11px; letter-spacing:5px;
+  color:var(--gold); text-transform:uppercase; margin-bottom:12px;
+}
+.brand-title{
+  display:flex; align-items:flex-start; gap:12px;
+  font-size:40px; line-height:1.05; letter-spacing:8px; font-weight:700; color:var(--ink);
+}
+.brand-title small{
+  font-size:12px; letter-spacing:2px; font-weight:400; color:var(--ink-soft);
+  font-family:Georgia,serif; writing-mode:vertical-rl; margin-top:5px;
+}
+.brand-line{margin-top:14px; height:1px; background:linear-gradient(90deg,var(--gold-soft),transparent);}
+.brand-sub{margin-top:10px; font-size:13px; line-height:1.9; color:var(--ink-soft); letter-spacing:.5px;}
+
+.progress{height:3px; background:rgba(176,141,87,.22); border-radius:3px; overflow:hidden; margin-top:16px;}
+.progress > i{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--red),var(--gold));
+  transition:width .18s linear;}
+
+/* ===================== 侧栏目录 ===================== */
+.nav-label{
+  font-size:11px; letter-spacing:4px; color:var(--ink-soft);
+  padding:0 8px 10px; border-bottom:1px dashed var(--gold-soft); margin-bottom:12px;
+}
+.nav{list-style:none;}
+.nav-item{
+  display:flex; gap:12px; align-items:baseline;
+  padding:11px 12px; margin-bottom:6px; border-radius:11px; cursor:pointer;
+  transition:.2s; position:relative; border:1px solid transparent;
+}
+.nav-item:hover{background:var(--panel); border-color:var(--line);}
+.nav-item.active{background:linear-gradient(135deg,#fff,#f6efe0); border-color:var(--gold-soft); box-shadow:0 6px 18px rgba(176,141,87,.2);}
+.nav-item.active::before{
+  content:""; position:absolute; left:-14px; top:12px; bottom:12px; width:4px;
+  background:var(--red); border-radius:0 4px 4px 0;
+}
+.nav-idx{font-family:Georgia,serif; font-size:12px; color:var(--gold); letter-spacing:1px; flex:0 0 auto;}
+.nav-name{font-size:15.5px; letter-spacing:1px; color:var(--ink);}
+.nav-item.active .nav-name{color:var(--red-deep);}
+
+.side-foot{
+  flex:0 0 auto; padding:12px 22px 14px; border-top:1px solid var(--line);
+  font-size:11.5px; line-height:1.8; color:var(--ink-soft); letter-spacing:.5px;
+}
+
+/* ===================== 首屏 ===================== */
+.hero{position:relative; padding:64px 62px 44px; overflow:hidden; border-bottom:1px solid var(--line);}
+.hero::before{
+  content:"臺"; position:absolute; right:-20px; top:-56px; z-index:0;
+  font-size:320px; line-height:1; font-weight:700; color:rgba(176,141,87,.09);
+  pointer-events:none; user-select:none;
+}
+.hero-kicker{
+  position:relative; z-index:1; font-family:Georgia,serif; font-size:12px;
+  letter-spacing:7px; color:var(--gold); margin-bottom:18px;
+}
+.hero-title{
+  position:relative; z-index:1; display:flex; align-items:baseline; gap:22px; flex-wrap:wrap;
+}
+.hero-title h1{font-size:78px; letter-spacing:16px; line-height:1; font-weight:700;}
+.hero-title span{font-family:Georgia,serif; font-size:17px; letter-spacing:5px; color:var(--ink-soft);}
+.hero-rule{position:relative; z-index:1; margin:26px 0 22px; height:2px; width:132px;
+  background:linear-gradient(90deg,var(--red),transparent);}
+.hero-lead{
+  position:relative; z-index:1; max-width:720px;
+  font-size:17px; line-height:2.1; color:#3a342c; text-align:justify; letter-spacing:.4px;
+}
+.hero-stats{
+  position:relative; z-index:1; margin-top:38px;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:16px;
+}
+.stat{
+  background:rgba(251,247,239,.72); border:1px solid var(--line); border-radius:14px;
+  padding:16px 18px; box-shadow:0 6px 18px rgba(43,39,34,.05);
+}
+.stat b{display:block; font-size:27px; letter-spacing:1px; color:var(--red-deep); font-family:Georgia,"Songti SC",serif;}
+.stat span{display:block; margin-top:6px; font-size:12.5px; line-height:1.75; color:var(--ink-soft);}
+
+/* ===================== 章节 ===================== */
+.chapter{padding:60px 62px 0;}
+.chapter:last-of-type{padding-bottom:0;}
+.ch-head{margin-bottom:30px;}
+.ch-idx{
+  display:inline-flex; align-items:center; gap:10px; margin-bottom:12px;
+  font-family:Georgia,serif; font-size:12px; letter-spacing:5px; color:var(--gold);
+}
+.ch-idx::after{content:""; width:56px; height:1px; background:var(--gold-soft);}
+.ch-title{font-size:34px; letter-spacing:5px; line-height:1.5; font-weight:700; color:var(--ink);}
+.ch-lead{
+  margin-top:16px; max-width:760px; font-size:15.5px; line-height:2.05;
+  color:var(--ink-soft); text-align:justify; letter-spacing:.3px;
+}
+
+/* ===================== 通用模块 ===================== */
+.module{
+  background:var(--panel); border:1px solid var(--line); border-radius:16px;
+  padding:26px 32px; margin-bottom:22px; box-shadow:0 8px 26px rgba(43,39,34,.06);
+}
+.module-title{
+  font-size:19px; letter-spacing:3px; color:var(--red-deep);
+  display:flex; align-items:center; gap:12px; margin-bottom:16px;
+  padding-bottom:12px; border-bottom:1px dashed var(--gold-soft);
+}
+/* 模块标题前的装饰菱形 */
+.mt-icon{
+  width:13px; height:13px; flex:0 0 13px; border-radius:3px;
+  background:linear-gradient(145deg,var(--gold),#9c7c45);
+  transform:rotate(45deg); box-shadow:0 1px 3px rgba(156,124,69,.35);
+}
+.prose{font-size:16px; line-height:2.1; color:#3a342c; text-align:justify;}
+.prose p{margin-bottom:14px;}
+.prose p:last-child{margin-bottom:0;}
+.prose b{color:var(--red-deep); font-weight:700;}
+
+/* 引语 */
+.pull{
+  margin:0 0 22px; padding:26px 32px 26px 34px;
+  background:linear-gradient(100deg, rgba(176,141,87,.14), rgba(176,141,87,.03) 60%, transparent);
+  border-left:4px solid var(--red); border-radius:0 14px 14px 0;
+  font-size:16.5px; line-height:2.05; color:var(--ink); letter-spacing:.5px; text-align:justify;
+}
+
+/* 网格卡片 */
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(268px,1fr)); gap:16px;}
+.card{
+  background:linear-gradient(160deg,#fffdf8,#f7f0e2);
+  border:1px solid var(--line); border-radius:13px; padding:18px 20px;
+  transition:.2s; position:relative; overflow:hidden;
+}
+.card::before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:linear-gradient(180deg,var(--gold),transparent); opacity:.55;
+}
+.card:hover{transform:translateY(-3px); box-shadow:0 12px 26px rgba(43,39,34,.1); border-color:var(--gold-soft);}
+.card h4{font-size:16.5px; letter-spacing:1.5px; color:var(--red-deep); margin-bottom:9px; font-weight:700;}
+.card p{font-size:14.5px; line-height:1.95; color:var(--ink-soft); text-align:justify;}
+.card p b{color:#4a4038; font-weight:700;}
+
+/* 要点列表 */
+.dots{list-style:none;}
+.dots li{
+  position:relative; padding:12px 0 12px 26px; font-size:15.5px; line-height:2.0;
+  color:#3a342c; text-align:justify; border-bottom:1px dotted var(--line);
+}
+.dots li:last-child{border-bottom:none;}
+.dots li::before{
+  content:""; position:absolute; left:4px; top:22px; width:7px; height:7px;
+  border-radius:50%; background:var(--gold);
+  box-shadow:0 0 0 3px rgba(176,141,87,.18);
+}
+
+/* 时间轴 */
+.tl{list-style:none; position:relative; padding-left:2px;}
+.tl::before{
+  content:""; position:absolute; left:100px; top:8px; bottom:8px; width:1px;
+  background:linear-gradient(180deg,transparent,var(--gold-soft) 8%,var(--gold-soft) 92%,transparent);
+}
+.tl li{display:flex; gap:0; padding:16px 0; position:relative;}
+.tl-year{
+  flex:0 0 112px; width:112px; font-family:Georgia,serif; font-size:13.5px;
+  letter-spacing:.5px; color:var(--red-deep); text-align:right; padding-right:22px; line-height:1.7;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tl-dot{
+  position:absolute; left:96px; top:22px; width:9px; height:9px; border-radius:50%;
+  background:var(--red); box-shadow:0 0 0 4px rgba(158,43,37,.13); z-index:1;
+}
+.tl-body{padding-left:26px; min-width:0;}
+.tl-body strong{display:block; font-size:16.5px; letter-spacing:1px; color:var(--ink);}
+.tl-body span{display:block; margin-top:6px; font-size:14.5px; line-height:1.95; color:var(--ink-soft); text-align:justify;}
+.tl-body span b{color:var(--red-deep); font-weight:700;}
+
+/* 地形剖面 */
+.terrain{
+  margin:0 0 26px; padding:22px 26px 12px;
+  background:linear-gradient(170deg,#fdfaf3,#f2ead9);
+  border:1px solid var(--line); border-radius:16px;
+  box-shadow:0 8px 26px rgba(43,39,34,.06);
+}
+.terrain-cap{
+  font-size:19px; letter-spacing:3px; color:var(--red-deep);
+  display:flex; align-items:center; gap:12px; margin-bottom:6px;
+}
+.terrain-cap .mt-icon{width:13px; height:13px; flex:0 0 13px;}
+.terrain svg{display:block; width:100%; height:auto;}
+.terrain-note{margin-top:4px; font-size:12.5px; line-height:1.8; color:var(--ink-soft); letter-spacing:.3px;}
+
+/* 关键词 hover 提示 */
+.term{color:var(--red-deep); font-weight:700; cursor:help; position:relative;
+  border-bottom:1px dotted var(--red); padding:0 1px;}
+.term .tip{
+  visibility:hidden; opacity:0; position:absolute; left:50%; bottom:140%;
+  transform:translateX(-50%) translateY(6px);
+  width:max-content; max-width:320px; padding:11px 15px; z-index:30;
+  background:#2b2722; color:#f3ead8; font-size:13px; font-weight:400; font-style:normal;
+  line-height:1.75; letter-spacing:.4px; border-radius:9px; text-align:left;
+  box-shadow:0 12px 30px rgba(0,0,0,.3); transition:.22s; pointer-events:none;
+}
+.term .tip::after{content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:7px solid transparent; border-top-color:#2b2722;}
+.term:hover .tip{visibility:visible; opacity:1; transform:translateX(-50%) translateY(0);}
+
+/* ===================== 近代章：墨色沉章 ===================== */
+.chapter.ash{position:relative;}
+.chapter.ash::before{
+  content:""; position:absolute; left:-62px; right:-62px; top:0; bottom:0; z-index:-1;
+  background:
+    linear-gradient(180deg, rgba(47,44,42,.075), rgba(47,44,42,.05) 30%, rgba(47,44,42,.075)),
+    repeating-linear-gradient(115deg, rgba(43,39,34,.02) 0 2px, transparent 2px 7px);
+  border-top:1px solid rgba(43,39,34,.16); border-bottom:1px solid rgba(43,39,34,.16);
+}
+.chapter.ash .ch-title{color:var(--ash);}
+.chapter.ash .module{background:rgba(253,250,244,.86); border-color:rgba(43,39,34,.18);}
+.chapter.ash .ch-lead{color:#4d463f;}
+.chapter.ash .pull{
+  background:linear-gradient(100deg, rgba(47,44,42,.14), transparent 70%);
+  border-left-color:#2f2c2a;
+}
+
+/* ===================== 页脚 ===================== */
+.page-foot{
+  margin:70px 62px 0; padding:26px 0 0; border-top:1px solid var(--line);
+  font-size:13px; line-height:2; color:var(--ink-soft); letter-spacing:.4px;
+}
+
+/* ===================== 响应式 ===================== */
+@media (max-width:960px){
+  .layout{flex-direction:column;}
+  .sidebar{flex:0 0 auto; width:100%; height:auto; border-right:none; border-bottom:1px solid var(--line);}
+  .side-scroll{overflow:visible; padding:12px 14px 16px;}
+  .nav{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;}
+  .nav-item{flex:0 0 auto; margin-bottom:0; padding:8px 14px;}
+  .nav-item.active::before{display:none;}
+  .nav-idx{display:none;}
+  .side-foot{display:none;}
+  .hero{padding:42px 22px 32px;}
+  .hero-title h1{font-size:56px; letter-spacing:10px;}
+  .hero::before{font-size:200px; top:-30px; right:-10px;}
+  .chapter{padding:42px 22px 0;}
+  .ch-title{font-size:26px; letter-spacing:3px;}
+  .chapter.ash::before{left:-22px; right:-22px;}
+  .module{padding:20px 18px;}
+  .pull{padding:20px 18px;}
+  .tl::before{left:8px;}
+  .tl li{flex-direction:column; padding-left:24px;}
+  .tl-year{flex:none; width:auto; text-align:left; padding-right:0; font-size:15px;}
+  .tl-dot{left:4px; top:8px;}
+  .tl-body{padding-left:0; margin-top:6px;}
+  .terrain{padding:18px 12px 10px;}
+  .page-foot{margin:50px 22px 0;}
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="side-head">
+      <div class="brand-kicker">Formosa</div>
+      <div class="brand-title">臺灣<small>山海之間</small></div>
+      <div class="brand-line"></div>
+      <p class="brand-sub">地理、風物、歷史，以及一段不能被跳過的近代。</p>
+      <div class="progress"><i id="progressBar"></i></div>
+    </div>
+    <div class="side-scroll">
+      <div class="nav-label">目 次</div>
+      <ul class="nav" id="nav"></ul>
+    </div>
+    <div class="side-foot">数字与事件依常见史料口径整理，存争议处已在正文标注。</div>
+  </nav>
+  <main class="content" id="content"></main>
+</div>
+
+<script type="application/json" id="ndata" data-resource="taiwan.json"></script>
+
+<script>
+(function(){
+  "use strict";
+  var DATA = JSON.parse(document.getElementById('ndata').textContent);
+
+  /* ===================== 地形剖面（静态插图） ===================== */
+  var TERRAIN_SVG =
+  '<svg viewBox="0 0 1000 300" role="img" aria-label="台湾岛由西向东地形剖面示意图">' +
+    '<defs>' +
+      '<linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="#c9d6d2"/><stop offset="100%" stop-color="#dfe6e0"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="land" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="#c8a878"/><stop offset="100%" stop-color="#e2d3b6"/>' +
+      '</linearGradient>' +
+    '</defs>' +
+    // 海面
+    '<rect x="0" y="234" width="1000" height="66" fill="url(#sea)"/>' +
+    // 陆地剖面（西→东）
+    '<path d="M0,236 L52,246 L104,232 L150,222 L200,219 L262,217 L300,219 ' +
+      'L330,210 L358,186 L384,160 L412,144 L444,120 L478,100 L516,86 L560,79 ' +
+      'L604,90 L646,110 L688,132 L722,152 L748,186 L766,224 L800,226 L822,214 ' +
+      'L850,186 L880,152 L906,131 L930,158 L948,196 L958,232 L1000,236 Z" ' +
+      'fill="url(#land)" stroke="#8d6f45" stroke-width="1.4" stroke-linejoin="round"/>' +
+    // 等高参考线
+    '<g stroke="#b08d57" stroke-width=".6" stroke-dasharray="3 5" opacity=".5">' +
+      '<line x1="0" y1="80" x2="1000" y2="80"/>' +
+      '<line x1="0" y1="156" x2="1000" y2="156"/>' +
+    '</g>' +
+    // 玉山峰顶引线
+    '<line x1="560" y1="79" x2="560" y2="40" stroke="#7a201c" stroke-width="1" stroke-dasharray="4 4"/>' +
+    '<circle cx="560" cy="79" r="4.5" fill="#7a201c"/>' +
+    // 山体阴影
+    '<path d="M478,100 L516,86 L560,79 L604,90 L646,110 L688,132" ' +
+      'fill="none" stroke="#7d6039" stroke-width="1" opacity=".35"/>' +
+    // 标注
+    '<g font-family="Songti SC, STSong, SimSun, serif" fill="#4a4038">' +
+      '<text x="52" y="268" font-size="13" letter-spacing="1" text-anchor="middle">台灣海峽</text>' +
+      '<text x="215" y="196" font-size="13" letter-spacing="1" text-anchor="middle">西部平原</text>' +
+      '<text x="215" y="212" font-size="11" fill="#6b6155" text-anchor="middle">嘉南 · 米倉</text>' +
+      '<text x="398" y="122" font-size="13" letter-spacing="1" text-anchor="middle">阿里山山脈</text>' +
+      '<text x="784" y="252" font-size="12.5" letter-spacing="1" text-anchor="middle">花東縱谷</text>' +
+      '<text x="892" y="104" font-size="13" letter-spacing="1" text-anchor="middle">海岸山脈</text>' +
+      '<text x="892" y="120" font-size="11" fill="#6b6155" text-anchor="middle">斷崖入海</text>' +
+      '<text x="966" y="268" font-size="13" letter-spacing="1" text-anchor="middle">太平洋</text>' +
+    '</g>' +
+    '<g font-family="Songti SC, STSong, SimSun, serif" fill="#7a201c">' +
+      '<text x="560" y="32" font-size="15" letter-spacing="2" text-anchor="middle">中央山脈 · 玉山 3,952m</text>' +
+    '</g>' +
+  '</svg>';
+
+  /* ===================== 文本工具 ===================== */
+  function escapeHTML(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  // 先整体转义，再放行 <b> 与 <T t='解释'>关键词</T>
+  function renderInline(text){
+    var out = escapeHTML(text);
+    out = out.replace(/&lt;b&gt;([\s\S]*?)&lt;\/b&gt;/g, '<b>$1</b>');
+    out = out.replace(/&lt;T t='([\s\S]*?)'&gt;([\s\S]*?)&lt;\/T&gt;/g,
+      function(_, tip, word){
+        return '<span class="term">' + word + '<span class="tip">' + tip + '</span></span>';
+      });
+    return out;
+  }
+  // 以 \n 分段
+  function renderProse(text){
+    return String(text).split('\n').map(function(line){
+      return line.trim() ? '<p>' + renderInline(line.trim()) + '</p>' : '';
+    }).join('');
+  }
+
+  // 卷次取一个字：山、古、刀、風、今 —— 连读即「山海古今風」
+  var ICONS = { geography:'山', origins:'古', humiliation:'刀', people:'風', today:'今' };
+
+  /* ===================== 区块渲染 ===================== */
+  function blockHeading(heading){
+    if(!heading){ return ''; }
+    return '<h3 class="module-title"><span class="mt-icon"></span>' + renderInline(heading) + '</h3>';
+  }
+
+  function renderBlock(block){
+    var head = blockHeading(block.heading);
+
+    if(block.type === 'terrain'){
+      return '<figure class="terrain">' +
+        '<figcaption class="terrain-cap"><span class="mt-icon"></span>' + renderInline(block.heading) + '</figcaption>' +
+        TERRAIN_SVG +
+        '<p class="terrain-note">縱軸為相對高度（示意，非等比例）。中央山脈直接插向海洋，是這座島嶼地貌的第一性問題。</p>' +
+      '</figure>';
+    }
+
+    if(block.type === 'quote'){
+      return '<blockquote class="pull">' + renderInline(block.text) + '</blockquote>';
+    }
+
+    if(block.type === 'grid'){
+      var cards = block.items.map(function(it){
+        return '<div class="card"><h4>' + renderInline(it.t) + '</h4><p>' + renderInline(it.d) + '</p></div>';
+      }).join('');
+      return '<article class="module">' + head + '<div class="cards">' + cards + '</div></article>';
+    }
+
+    if(block.type === 'list'){
+      var lis = block.items.map(function(it){
+        return '<li>' + renderInline(it) + '</li>';
+      }).join('');
+      return '<article class="module">' + head + '<ul class="dots">' + lis + '</ul></article>';
+    }
+
+    if(block.type === 'timeline'){
+      var tlis = block.items.map(function(it){
+        return '<li><span class="tl-year">' + renderInline(it.y) + '</span>' +
+               '<span class="tl-dot"></span>' +
+               '<div class="tl-body"><strong>' + renderInline(it.t) + '</strong>' +
+               '<span>' + renderInline(it.d) + '</span></div></li>';
+      }).join('');
+      return '<article class="module">' + head + '<ol class="tl">' + tlis + '</ol></article>';
+    }
+
+    return '<article class="module">' + head + '<div class="prose">' + renderProse(block.text) + '</div></article>';
+  }
+
+  function chapterMarkup(ch){
+    var blocks = ch.blocks.map(renderBlock).join('');
+    return '<section class="chapter' + (ch.tone === 'dark' ? ' ash' : '') + '" id="' + ch.id + '">' +
+      '<header class="ch-head">' +
+        '<div class="ch-idx">' + renderInline(ch.index) + ' · ' + renderInline(ICONS[ch.id] || '') + '</div>' +
+        '<h2 class="ch-title">' + renderInline(ch.title) + '</h2>' +
+        '<p class="ch-lead">' + renderInline(ch.lead) + '</p>' +
+      '</header>' + blocks +
+    '</section>';
+  }
+
+  /* ===================== 首屏 ===================== */
+  function renderHero(hero){
+    var stats = hero.stats.map(function(s){
+      return '<div class="stat"><b>' + renderInline(s.v) + '</b><span>' + renderInline(s.k) + '</span></div>';
+    }).join('');
+    return '<header class="hero">' +
+      '<div class="hero-kicker">' + renderInline(hero.kicker) + '</div>' +
+      '<div class="hero-title"><h1>' + renderInline(hero.title) + '</h1><span>' + renderInline(hero.latin) + '</span></div>' +
+      '<div class="hero-rule"></div>' +
+      '<p class="hero-lead">' + renderInline(hero.lead) + '</p>' +
+      '<div class="hero-stats">' + stats + '</div>' +
+    '</header>';
+  }
+
+  /* ===================== 装配 ===================== */
+  var content = document.getElementById('content');
+  var nav = document.getElementById('nav');
+  var progressBar = document.getElementById('progressBar');
+
+  function navItem(ch){
+    var li = document.createElement('li');
+    li.className = 'nav-item';
+    li.setAttribute('data-target', ch.id);
+    li.innerHTML = '<span class="nav-idx">' + renderInline(ch.index) + '</span>' +
+                   '<span class="nav-name">' + renderInline(ch.nav) + '</span>';
+    li.addEventListener('click', function(){
+      var sec = document.getElementById(ch.id);
+      if(sec){ content.scrollTo({ top: sec.offsetTop - 12, behavior: 'smooth' }); }
+    });
+    return li;
+  }
+
+  var markup = renderHero(DATA.hero) + DATA.chapters.map(chapterMarkup).join('');
+  content.insertAdjacentHTML('afterbegin', markup);
+  DATA.chapters.forEach(function(ch){ nav.appendChild(navItem(ch)); });
+
+  var foot = document.createElement('footer');
+  foot.className = 'page-foot';
+  foot.textContent = '本页依常见史料口径整理，涉及二二八事件死亡人数、慰安妇人数与白色恐怖案件数等，学界与官方统计长期存在差异，正文已尽量标注争议区间。';
+  content.appendChild(foot);
+
+  var navItems = DATA.chapters.map(function(ch){ return document.getElementById(ch.id); });
+
+  /* ===================== 滚动同步 ===================== */
+  var allNav = Array.prototype.slice.call(nav.querySelectorAll('.nav-item'));
+  var current = -1;
+
+  content.addEventListener('scroll', function(){
+    var top = content.scrollTop;
+    var max = content.scrollHeight - content.clientHeight;
+    progressBar.style.width = (max > 0 ? (top / max) * 100 : 0) + '%';
+
+    var active = 0;
+    for(var i = 0; i < navItems.length; i++){
+      if(navItems[i] && navItems[i].offsetTop - 40 <= top){ active = i; }
+    }
+    if(active !== current){
+      if(current >= 0 && allNav[current]){ allNav[current].classList.remove('active'); }
+      if(allNav[active]){ allNav[active].classList.add('active'); }
+      current = active;
+    }
+  }, { passive: true });
+
+  if(allNav[0]){ allNav[0].classList.add('active'); }
+})();
+</script>
+
+</body>
+</html>

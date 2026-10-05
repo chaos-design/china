@@ -103,6 +103,10 @@ Current public routes:
 
 Route-level layout options live in `src/route-layout-config.ts`.
 
+Current HTML resource slugs: `/ancient-china` (legacy, hidden from home), `/intangible-culture-heritage`, `/silk-road`, `/taiwan`.
+
+The site's stated scope is 中国古代, but the HTML resources are not all 中国古代 material. Three of the four (非遗, 丝绸之路, and the legacy 朝代浮岛 page) are cultural-history topics that fit; `/taiwan` is geography plus modern history and deliberately does not. When adding a resource, decide explicitly whether it fits the 中国古代 frame. If it does not, either widen the framing in `README.md` / `index.html` metadata, or keep the resource but document the exception here — do not silently expand the site's meaning through a single page.
+
 HTML resource routing:
 
 - HTML files live in `resources/html/`.
@@ -115,6 +119,18 @@ HTML resource routing:
 - `src/pages/ancient/china-policies/figures/*.svg` total ~3.9MB and are referenced through static `import("./figures/x.svg?raw")` specifiers so each map becomes its own chunk. Keep the literal specifiers — they preserve compile-time path checking. `PolicyFigure` owns a `Suspense` boundary and a cached lazy component per figure id.
 - `loadDocument()` caches its in-flight promise. Keep it that way if you refactor it: React re-invokes lazy factories on re-suspension.
 - Do **not** reintroduce `React.use()` here. Under this project's Vitest + jsdom + React 19.2 setup a promise passed to `use()` never resolves inside a Testing Library `render()`. `React.lazy` is the pattern that works, and it matches `src/routes.tsx`.
+- HTML resources are standalone documents with their own CSS and render loops. Do not try to share stylesheets or renderers between them: each file is inlined into its own `iframe srcDoc`, so sharing would require a build-time template step that does not exist. Copy the pattern and diverge; the duplication is cheaper than the coupling.
+
+### Block vocabulary in `resources/html/taiwan.html`
+
+`taiwan.json` chapters carry `blocks` discriminated by `type`: `terrain`, `prose`, `grid`, `list`, `timeline`, `quote`. The renderer and its palette live entirely inside `taiwan.html`.
+
+This is intentionally **not** a shared abstraction, because exactly one resource uses it. Extracting it now would be speculative generality. Revisit only when a second resource needs the same block types — at that point pull the renderer into `resources/html/_shared/` and have each HTML `<link>` or inline it. Do not extract at one consumer.
+
+Two content conventions are worth knowing before editing:
+
+- `renderInline()` escapes all HTML first, then re-enables only `<b>` and `<T t='tooltip'>term</T>`. Any other tag in the JSON renders as visible text. `<T>` tooltips are hover-only, so they are unreachable on touch devices — use `<b>` or a `list` block for anything essential.
+- Contested figures (2/28 casualty counts, comfort-women numbers, White Terror case counts) are written as ranges with the dispute stated inline, plus a disclaimer in the page footer. Keep that pattern if the numbers are updated; do not collapse a range into a single number to look authoritative.
 
 ## Directory Map
 

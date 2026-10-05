@@ -18,6 +18,7 @@
 | 时间长河 | https://china.chaosmic.cn/china/timeline | 基于 Three.js 的 3D 朝代与少数民族关系漫游，包含主时间轴、战争连线、民族副线、吞并箭头、朝代筛选与时间范围筛选。`/china` 会重定向到此页面。 | ![3D 时间长河](./screenshots/china-timeline.webp) |
 | 政策全览 | https://china.chaosmic.cn/china/policies | 按朝代整理核心政策、制度机构、历史人物、疆域治理与文化科技内容。 | ![朝代政策全览](./screenshots/china-policies.webp) |
 | HTML 专题资源 | https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片、阅读指南等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
+| 台湾专题 | https://china.chaosmic.cn/taiwan | 地理结构（手绘地形剖面）、岛屿编年、风土人情与 1895—1945 年日治及之后的近代史。章节内容存于 `resources/html-data/taiwan.json`，渲染逻辑在 `resources/html/taiwan.html`。 | - |
 
 ## 技术栈
 
@@ -105,6 +106,10 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 
 `/ancient-china` 是唯一保留的旧版 HTML 页面（141 kB，`showInHome: false`），它同时是生成式路由的测试夹具。
 
+当前 HTML 资源路由：`/ancient-china`（旧版，首页不展示）、`/intangible-culture-heritage`、`/silk-road`、`/taiwan`。
+
+> **关于站点定位**：本项目自称「中国古代全览」，但四个 HTML 资源并非都属于中国古代范畴。非遗、丝绸之路与旧版朝代页符合，`/taiwan` 是地理与近现代史主题，不符合。站点名与 `<title>` 保持不变——改动品牌文案的影响面（SEO、分享卡片、已部署 URL 语义）远大于收益，且此定位扩展尚需更多同类页面佐证。此处显式记录该例外，后续新增专题时应明确判断它是否落在「中国古代」框架内；框架之外的资源，要么同步放宽 README 与 `index.html` 的定位表述，要么像本条一样把例外写在文档里，不要让一个页面悄悄改变站点的含义。
+
 新增 HTML 专题资源时，应同时提供：
 
 - `resources/html/<name>.html`：原始 HTML 内容。
@@ -112,6 +117,17 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 - 可选 `resources/html-data/<name>.json`：供 HTML 中 `id="ndata"` 且带 `data-resource` 的空脚本标签内联使用。
 
 如只新增 HTML 而未提供 `html-resource` 元数据，应用会自动跳过该资源，避免阻塞首页与路由初始化。
+
+### `/taiwan` 的区块式内容
+
+`resources/html-data/taiwan.json` 的章节通过 `blocks[].type` 区分渲染形式：`terrain`（内联手绘 SVG 地形剖面）、`prose`、`grid`、`list`、`timeline`、`quote`。渲染函数与配色全部写在 `resources/html/taiwan.html` 内部，未抽成共享模板——目前只有这一个消费方，抽取属于过度设计。等第二个资源需要同一套区块时，再把渲染器提到 `resources/html/_shared/`。
+
+两点内容约定：
+
+- `renderInline()` 先对全部文本转义，再只放行 `<b>` 与 `<T t='解释'>关键词</T>`。JSON 里写其他标签会变成可见文本。`<T>` 的解释是 hover 提示，触屏设备无法访问——重要信息请改用 `<b>` 或 `list` 区块。
+- 存在学术争议的数字（二二八死亡人数、慰安妇人数、白色恐怖案件数）一律写成区间并就地说明争议，另在页脚附免责说明。更新数字时请保持该写法，不要为了显得权威而把区间收敛成单点值。
+
+该页 5 卷、28 张卡片、28 条编年，HTML 与 JSON 各自独立 chunk，主 bundle 不受影响。
 
 ### HTML 资源的按需加载
 
@@ -244,6 +260,7 @@ npx vercel dev
 | --- | --- | --- |
 | `/` | 136 kB | `index` 98 kB + `home` 38 kB |
 | `/silk-road` | 193 kB | HTML 与 JSON 各自独立 chunk |
+| `/taiwan` | 22 kB | HTML 8 kB + JSON 15 kB，地形剖面为内联 SVG，无外部图片 |
 | `/china/policies` | 341–377 kB | 页面 138 kB + 当前朝代的 1–2 张疆域图 |
 | `/china/timeline` | 287 kB | Three.js 场景 |
 | `/intangible-culture-heritage` | ~1,381 kB | JS 122 kB + 视口内可见的手艺实拍图 |
