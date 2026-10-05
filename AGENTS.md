@@ -129,7 +129,8 @@ This is intentionally **not** a shared abstraction, because exactly one resource
 
 Two content conventions are worth knowing before editing:
 
-- `renderInline()` escapes all HTML first, then re-enables only `<b>` and `<T t='tooltip'>term</T>`. Any other tag in the JSON renders as visible text. `<T>` tooltips are hover-only, so they are unreachable on touch devices — use `<b>` or a `list` block for anything essential.
+- `renderInline()` escapes all HTML first, then re-enables only `<b>` and `<T t='tooltip'>term</T>`. Any other tag in the JSON renders as visible text. `renderTerm()` receives its arguments from a wrapper closure — `String.replace` passes the whole match as the first argument, so passing `renderTerm` directly would swap the tooltip text and the term.
+- `<T>` renders as a `<button class="term">`, so it works on hover (desktop), focus (keyboard), and click (touch). Below 960px the tooltip becomes a fixed bottom sheet via CSS; do not make it an in-flow block, since that splits the paragraph's line box.
 - Contested figures (2/28 casualty counts, comfort-women numbers, White Terror case counts) are written as ranges with the dispute stated inline, plus a disclaimer in the page footer. Keep that pattern if the numbers are updated; do not collapse a range into a single number to look authoritative.
 
 ## Directory Map

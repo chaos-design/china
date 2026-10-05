@@ -124,7 +124,8 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 
 两点内容约定：
 
-- `renderInline()` 先对全部文本转义，再只放行 `<b>` 与 `<T t='解释'>关键词</T>`。JSON 里写其他标签会变成可见文本。`<T>` 的解释是 hover 提示，触屏设备无法访问——重要信息请改用 `<b>` 或 `list` 区块。
+- `renderInline()` 先对全部文本转义，再只放行 `<b>` 与 `<T t='解释'>关键词</T>`。JSON 里写其他标签会变成可见文本。
+- `<T>` 渲染为 `<button>`，桌面 hover、键盘 focus、触屏点击三条通路都可用；窄屏（<960px）下解释变为底部浮层。**不要**把它改成文档流内的块级元素——那会把段落行盒劈成两半。
 - 存在学术争议的数字（二二八死亡人数、慰安妇人数、白色恐怖案件数）一律写成区间并就地说明争议，另在页脚附免责说明。更新数字时请保持该写法，不要为了显得权威而把区间收敛成单点值。
 
 该页 5 卷、28 张卡片、28 条编年，HTML 与 JSON 各自独立 chunk，主 bundle 不受影响。
@@ -260,7 +261,7 @@ npx vercel dev
 | --- | --- | --- |
 | `/` | 136 kB | `index` 98 kB + `home` 38 kB |
 | `/silk-road` | 193 kB | HTML 与 JSON 各自独立 chunk |
-| `/taiwan` | 22 kB | HTML 8 kB + JSON 15 kB，地形剖面为内联 SVG，无外部图片 |
+| `/taiwan` | 25 kB | HTML 10 kB + JSON 15 kB，地形剖面为内联 SVG，无外部图片 |
 | `/china/policies` | 341–377 kB | 页面 138 kB + 当前朝代的 1–2 张疆域图 |
 | `/china/timeline` | 287 kB | Three.js 场景 |
 | `/intangible-culture-heritage` | ~1,381 kB | JS 122 kB + 视口内可见的手艺实拍图 |

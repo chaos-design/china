@@ -231,9 +231,19 @@ body{
 .terrain svg{display:block; width:100%; height:auto;}
 .terrain-note{margin-top:4px; font-size:12.5px; line-height:1.8; color:var(--ink-soft); letter-spacing:.3px;}
 
-/* 关键词 hover 提示 */
-.term{color:var(--red-deep); font-weight:700; cursor:help; position:relative;
-  border-bottom:1px dotted var(--red); padding:0 1px;}
+/* 关键词注释：桌面 hover / 键盘 focus / 触屏点击 .open 三条通路。
+   元素是 <button>，因此先剥掉浏览器默认外观，再补回关键词本身的排版。 */
+.term{
+  font:inherit; background:none; border:0; -webkit-appearance:none; appearance:none;
+  color:var(--red-deep); font-weight:700; cursor:help; position:relative;
+  border-bottom:1px dotted var(--red); padding:0 1px;
+}
+.term::before{
+  content:"?"; display:inline-block; width:1em; height:1em; margin-left:2px;
+  border:1px solid currentColor; border-radius:50%; vertical-align:super;
+  font-family:Georgia,serif; font-size:.62em; line-height:1.35; text-align:center;
+  opacity:.5; pointer-events:none;
+}
 .term .tip{
   visibility:hidden; opacity:0; position:absolute; left:50%; bottom:140%;
   transform:translateX(-50%) translateY(6px);
@@ -244,7 +254,10 @@ body{
 }
 .term .tip::after{content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
   border:7px solid transparent; border-top-color:#2b2722;}
-.term:hover .tip{visibility:visible; opacity:1; transform:translateX(-50%) translateY(0);}
+.term:hover .tip,
+.term:focus .tip,
+.term.open .tip{visibility:visible; opacity:1; transform:translateX(-50%) translateY(0);}
+.term:focus-visible{outline:2px solid var(--red); outline-offset:2px; border-radius:2px;}
 
 /* ===================== 近代章：墨色沉章 ===================== */
 .chapter.ash{position:relative;}
@@ -294,6 +307,44 @@ body{
   .tl-body{padding-left:0; margin-top:6px;}
   .terrain{padding:18px 12px 10px;}
   .page-foot{margin:50px 22px 0;}
+
+  /* 窄屏没有 hover，解释改为底部浮层（bottom sheet）。
+     试过的两种更省事的做法都会失败：
+       - tip 改成普通块级：解释会把段落劈成两半，后续文字被推到块下方，行盒断裂；
+       - term 整体 display:block：同样割裂段落，且段落结构被破坏得更明显。
+     底部浮层不参与文档流，正文版式不变，也不会横向溢出。 */
+  .term{cursor:pointer;}
+  .term::before{display:none;}
+  .term .tip{
+    position:fixed; display:block; visibility:visible; opacity:1;
+    left:0; right:0; bottom:0; top:auto; width:auto; max-width:none;
+    margin:0; padding:20px 22px 24px; transform:none;
+    font-size:14.5px; line-height:1.9; font-weight:400; letter-spacing:.3px;
+    color:#f3ead8; background:#2b2722; text-align:left;
+    border-radius:16px 16px 0 0; box-shadow:0 -12px 40px rgba(0,0,0,.42);
+    pointer-events:none; z-index:60;
+    opacity:0; transition:opacity .2s, transform .2s; transform:translateY(12px);
+  }
+  .term .tip::after{display:none;}
+  /* 词在上方浮出一条，同一块面板给出「哪个词」的归属 */
+  .term.open .tip{
+    opacity:1; transform:translateY(0); pointer-events:auto; cursor:pointer;
+  }
+  .term-word{
+    display:inline-block; font-weight:700; color:var(--red-deep);
+    border-bottom:1px dotted var(--red); padding:0 1px;
+  }
+  .term-word::after{
+    content:"?"; display:inline-block; width:1.05em; height:1.05em; margin-left:3px;
+    border:1px solid currentColor; border-radius:50%; vertical-align:super;
+    font-family:Georgia,serif; font-size:.6em; line-height:1.4; text-align:center; opacity:.55;
+  }
+  /* 浮层顶部重复一次词，因为脱离上下文后单看解释不知道在讲什么 */
+  .term .tip::before{
+    content:attr(data-word); display:block; margin-bottom:9px; padding-bottom:9px;
+    border-bottom:1px solid rgba(243,234,216,.22);
+    font-size:12px; letter-spacing:2px; color:var(--gold-soft);
+  }
 }
 </style>
 </head>
@@ -379,9 +430,7 @@ body{
     var out = escapeHTML(text);
     out = out.replace(/&lt;b&gt;([\s\S]*?)&lt;\/b&gt;/g, '<b>$1</b>');
     out = out.replace(/&lt;T t='([\s\S]*?)'&gt;([\s\S]*?)&lt;\/T&gt;/g,
-      function(_, tip, word){
-        return '<span class="term">' + word + '<span class="tip">' + tip + '</span></span>';
-      });
+      function(_, tip, word){ return renderTerm(tip, word); });
     return out;
   }
   // 以 \n 分段
@@ -395,6 +444,25 @@ body{
   var ICONS = { geography:'山', origins:'古', humiliation:'刀', people:'風', today:'今' };
 
   /* ===================== 区块渲染 ===================== */
+  // <T> 注释渲染成可聚焦、可点击的按钮：桌面 hover 生效，键盘 Tab + Enter 生效，
+  // 触屏点击 .open 生效。role/aria 让读屏软件也能拿到解释文本。
+  //
+  // 词与解释都已在上游 escapeHTML 过一次，这里原样透传即可；再次调用 escapeHTML
+  // 会把解释里本就该显示的标点破坏掉。
+  // 注意：replace 的回调第一个参数是整个匹配串，所以调用方必须用包装函数传参，
+  // 直接把 renderTerm 当回调会让 tip 拿到整串、word 拿到解释文本。
+  //
+  // 桌面端解释用绝对定位浮层，可以安全地嵌在段落中间；窄屏端解释会变成块级元素，
+  // 留在段落中间会把该段落其余文字挤到解释块下方，形成割裂的行盒。因此窄屏下
+  // 每个 <T> 都单独成为一个块级 <span>：词在上一行、解释在下一行，读起来连续。
+  // 代价是桌面端这段源码里看不到 <button>，只有 <span>——两者都靠 .term 类定位。
+  function renderTerm(tip, word){
+    return '<button type="button" class="term" aria-expanded="false">' +
+             '<span class="term-word">' + word + '</span>' +
+             '<span class="tip" role="tooltip" data-word="' + word + '">' + tip + '</span>' +
+           '</button>';
+  }
+
   function blockHeading(heading){
     if(!heading){ return ''; }
     return '<h3 class="module-title"><span class="mt-icon"></span>' + renderInline(heading) + '</h3>';
@@ -517,6 +585,43 @@ body{
   }, { passive: true });
 
   if(allNav[0]){ allNav[0].classList.add('active'); }
+
+  /* ===================== 注释交互 ===================== */
+  // 桌面靠 :hover；窄屏靠 .open（CSS 把 tip 变为底部浮层）。键盘走原生 button 语义，
+  // 不需要额外 keydown 处理；这里只负责互斥、点外部关闭与 Escape 关闭。
+  function closeAllTerms(except){
+    var open = content.querySelectorAll('.term.open');
+    for(var i = 0; i < open.length; i++){
+      if(open[i] !== except){
+        open[i].classList.remove('open');
+        open[i].setAttribute('aria-expanded', 'false');
+      }
+    }
+  }
+
+  // 一次只留一个展开，点别处收起。窄屏下多个底部浮层会叠在一起，无法同时阅读。
+  content.addEventListener('click', function(event){
+    var term = event.target.closest ? event.target.closest('.term') : null;
+    if(!term){ closeAllTerms(null); return; }
+    var isOpen = term.classList.contains('open');
+    closeAllTerms(term);
+    term.classList.toggle('open', !isOpen);
+    term.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+  });
+
+  document.addEventListener('keydown', function(event){
+    if(event.key === 'Escape' || event.key === 'Esc'){ closeAllTerms(null); }
+  });
+
+  // 视口跨过窄屏断点时，收起所有已展开的注释，避免残留 desktop 定位的浮层。
+  // matchMedia 在个别环境（jsdom、部分嵌入式 webview）缺失，缺失时静默跳过：
+  // 收起逻辑只是收尾，不影响注释本身的读与用。
+  if(typeof window.matchMedia === 'function'){
+    var narrow = window.matchMedia('(max-width:960px)');
+    var onNarrowChange = function(){ closeAllTerms(null); };
+    if(narrow.addEventListener){ narrow.addEventListener('change', onNarrowChange); }
+    else if(narrow.addListener){ narrow.addListener(onNarrowChange); }
+  }
 })();
 </script>
 
