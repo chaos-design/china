@@ -1090,8 +1090,12 @@ ruby rt {
   color: #f3d28a;
 }
 
+/* 定位在 #app 内（absolute），不是视口（fixed）。
+ * fixed + inset:0 + z-index:99 会盖住 <header>，页面初始化失败时那个错误面板
+ * 永远不会消失，用户点不到顶部导航，看起来就像「菜单点了没反应」。
+ * 绝对定位把它限制在内容区，加载/报错都只遮挡本页。 */
 #loading {
-  position: fixed;
+  position: absolute;
   inset: 0;
   display: flex;
   align-items: center;

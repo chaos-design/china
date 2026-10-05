@@ -108,14 +108,23 @@ describe("<App /> routing", () => {
     expect(within(nav).getByRole("link", { name: /中国古代全览/i })).toHaveAttribute("href", "/");
     expect(screen.queryByRole("link", { name: /^01\s+home$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /about/i })).not.toBeInTheDocument();
-    const timelineLink = within(nav).getByRole("link", { name: /时间长河/i });
-    expect(timelineLink).toHaveAttribute("href", "/china/timeline");
-    expect(timelineLink).not.toHaveClass("bg-primary/10");
-    expect(within(timelineLink).getByText("时间长河")).toHaveClass("nav-underline");
-    expect(within(nav).getByRole("link", { name: /政策全览/i })).toHaveAttribute(
-      "href",
-      "/china/policies",
-    );
+
+    // 顶部菜单是分组下拉，叶子节点收在 role="menu" 面板里
+    for (const group of ["编年与制度", "文化与交通", "地域与近代"]) {
+      expect(within(nav).getByRole("button", { name: new RegExp(group) })).toHaveAttribute(
+        "aria-haspopup",
+        "true",
+      );
+    }
+    for (const [path, name] of [
+      ["/china/timeline", /朝代时间长河/],
+      ["/china/policies", /朝代政策全览/],
+      ["/intangible-culture-heritage", /中华非遗瑰宝/],
+      ["/silk-road", /丝绸之路与海疆/],
+      ["/taiwan", /台湾专题/],
+    ] as const) {
+      expect(within(nav).getByRole("menuitem", { name })).toHaveAttribute("href", path);
+    }
     expect(screen.getByRole("link", { name: /chaos-design\/china/i })).toHaveAttribute(
       "href",
       "https://github.com/chaos-design/china",
@@ -178,19 +187,62 @@ describe("<App /> routing", () => {
     expect(screen.queryByRole("heading", { name: "此页未载入史册" })).not.toBeInTheDocument();
   });
 
-  it("animates the menu underline in both directions between nav routes", async () => {
+  it("groups the header menu and expands each group on hover", async () => {
+    renderAt("/");
+    const nav = await screen.findByRole("navigation");
+
+    // 分组按钮：数量固定，且都带 aria-haspopup
+    const triggers = within(nav).getAllByRole("button", { expanded: false });
+    expect(triggers.map((node) => node.textContent)).toEqual([
+      "编年与制度",
+      "文化与交通",
+      "地域与近代",
+    ]);
+
+    // 面板默认收起但存在于 DOM 里
+    const policies = within(nav).getByRole("menuitem", { name: /朝代政策全览/ });
+    expect(policies.closest("[role='menu']")).toHaveClass("opacity-0");
+
+    fireEvent.mouseEnter(within(nav).getByRole("button", { name: /编年与制度/ }));
+    expect(within(nav).getByRole("button", { name: /编年与制度/ })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(policies.closest("[role='menu']")).toHaveClass("opacity-100");
+  });
+
+  it("closes a group menu on click toggle and marks the active group", async () => {
+    renderAt("/taiwan");
+    const nav = await screen.findByRole("navigation");
+
+    // 当前路由 /taiwan 属于「地域与近代」，该分组按钮应为激活色（text-ink）
+    const regionTrigger = within(nav).getByRole("button", { name: /地域与近代/ });
+    expect(regionTrigger).toHaveClass("text-ink");
+
+    fireEvent.click(regionTrigger);
+    expect(regionTrigger).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(regionTrigger);
+    expect(regionTrigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("navigates from the timeline route to the policies route", async () => {
+    // 回归：时间长河曾注入 position:fixed; inset:0 的 #loading 遮罩，
+    // 初始化失败时它盖住 <header>，导航点击完全失效。
     renderAt("/china/timeline");
     const nav = await screen.findByRole("navigation");
 
-    // Forward: 时间长河 (index 0) -> 政策全览 (index 1).
-    fireEvent.click(within(nav).getByRole("link", { name: /政策全览/ }));
-    expect(within(nav).getByText("政策全览")).toHaveClass("nav-underline-forward");
-    expect(within(nav).getByText("时间长河")).toHaveClass("nav-underline-leaving-forward");
+    expect(document.querySelector("#loading")).toBeInTheDocument();
+    // 遮罩必须限制在内容区内，不能相对视口铺满
+    expect(document.querySelector("#loading")).not.toHaveClass("fixed");
 
-    // Backward: 政策全览 (index 1) -> 时间长河 (index 0).
-    fireEvent.click(within(nav).getByRole("link", { name: /时间长河/ }));
-    expect(within(nav).getByText("时间长河")).toHaveClass("nav-underline-backward");
-    expect(within(nav).getByText("政策全览")).toHaveClass("nav-underline-leaving-backward");
+    fireEvent.click(within(nav).getByRole("button", { name: /编年与制度/ }));
+    fireEvent.click(within(nav).getByRole("menuitem", { name: /朝代政策全览/ }));
+
+    // 路由切换成功：政策页的朝代标题出现，且时间轴已卸载
+    expect(await screen.findByRole("heading", { name: /秦/ })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.querySelector("#cv")).not.toBeInTheDocument();
+    });
   });
 
   it("lets users change the accent color from the floating picker", async () => {

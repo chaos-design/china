@@ -74,7 +74,7 @@ describe("html resource metadata", () => {
           resource: expect.objectContaining({
             homeEntries: [
               expect.objectContaining({
-                title: "臺灣 · 山海之間",
+                title: "台湾 · 山海之间",
               }),
             ],
           }),
@@ -120,9 +120,18 @@ describe("html resource metadata", () => {
     expect(silkRoad.html).not.toContain('data-resource="silk-road.json"');
 
     const taiwan = await loadDocument("/taiwan");
-    expect(taiwan.title).toBe("臺灣 · 山海之間的百年");
+    expect(taiwan.title).toBe("台湾 · 山海之间的百年");
     expect(taiwan.html).toContain('"id": "humiliation"');
     expect(taiwan.html).not.toContain('data-resource="taiwan.json"');
+    // 分页结构：五卷各自是 role=tabpanel，工具条是 role=tablist
+    expect(taiwan.html).toContain('role="tablist"');
+    expect(taiwan.html).toContain('role="tabpanel"');
+    // 地图由数据里的经纬度投影生成，不是写死的 path
+    expect(taiwan.html).toContain('"projection"');
+    // 全文简体：繁体常见字形不应出现
+    for (const traditional of ["臺灣", "歷史", "戰爭", "學習", "東西南北"]) {
+      expect(taiwan.html).not.toContain(traditional);
+    }
   });
 
   it("reuses one document promise across calls so React use() stays stable", () => {
@@ -260,7 +269,7 @@ describe("html resource metadata", () => {
         expect.objectContaining({
           path: "/taiwan",
           status: "available",
-          title: "臺灣 · 山海之間",
+          title: "台湾 · 山海之间",
         }),
       ]),
     );

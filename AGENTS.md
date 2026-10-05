@@ -120,10 +120,16 @@ HTML resource routing:
 - `loadDocument()` caches its in-flight promise. Keep it that way if you refactor it: React re-invokes lazy factories on re-suspension.
 - Do **not** reintroduce `React.use()` here. Under this project's Vitest + jsdom + React 19.2 setup a promise passed to `use()` never resolves inside a Testing Library `render()`. `React.lazy` is the pattern that works, and it matches `src/routes.tsx`.
 - HTML resources are standalone documents with their own CSS and render loops. Do not try to share stylesheets or renderers between them: each file is inlined into its own `iframe srcDoc`, so sharing would require a build-time template step that does not exist. Copy the pattern and diverge; the duplication is cheaper than the coupling.
+- `src/pages/ancient/china/page.css` must keep `#loading` as `position: absolute`, not `fixed`. With `inset: 0; z-index: 99` on the viewport it covers `<header>`, and since the panel only disappears when Three.js initialises successfully, an initialisation failure leaves navigation permanently unclickable — the symptom looks like "the menu does nothing", not like a page error.
+- The header menu is grouped (`NAV_GROUPS` in `src/components/layout/root-layout.tsx`), not flat. Group membership is an editorial judgement, so it stays in the component rather than in resource metadata; a startup check rejects leaves that have no matching available resource, so dead links fail loudly.
 
 ### Block vocabulary in `resources/html/taiwan.html`
 
-`taiwan.json` chapters carry `blocks` discriminated by `type`: `terrain`, `prose`, `grid`, `list`, `timeline`, `quote`. The renderer and its palette live entirely inside `taiwan.html`.
+`taiwan.json` chapters carry `blocks` discriminated by `type`: `profile`, `map`, `prose`, `grid`, `list`, `timeline`, `quote`, `note`. The renderer and its palette live entirely inside `taiwan.html`.
+
+Each chapter is a `role="tabpanel"` shown one at a time, driven by a `role="tablist"` pager. Deliberately not a continuous scroll: five chapters total roughly twenty thousand characters, and one long scroll loses the reader's position while making a single chapter impossible to cite or screenshot.
+
+Maps are generated, not drawn: a `map` block carries `{ projection: { lat0, lon0, scale }, shapes, labels, links }` in real lon/lat, and `makeProjector()` does the rest. Longitude is scaled by `cos(lat)` per point rather than once per image — Taiwan spans 3.4° of latitude, so a single `cos(lat0)` visibly widens the north. Outline points must run clockwise and close; a different order self-intersects. The viewBox is derived from the bounding box of all points and labels, so coordinates are the only thing to edit. Portrait maps (islands, `height > width * 1.2`) must not get `flex-grow` or they render squashed.
 
 This is intentionally **not** a shared abstraction, because exactly one resource uses it. Extracting it now would be speculative generality. Revisit only when a second resource needs the same block types — at that point pull the renderer into `resources/html/_shared/` and have each HTML `<link>` or inline it. Do not extract at one consumer.
 
@@ -131,7 +137,9 @@ Two content conventions are worth knowing before editing:
 
 - `renderInline()` escapes all HTML first, then re-enables only `<b>` and `<T t='tooltip'>term</T>`. Any other tag in the JSON renders as visible text. `renderTerm()` receives its arguments from a wrapper closure — `String.replace` passes the whole match as the first argument, so passing `renderTerm` directly would swap the tooltip text and the term.
 - `<T>` renders as a `<button class="term">`, so it works on hover (desktop), focus (keyboard), and click (touch). Below 960px the tooltip becomes a fixed bottom sheet via CSS; do not make it an in-flow block, since that splits the paragraph's line box.
-- Contested figures (2/28 casualty counts, comfort-women numbers, White Terror case counts) are written as ranges with the dispute stated inline, plus a disclaimer in the page footer. Keep that pattern if the numbers are updated; do not collapse a range into a single number to look authoritative.
+- Contested figures (2/28 casualty counts, comfort-women numbers, White Terror case counts) are written as ranges with the dispute stated inline, plus a disclaimer in the page footer. Verifiable primary sources — treaty text, statutes, official resolutions, apology statements — are named explicitly with their dates. Keep that pattern if the numbers are updated; do not collapse a range into a single number to look authoritative.
+- `blocks[].sources` renders as a 「资料出处」 block under the module. Attach it to any block making a factual claim about casualties, statistics, or legal status.
+- The page is Simplified Chinese throughout. `resource.test.ts` asserts that common Traditional forms do not appear in the built payload.
 
 ## Directory Map
 

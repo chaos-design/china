@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>臺灣 · 山海之間的百年</title>
+<title>台湾 · 山海之间的百年</title>
 <style>
 /* ===================== 设计变量 ===================== */
 :root{
@@ -11,6 +11,7 @@
   --red:#9e2b25; --red-deep:#7a201c; --gold:#b08d57; --gold-soft:#cdb389; --jade:#4a6c5d;
   --line:#ddcfb6; --shadow:0 18px 50px rgba(43,39,34,.16);
   --ash:#2f2c2a; --ash-soft:#8b8078;
+  --sans:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Hiragino Sans GB",sans-serif;
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 html,body{height:100%;}
@@ -19,22 +20,22 @@ body{
   color:var(--ink); background:var(--bg);
   background-image:radial-gradient(circle at 18% 8%, rgba(176,141,87,.12), transparent 46%),
                    radial-gradient(circle at 88% 92%, rgba(74,108,93,.08), transparent 42%);
-  overflow:hidden;
-  -webkit-font-smoothing:antialiased;
+  overflow:hidden; -webkit-font-smoothing:antialiased;
 }
+.mono{font-family:"SF Mono",Menlo,Consolas,monospace;}
 
 /* ===================== 布局：左右两栏，各自独立滚动 ===================== */
 .layout{display:flex; height:100vh;}
 .sidebar{
-  flex:0 0 302px; width:302px; height:100%;
+  flex:0 0 306px; width:306px; height:100%;
   display:flex; flex-direction:column;
   background:var(--bg-deep); border-right:1px solid var(--line);
 }
-.side-head{flex:0 0 auto; padding:26px 22px 16px; border-bottom:1px solid var(--line); position:relative;}
-.side-scroll{flex:1 1 auto; min-height:0; overflow-y:auto; padding:18px 14px 40px;}
+.side-head{flex:0 0 auto; padding:24px 20px 14px; border-bottom:1px solid var(--line);}
+.side-scroll{flex:1 1 auto; min-height:0; overflow-y:auto; padding:14px 12px 36px;}
 .content{
   flex:1 1 auto; min-width:0; height:100%; overflow-y:auto;
-  padding:0 0 140px; scroll-behavior:smooth;
+  padding:0 0 120px; scroll-behavior:smooth;
 }
 .side-scroll::-webkit-scrollbar,.content::-webkit-scrollbar{width:11px;}
 .side-scroll::-webkit-scrollbar-thumb,.content::-webkit-scrollbar-thumb{
@@ -46,106 +47,142 @@ body{
 /* ===================== 侧栏品牌区 ===================== */
 .brand-kicker{
   font-family:Georgia,serif; font-size:11px; letter-spacing:5px;
-  color:var(--gold); text-transform:uppercase; margin-bottom:12px;
+  color:var(--gold); margin-bottom:10px;
 }
 .brand-title{
-  display:flex; align-items:flex-start; gap:12px;
-  font-size:40px; line-height:1.05; letter-spacing:8px; font-weight:700; color:var(--ink);
+  display:flex; align-items:flex-start; gap:11px;
+  font-size:37px; line-height:1.05; letter-spacing:7px; font-weight:700; color:var(--ink);
 }
 .brand-title small{
-  font-size:12px; letter-spacing:2px; font-weight:400; color:var(--ink-soft);
-  font-family:Georgia,serif; writing-mode:vertical-rl; margin-top:5px;
+  font-size:11.5px; letter-spacing:1.5px; font-weight:400; color:var(--ink-soft);
+  font-family:var(--sans); margin-top:4px;
 }
-.brand-line{margin-top:14px; height:1px; background:linear-gradient(90deg,var(--gold-soft),transparent);}
-.brand-sub{margin-top:10px; font-size:13px; line-height:1.9; color:var(--ink-soft); letter-spacing:.5px;}
-
-.progress{height:3px; background:rgba(176,141,87,.22); border-radius:3px; overflow:hidden; margin-top:16px;}
-.progress > i{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--red),var(--gold));
-  transition:width .18s linear;}
+.brand-line{margin-top:12px; height:1px; background:linear-gradient(90deg,var(--gold-soft),transparent);}
+.brand-sub{margin-top:9px; font-size:12.5px; line-height:1.85; color:var(--ink-soft); letter-spacing:.3px;}
+.progress{height:3px; background:rgba(176,141,87,.2); border-radius:3px; overflow:hidden; margin-top:13px;}
+.progress > i{display:block; height:100%; width:0;
+  background:linear-gradient(90deg,var(--red),var(--gold)); transition:width .16s linear;}
 
 /* ===================== 侧栏目录 ===================== */
 .nav-label{
   font-size:11px; letter-spacing:4px; color:var(--ink-soft);
-  padding:0 8px 10px; border-bottom:1px dashed var(--gold-soft); margin-bottom:12px;
+  padding:0 8px 9px; border-bottom:1px dashed var(--gold-soft); margin-bottom:11px;
 }
 .nav{list-style:none;}
 .nav-item{
-  display:flex; gap:12px; align-items:baseline;
-  padding:11px 12px; margin-bottom:6px; border-radius:11px; cursor:pointer;
+  display:flex; gap:11px; align-items:baseline;
+  padding:10px 11px; margin-bottom:5px; border-radius:11px; cursor:pointer;
   transition:.2s; position:relative; border:1px solid transparent;
 }
 .nav-item:hover{background:var(--panel); border-color:var(--line);}
-.nav-item.active{background:linear-gradient(135deg,#fff,#f6efe0); border-color:var(--gold-soft); box-shadow:0 6px 18px rgba(176,141,87,.2);}
+.nav-item.active{
+  background:linear-gradient(135deg,#fff,#f6efe0);
+  border-color:var(--gold-soft); box-shadow:0 6px 18px rgba(176,141,87,.2);
+}
 .nav-item.active::before{
-  content:""; position:absolute; left:-14px; top:12px; bottom:12px; width:4px;
+  content:""; position:absolute; left:-12px; top:11px; bottom:11px; width:4px;
   background:var(--red); border-radius:0 4px 4px 0;
 }
 .nav-idx{font-family:Georgia,serif; font-size:12px; color:var(--gold); letter-spacing:1px; flex:0 0 auto;}
-.nav-name{font-size:15.5px; letter-spacing:1px; color:var(--ink);}
+.nav-name{font-size:15px; letter-spacing:.8px; color:var(--ink);}
 .nav-item.active .nav-name{color:var(--red-deep);}
 
 .side-foot{
-  flex:0 0 auto; padding:12px 22px 14px; border-top:1px solid var(--line);
-  font-size:11.5px; line-height:1.8; color:var(--ink-soft); letter-spacing:.5px;
+  flex:0 0 auto; padding:11px 20px 13px; border-top:1px solid var(--line);
+  font-size:11px; line-height:1.75; color:var(--ink-soft); letter-spacing:.2px;
 }
 
 /* ===================== 首屏 ===================== */
-.hero{position:relative; padding:64px 62px 44px; overflow:hidden; border-bottom:1px solid var(--line);}
+.hero{position:relative; padding:56px 58px 40px; overflow:hidden; border-bottom:1px solid var(--line);}
 .hero::before{
-  content:"臺"; position:absolute; right:-20px; top:-56px; z-index:0;
-  font-size:320px; line-height:1; font-weight:700; color:rgba(176,141,87,.09);
+  content:"台"; position:absolute; right:-16px; top:-52px; z-index:0;
+  font-size:300px; line-height:1; font-weight:700; color:rgba(176,141,87,.09);
   pointer-events:none; user-select:none;
 }
 .hero-kicker{
-  position:relative; z-index:1; font-family:Georgia,serif; font-size:12px;
-  letter-spacing:7px; color:var(--gold); margin-bottom:18px;
+  position:relative; z-index:1; font-size:12px; letter-spacing:6px;
+  color:var(--gold); margin-bottom:16px;
 }
 .hero-title{
-  position:relative; z-index:1; display:flex; align-items:baseline; gap:22px; flex-wrap:wrap;
+  position:relative; z-index:1; display:flex; align-items:baseline; gap:20px; flex-wrap:wrap;
 }
-.hero-title h1{font-size:78px; letter-spacing:16px; line-height:1; font-weight:700;}
-.hero-title span{font-family:Georgia,serif; font-size:17px; letter-spacing:5px; color:var(--ink-soft);}
-.hero-rule{position:relative; z-index:1; margin:26px 0 22px; height:2px; width:132px;
+.hero-title h1{font-size:72px; letter-spacing:14px; line-height:1; font-weight:700;}
+.hero-title span{font-family:Georgia,serif; font-size:16px; letter-spacing:5px; color:var(--ink-soft);}
+.hero-rule{position:relative; z-index:1; margin:24px 0 20px; height:2px; width:124px;
   background:linear-gradient(90deg,var(--red),transparent);}
 .hero-lead{
-  position:relative; z-index:1; max-width:720px;
-  font-size:17px; line-height:2.1; color:#3a342c; text-align:justify; letter-spacing:.4px;
+  position:relative; z-index:1; max-width:700px;
+  font-size:16.5px; line-height:2.1; color:#3a342c; text-align:justify; letter-spacing:.3px;
 }
 .hero-stats{
-  position:relative; z-index:1; margin-top:38px;
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:16px;
+  position:relative; z-index:1; margin-top:34px;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(172px,1fr)); gap:15px;
 }
 .stat{
   background:rgba(251,247,239,.72); border:1px solid var(--line); border-radius:14px;
-  padding:16px 18px; box-shadow:0 6px 18px rgba(43,39,34,.05);
+  padding:15px 17px; box-shadow:0 6px 18px rgba(43,39,34,.05);
 }
-.stat b{display:block; font-size:27px; letter-spacing:1px; color:var(--red-deep); font-family:Georgia,"Songti SC",serif;}
-.stat span{display:block; margin-top:6px; font-size:12.5px; line-height:1.75; color:var(--ink-soft);}
+.stat b{display:block; font-size:25px; letter-spacing:.5px; color:var(--red-deep);}
+.stat span{display:block; margin-top:5px; font-size:12px; line-height:1.75; color:var(--ink-soft);}
 
-/* ===================== 章节 ===================== */
-.chapter{padding:60px 62px 0;}
-.chapter:last-of-type{padding-bottom:0;}
-.ch-head{margin-bottom:30px;}
-.ch-idx{
-  display:inline-flex; align-items:center; gap:10px; margin-bottom:12px;
-  font-family:Georgia,serif; font-size:12px; letter-spacing:5px; color:var(--gold);
+/* ===================== 分页：工具条 + 单卷显示 ===================== */
+.pager{
+  position:sticky; top:0; z-index:20; margin:0; padding:14px 58px;
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  background:rgba(239,230,214,.94); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
 }
-.ch-idx::after{content:""; width:56px; height:1px; background:var(--gold-soft);}
-.ch-title{font-size:34px; letter-spacing:5px; line-height:1.5; font-weight:700; color:var(--ink);}
+.pager-dots{display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
+.pager-dot{
+  font-family:var(--sans); font-size:12.5px; letter-spacing:.5px; cursor:pointer;
+  padding:5px 13px; border-radius:20px; color:var(--ink-soft);
+  background:rgba(251,247,239,.7); border:1px solid var(--line); transition:.18s;
+}
+.pager-dot:hover{border-color:var(--gold-soft); color:var(--ink);}
+.pager-dot.active{
+  background:linear-gradient(135deg,var(--red),var(--red-deep)); color:#f7ecd6;
+  border-color:var(--red-deep); box-shadow:0 4px 12px rgba(158,43,37,.25);
+}
+.pager-spacer{flex:1 1 auto;}
+.pager-count{
+  font-family:Georgia,serif; font-size:12.5px; letter-spacing:2px; color:var(--ink-soft);
+}
+.pager-arrow{
+  width:32px; height:32px; border-radius:50%; cursor:pointer; flex:0 0 32px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(251,247,239,.8); border:1px solid var(--line); color:var(--ink-soft);
+  font-size:15px; line-height:1; transition:.18s;
+}
+.pager-arrow:hover:not(:disabled){border-color:var(--red); color:var(--red-deep);}
+.pager-arrow:disabled{opacity:.34; cursor:default;}
+
+/* 卷面板：一次只显示一卷 */
+.pane{display:none; animation:fade .42s ease;}
+.pane.active{display:block;}
+@keyframes fade{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+
+.chapter{padding:34px 58px 0;}
+.ch-head{margin-bottom:26px;}
+.ch-idx{
+  display:inline-flex; align-items:center; gap:10px; margin-bottom:11px;
+  font-size:12px; letter-spacing:4px; color:var(--gold);
+}
+.ch-idx::after{content:""; width:52px; height:1px; background:var(--gold-soft);}
+.ch-title{font-size:31px; letter-spacing:4px; line-height:1.5; font-weight:700; color:var(--ink);}
 .ch-lead{
-  margin-top:16px; max-width:760px; font-size:15.5px; line-height:2.05;
-  color:var(--ink-soft); text-align:justify; letter-spacing:.3px;
+  margin-top:14px; max-width:740px; font-size:15px; line-height:2.05;
+  color:var(--ink-soft); text-align:justify; letter-spacing:.2px;
 }
 
 /* ===================== 通用模块 ===================== */
 .module{
   background:var(--panel); border:1px solid var(--line); border-radius:16px;
-  padding:26px 32px; margin-bottom:22px; box-shadow:0 8px 26px rgba(43,39,34,.06);
+  padding:24px 30px; margin-bottom:20px; box-shadow:0 8px 26px rgba(43,39,34,.06);
 }
 .module-title{
-  font-size:19px; letter-spacing:3px; color:var(--red-deep);
-  display:flex; align-items:center; gap:12px; margin-bottom:16px;
-  padding-bottom:12px; border-bottom:1px dashed var(--gold-soft);
+  font-size:18.5px; letter-spacing:2.5px; color:var(--red-deep);
+  display:flex; align-items:center; gap:12px; margin-bottom:15px;
+  padding-bottom:11px; border-bottom:1px dashed var(--gold-soft);
 }
 /* 模块标题前的装饰菱形 */
 .mt-icon{
@@ -153,24 +190,37 @@ body{
   background:linear-gradient(145deg,var(--gold),#9c7c45);
   transform:rotate(45deg); box-shadow:0 1px 3px rgba(156,124,69,.35);
 }
-.prose{font-size:16px; line-height:2.1; color:#3a342c; text-align:justify;}
-.prose p{margin-bottom:14px;}
+.mt-icon.sm{width:10px; height:10px; flex:0 0 10px;}
+.prose{font-size:15.5px; line-height:2.1; color:#3a342c; text-align:justify;}
+.prose p{margin-bottom:13px;}
 .prose p:last-child{margin-bottom:0;}
 .prose b{color:var(--red-deep); font-weight:700;}
 
 /* 引语 */
 .pull{
-  margin:0 0 22px; padding:26px 32px 26px 34px;
+  margin:0 0 20px; padding:24px 30px;
   background:linear-gradient(100deg, rgba(176,141,87,.14), rgba(176,141,87,.03) 60%, transparent);
   border-left:4px solid var(--red); border-radius:0 14px 14px 0;
-  font-size:16.5px; line-height:2.05; color:var(--ink); letter-spacing:.5px; text-align:justify;
+  font-size:16px; line-height:2.05; color:var(--ink); letter-spacing:.4px; text-align:justify;
 }
 
+/* 提示条（数字口径说明） */
+.note{
+  margin:0 0 20px; padding:18px 22px; border-radius:14px;
+  background:rgba(158,43,37,.055); border:1px solid rgba(158,43,37,.24);
+  border-left:4px solid var(--red-deep);
+}
+.note h4{
+  font-family:var(--sans); font-size:13px; letter-spacing:1.5px;
+  color:var(--red-deep); margin-bottom:8px; display:flex; align-items:center; gap:9px;
+}
+.note p{font-size:14px; line-height:1.95; color:#4a4038; text-align:justify;}
+
 /* 网格卡片 */
-.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(268px,1fr)); gap:16px;}
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(262px,1fr)); gap:15px;}
 .card{
   background:linear-gradient(160deg,#fffdf8,#f7f0e2);
-  border:1px solid var(--line); border-radius:13px; padding:18px 20px;
+  border:1px solid var(--line); border-radius:13px; padding:17px 19px;
   transition:.2s; position:relative; overflow:hidden;
 }
 .card::before{
@@ -178,21 +228,20 @@ body{
   background:linear-gradient(180deg,var(--gold),transparent); opacity:.55;
 }
 .card:hover{transform:translateY(-3px); box-shadow:0 12px 26px rgba(43,39,34,.1); border-color:var(--gold-soft);}
-.card h4{font-size:16.5px; letter-spacing:1.5px; color:var(--red-deep); margin-bottom:9px; font-weight:700;}
-.card p{font-size:14.5px; line-height:1.95; color:var(--ink-soft); text-align:justify;}
+.card h4{font-size:16px; letter-spacing:1.2px; color:var(--red-deep); margin-bottom:8px; font-weight:700;}
+.card p{font-size:14px; line-height:1.95; color:var(--ink-soft); text-align:justify;}
 .card p b{color:#4a4038; font-weight:700;}
 
 /* 要点列表 */
 .dots{list-style:none;}
 .dots li{
-  position:relative; padding:12px 0 12px 26px; font-size:15.5px; line-height:2.0;
+  position:relative; padding:11px 0 11px 25px; font-size:15px; line-height:2;
   color:#3a342c; text-align:justify; border-bottom:1px dotted var(--line);
 }
 .dots li:last-child{border-bottom:none;}
 .dots li::before{
-  content:""; position:absolute; left:4px; top:22px; width:7px; height:7px;
-  border-radius:50%; background:var(--gold);
-  box-shadow:0 0 0 3px rgba(176,141,87,.18);
+  content:""; position:absolute; left:3px; top:21px; width:7px; height:7px;
+  border-radius:50%; background:var(--gold); box-shadow:0 0 0 3px rgba(176,141,87,.18);
 }
 
 /* 时间轴 */
@@ -201,35 +250,70 @@ body{
   content:""; position:absolute; left:100px; top:8px; bottom:8px; width:1px;
   background:linear-gradient(180deg,transparent,var(--gold-soft) 8%,var(--gold-soft) 92%,transparent);
 }
-.tl li{display:flex; gap:0; padding:16px 0; position:relative;}
+.tl li{display:flex; gap:0; padding:15px 0; position:relative;}
 .tl-year{
   flex:0 0 112px; width:112px; font-family:Georgia,serif; font-size:13.5px;
   letter-spacing:.5px; color:var(--red-deep); text-align:right; padding-right:22px; line-height:1.7;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .tl-dot{
-  position:absolute; left:96px; top:22px; width:9px; height:9px; border-radius:50%;
+  position:absolute; left:96px; top:21px; width:9px; height:9px; border-radius:50%;
   background:var(--red); box-shadow:0 0 0 4px rgba(158,43,37,.13); z-index:1;
 }
 .tl-body{padding-left:26px; min-width:0;}
-.tl-body strong{display:block; font-size:16.5px; letter-spacing:1px; color:var(--ink);}
-.tl-body span{display:block; margin-top:6px; font-size:14.5px; line-height:1.95; color:var(--ink-soft); text-align:justify;}
+.tl-body strong{display:block; font-size:16px; letter-spacing:.8px; color:var(--ink);}
+.tl-body span{display:block; margin-top:5px; font-size:14px; line-height:1.95; color:var(--ink-soft); text-align:justify;}
 .tl-body span b{color:var(--red-deep); font-weight:700;}
 
-/* 地形剖面 */
-.terrain{
-  margin:0 0 26px; padding:22px 26px 12px;
+/* 出处 */
+.sources{
+  margin:16px 0 0; padding:15px 18px; border-radius:12px;
+  background:rgba(43,39,34,.035); border:1px dashed var(--gold-soft);
+}
+.sources-title{
+  font-family:var(--sans); font-size:11.5px; letter-spacing:2.5px;
+  color:var(--gold); margin-bottom:9px; display:flex; align-items:center; gap:8px;
+}
+.src{display:flex; gap:10px; margin-bottom:7px;}
+.src:last-child{margin-bottom:0;}
+.src-ref{
+  flex:0 0 auto; font-family:var(--sans); font-size:12px; letter-spacing:.5px;
+  color:var(--red-deep); padding:1px 8px; height:fit-content;
+  border:1px solid rgba(158,43,37,.28); border-radius:12px; background:rgba(158,43,37,.06);
+}
+.src-text{font-size:13px; line-height:1.85; color:var(--ink-soft); text-align:justify;}
+
+/* ===================== 地图与剖面 ===================== */
+.fig{
+  margin:0 0 22px; padding:20px 24px 14px;
   background:linear-gradient(170deg,#fdfaf3,#f2ead9);
   border:1px solid var(--line); border-radius:16px;
   box-shadow:0 8px 26px rgba(43,39,34,.06);
 }
-.terrain-cap{
-  font-size:19px; letter-spacing:3px; color:var(--red-deep);
-  display:flex; align-items:center; gap:12px; margin-bottom:6px;
+.fig-cap{
+  font-size:18.5px; letter-spacing:2.5px; color:var(--red-deep);
+  display:flex; align-items:center; gap:12px; margin-bottom:14px;
 }
-.terrain-cap .mt-icon{width:13px; height:13px; flex:0 0 13px;}
-.terrain svg{display:block; width:100%; height:auto;}
-.terrain-note{margin-top:4px; font-size:12.5px; line-height:1.8; color:var(--ink-soft); letter-spacing:.3px;}
+/* 图区：横向图（剖面、海峡）铺满剩余宽度；竖长图（岛屿）按高度收缩并居中。
+   竖图不给 flex-grow —— 让它按 viewBox 比例由高度反推宽度，否则会被拉成宽扁的形状。 */
+.fig-body{display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap;}
+.fig-body svg{display:block; min-width:0; height:auto;}
+.fig.is-wide .fig-body svg{flex:1 1 420px;}
+.fig.is-portrait .fig-body svg{flex:0 1 auto; max-height:min(52vh,440px); width:auto; margin:0 auto;}
+.fig-side{flex:0 1 218px; min-width:190px;}
+.fig-legend{list-style:none;}
+.fig-legend li{
+  display:flex; align-items:flex-start; gap:9px; margin-bottom:9px;
+  font-size:12.5px; line-height:1.7; color:var(--ink-soft);
+}
+.fig-legend i{
+  flex:0 0 13px; width:13px; height:13px; margin-top:3px; border-radius:3px;
+  border:1px solid rgba(43,39,34,.25);
+}
+.fig-note{
+  margin-top:12px; font-size:12px; line-height:1.8; color:var(--ink-soft); letter-spacing:.2px;
+  padding-top:10px; border-top:1px dotted var(--gold-soft);
+}
 
 /* 关键词注释：桌面 hover / 键盘 focus / 触屏点击 .open 三条通路。
    元素是 <button>，因此先剥掉浏览器默认外观，再补回关键词本身的排版。 */
@@ -249,7 +333,7 @@ body{
   transform:translateX(-50%) translateY(6px);
   width:max-content; max-width:320px; padding:11px 15px; z-index:30;
   background:#2b2722; color:#f3ead8; font-size:13px; font-weight:400; font-style:normal;
-  line-height:1.75; letter-spacing:.4px; border-radius:9px; text-align:left;
+  line-height:1.75; letter-spacing:.3px; border-radius:9px; text-align:left;
   box-shadow:0 12px 30px rgba(0,0,0,.3); transition:.22s; pointer-events:none;
 }
 .term .tip::after{content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
@@ -259,56 +343,97 @@ body{
 .term.open .tip{visibility:visible; opacity:1; transform:translateX(-50%) translateY(0);}
 .term:focus-visible{outline:2px solid var(--red); outline-offset:2px; border-radius:2px;}
 
-/* ===================== 近代章：墨色沉章 ===================== */
-.chapter.ash{position:relative;}
-.chapter.ash::before{
-  content:""; position:absolute; left:-62px; right:-62px; top:0; bottom:0; z-index:-1;
+/* ===================== 近代卷：墨色沉卷 ===================== */
+.pane.ash .chapter{position:relative;}
+.pane.ash .chapter::before{
+  content:""; position:absolute; left:-58px; right:-58px; top:0; bottom:0; z-index:-1;
   background:
     linear-gradient(180deg, rgba(47,44,42,.075), rgba(47,44,42,.05) 30%, rgba(47,44,42,.075)),
     repeating-linear-gradient(115deg, rgba(43,39,34,.02) 0 2px, transparent 2px 7px);
   border-top:1px solid rgba(43,39,34,.16); border-bottom:1px solid rgba(43,39,34,.16);
 }
-.chapter.ash .ch-title{color:var(--ash);}
-.chapter.ash .module{background:rgba(253,250,244,.86); border-color:rgba(43,39,34,.18);}
-.chapter.ash .ch-lead{color:#4d463f;}
-.chapter.ash .pull{
-  background:linear-gradient(100deg, rgba(47,44,42,.14), transparent 70%);
-  border-left-color:#2f2c2a;
+.pane.ash .ch-title{color:var(--ash);}
+.pane.ash .module{background:rgba(253,250,244,.86); border-color:rgba(43,39,34,.18);}
+.pane.ash .ch-lead{color:#4d463f;}
+.pane.ash .pull{background:linear-gradient(100deg, rgba(47,44,42,.14), transparent 70%); border-left-color:#2f2c2a;}
+
+/* ===================== 延伸出口 ===================== */
+.outbound{
+  margin:44px 58px 0; padding:24px 26px 26px;
+  border:1px solid var(--line); border-radius:16px;
+  background:linear-gradient(170deg,rgba(176,141,87,.09),rgba(251,247,239,.5));
+  box-shadow:0 8px 26px rgba(43,39,34,.05);
 }
+.outbound-title{
+  font-size:21px; letter-spacing:2.5px; color:var(--red-deep);
+  display:flex; align-items:center; gap:12px; margin-bottom:9px;
+}
+.outbound-lead{margin-bottom:18px; max-width:700px; font-size:14px; line-height:2; color:var(--ink-soft);}
+.outbound-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:13px;}
+.out-link{
+  display:flex; flex-direction:column; gap:7px; text-decoration:none;
+  background:linear-gradient(160deg,#fffdf8,#f7f0e2);
+  border:1px solid var(--line); border-radius:13px; padding:15px 17px;
+  transition:.2s; position:relative; overflow:hidden;
+}
+.out-link::before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:linear-gradient(180deg,var(--red),transparent); opacity:.5;
+}
+.out-link:hover{transform:translateY(-3px); border-color:var(--gold-soft); box-shadow:0 12px 26px rgba(43,39,34,.1);}
+.out-link:focus-visible{outline:2px solid var(--red); outline-offset:2px;}
+.out-label{font-size:16.5px; letter-spacing:1.2px; color:var(--ink);}
+.out-desc{font-size:13px; line-height:1.9; color:var(--ink-soft);}
 
 /* ===================== 页脚 ===================== */
 .page-foot{
-  margin:70px 62px 0; padding:26px 0 0; border-top:1px solid var(--line);
-  font-size:13px; line-height:2; color:var(--ink-soft); letter-spacing:.4px;
+  margin:30px 58px 0; padding:18px 0 0; border-top:1px solid var(--line);
+  font-size:12.5px; line-height:1.95; color:var(--ink-soft); letter-spacing:.2px;
 }
+.foot-nav{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px;}
+.foot-home{
+  color:var(--red-deep); text-decoration:none; font-size:13.5px; letter-spacing:.8px;
+  padding:4px 10px; border:1px solid var(--line); border-radius:20px;
+  background:rgba(251,247,239,.7); transition:.2s;
+}
+.foot-home:hover{border-color:var(--red); background:rgba(158,43,37,.07);}
+.foot-home:focus-visible{outline:2px solid var(--red); outline-offset:2px;}
+.foot-sep{color:var(--gold-soft); font-size:12.5px;}
 
 /* ===================== 响应式 ===================== */
 @media (max-width:960px){
   .layout{flex-direction:column;}
   .sidebar{flex:0 0 auto; width:100%; height:auto; border-right:none; border-bottom:1px solid var(--line);}
-  .side-scroll{overflow:visible; padding:12px 14px 16px;}
-  .nav{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;}
-  .nav-item{flex:0 0 auto; margin-bottom:0; padding:8px 14px;}
+  .side-scroll{overflow:visible; padding:10px 12px 14px;}
+  .nav{display:flex; gap:7px; overflow-x:auto; padding-bottom:3px;}
+  .nav-item{flex:0 0 auto; margin-bottom:0; padding:8px 13px;}
   .nav-item.active::before{display:none;}
   .nav-idx{display:none;}
   .side-foot{display:none;}
-  .hero{padding:42px 22px 32px;}
-  .hero-title h1{font-size:56px; letter-spacing:10px;}
-  .hero::before{font-size:200px; top:-30px; right:-10px;}
-  .chapter{padding:42px 22px 0;}
-  .ch-title{font-size:26px; letter-spacing:3px;}
-  .chapter.ash::before{left:-22px; right:-22px;}
-  .module{padding:20px 18px;}
-  .pull{padding:20px 18px;}
+  .hero{padding:38px 20px 28px;}
+  .hero-title h1{font-size:52px; letter-spacing:9px;}
+  .hero::before{font-size:190px; top:-28px; right:-8px;}
+  .pager{padding:11px 20px;}
+  .chapter{padding:26px 20px 0;}
+  .ch-title{font-size:24px; letter-spacing:2.5px;}
+  .pane.ash .chapter::before{left:-20px; right:-20px;}
+  .module{padding:19px 17px;}
+  .pull{padding:19px 17px;}
+  .note{padding:15px 16px;}
   .tl::before{left:8px;}
-  .tl li{flex-direction:column; padding-left:24px;}
+  .tl li{flex-direction:column; padding-left:23px;}
   .tl-year{flex:none; width:auto; text-align:left; padding-right:0; font-size:15px;}
   .tl-dot{left:4px; top:8px;}
   .tl-body{padding-left:0; margin-top:6px;}
-  .terrain{padding:18px 12px 10px;}
-  .page-foot{margin:50px 22px 0;}
+  .fig{padding:16px 11px 10px;}
+  .fig-body{gap:14px;}
+  .fig-side{flex:1 1 100%;}
+  /* 窄屏下岛屿图给足高度：宽度只有约 400px，按 viewBox 比例反推会非常高 */
+  .fig.is-portrait .fig-body svg{max-height:62vh;}
+  .outbound{margin:32px 20px 0; padding:18px 16px 20px;}
+  .page-foot{margin:24px 20px 0;}
 
-  /* 窄屏没有 hover，解释改为底部浮层（bottom sheet）。
+  /* 窄屏没有 hover：注释改为固定底部浮层（bottom sheet）。
      试过的两种更省事的做法都会失败：
        - tip 改成普通块级：解释会把段落劈成两半，后续文字被推到块下方，行盒断裂；
        - term 整体 display:block：同样割裂段落，且段落结构被破坏得更明显。
@@ -316,20 +441,16 @@ body{
   .term{cursor:pointer;}
   .term::before{display:none;}
   .term .tip{
-    position:fixed; display:block; visibility:visible; opacity:1;
+    position:fixed; display:block; visibility:visible; opacity:0;
     left:0; right:0; bottom:0; top:auto; width:auto; max-width:none;
-    margin:0; padding:20px 22px 24px; transform:none;
+    margin:0; padding:20px 22px 24px; transform:translateY(12px);
     font-size:14.5px; line-height:1.9; font-weight:400; letter-spacing:.3px;
     color:#f3ead8; background:#2b2722; text-align:left;
     border-radius:16px 16px 0 0; box-shadow:0 -12px 40px rgba(0,0,0,.42);
-    pointer-events:none; z-index:60;
-    opacity:0; transition:opacity .2s, transform .2s; transform:translateY(12px);
+    pointer-events:none; z-index:60; transition:opacity .2s, transform .2s;
   }
   .term .tip::after{display:none;}
-  /* 词在上方浮出一条，同一块面板给出「哪个词」的归属 */
-  .term.open .tip{
-    opacity:1; transform:translateY(0); pointer-events:auto; cursor:pointer;
-  }
+  .term.open .tip{opacity:1; transform:translateY(0); pointer-events:auto; cursor:pointer;}
   .term-word{
     display:inline-block; font-weight:700; color:var(--red-deep);
     border-bottom:1px dotted var(--red); padding:0 1px;
@@ -343,7 +464,7 @@ body{
   .term .tip::before{
     content:attr(data-word); display:block; margin-bottom:9px; padding-bottom:9px;
     border-bottom:1px solid rgba(243,234,216,.22);
-    font-size:12px; letter-spacing:2px; color:var(--gold-soft);
+    font-size:11.5px; letter-spacing:2px; color:var(--gold-soft);
   }
 }
 </style>
@@ -353,19 +474,28 @@ body{
 <div class="layout">
   <nav class="sidebar">
     <div class="side-head">
-      <div class="brand-kicker">Formosa</div>
-      <div class="brand-title">臺灣<small>山海之間</small></div>
+      <div class="brand-kicker">FORMOSA</div>
+      <div class="brand-title">台湾<small>山海之间</small></div>
       <div class="brand-line"></div>
-      <p class="brand-sub">地理、風物、歷史，以及一段不能被跳過的近代。</p>
+      <p class="brand-sub">地理、历史、风物，以及一段不能跳过的近代。</p>
       <div class="progress"><i id="progressBar"></i></div>
     </div>
     <div class="side-scroll">
       <div class="nav-label">目 次</div>
       <ul class="nav" id="nav"></ul>
     </div>
-    <div class="side-foot">数字与事件依常见史料口径整理，存争议处已在正文标注。</div>
+    <div class="side-foot">数字依史料口径整理，存争议处已标注区间与出处。</div>
   </nav>
-  <main class="content" id="content"></main>
+
+  <main class="content" id="content">
+    <div class="pager" id="pager" role="tablist" aria-label="分卷导航">
+      <button class="pager-arrow" id="prevBtn" type="button" aria-label="上一卷">‹</button>
+      <div class="pager-dots" id="dots"></div>
+      <button class="pager-arrow" id="nextBtn" type="button" aria-label="下一卷">›</button>
+      <span class="pager-spacer"></span>
+      <span class="pager-count" id="pagerCount"></span>
+    </div>
+  </main>
 </div>
 
 <script type="application/json" id="ndata" data-resource="taiwan.json"></script>
@@ -375,56 +505,31 @@ body{
   "use strict";
   var DATA = JSON.parse(document.getElementById('ndata').textContent);
 
-  /* ===================== 地形剖面（静态插图） ===================== */
-  var TERRAIN_SVG =
-  '<svg viewBox="0 0 1000 300" role="img" aria-label="台湾岛由西向东地形剖面示意图">' +
-    '<defs>' +
-      '<linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="#c9d6d2"/><stop offset="100%" stop-color="#dfe6e0"/>' +
-      '</linearGradient>' +
-      '<linearGradient id="land" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="#c8a878"/><stop offset="100%" stop-color="#e2d3b6"/>' +
-      '</linearGradient>' +
-    '</defs>' +
-    // 海面
-    '<rect x="0" y="234" width="1000" height="66" fill="url(#sea)"/>' +
-    // 陆地剖面（西→东）
-    '<path d="M0,236 L52,246 L104,232 L150,222 L200,219 L262,217 L300,219 ' +
-      'L330,210 L358,186 L384,160 L412,144 L444,120 L478,100 L516,86 L560,79 ' +
-      'L604,90 L646,110 L688,132 L722,152 L748,186 L766,224 L800,226 L822,214 ' +
-      'L850,186 L880,152 L906,131 L930,158 L948,196 L958,232 L1000,236 Z" ' +
-      'fill="url(#land)" stroke="#8d6f45" stroke-width="1.4" stroke-linejoin="round"/>' +
-    // 等高参考线
-    '<g stroke="#b08d57" stroke-width=".6" stroke-dasharray="3 5" opacity=".5">' +
-      '<line x1="0" y1="80" x2="1000" y2="80"/>' +
-      '<line x1="0" y1="156" x2="1000" y2="156"/>' +
-    '</g>' +
-    // 玉山峰顶引线
-    '<line x1="560" y1="79" x2="560" y2="40" stroke="#7a201c" stroke-width="1" stroke-dasharray="4 4"/>' +
-    '<circle cx="560" cy="79" r="4.5" fill="#7a201c"/>' +
-    // 山体阴影
-    '<path d="M478,100 L516,86 L560,79 L604,90 L646,110 L688,132" ' +
-      'fill="none" stroke="#7d6039" stroke-width="1" opacity=".35"/>' +
-    // 标注
-    '<g font-family="Songti SC, STSong, SimSun, serif" fill="#4a4038">' +
-      '<text x="52" y="268" font-size="13" letter-spacing="1" text-anchor="middle">台灣海峽</text>' +
-      '<text x="215" y="196" font-size="13" letter-spacing="1" text-anchor="middle">西部平原</text>' +
-      '<text x="215" y="212" font-size="11" fill="#6b6155" text-anchor="middle">嘉南 · 米倉</text>' +
-      '<text x="398" y="122" font-size="13" letter-spacing="1" text-anchor="middle">阿里山山脈</text>' +
-      '<text x="784" y="252" font-size="12.5" letter-spacing="1" text-anchor="middle">花東縱谷</text>' +
-      '<text x="892" y="104" font-size="13" letter-spacing="1" text-anchor="middle">海岸山脈</text>' +
-      '<text x="892" y="120" font-size="11" fill="#6b6155" text-anchor="middle">斷崖入海</text>' +
-      '<text x="966" y="268" font-size="13" letter-spacing="1" text-anchor="middle">太平洋</text>' +
-    '</g>' +
-    '<g font-family="Songti SC, STSong, SimSun, serif" fill="#7a201c">' +
-      '<text x="560" y="32" font-size="15" letter-spacing="2" text-anchor="middle">中央山脈 · 玉山 3,952m</text>' +
-    '</g>' +
-  '</svg>';
-
   /* ===================== 文本工具 ===================== */
   function escapeHTML(s){
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
+  // 插值到 href="..." 时防止属性被提前闭合
+  function escapeAttr(s){
+    return escapeHTML(String(s)).replace(/"/g,'&quot;');
+  }
+
+  // <T> 注释渲染成可聚焦、可点击的按钮：桌面 hover 生效，键盘 Tab + Enter 生效，
+  // 触屏点击 .open 生效。role/aria 让读屏软件也能拿到解释文本。
+  //
+  // 词与解释都已在上游 escapeHTML 过一次，这里原样透传即可；再次调用 escapeHTML
+  // 会把解释里本就该显示的标点破坏掉。
+  // 注意：replace 的回调第一个参数是整个匹配串，所以调用方必须用包装函数传参，
+  // 直接把 renderTerm 当回调会让 tip 拿到整串、word 拿到解释文本。
+  //
+  // 桌面端解释用绝对定位浮层，可以安全地嵌在段落中间；窄屏端解释会变成固定底部浮层。
+  function renderTerm(tip, word){
+    return '<button type="button" class="term" aria-expanded="false">' +
+             '<span class="term-word">' + word + '</span>' +
+             '<span class="tip" role="tooltip" data-word="' + word + '">' + tip + '</span>' +
+           '</button>';
+  }
+
   // 先整体转义，再放行 <b> 与 <T t='解释'>关键词</T>
   function renderInline(text){
     var out = escapeHTML(text);
@@ -440,61 +545,210 @@ body{
     }).join('');
   }
 
-  // 卷次取一个字：山、古、刀、風、今 —— 连读即「山海古今風」
-  var ICONS = { geography:'山', origins:'古', humiliation:'刀', people:'風', today:'今' };
+  var ICONS = { geography:'山', origins:'古', humiliation:'刃', people:'风', today:'今' };
 
-  /* ===================== 区块渲染 ===================== */
-  // <T> 注释渲染成可聚焦、可点击的按钮：桌面 hover 生效，键盘 Tab + Enter 生效，
-  // 触屏点击 .open 生效。role/aria 让读屏软件也能拿到解释文本。
-  //
-  // 词与解释都已在上游 escapeHTML 过一次，这里原样透传即可；再次调用 escapeHTML
-  // 会把解释里本就该显示的标点破坏掉。
-  // 注意：replace 的回调第一个参数是整个匹配串，所以调用方必须用包装函数传参，
-  // 直接把 renderTerm 当回调会让 tip 拿到整串、word 拿到解释文本。
-  //
-  // 桌面端解释用绝对定位浮层，可以安全地嵌在段落中间；窄屏端解释会变成块级元素，
-  // 留在段落中间会把该段落其余文字挤到解释块下方，形成割裂的行盒。因此窄屏下
-  // 每个 <T> 都单独成为一个块级 <span>：词在上一行、解释在下一行，读起来连续。
-  // 代价是桌面端这段源码里看不到 <button>，只有 <span>——两者都靠 .term 类定位。
-  function renderTerm(tip, word){
-    return '<button type="button" class="term" aria-expanded="false">' +
-             '<span class="term-word">' + word + '</span>' +
-             '<span class="tip" role="tooltip" data-word="' + word + '">' + tip + '</span>' +
-           '</button>';
+  /* ===================== 地形剖面（静态插图，西→东） ===================== */
+  var PROFILE_SVG =
+  '<svg viewBox="0 0 1000 250" role="img" aria-label="台湾岛由西向东地形剖面示意图">' +
+    '<defs>' +
+      '<linearGradient id="psea" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="#c9d6d2"/><stop offset="100%" stop-color="#e2e8e1"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="pland" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="#c8a878"/><stop offset="100%" stop-color="#e3d4b7"/>' +
+      '</linearGradient>' +
+    '</defs>' +
+    '<rect x="0" y="200" width="1000" height="50" fill="url(#psea)"/>' +
+    '<path d="M0,202 L52,212 L104,198 L150,188 L200,185 L262,183 L300,185 ' +
+      'L330,176 L358,152 L384,126 L412,110 L444,86 L478,66 L516,52 L560,45 ' +
+      'L604,56 L646,76 L688,98 L722,118 L748,152 L766,190 L800,192 L822,180 ' +
+      'L850,152 L880,118 L906,97 L930,124 L948,162 L958,198 L1000,202 Z" ' +
+      'fill="url(#pland)" stroke="#8d6f45" stroke-width="1.4" stroke-linejoin="round"/>' +
+    '<g stroke="#b08d57" stroke-width=".6" stroke-dasharray="3 5" opacity=".45">' +
+      '<line x1="0" y1="45" x2="1000" y2="45"/>' +
+      '<line x1="0" y1="121" x2="1000" y2="121"/>' +
+    '</g>' +
+    '<line x1="560" y1="45" x2="560" y2="14" stroke="#7a201c" stroke-width="1" stroke-dasharray="4 4"/>' +
+    '<circle cx="560" cy="45" r="4.5" fill="#7a201c"/>' +
+    '<g font-family="Songti SC, STSong, SimSun, serif" fill="#4a4038" font-size="13">' +
+      '<text x="52" y="234" text-anchor="middle">台湾海峡</text>' +
+      '<text x="215" y="164" text-anchor="middle">西部平原</text>' +
+      '<text x="215" y="180" text-anchor="middle" font-size="11" fill="#6b6155">嘉南 · 米仓</text>' +
+      '<text x="398" y="88" text-anchor="middle">阿里山山脉</text>' +
+      '<text x="784" y="218" text-anchor="middle">花东纵谷</text>' +
+      '<text x="892" y="70" text-anchor="middle">海岸山脉</text>' +
+      '<text x="892" y="86" text-anchor="middle" font-size="11" fill="#6b6155">断崖入海</text>' +
+      '<text x="966" y="234" text-anchor="middle">太平洋</text>' +
+    '</g>' +
+    '<text x="560" y="8" font-family="Songti SC, STSong, SimSun, serif" ' +
+      'fill="#7a201c" font-size="15" text-anchor="middle">中央山脉 · 玉山 3952m</text>' +
+  '</svg>';
+
+  var PROFILE_LEGEND = [
+    { c:'#c8a878', t:'山地（雪山、玉山、阿里山三系）' },
+    { c:'#e3d4b7', t:'西部平原：台积、嘉南、屏东' },
+    { c:'#c9d6d2', t:'台湾海峡与太平洋' }
+  ];
+
+  /* ===================== 地图投影 ===================== */
+  // 等距圆柱投影的简化版：经度按 cos(纬度) 收缩，避免高纬度横向拉伸。
+  // 坐标以「数据里写经纬度，代码只负责投影」的方式维护，便于核对。
+  function makeProjector(projection){
+    var lat0 = projection.lat0, lon0 = projection.lon0, s = projection.scale;
+    // 保持局部比例：每个点在自己的纬度上做经度收缩，而不是整幅图用一个 cos。
+    // 台湾南北跨 3.4 度，整幅用单一 cos 会让北部横向被拉宽、形状失真。
+    return function(lon, lat){
+      var x = (lon - lon0) * s * Math.cos(lat * Math.PI / 180);
+      var y = (lat0 - lat) * s;
+      return [x, y];
+    };
   }
 
-  function blockHeading(heading){
+  function renderMap(block){
+    var project = makeProjector(block.projection);
+    var pad = 26;
+
+    // 投影所有点，算出画布尺寸与变换
+    var xs = [], ys = [];
+    block.shapes.forEach(function(shape){
+      shape.points.forEach(function(pt){
+        var p = project(pt[0], pt[1]);
+        xs.push(p[0]); ys.push(p[1]);
+      });
+    });
+    (block.labels || []).forEach(function(label){
+      var p = project(label.lon, label.lat);
+      xs.push(p[0]); ys.push(p[1]);
+    });
+    var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs);
+    var minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys);
+    var w = Math.round(maxX - minX + pad * 2);
+    var h = Math.round(maxY - minY + pad * 2);
+    var tx = function(x){ return (x - minX + pad).toFixed(1); };
+    var ty = function(y){ return (y - minY + pad).toFixed(1); };
+
+    function pathOf(shape){
+      return shape.points.map(function(pt, i){
+        var p = project(pt[0], pt[1]);
+        return (i === 0 ? 'M' : 'L') + tx(p[0]) + ',' + ty(p[1]);
+      }).join(' ') + ' Z';
+    }
+
+    var kindFill = {
+      island: 'url(#mland)',
+      islet: '#c2a473',
+      mainland: '#e3dccb'
+    };
+    var kindStroke = {
+      island: '#8d6f45',
+      islet: '#8d6f45',
+      mainland: '#a8a08c'
+    };
+
+    var shapes = block.shapes.map(function(shape){
+      return '<path d="' + pathOf(shape) + '" fill="' + (kindFill[shape.kind] || '#ccc') + '" ' +
+             'stroke="' + (kindStroke[shape.kind] || '#888') + '" stroke-width="1.3" ' +
+             'stroke-linejoin="round"><title>' + escapeHTML(shape.label) + '</title></path>';
+    }).join('');
+
+    // 距离标注：一条带箭头的连线 + 文字
+    var links = (block.links || []).map(function(link){
+      var a = project(link.from[0], link.from[1]);
+      var b = project(link.to[0], link.to[1]);
+      var mx = ((tx(a[0]) + tx(b[0])) / 2).toFixed(1);
+      var my = (Math.min(ty(a[1]), ty(b[1])) - 12).toFixed(1);
+      return '<path d="M' + tx(a[0]) + ',' + ty(a[1]) + ' L' + tx(b[0]) + ',' + ty(b[1]) + '" ' +
+             'fill="none" stroke="#7a201c" stroke-width="1.2" stroke-dasharray="5 4"/>' +
+             '<text x="' + mx + '" y="' + my + '" font-size="11.5" fill="#7a201c" ' +
+             'text-anchor="middle">' + escapeHTML(link.text) + '</text>';
+    }).join('');
+
+    var labels = (block.labels || []).map(function(label){
+      var p = project(label.lon, label.lat);
+      return '<text x="' + tx(p[0]) + '" y="' + ty(p[1]) + '" font-size="11.5" ' +
+             'fill="#4a4038" text-anchor="' + label.anchor + '">' +
+             escapeHTML(label.text) + '</text>';
+    }).join('');
+
+    var svg =
+      '<svg viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + escapeAttr(block.heading) + '">' +
+        '<defs><linearGradient id="mland" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0%" stop-color="#d3b585"/><stop offset="100%" stop-color="#e6d8bc"/>' +
+        '</linearGradient></defs>' +
+        shapes + links + labels +
+      '</svg>';
+
+    var legend = '<ul class="fig-legend">' + block.shapes.map(function(shape){
+      return '<li><i style="background:' + (kindFill[shape.kind] || '#ccc') + '"></i>' +
+             escapeHTML(shape.label) + '</li>';
+    }).join('') + '</ul>';
+
+    // 竖长图（岛屿）限高显示，横向图（海峡）正常铺开
+    var portrait = h > w * 1.2;
+    return '<figure class="fig' + (portrait ? ' is-portrait' : ' is-wide') + '">' +
+      '<figcaption class="fig-cap"><span class="mt-icon"></span>' +
+        renderInline(block.heading) + '</figcaption>' +
+      '<div class="fig-body">' + svg + '<div class="fig-side">' + legend + '</div></div>' +
+      '<p class="fig-note">' + escapeHTML(block.note || '') + '</p>' +
+    '</figure>';
+  }
+
+  /* ===================== 区块渲染 ===================== */
+  function moduleTitle(heading, small){
     if(!heading){ return ''; }
-    return '<h3 class="module-title"><span class="mt-icon"></span>' + renderInline(heading) + '</h3>';
+    return '<h3 class="module-title"><span class="mt-icon' + (small ? ' sm' : '') + '"></span>' +
+           renderInline(heading) + '</h3>';
+  }
+
+  function renderSources(list){
+    if(!list || !list.length){ return ''; }
+    var rows = list.map(function(src){
+      return '<div class="src"><span class="src-ref">' + escapeHTML(src.ref) + '</span>' +
+             '<span class="src-text">' + renderInline(src.text) + '</span></div>';
+    }).join('');
+    return '<div class="sources"><div class="sources-title">资料出处</div>' + rows + '</div>';
   }
 
   function renderBlock(block){
-    var head = blockHeading(block.heading);
-
-    if(block.type === 'terrain'){
-      return '<figure class="terrain">' +
-        '<figcaption class="terrain-cap"><span class="mt-icon"></span>' + renderInline(block.heading) + '</figcaption>' +
-        TERRAIN_SVG +
-        '<p class="terrain-note">縱軸為相對高度（示意，非等比例）。中央山脈直接插向海洋，是這座島嶼地貌的第一性問題。</p>' +
+    if(block.type === 'profile'){
+      var legend = PROFILE_LEGEND.map(function(item){
+        return '<li><i style="background:' + item.c + '"></i>' + escapeHTML(item.t) + '</li>';
+      }).join('');
+      return '<figure class="fig is-wide">' +
+        '<figcaption class="fig-cap"><span class="mt-icon"></span>' +
+          renderInline(block.heading) + '</figcaption>' +
+        '<div class="fig-body">' + PROFILE_SVG + '<div class="fig-side"><ul class="fig-legend">' +
+          legend + '</ul></div></div>' +
+        '<p class="fig-note">纵轴为相对高度（示意，非等比例）。中央山脉直接插向海洋，' +
+          '这是这座岛屿地貌的第一性问题。</p>' +
       '</figure>';
     }
+
+    if(block.type === 'map'){ return renderMap(block); }
 
     if(block.type === 'quote'){
       return '<blockquote class="pull">' + renderInline(block.text) + '</blockquote>';
     }
 
+    if(block.type === 'note'){
+      return '<aside class="note">' +
+        '<h4><span class="mt-icon sm"></span>' + renderInline(block.heading) + '</h4>' +
+        '<p>' + renderInline(block.text) + '</p></aside>';
+    }
+
     if(block.type === 'grid'){
       var cards = block.items.map(function(it){
-        return '<div class="card"><h4>' + renderInline(it.t) + '</h4><p>' + renderInline(it.d) + '</p></div>';
+        return '<div class="card"><h4>' + renderInline(it.t) + '</h4><p>' +
+               renderInline(it.d) + '</p></div>';
       }).join('');
-      return '<article class="module">' + head + '<div class="cards">' + cards + '</div></article>';
+      return '<article class="module">' + moduleTitle(block.heading) +
+             '<div class="cards">' + cards + '</div></article>';
     }
 
     if(block.type === 'list'){
-      var lis = block.items.map(function(it){
-        return '<li>' + renderInline(it) + '</li>';
-      }).join('');
-      return '<article class="module">' + head + '<ul class="dots">' + lis + '</ul></article>';
+      var lis = block.items.map(function(it){ return '<li>' + renderInline(it) + '</li>'; }).join('');
+      return '<article class="module">' + moduleTitle(block.heading) +
+             '<ul class="dots">' + lis + '</ul></article>';
     }
 
     if(block.type === 'timeline'){
@@ -504,21 +758,13 @@ body{
                '<div class="tl-body"><strong>' + renderInline(it.t) + '</strong>' +
                '<span>' + renderInline(it.d) + '</span></div></li>';
       }).join('');
-      return '<article class="module">' + head + '<ol class="tl">' + tlis + '</ol></article>';
+      return '<article class="module">' + moduleTitle(block.heading) +
+             '<ol class="tl">' + tlis + '</ol>' + renderSources(block.sources) + '</article>';
     }
 
-    return '<article class="module">' + head + '<div class="prose">' + renderProse(block.text) + '</div></article>';
-  }
-
-  function chapterMarkup(ch){
-    var blocks = ch.blocks.map(renderBlock).join('');
-    return '<section class="chapter' + (ch.tone === 'dark' ? ' ash' : '') + '" id="' + ch.id + '">' +
-      '<header class="ch-head">' +
-        '<div class="ch-idx">' + renderInline(ch.index) + ' · ' + renderInline(ICONS[ch.id] || '') + '</div>' +
-        '<h2 class="ch-title">' + renderInline(ch.title) + '</h2>' +
-        '<p class="ch-lead">' + renderInline(ch.lead) + '</p>' +
-      '</header>' + blocks +
-    '</section>';
+    return '<article class="module">' + moduleTitle(block.heading) +
+           '<div class="prose">' + renderProse(block.text) + '</div>' +
+           renderSources(block.sources) + '</article>';
   }
 
   /* ===================== 首屏 ===================== */
@@ -528,17 +774,24 @@ body{
     }).join('');
     return '<header class="hero">' +
       '<div class="hero-kicker">' + renderInline(hero.kicker) + '</div>' +
-      '<div class="hero-title"><h1>' + renderInline(hero.title) + '</h1><span>' + renderInline(hero.latin) + '</span></div>' +
+      '<div class="hero-title"><h1>' + renderInline(hero.title) + '</h1><span>' +
+        renderInline(hero.latin) + '</span></div>' +
       '<div class="hero-rule"></div>' +
       '<p class="hero-lead">' + renderInline(hero.lead) + '</p>' +
       '<div class="hero-stats">' + stats + '</div>' +
     '</header>';
   }
 
-  /* ===================== 装配 ===================== */
+  /* ===================== 装配：首屏 + 分页工具条 ===================== */
   var content = document.getElementById('content');
   var nav = document.getElementById('nav');
+  var dots = document.getElementById('dots');
+  var pagerCount = document.getElementById('pagerCount');
+  var prevBtn = document.getElementById('prevBtn');
+  var nextBtn = document.getElementById('nextBtn');
   var progressBar = document.getElementById('progressBar');
+
+  content.insertAdjacentHTML('afterbegin', renderHero(DATA.hero));
 
   function navItem(ch){
     var li = document.createElement('li');
@@ -546,45 +799,147 @@ body{
     li.setAttribute('data-target', ch.id);
     li.innerHTML = '<span class="nav-idx">' + renderInline(ch.index) + '</span>' +
                    '<span class="nav-name">' + renderInline(ch.nav) + '</span>';
-    li.addEventListener('click', function(){
-      var sec = document.getElementById(ch.id);
-      if(sec){ content.scrollTo({ top: sec.offsetTop - 12, behavior: 'smooth' }); }
-    });
+    li.addEventListener('click', function(){ goTo(ch.id, true); });
     return li;
   }
 
-  var markup = renderHero(DATA.hero) + DATA.chapters.map(chapterMarkup).join('');
-  content.insertAdjacentHTML('afterbegin', markup);
-  DATA.chapters.forEach(function(ch){ nav.appendChild(navItem(ch)); });
+  function paneMarkup(ch, index){
+    var blocks = ch.blocks.map(renderBlock).join('');
+    return '<div class="pane' + (ch.tone === 'dark' ? ' ash' : '') + '" id="' + ch.id + '" ' +
+             'role="tabpanel" aria-labelledby="dot-' + ch.id + '"' +
+             (index === 0 ? '' : ' aria-hidden="true"') + '>' +
+      '<section class="chapter">' +
+        '<header class="ch-head">' +
+          '<div class="ch-idx">' + renderInline(ch.index) + ' · ' +
+            renderInline(ICONS[ch.id] || '') + '</div>' +
+          '<h2 class="ch-title">' + renderInline(ch.title) + '</h2>' +
+          '<p class="ch-lead">' + renderInline(ch.lead) + '</p>' +
+        '</header>' + blocks +
+      '</section>' +
+    '</div>';
+  }
+
+  var dotEls = [];
+  var paneEls = [];
+  var navEls = [];
+
+  DATA.chapters.forEach(function(ch, index){
+    nav.appendChild(navItem(ch));
+    navEls.push(nav.lastElementChild);
+
+    content.insertAdjacentHTML('beforeend', paneMarkup(ch, index));
+    paneEls.push(document.getElementById(ch.id));
+
+    var dot = document.createElement('button');
+    dot.className = 'pager-dot' + (index === 0 ? ' active' : '');
+    dot.id = 'dot-' + ch.id;
+    dot.type = 'button';
+    dot.setAttribute('role', 'tab');
+    dot.setAttribute('aria-controls', ch.id);
+    dot.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
+    dot.textContent = ch.index;
+    dot.addEventListener('click', function(){ goTo(ch.id, true); });
+    dots.appendChild(dot);
+    dotEls.push(dot);
+  });
+
+  pagerCount.textContent = DATA.chapters.length + ' 卷';
+
+  /* ===================== 延伸出口 + 页脚 ===================== */
+  // 页面跑在 iframe srcDoc 里，无法用 React Router 跳转，因此出口一律用普通 <a>。
+  // 绝对路径会解析到站点根（见 AGENTS.md），所以 "/silk-road" 是有效的站内地址。
+  if(DATA.outbound && DATA.outbound.links && DATA.outbound.links.length){
+    var items = DATA.outbound.links.map(function(link){
+      return '<a class="out-link" href="' + escapeAttr(link.path) + '">' +
+               '<span class="out-label">' + escapeHTML(link.label) + '</span>' +
+               '<span class="out-desc">' + escapeHTML(link.desc) + '</span>' +
+             '</a>';
+    }).join('');
+    content.insertAdjacentHTML('beforeend',
+      '<section class="outbound">' +
+        '<h2 class="outbound-title"><span class="mt-icon"></span>' +
+          escapeHTML(DATA.outbound.title) + '</h2>' +
+        '<p class="outbound-lead">' + escapeHTML(DATA.outbound.lead) + '</p>' +
+        '<div class="outbound-grid">' + items + '</div>' +
+      '</section>');
+  }
 
   var foot = document.createElement('footer');
   foot.className = 'page-foot';
-  foot.textContent = '本页依常见史料口径整理，涉及二二八事件死亡人数、慰安妇人数与白色恐怖案件数等，学界与官方统计长期存在差异，正文已尽量标注争议区间。';
+  foot.innerHTML =
+    '<div class="foot-nav">' +
+      '<a class="foot-home" href="/">← 回到中国古代全览</a>' +
+      '<span class="foot-sep" aria-hidden="true">/</span>' +
+      '<a class="foot-home" href="/china/timeline">时间长河</a>' +
+      '<span class="foot-sep" aria-hidden="true">/</span>' +
+      '<a class="foot-home" href="/china/policies">政策全览</a>' +
+    '</div>' +
+    '<p>' + escapeHTML((DATA.outbound && DATA.outbound.note) || '') + '</p>';
   content.appendChild(foot);
 
-  var navItems = DATA.chapters.map(function(ch){ return document.getElementById(ch.id); });
+  /* ===================== 分页逻辑 ===================== */
+  // 一次只显示一卷。不做「一屏接一屏」的连续下滑：五卷正文总长约两万像素，
+  // 连续滚动会让读者失去位置感，也难以把「近代」这一卷单独引用或截图。
+  var currentId = DATA.chapters[0].id;
 
-  /* ===================== 滚动同步 ===================== */
-  var allNav = Array.prototype.slice.call(nav.querySelectorAll('.nav-item'));
-  var current = -1;
+  function goTo(id, smooth){
+    var index = DATA.chapters.findIndex(function(ch){ return ch.id === id; });
+    if(index < 0){ return; }
 
+    paneEls.forEach(function(pane, i){
+      var isOn = i === index;
+      pane.classList.toggle('active', isOn);
+      if(isOn){ pane.removeAttribute('aria-hidden'); } else { pane.setAttribute('aria-hidden', 'true'); }
+    });
+    dotEls.forEach(function(dot, i){
+      dot.classList.toggle('active', i === index);
+      dot.setAttribute('aria-selected', i === index ? 'true' : 'false');
+    });
+    navEls.forEach(function(li, i){ li.classList.toggle('active', i === index); });
+
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === DATA.chapters.length - 1;
+    currentId = id;
+
+    // scrollTo 是标准方法，但部分宿主（含 jsdom）没有实现。缺失时直接改 scrollTop，
+    // 否则首屏初始化会在这一行抛错，后续的分页绑定全部不执行。
+    if(typeof content.scrollTo === 'function'){
+      content.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+    } else {
+      content.scrollTop = 0;
+    }
+    progressBar.style.width = '0%';
+
+    // 切卷后把焦点交给新面板，键盘用户不会停在已隐藏的标签上
+    var pane = paneEls[index];
+    if(pane){ pane.setAttribute('tabindex', '-1'); pane.focus({ preventScroll: true }); }
+  }
+
+  function step(delta){
+    var index = DATA.chapters.findIndex(function(ch){ return ch.id === currentId; });
+    var next = index + delta;
+    if(next < 0 || next >= DATA.chapters.length){ return; }
+    goTo(DATA.chapters[next].id, true);
+  }
+
+  prevBtn.addEventListener('click', function(){ step(-1); });
+  nextBtn.addEventListener('click', function(){ step(1); });
+
+  content.addEventListener('keydown', function(event){
+    if(event.target !== content){ return; }
+    if(event.key === 'PageDown' || event.key === 'ArrowRight'){ event.preventDefault(); step(1); }
+    if(event.key === 'PageUp' || event.key === 'ArrowLeft'){ event.preventDefault(); step(-1); }
+  });
+
+  // 首屏里滚动，工具条吸顶并显示进度；进入卷正文后进度条不再有意义
+  var heroEl = content.querySelector('.hero');
   content.addEventListener('scroll', function(){
+    if(!heroEl){ return; }
+    var heroHeight = heroEl.offsetHeight;
     var top = content.scrollTop;
-    var max = content.scrollHeight - content.clientHeight;
-    progressBar.style.width = (max > 0 ? (top / max) * 100 : 0) + '%';
-
-    var active = 0;
-    for(var i = 0; i < navItems.length; i++){
-      if(navItems[i] && navItems[i].offsetTop - 40 <= top){ active = i; }
-    }
-    if(active !== current){
-      if(current >= 0 && allNav[current]){ allNav[current].classList.remove('active'); }
-      if(allNav[active]){ allNav[active].classList.add('active'); }
-      current = active;
-    }
+    var ratio = Math.min(1, top / heroHeight);
+    progressBar.style.width = (ratio * 100).toFixed(1) + '%';
   }, { passive: true });
-
-  if(allNav[0]){ allNav[0].classList.add('active'); }
 
   /* ===================== 注释交互 ===================== */
   // 桌面靠 :hover；窄屏靠 .open（CSS 把 tip 变为底部浮层）。键盘走原生 button 语义，
@@ -599,7 +954,6 @@ body{
     }
   }
 
-  // 一次只留一个展开，点别处收起。窄屏下多个底部浮层会叠在一起，无法同时阅读。
   content.addEventListener('click', function(event){
     var term = event.target.closest ? event.target.closest('.term') : null;
     if(!term){ closeAllTerms(null); return; }
@@ -622,6 +976,8 @@ body{
     if(narrow.addEventListener){ narrow.addEventListener('change', onNarrowChange); }
     else if(narrow.addListener){ narrow.addListener(onNarrowChange); }
   }
+
+  goTo(currentId, false);
 })();
 </script>
 
