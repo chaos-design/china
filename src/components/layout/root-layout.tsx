@@ -1,100 +1,11 @@
-import { Asterisk, ChevronDown } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, matchPath, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Asterisk, Compass } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { Link, matchPath, Outlet, useLocation } from "react-router-dom";
 import { useAccent } from "../../hooks/use-accent";
-import { cn } from "../../lib/utils";
-import { HOME_ENTRY_ROUTES } from "../../pages/page-resources";
 import { ROUTE_LAYOUT_CONFIGS } from "../../route-layout-config";
 import { AccentPicker } from "../accent-picker";
-
-interface NavLeaf {
-  label: string;
-  to: string;
-  description: string;
-}
-
-interface NavGroup {
-  id: string;
-  items: NavLeaf[];
-  label: string;
-}
-
-// 菜单分组。叶子节点按主题聚成三组，hover 展开。
-// 分组是硬编码的：它表达的是编辑判断（哪些内容属于同一类），
-// 放进资源元数据反而会让数据层承担分类职责。
-const NAV_GROUPS: NavGroup[] = [
-  {
-    id: "chronology",
-    items: [
-      {
-        description: "3D 朝代浮岛、更替节点与民族线索",
-        label: "朝代时间长河",
-        to: "/china/timeline",
-      },
-      {
-        description: "按朝代查看政策、机构、人物与疆域",
-        label: "朝代政策全览",
-        to: "/china/policies",
-      },
-    ],
-    label: "编年与制度",
-  },
-  {
-    id: "culture",
-    items: [
-      {
-        description: "二十项传统技艺的工序与故事",
-        label: "中华非遗瑰宝",
-        to: "/intangible-culture-heritage",
-      },
-      {
-        description: "汉唐至明清的海陆交通与疆域线索",
-        label: "丝绸之路与海疆",
-        to: "/silk-road",
-      },
-    ],
-    label: "文化与交通",
-  },
-  {
-    id: "region",
-    items: [
-      {
-        description: "地形结构、岛屿编年、风土人情与近代",
-        label: "台湾专题",
-        to: "/taiwan",
-      },
-    ],
-    label: "地域与近代",
-  },
-];
-
-// 只收录首页已经开放、且能解析出路径的条目。
-// showInHome: false 与 status: "preview" 的资源不进菜单——
-// 未开放的内容不应该出现在导航里，也不应该被键盘 Tab 到。
-const AVAILABLE_PATHS = new Set(
-  HOME_ENTRY_ROUTES.filter(
-    (entry): entry is typeof entry & { path: string; status: "available" } =>
-      entry.status === "available" && typeof entry.path === "string",
-  ).map((entry) => entry.path),
-);
-
-const RESOURCE_NAV_LINKS: NavLeaf[] = HOME_ENTRY_ROUTES.filter(
-  (entry): entry is typeof entry & { path: string; status: "available" } =>
-    entry.status === "available" && typeof entry.path === "string",
-).map((entry) => ({ description: entry.description, label: entry.title, to: entry.path }));
-
-// 校验：分组里出现的路径必须真的有对应资源，否则这条菜单是死链。
-for (const group of NAV_GROUPS) {
-  for (const item of group.items) {
-    if (item.to.startsWith("/china/")) continue;
-    if (
-      !AVAILABLE_PATHS.has(item.to) &&
-      !RESOURCE_NAV_LINKS.some((entry) => entry.to === item.to)
-    ) {
-      throw new Error(`导航项 ${group.id}/${item.to} 没有对应的可用资源`);
-    }
-  }
-}
+import { findNavGroupId, NAV_GROUPS } from "./nav-groups";
+import { SiteMenu } from "./site-menu";
 
 function GithubMark() {
   return (
@@ -109,146 +20,6 @@ function GithubMark() {
   );
 }
 
-function getActiveGroupId(pathname: string) {
-  for (const group of NAV_GROUPS) {
-    if (group.items.some((item) => matchPath({ path: item.to, end: true }, pathname))) {
-      return group.id;
-    }
-  }
-  return undefined;
-}
-
-// 分组菜单。三条通路：hover 展开、点击切换、键盘可达。
-//
-// 为什么展开状态在 React 里而不是纯 CSS：
-// - 纯 CSS :hover 在触屏上不成立，tap 会先触发 hover 再触发 click，容易粘住；
-// - 纯 CSS :focus-within 展开后鼠标移开不会收起，会残留一个浮层；
-// 所以 hover/click 统一落到 state，键盘路径靠原生 button 与 role="menu" 承担，
-// 视觉过渡仍然交给 CSS transition。收起有 120ms 延迟，指针从按钮移到面板的路上不闪。
-function GroupMenu({
-  activeGroupId,
-  group,
-}: {
-  activeGroupId: string | undefined;
-  group: NavGroup;
-}) {
-  const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const closeTimerRef = useRef<number | null>(null);
-  const containsActive = activeGroupId === group.id;
-
-  const cancelClose = useCallback(() => {
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  }, []);
-
-  const close = useCallback(
-    (immediate = false) => {
-      cancelClose();
-      if (immediate) {
-        setOpen(false);
-        return;
-      }
-      closeTimerRef.current = window.setTimeout(() => setOpen(false), 120);
-    },
-    [cancelClose],
-  );
-
-  useEffect(() => cancelClose, [cancelClose]);
-
-  const handleMouseEnter = useCallback(() => {
-    cancelClose();
-    setOpen(true);
-  }, [cancelClose]);
-
-  const handleMouseLeave = useCallback(() => close(), [close]);
-
-  return (
-    // 容器只负责鼠标进入/离开与 Tab 离开检测。
-    // hover 与 blur 对辅助技术不可见，键盘用户走下面的 button + role="menu"，
-    // 所以这里不给它任何 ARIA 语义——加了反而会让人误以为这是一个可聚焦控件。
-    // biome 的 noStaticElementInteractions 因此在这里关掉，理由同上。
-    // biome-ignore lint/a11y/noStaticElementInteractions: 纯鼠标事件，键盘路径由按钮承担
-    <div
-      className="relative"
-      onBlur={(event) => {
-        // Tab 走出这个分组时收起，否则展开状态会残留到下一次聚焦。
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          close(true);
-        }
-      }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      <button
-        aria-expanded={open}
-        aria-haspopup="true"
-        className={cn(
-          "flex items-center gap-1 rounded-none border border-transparent bg-transparent px-3 py-1.5 font-kai text-base transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
-          containsActive || open ? "text-ink" : "text-muted-foreground hover:text-ink",
-        )}
-        onClick={() => setOpen((value) => !value)}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown") {
-            event.preventDefault();
-            cancelClose();
-            setOpen(true);
-          }
-        }}
-        ref={buttonRef}
-        type="button"
-      >
-        <span>{group.label}</span>
-        <ChevronDown
-          aria-hidden="true"
-          className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")}
-        />
-      </button>
-
-      <div
-        className={cn(
-          "absolute top-full right-0 z-30 mt-1 w-64 origin-top-right rounded-sm border border-ink/10 bg-paper/95 p-1.5 shadow-xl backdrop-blur-xl transition-all duration-200",
-          open
-            ? "pointer-events-auto translate-y-0 opacity-100"
-            : "pointer-events-none -translate-y-1 opacity-0",
-        )}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            close(true);
-            buttonRef.current?.focus();
-          }
-        }}
-        role="menu"
-      >
-        {group.items.map((item) => (
-          <NavLink
-            className={({ isActive }) =>
-              cn(
-                "block rounded-sm px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                isActive
-                  ? "bg-vermillion/10 text-ink"
-                  : "text-muted-foreground hover:bg-ink/5 hover:text-ink",
-              )
-            }
-            end
-            key={item.to}
-            onClick={() => close(true)}
-            role="menuitem"
-            to={item.to}
-          >
-            <span className="block font-kai text-base text-ink">{item.label}</span>
-            <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-              {item.description}
-            </span>
-          </NavLink>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function RootLayout() {
   const location = useLocation();
   const layoutConfig = ROUTE_LAYOUT_CONFIGS.find((config) =>
@@ -257,8 +28,15 @@ export function RootLayout() {
   const showFooter = layoutConfig?.showFooter ?? false;
   const showThemePicker = layoutConfig?.showThemePicker ?? false;
   const accentState = useAccent();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+
   // 直接派生，不需要 state：路由变了就重算，避免多一次渲染与一处可能过期的副本。
-  const activeGroupId = getActiveGroupId(location.pathname);
+  const activeGroupId = findNavGroupId(location.pathname, (path, pathname) =>
+    Boolean(matchPath({ path, end: true }, pathname)),
+  );
+
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   return (
     <div className="paper-backdrop flex h-screen overflow-hidden flex-col font-body text-foreground">
@@ -270,15 +48,24 @@ export function RootLayout() {
           >
             <Asterisk className="h-5 w-5 self-center text-primary transition-transform duration-300 group-hover:rotate-90 group-hover:bg-transparent" />
             <span className="text-2xl font-black tracking-tight text-ink">中国古代全览</span>
-            {/* <span className="font-mono-tech text-[10px] tracking-[0.25em] text-muted-foreground uppercase">
-              /atlas
-            </span> */}
           </Link>
 
-          <div className="flex flex-wrap items-center gap-x-1 gap-y-2 rounded-full px-2 py-1">
-            {NAV_GROUPS.map((group) => (
-              <GroupMenu activeGroupId={activeGroupId} group={group} key={group.id} />
-            ))}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="font-mono-tech text-[10px] tracking-[0.25em] text-muted-foreground uppercase">
+              {NAV_GROUPS.length} 类 /{" "}
+              {NAV_GROUPS.reduce((total, group) => total + group.items.length, 0)} 篇
+            </span>
+            <button
+              aria-expanded={menuOpen}
+              aria-haspopup="dialog"
+              className="btn-ink inline-flex items-center gap-2 rounded-full bg-paper/90 px-4 py-1.5 font-kai text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+              onClick={() => setMenuOpen(true)}
+              ref={menuTriggerRef}
+              type="button"
+            >
+              <Compass aria-hidden="true" className="h-4 w-4 text-primary" />
+              全览地图
+            </button>
           </div>
         </nav>
       </header>
@@ -305,6 +92,13 @@ export function RootLayout() {
       </main>
 
       {showThemePicker ? <AccentPicker {...accentState} /> : null}
+      {menuOpen ? (
+        <SiteMenu
+          activeRouteGroupId={activeGroupId}
+          onClose={closeMenu}
+          triggerRef={menuTriggerRef}
+        />
+      ) : null}
     </div>
   );
 }

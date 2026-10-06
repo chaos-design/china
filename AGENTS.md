@@ -121,7 +121,39 @@ HTML resource routing:
 - Do **not** reintroduce `React.use()` here. Under this project's Vitest + jsdom + React 19.2 setup a promise passed to `use()` never resolves inside a Testing Library `render()`. `React.lazy` is the pattern that works, and it matches `src/routes.tsx`.
 - HTML resources are standalone documents with their own CSS and render loops. Do not try to share stylesheets or renderers between them: each file is inlined into its own `iframe srcDoc`, so sharing would require a build-time template step that does not exist. Copy the pattern and diverge; the duplication is cheaper than the coupling.
 - `src/pages/ancient/china/page.css` must keep `#loading` as `position: absolute`, not `fixed`. With `inset: 0; z-index: 99` on the viewport it covers `<header>`, and since the panel only disappears when Three.js initialises successfully, an initialisation failure leaves navigation permanently unclickable — the symptom looks like "the menu does nothing", not like a page error.
-- The header menu is grouped (`NAV_GROUPS` in `src/components/layout/root-layout.tsx`), not flat. Group membership is an editorial judgement, so it stays in the component rather than in resource metadata; a startup check rejects leaves that have no matching available resource, so dead links fail loudly.
+### The full-screen menu panel
+
+The header has a single trigger (「全览地图」) that opens one full-screen panel. Inside it, the left column is a vertical `tablist` of categories and the right column is the selected category's complete content; the hand-drawn China map is a decorative backdrop spanning the whole panel. Files:
+
+| File | Role |
+| --- | --- |
+| `src/components/layout/nav-groups.ts` | `NAV_GROUPS` — categories, leaves, blurbs, and each category's `mapZone` |
+| `src/components/layout/site-menu.tsx` | The panel: `role="dialog"` shell, tablist/tabpanel split, focus trap |
+| `src/components/layout/hand-drawn-map.tsx` | Pure presentation — renders the geometry module as SVG |
+| `src/components/layout/china-map-geometry.ts` | Projection, outlines, and per-region marks as plain data |
+
+Decisions worth keeping:
+
+- Group membership is an editorial judgement, so `NAV_GROUPS` stays hardcoded rather than in resource metadata. A startup check still rejects leaves with no matching available resource, so dead links fail loudly.
+- The panel is conditionally mounted (`{menuOpen ? <SiteMenu /> : null}`), not hidden with CSS. That makes "closed means absent" a fact rather than a convention, and avoids needing `inert` to keep the hidden tree out of the accessibility tree. The tradeoff is no exit animation; a CSS entrance animation compensates.
+- Focus is restored to the trigger through an explicit `triggerRef`, not by remembering `document.activeElement` at open time. Firefox on macOS does not focus a `<button>` on click, so the remembered element would be `<body>` and keyboard users would lose their place on close.
+- The focus trap filters focusable nodes by selector only. Do not add an `offsetParent !== null` visibility check: the panel is `position: fixed`, so `offsetParent` is always `null` and the check would empty the list, silently disabling the trap.
+- The tabpanel keeps `tabIndex={0}` (WAI-ARIA APG requires it for scrollable panels). Biome flags this; the suppression above `tabIndex` in `site-menu.tsx` is deliberate.
+- The map sits at the panel root, not inside the left column. China is wide (viewBox 1000×720) and the rail is tall and narrow; with `preserveAspectRatio="meet"` a map confined to the rail renders ~336×242 and wastes most of the column. Spanning the panel lets it fit by height and read at close to full size.
+
+### Editing the hand-drawn map
+
+- **Only `--ink`, `--paper`, `--vermillion`, `--blueprint`, `--ochre` are bare channel triples** (`220 14% 13%`) and can take an alpha suffix. `--card`, `--border`, `--background`, `--foreground`, `--muted` and friends hold *complete* `hsl(...)` values, so `hsl(var(--card) / 0.46)` is invalid CSS that silently falls back to the initial value — `fill` becomes opaque black and the whole map turns into a black board. Use a bare-channel token, or `var(--card)` with no alpha. This failure is invisible to jsdom and only shows up in a real browser.
+- The map container is sized to the rail width (`clamp(15rem, 25vw, 21rem)`) with `aspect-ratio: 1000 / 720`. Both earlier attempts failed and should not be retried: `inset: 0` lets the opaque content panel cover most of it, and a wider box puts the eastern half underneath that panel so only a meaningless slice shows. A smaller but complete outline beats a large cropped one.
+- Outline points are real lon/lat, and `project()` scales longitude by `cos(lat)` **per point**. A single `cos(lat0)` stretches the north — the same reasoning as `makeProjector` in `taiwan.html`. The horizontal scale is derived from the outline data, not hand-tuned, so editing coordinates re-fits the composition automatically.
+- The mainland outline must stay a **simple closed curve**. This is a correctness constraint, not a taste one: `map-land-bleed` strokes the same path at 7px, so any self-intersection stacks 13% ink to near-opaque and shatters the map into black bands. Tracing the real Bohai Bay hairpin is therefore not allowed; the bay is omitted and the Shandong peninsula is simplified away.
+- Hand-drawn feel comes from two independent layers: deterministic per-point `wobble()` offsets, and a Catmull-Rom → cubic Bézier conversion so the outline reads as a curve rather than a polygon. Skipping the Bézier step leaves visible straight runs even under the displacement filter.
+- Wobble uses a seeded `mulberry32` evaluated at **module scope**. If it ran during render, the outline would differ between renders (and shift under StrictMode's double render).
+- Region marks are plain `{ className, d }` strokes rather than JSX, so the geometry module stays render-free and directly testable. `map-stipple` exists as a separate class because a stipple dot's diameter is half its stroke width; at `map-mark`'s 1.9px the dots vanish at rail width.
+- `.site-menu-veil::after` is a pseudo-element of the element that *contains* the category buttons, so it paints over them unless the `<ul>` is raised with `relative z-10`. Without that the unselected tabs look disabled.
+- jsdom does not validate CSS. Neither the alpha-channel bug above nor the `::after` stacking bug is reachable from the test suite — both were found by screenshotting a real browser. Visual changes to this panel need a browser check, not just `pnpm test`.
+- Do not assert that the home entrance overlay is still mounted from a test that renders `/`. GSAP's `rAF` ticker unmounts it once the timeline reaches `onComplete` (~2.5s + a 1s hold), so `findByRole` races the real clock and fails intermittently on a loaded machine. Assert the sessionStorage write instead; `home-entrance-animation.test.tsx` covers the overlay itself with controllable timing.
+- Island rings are sized against the island's actual extent in the viewBox. Taiwan is only ~30 units tall, so ring gaps that look reasonable on Hainan will swallow Taiwan entirely.
 
 ### Block vocabulary in `resources/html/taiwan.html`
 
@@ -145,7 +177,7 @@ Two content conventions are worth knowing before editing:
 
 | Path | Purpose |
 | --- | --- |
-| `src/components/layout/` | Shared layout and navigation |
+| `src/components/layout/` | Shared layout, the full-screen menu panel, and its hand-drawn map |
 | `src/components/ui/` | shadcn/ui primitives |
 | `src/components/` | App-specific components and entrance animation |
 | `src/hooks/` | Reusable hooks |
@@ -208,6 +240,7 @@ Do not change build output settings without updating README and deployment confi
 ## Do / Don't
 
 - Do keep changes minimal and task-focused.
+- Do verify visual changes in a real browser. jsdom parses markup but never resolves CSS, so a broken declaration or a stacking mistake ships green through `pnpm test`.
 - Do preserve existing user or generated changes in the worktree.
 - Do run the full quality gate before finishing.
 - Do update tests when behavior changes.
