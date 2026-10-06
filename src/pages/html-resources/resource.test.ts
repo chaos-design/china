@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import htmlResourcesPageResource, {
@@ -131,6 +134,38 @@ describe("html resource metadata", () => {
     // 全文简体：繁体常见字形不应出现
     for (const traditional of ["臺灣", "歷史", "戰爭", "學習", "東西南北"]) {
       expect(taiwan.html).not.toContain(traditional);
+    }
+
+    // 真实影像块：内联 payload 里的每个 src 都必须指向真实存在的 public 文件，
+    // 防止历史地图/照片死链（jsdom 不加载图片，只有这里能查）。
+    const payload = /<script type="application\/json" id="ndata">\n([\s\S]*?)\n<\/script>/.exec(
+      taiwan.html,
+    )?.[1];
+    expect(payload).toBeTruthy();
+    const taiwanData = JSON.parse(payload ?? "{}") as {
+      chapters: { blocks: { type: string; id?: string; src?: string }[] }[];
+    };
+    const blocks = taiwanData.chapters.flatMap((chapter) => chapter.blocks);
+
+    const imageSrcs = blocks
+      .filter((block) => block.type === "image")
+      .map((block) => block.src)
+      .filter((src): src is string => typeof src === "string");
+    expect(imageSrcs.length).toBeGreaterThan(0);
+    const publicRoot = join(process.cwd(), "public");
+    for (const src of imageSrcs) {
+      expect(src).toMatch(/^\/taiwan\//);
+      expect(() => readFileSync(join(publicRoot, src.slice(1)))).not.toThrow();
+    }
+
+    // art 块按 id 去 ART_SVG 取画稿。id 拼错时 renderArt 返回空串，
+    // 页面上是"标题还在、画没了"，jsdom 里也只有一句空字符串，必须在这里钉住。
+    const artIds = blocks.filter((block) => block.type === "art").map((block) => block.id);
+    expect(artIds.length).toBeGreaterThan(0);
+    const registry = /var ART_SVG = \{([\s\S]*?)\n {2}\};/u.exec(taiwan.html)?.[1] ?? "";
+    for (const id of artIds) {
+      expect(typeof id).toBe("string");
+      expect(registry).toContain(`\n    ${id}:`);
     }
   });
 

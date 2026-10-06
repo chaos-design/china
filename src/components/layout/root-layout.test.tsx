@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RootLayout } from "./root-layout";
 
@@ -12,31 +12,36 @@ function renderLayout(path: string) {
   );
 }
 
-async function openMenu(path = "/") {
+function openMenu(path = "/") {
   renderLayout(path);
-  const nav = await screen.findByRole("navigation");
+  // RootLayout 是静态渲染，nav 与面板都不涉及异步，同步查询即可
+  const nav = screen.getByRole("navigation");
   fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
-  return await screen.findByRole("dialog", { name: "全览目录" });
+  return screen.getByLabelText("全览目录");
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("<RootLayout /> menu trigger", () => {
   it("exposes a single trigger instead of one button per category", async () => {
     renderLayout("/");
     const nav = await screen.findByRole("navigation");
 
-    // 旧版是三个分类各一个下拉按钮。现在只有一个入口，展开后在里面选分类。
+    // 旧版是三个分类各一个下拉按钮。现在只有一个入口，展开后三列并排。
     const triggers = within(nav).getAllByRole("button", { expanded: false });
     expect(triggers).toHaveLength(1);
     expect(triggers[0]).toHaveTextContent("全览地图");
+    // 下拉是披露控件，不是菜单控件
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
-  it("keeps the menu closed until the trigger is clicked", async () => {
+  it("keeps the menu closed until the trigger is used", async () => {
     renderLayout("/");
     await screen.findByRole("navigation");
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("全览目录")).not.toBeInTheDocument();
   });
 
   it("reports its collapsed state through aria-expanded", async () => {
@@ -47,62 +52,39 @@ describe("<RootLayout /> menu trigger", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(trigger).toHaveAttribute("aria-controls", "site-mega-menu");
+  });
+
+  it("opens on hover after a short grace delay", async () => {
+    vi.useFakeTimers();
+    renderLayout("/");
+    const nav = screen.getByRole("navigation");
+    const trigger = within(nav).getByRole("button", { name: /全览地图/ });
+
+    fireEvent.mouseEnter(trigger);
+    // 扫过顶栏不该立刻闪面板
+    expect(screen.queryByLabelText("全览目录")).not.toBeInTheDocument();
+    // 定时器回调里的 setState 要在 act 里刷进 React，否则查询拿到的是旧树
+    await act(async () => {
+      vi.advanceTimersByTime(80);
+    });
+    expect(screen.getByLabelText("全览目录")).toBeInTheDocument();
   });
 });
 
-describe("<SiteMenu /> categories and content", () => {
-  it("shows all three categories as tabs, in editorial order", async () => {
-    const dialog = await openMenu();
-    const tabs = within(dialog).getAllByRole("tab");
+describe("<SiteMenu /> columns and content", () => {
+  it("shows all three categories as columns, in editorial order", async () => {
+    const panel = await openMenu();
+    const titles = Array.from(panel.querySelectorAll(".mega-col")).map(
+      (col) => col.querySelector(".font-kai")?.textContent,
+    );
 
-    expect(tabs.map((tab) => tab.textContent)).toEqual([
-      expect.stringContaining("编年与制度"),
-      expect.stringContaining("文化与交通"),
-      expect.stringContaining("地域与近代"),
-    ]);
+    expect(titles).toEqual(["编年与制度", "文化与交通", "地域与近代"]);
   });
 
-  it("puts the menu on the left and the content on the right", async () => {
-    const dialog = await openMenu();
-    const tablist = within(dialog).getByRole("tablist");
-    const panel = within(dialog).getByRole("tabpanel");
-
-    // 左右分屏是 Tailwind 的 grid 列，不是 DOM 顺序。这里断言的实质是
-    // "列表容器与内容容器是两个独立节点"，顺序由 CSS grid 决定。
-    expect(tablist).toHaveAttribute("aria-label", "内容分类");
-    expect(tablist.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(tablist.className).toContain("site-menu-rail");
-    expect(panel.className).toContain("site-menu-panel");
-  });
-
-  it("opens on the category that owns the current route", async () => {
-    const dialog = await openMenu("/silk-road");
-
-    expect(within(dialog).getByRole("tab", { selected: true })).toHaveTextContent("文化与交通");
-    expect(within(dialog).getByRole("tabpanel")).toHaveTextContent("中华非遗瑰宝");
-  });
-
-  it("falls back to the first category on a route with no category", async () => {
-    const dialog = await openMenu("/");
-
-    expect(within(dialog).getByRole("tab", { selected: true })).toHaveTextContent("编年与制度");
-  });
-
-  it("swaps the whole right-hand panel when another category is picked", async () => {
-    const dialog = await openMenu("/");
-    expect(within(dialog).getByRole("tabpanel")).not.toHaveTextContent("台湾专题");
-
-    fireEvent.click(within(dialog).getByRole("tab", { name: /地域与近代/ }));
-
-    const panel = within(dialog).getByRole("tabpanel");
-    expect(panel).toHaveTextContent("台湾专题");
-    expect(panel).not.toHaveTextContent("朝代政策全览");
-    // 分组导语是"完整内容"的一部分，不能只有一串链接
-    expect(panel).toHaveTextContent("中央山脉把岛切成两半");
-  });
-
-  it("gives every leaf an absolute in-site path, a description and highlights", async () => {
-    const dialog = await openMenu("/");
+  it("lists every destination with an absolute in-site path and a description", async () => {
+    // 下拉与全屏面板不同：三列同时可见，五条入口都在 DOM 里，一次断言完
+    const panel = await openMenu("/");
 
     const expected: [string, RegExp][] = [
       ["/china/timeline", /朝代时间长河/],
@@ -113,161 +95,129 @@ describe("<SiteMenu /> categories and content", () => {
     ];
 
     let visited = 0;
-
-    for (const tabName of [/编年与制度/, /文化与交通/, /地域与近代/]) {
-      fireEvent.click(within(dialog).getByRole("tab", { name: tabName }));
-      const panel = within(dialog).getByRole("tabpanel");
-
-      for (const [href, name] of expected) {
-        // 链接本身的可访问名是"进入"，标题在卡片标题里，所以先按标题找卡片再找链接
-        const heading = within(panel).queryByRole("heading", { name });
-        if (!heading) continue;
-
-        visited += 1;
-        const card = heading.closest("article");
-        expect(card).not.toBeNull();
-
-        const link = within(card as HTMLElement).getByRole("link", { name: /进入/ });
-        expect(link).toHaveAttribute("href", href);
-        // 卡片不能只有一串链接：描述 + 若干短标签才叫"完整内容"
-        expect((card?.textContent ?? "").length).toBeGreaterThan(40);
-        expect(within(card as HTMLElement).getAllByRole("listitem").length).toBeGreaterThan(1);
-      }
+    for (const [href, name] of expected) {
+      const link = within(panel).getByRole("link", { name });
+      visited += 1;
+      expect(link).toHaveAttribute("href", href);
+      // 条目不能只是光秃秃一个标题：描述文本在同一行组件里
+      expect(link.textContent?.length ?? 0).toBeGreaterThan(16);
     }
-
-    // 五个入口一个都不能漏
     expect(visited).toBe(expected.length);
   });
 
-  it("wires each tab to its panel through aria-controls and aria-labelledby", async () => {
-    const dialog = await openMenu();
-    const active = within(dialog).getByRole("tab", { selected: true });
-    const panel = within(dialog).getByRole("tabpanel");
+  it("keeps the editorial blurb of the group owning the current route", async () => {
+    const panel = await openMenu("/taiwan");
 
-    expect(panel).toHaveAttribute("id", active.getAttribute("aria-controls"));
-    expect(panel).toHaveAttribute("aria-labelledby", active.id);
+    // 分组导语现在放在列标题的 title 提示里不可见，改为断言地图分区高亮
+    const activeZones = Array.from(panel.querySelectorAll(".map-zone-active")).map((zone) =>
+      zone.getAttribute("data-zone"),
+    );
+    expect(activeZones).toEqual(["islands"]);
   });
 
-  it("keeps a single tab in the tab order so arrow keys own navigation", async () => {
-    const dialog = await openMenu();
-    const tabs = within(dialog).getAllByRole("tab");
+  it("falls back to the first category on a route with no category", async () => {
+    const panel = await openMenu("/");
 
-    expect(tabs.filter((tab) => tab.getAttribute("tabindex") === "0")).toHaveLength(1);
-    for (const inactive of tabs.filter((tab) => tab.getAttribute("aria-selected") === "false")) {
-      expect(inactive).toHaveAttribute("tabindex", "-1");
-    }
+    const activeZones = Array.from(panel.querySelectorAll(".map-zone-active")).map((zone) =>
+      zone.getAttribute("data-zone"),
+    );
+    expect(activeZones).toEqual(["north"]);
+  });
+
+  it("moves the map highlight to the hovered column", async () => {
+    const panel = await openMenu("/");
+    const column = screen.getByText("地域与近代").closest(".mega-col");
+    expect(column).not.toBeNull();
+
+    // 列的 hover 高亮走 wrapper 上的 mouseover 委托
+    fireEvent.mouseOver(column as HTMLElement);
+    await waitFor(() => {
+      const activeZones = Array.from(panel.querySelectorAll(".map-zone-active")).map((zone) =>
+        zone.getAttribute("data-zone"),
+      );
+      expect(activeZones).toEqual(["islands"]);
+    });
   });
 });
 
 describe("<SiteMenu /> keyboard and dismissal", () => {
-  it("moves between categories with the arrow keys", async () => {
-    const dialog = await openMenu();
-    const tablist = within(dialog).getByRole("tablist");
-
-    fireEvent.keyDown(tablist, { key: "ArrowDown" });
-    expect(within(dialog).getByRole("tab", { selected: true })).toHaveTextContent("文化与交通");
-
-    fireEvent.keyDown(tablist, { key: "ArrowUp" });
-    expect(within(dialog).getByRole("tab", { selected: true })).toHaveTextContent("编年与制度");
-
-    // 从第一类再往上要回到最后一类，而不是停在原地
-    fireEvent.keyDown(tablist, { key: "ArrowUp" });
-    expect(within(dialog).getByRole("tab", { selected: true })).toHaveTextContent("地域与近代");
-
-    fireEvent.keyDown(tablist, { key: "End" });
-    expect(within(dialog).getByRole("tab", { selected: true })).toHaveTextContent("地域与近代");
-
-    fireEvent.keyDown(tablist, { key: "Home" });
-    expect(within(dialog).getByRole("tab", { selected: true })).toHaveTextContent("编年与制度");
-  });
-
-  it("ignores keys it has no meaning for", async () => {
-    const dialog = await openMenu();
-    const tablist = within(dialog).getByRole("tablist");
-
-    fireEvent.keyDown(tablist, { key: "a" });
-
-    expect(within(dialog).getByRole("tab", { selected: true })).toHaveTextContent("编年与制度");
-  });
-
-  it("closes on Escape", async () => {
-    await openMenu();
-    expect(screen.getByRole("dialog", { name: "全览目录" })).toBeInTheDocument();
-
-    fireEvent.keyDown(document, { key: "Escape" });
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("closes when the backdrop is clicked but not the panel itself", async () => {
-    const dialog = await openMenu();
-    const backdrop = screen.getAllByRole("button", { name: "关闭全览目录" })[0];
-
-    fireEvent.click(dialog);
-    expect(screen.getByRole("dialog", { name: "全览目录" })).toBeInTheDocument();
-
-    fireEvent.click(backdrop);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("closes when a destination is chosen", async () => {
-    const dialog = await openMenu("/");
-    fireEvent.click(within(dialog).getByRole("tab", { name: /文化与交通/ }));
-    const card = within(dialog)
-      .getByRole("heading", { name: /丝绸之路与海疆/ })
-      .closest("article");
-
-    fireEvent.click(within(card as HTMLElement).getByRole("link", { name: /进入/ }));
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("returns focus to the trigger after closing", async () => {
+  it("closes on Escape and returns focus to the trigger", async () => {
     renderLayout("/");
     const nav = await screen.findByRole("navigation");
     const trigger = within(nav).getByRole("button", { name: /全览地图/ });
     fireEvent.click(trigger);
-    await screen.findByRole("dialog", { name: "全览目录" });
+    await screen.findByLabelText("全览目录");
 
     fireEvent.keyDown(document, { key: "Escape" });
 
+    expect(screen.queryByLabelText("全览目录")).not.toBeInTheDocument();
     expect(document.activeElement).toBe(trigger);
   });
 
-  it("cycles Tab inside the panel instead of escaping to the page behind", async () => {
-    const dialog = await openMenu();
-    const focusable = Array.from(
-      dialog.querySelectorAll<HTMLElement>("a[href], button:not([disabled])"),
-    );
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    expect(first).toBeDefined();
-    expect(last).toBeDefined();
+  it("closes when a pointer goes down outside the panel but not inside it", async () => {
+    const panel = await openMenu();
 
-    if (last) last.focus();
-    fireEvent.keyDown(document, { key: "Tab" });
-    expect(document.activeElement).toBe(first);
+    fireEvent.pointerDown(panel);
+    expect(screen.getByLabelText("全览目录")).toBeInTheDocument();
 
-    if (first) first.focus();
-    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
-    expect(document.activeElement).toBe(last);
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByLabelText("全览目录")).not.toBeInTheDocument();
   });
 
-  it("moves focus to the newly selected category after an arrow key", async () => {
-    const dialog = await openMenu();
-    fireEvent.keyDown(within(dialog).getByRole("tablist"), { key: "ArrowDown" });
+  it("closes when a destination is chosen", async () => {
+    const panel = await openMenu("/");
+    const link = within(panel).getByRole("link", { name: /丝绸之路与海疆/ });
 
-    // 用 rAF 挪焦点，测试里必须等一帧才能断言
-    await new Promise((resolve) => setTimeout(resolve, 40));
+    fireEvent.click(link);
 
-    expect(document.activeElement).toHaveTextContent("文化与交通");
+    expect(screen.queryByLabelText("全览目录")).not.toBeInTheDocument();
+  });
+
+  it("closes shortly after the pointer leaves trigger and panel", async () => {
+    vi.useFakeTimers();
+    renderLayout("/");
+    const trigger = within(screen.getByRole("navigation")).getByRole("button", {
+      name: /全览地图/,
+    });
+    fireEvent.click(trigger);
+    const panel = screen.getByLabelText("全览目录");
+    // mouseenter/leave 不冒泡，包裹层的监听直接派发到包裹层本身
+    const wrapper = panel.parentElement as HTMLElement;
+
+    fireEvent.mouseLeave(wrapper);
+    // 宽限期内回来不收起
+    await act(async () => {
+      vi.advanceTimersByTime(60);
+    });
+    fireEvent.mouseEnter(wrapper);
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(screen.getByLabelText("全览目录")).toBeInTheDocument();
+
+    fireEvent.mouseLeave(wrapper);
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(screen.queryByLabelText("全览目录")).not.toBeInTheDocument();
+  });
+
+  it("closes when focus leaves the trigger and the panel", () => {
+    const panel = openMenu();
+    const link = within(panel).getByRole("link", { name: /台湾专题/ });
+    link.focus();
+    expect(screen.getByLabelText("全览目录")).toBeInTheDocument();
+
+    // 焦点移出包裹区（relatedTarget 不在面板内）应收起
+    fireEvent.focusOut(link);
+    expect(screen.queryByLabelText("全览目录")).not.toBeInTheDocument();
   });
 });
 
 describe("<SiteMenu /> hand-drawn map", () => {
   it("renders a decorative map that is hidden from assistive tech", async () => {
-    const dialog = await openMenu();
-    const map = dialog.querySelector(".hand-drawn-map");
+    const panel = await openMenu();
+    const map = panel.querySelector(".hand-drawn-map");
 
     expect(map).toBeInstanceOf(SVGElement);
     expect(map).toHaveAttribute("aria-hidden", "true");
@@ -275,8 +225,8 @@ describe("<SiteMenu /> hand-drawn map", () => {
   });
 
   it("draws the landmass and both islands", async () => {
-    const dialog = await openMenu();
-    const map = dialog.querySelector(".hand-drawn-map") as SVGElement;
+    const panel = await openMenu();
+    const map = panel.querySelector(".hand-drawn-map") as SVGElement;
 
     // 洇墨层和正式描边共用 map-land 类，断言要排除掉，否则会数成四条
     const outlines = Array.from(map.querySelectorAll(".map-land:not(.map-land-bleed)")).map(
@@ -291,8 +241,8 @@ describe("<SiteMenu /> hand-drawn map", () => {
   });
 
   it("gives every region its own set of marks", async () => {
-    const dialog = await openMenu();
-    const map = dialog.querySelector(".hand-drawn-map") as SVGElement;
+    const panel = await openMenu();
+    const map = panel.querySelector(".hand-drawn-map") as SVGElement;
     const zones = Array.from(map.querySelectorAll(".map-zone"));
 
     expect(zones.map((zone) => zone.getAttribute("data-zone"))).toEqual([
@@ -305,31 +255,19 @@ describe("<SiteMenu /> hand-drawn map", () => {
     }
   });
 
-  it("lights only the region belonging to the selected category", async () => {
-    const dialog = await openMenu("/");
-    const map = dialog.querySelector(".hand-drawn-map") as SVGElement;
-    const active = () =>
-      Array.from(map.querySelectorAll(".map-zone")).filter((zone) =>
-        zone.classList.contains("map-zone-active"),
-      );
-
-    expect(active().map((zone) => zone.getAttribute("data-zone"))).toEqual(["north"]);
-
-    fireEvent.click(within(dialog).getByRole("tab", { name: /地域与近代/ }));
-    expect(active().map((zone) => zone.getAttribute("data-zone"))).toEqual(["islands"]);
-  });
-
   it("uses the brush filter that gives the strokes their ink edge", async () => {
-    const dialog = await openMenu();
-    const map = dialog.querySelector(".hand-drawn-map") as SVGElement;
+    const panel = await openMenu();
+    const map = panel.querySelector(".hand-drawn-map") as SVGElement;
 
     expect(map.querySelector("#map-brush feTurbulence")).toBeInTheDocument();
     expect(map.querySelector("#map-brush feDisplacementMap")).toBeInTheDocument();
     expect(map.querySelector("g[filter='url(#map-brush)']")).toBeInTheDocument();
   });
 
-  it("keeps the map out of the way of pointer interaction", async () => {
-    const dialog = await openMenu();
-    expect(dialog.querySelector(".site-menu-map")?.className).toContain("pointer-events-none");
+  it("keeps the map strip out of the way of pointer interaction", async () => {
+    const panel = await openMenu();
+    const strip = panel.querySelector(".mega-map");
+    expect(strip).not.toBeNull();
+    expect(strip?.className).toContain("pointer-events-none");
   });
 });

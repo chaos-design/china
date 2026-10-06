@@ -20,6 +20,74 @@ function coordinatesOf(d: string): [number, number][] {
   return pairs;
 }
 
+/** 把 M + 一串 C 的路径按三次贝塞尔采样成闭合折线，供自交检查用。 */
+function samplePath(d: string, steps = 24): [number, number][] {
+  const numbers = d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  const [startX, startY] = [numbers[0] as number, numbers[1] as number];
+  const points: [number, number][] = [[startX, startY]];
+  const cubicAt = (
+    p0: [number, number],
+    p1: [number, number],
+    p2: [number, number],
+    p3: [number, number],
+    t: number,
+  ): [number, number] => {
+    const u = 1 - t;
+    const a = u * u * u;
+    const b = 3 * u * u * t;
+    const c = 3 * u * t * t;
+    const e = t * t * t;
+    return [
+      a * p0[0] + b * p1[0] + c * p2[0] + e * p3[0],
+      a * p0[1] + b * p1[1] + c * p2[1] + e * p3[1],
+    ];
+  };
+  for (let index = 2; index + 5 < numbers.length; index += 6) {
+    const p0 = points[points.length - 1] as [number, number];
+    const p1 = [numbers[index] as number, numbers[index + 1] as number] as [number, number];
+    const p2 = [numbers[index + 2] as number, numbers[index + 3] as number] as [number, number];
+    const p3 = [numbers[index + 4] as number, numbers[index + 5] as number] as [number, number];
+    for (let step = 1; step <= steps; step += 1) {
+      points.push(cubicAt(p0, p1, p2, p3, step / steps));
+    }
+  }
+  return points;
+}
+
+/** 严格相交（不含端点相触），相邻线段共享端点不算交。 */
+function segmentsCross(
+  a1: [number, number],
+  a2: [number, number],
+  b1: [number, number],
+  b2: [number, number],
+): boolean {
+  const orient = (p: [number, number], q: [number, number], r: [number, number]) =>
+    (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+  const d1 = orient(a1, a2, b1);
+  const d2 = orient(a1, a2, b2);
+  const d3 = orient(b1, b2, a1);
+  const d4 = orient(b1, b2, a2);
+  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+}
+
+/** 折线是否自交。闭合折线的首尾两段视为相邻。 */
+function selfIntersects(points: [number, number][]): boolean {
+  const count = points.length;
+  const last = count - 1;
+  for (let i = 0; i < count; i += 1) {
+    const a1 = points[i] as [number, number];
+    const a2 = points[(i + 1) % count] as [number, number];
+    for (let j = i + 2; j < count; j += 1) {
+      // 首尾两段共享闭合端点，视为相邻
+      if (i === 0 && j === last) continue;
+      const b1 = points[j] as [number, number];
+      const b2 = points[(j + 1) % count] as [number, number];
+      if (segmentsCross(a1, a2, b1, b2)) return true;
+    }
+  }
+  return false;
+}
+
 describe("project()", () => {
   it("maps the north-west corner of the viewBox to the origin", () => {
     expect(project(MAP_VIEW.lon0, MAP_VIEW.lat1)).toEqual([0, 0]);
@@ -96,6 +164,16 @@ describe("land outlines", () => {
     // 洇墨层复用同一条轮廓，只是描得更粗更淡，所以点数必须一致
     expect(coordinatesOf(MAP_LAND_BLEED)).toHaveLength(coordinatesOf(MAP_LAND_OUTLINE).length);
     expect(MAP_LAND_BLEED).not.toBe(MAP_LAND_OUTLINE);
+  });
+
+  it("keeps the mainland a simple closed curve — no self-intersection after smoothing", () => {
+    // 这是正确性约束而非审美：洇墨层用 7px 低透明度描同一条线，
+    // 一旦平滑后的曲线自交，交叠处墨色叠成近黑，地图碎成黑带。
+    // 对轮廓与洇墨两条路径都采样检查。
+    const sampled = samplePath(MAP_LAND_OUTLINE);
+    expect(sampled.length).toBeGreaterThan(100);
+    expect(selfIntersects(sampled), "mainland outline").toBe(false);
+    expect(selfIntersects(samplePath(MAP_LAND_BLEED)), "mainland bleed").toBe(false);
   });
 
   it("draws the two islands well clear of the mainland coast", () => {

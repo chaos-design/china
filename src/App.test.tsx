@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -114,11 +117,11 @@ describe("<App /> routing", () => {
     expect(screen.queryByRole("link", { name: /^01\s+home$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /about/i })).not.toBeInTheDocument();
 
-    // 顶部菜单是单一入口的全屏面板，不是每个分类一个下拉
+    // 顶部菜单是单一入口的下拉面板，不是每个分类一个下拉
     const trigger = within(nav).getByRole("button", { name: /全览地图/ });
-    expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+    expect(trigger).toHaveAttribute("aria-haspopup", "true");
     expect(trigger).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("全览目录")).not.toBeInTheDocument();
 
     expect(screen.getByRole("link", { name: /chaos-design\/china/i })).toHaveAttribute(
       "href",
@@ -126,31 +129,35 @@ describe("<App /> routing", () => {
     );
   });
 
-  it("lists every destination inside the full-screen menu panel", async () => {
+  it("lists every destination inside the header mega menu", async () => {
     renderAt("/");
     const nav = await screen.findByRole("navigation");
     fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
-    const panel = await screen.findByRole("dialog", { name: "全览目录" });
+    const panel = await screen.findByLabelText("全览目录");
 
     for (const group of ["编年与制度", "文化与交通", "地域与近代"]) {
-      expect(within(panel).getByRole("tab", { name: new RegExp(group) })).toBeInTheDocument();
+      expect(
+        Array.from(panel.querySelectorAll(".mega-col .font-kai")).some(
+          (node) => node.textContent === group,
+        ),
+      ).toBe(true);
     }
 
-    // 五个入口分散在三个分类里，逐个分类走一遍才算覆盖
-    for (const [path, name] of [
+    // 下拉三列同时可见：五个入口一次点齐，visited 计数防空转
+    const destinations = [
       ["/china/timeline", /朝代时间长河/],
       ["/china/policies", /朝代政策全览/],
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],
-    ] as const) {
-      for (const group of ["编年与制度", "文化与交通", "地域与近代"]) {
-        fireEvent.click(within(panel).getByRole("tab", { name: new RegExp(group) }));
-        const card = within(panel).queryByRole("heading", { name })?.closest("article");
-        if (!card) continue;
-        expect(within(card).getByRole("link", { name: /进入/ })).toHaveAttribute("href", path);
-      }
+    ] as const;
+    let visited = 0;
+    for (const [path, name] of destinations) {
+      const link = within(panel).getByRole("link", { name });
+      visited += 1;
+      expect(link).toHaveAttribute("href", path);
     }
+    expect(visited).toBe(destinations.length);
   });
 
   it("shows the footer only on the home route", async () => {
@@ -209,47 +216,49 @@ describe("<App /> routing", () => {
     expect(screen.queryByRole("heading", { name: "此页未载入史册" })).not.toBeInTheDocument();
   });
 
-  it("splits the panel into a category rail and a content pane", async () => {
+  it("anchors the mega menu under the header with the decorative map strip", async () => {
     renderAt("/");
     const nav = await screen.findByRole("navigation");
     fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
-    const panel = await screen.findByRole("dialog", { name: "全览目录" });
+    const panel = await screen.findByLabelText("全览目录");
 
-    // 左右分屏：左手 tablist，右手 tabpanel，地图铺在两者底下
-    expect(within(panel).getByRole("tablist")).toHaveAttribute("aria-orientation", "vertical");
-    expect(within(panel).getByRole("tabpanel")).toHaveTextContent("编年与制度");
-    expect(panel.querySelector(".site-menu-map")).toBeInTheDocument();
+    // 三列分类 + 右缘地图带，全部挂在顶栏 DOM 里
+    expect(panel.querySelectorAll(".mega-col")).toHaveLength(3);
+    expect(panel.querySelector(".mega-map")).toBeInTheDocument();
     // 装饰地图不进无障碍树
     expect(panel.querySelector(".hand-drawn-map")).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("preselects the category that owns the current route", async () => {
+  it("highlights the map region that owns the current route", async () => {
     renderAt("/taiwan");
     const nav = await screen.findByRole("navigation");
     fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
-    const panel = await screen.findByRole("dialog", { name: "全览目录" });
+    const panel = await screen.findByLabelText("全览目录");
 
-    // 当前路由 /taiwan 属于「地域与近代」，面板打开就停在这一类
-    expect(within(panel).getByRole("tab", { selected: true })).toHaveTextContent("地域与近代");
-    expect(within(panel).getByRole("tabpanel")).toHaveTextContent("台湾专题");
+    // 当前路由 /taiwan 属于「地域与近代」，地图上台湾一带保持点亮
+    const activeZones = Array.from(panel.querySelectorAll(".map-zone-active")).map((zone) =>
+      zone.getAttribute("data-zone"),
+    );
+    expect(activeZones).toEqual(["islands"]);
   });
 
   it("navigates from the timeline route to the policies route", async () => {
     // 回归：时间长河曾注入 position:fixed; inset:0 的 #loading 遮罩，
     // 初始化失败时它盖住 <header>，导航点击完全失效。
+    // jsdom 不解析 CSS，只能直接检查样式表文本；
+    // 检查 DOM 的 class 断言永远空转，因为元素上从来没有 Tailwind 的 fixed 类。
+    const pageCss = readFileSync(join(process.cwd(), "src/pages/ancient/china/page.css"), "utf8");
+    expect(pageCss).toMatch(/#loading\s*\{[^}]*position:\s*absolute/);
+    expect(pageCss).not.toMatch(/#loading\s*\{[^}]*position:\s*fixed/);
+
     renderAt("/china/timeline");
     const nav = await screen.findByRole("navigation");
 
     expect(document.querySelector("#loading")).toBeInTheDocument();
-    // 遮罩必须限制在内容区内，不能相对视口铺满
-    expect(document.querySelector("#loading")).not.toHaveClass("fixed");
 
     fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
-    const panel = await screen.findByRole("dialog", { name: "全览目录" });
-    const card = within(panel)
-      .getByRole("heading", { name: /朝代政策全览/ })
-      .closest("article");
-    fireEvent.click(within(card as HTMLElement).getByRole("link", { name: /进入/ }));
+    const panel = await screen.findByLabelText("全览目录");
+    fireEvent.click(within(panel).getByRole("link", { name: /朝代政策全览/ }));
 
     // 路由切换成功：政策页的朝代标题出现，且时间轴已卸载
     expect(await screen.findByRole("heading", { name: /秦/ })).toBeInTheDocument();

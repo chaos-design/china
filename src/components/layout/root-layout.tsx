@@ -1,5 +1,4 @@
-import { Asterisk, Compass } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { Asterisk } from "lucide-react";
 import { Link, matchPath, Outlet, useLocation } from "react-router-dom";
 import { useAccent } from "../../hooks/use-accent";
 import { ROUTE_LAYOUT_CONFIGS } from "../../route-layout-config";
@@ -28,15 +27,11 @@ export function RootLayout() {
   const showFooter = layoutConfig?.showFooter ?? false;
   const showThemePicker = layoutConfig?.showThemePicker ?? false;
   const accentState = useAccent();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuTriggerRef = useRef<HTMLButtonElement>(null);
 
   // 直接派生，不需要 state：路由变了就重算，避免多一次渲染与一处可能过期的副本。
   const activeGroupId = findNavGroupId(location.pathname, (path, pathname) =>
     Boolean(matchPath({ path, end: true }, pathname)),
   );
-
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   return (
     <div className="paper-backdrop flex h-screen overflow-hidden flex-col font-body text-foreground">
@@ -55,17 +50,7 @@ export function RootLayout() {
               {NAV_GROUPS.length} 类 /{" "}
               {NAV_GROUPS.reduce((total, group) => total + group.items.length, 0)} 篇
             </span>
-            <button
-              aria-expanded={menuOpen}
-              aria-haspopup="dialog"
-              className="btn-ink inline-flex items-center gap-2 rounded-full bg-paper/90 px-4 py-1.5 font-kai text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-              onClick={() => setMenuOpen(true)}
-              ref={menuTriggerRef}
-              type="button"
-            >
-              <Compass aria-hidden="true" className="h-4 w-4 text-primary" />
-              全览地图
-            </button>
+            <SiteMenu activeRouteGroupId={activeGroupId} />
           </div>
         </nav>
       </header>
@@ -92,13 +77,6 @@ export function RootLayout() {
       </main>
 
       {showThemePicker ? <AccentPicker {...accentState} /> : null}
-      {menuOpen ? (
-        <SiteMenu
-          activeRouteGroupId={activeGroupId}
-          onClose={closeMenu}
-          triggerRef={menuTriggerRef}
-        />
-      ) : null}
     </div>
   );
 }

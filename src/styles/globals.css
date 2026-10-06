@@ -476,12 +476,22 @@
   box-shadow: 0 0 0 0 hsl(var(--ink));
 }
 
-/* ---------------------------------------------------------------- 菜单面板 */
+/* ------------------------------------------------------------ 手绘中国舆图 */
 
-@keyframes site-menu-in {
+/* 基础规则必须排在 .mega-map .hand-drawn-map 之前：
+   反过来会形成降序专一性，基础 display/尺寸在某些工具链下被覆盖告警。 */
+.hand-drawn-map {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ------------------------------------------------------------ 顶栏下拉菜单 */
+
+@keyframes mega-menu-in {
   from {
     opacity: 0;
-    transform: translateY(0.75rem) scale(0.995);
+    transform: translateY(-0.4rem) scale(0.99);
   }
   to {
     opacity: 1;
@@ -489,130 +499,48 @@
   }
 }
 
-@keyframes site-menu-backdrop-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+/* 面板：锚在触发器下方、与导航内容区对齐的一张"纸"。
+   列间用细分隔线，右缘留一条手绘地图带（<xl 隐藏）。 */
+.mega-panel {
+  animation: mega-menu-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  box-shadow: 0 24px 60px hsl(var(--ink) / 0.16);
+  transform-origin: top right;
 }
 
-.site-menu {
-  animation: site-menu-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
-  background: hsl(var(--paper));
-  outline: none;
-}
-
-.site-menu-backdrop {
-  animation: site-menu-backdrop-in 0.22s ease both;
-}
-
-/* 地图铺满整个面板作为底纹。
-   中国是横长的（viewBox 1000×720），容器必须够宽，SVG 才能按高度贴合拿到一张接近
-   满屏的图。铺在面板根部而不是左栏内部，正是为了这个。 */
-/* 地图容器。
-   宽高必须锁成地图自己的比例（viewBox 1000×720 ≈ 1.39:1），不能靠 inset 拉满。
-   之前用 inset:0 + right:38% 得到一个 ~890×900 的近正方形容器，SVG 的
-   preserveAspectRatio="meet" 于是按宽度贴合、把上下裁掉近三分之一——只剩
-   一条压扁的横带，完全认不出是中国。
-   现在按左半边的可用宽度取高，地图完整落在左栏后面，右缘淡出接进分栏线。 */
-/* 地图容器。
-   宽度必须等于左栏宽度（同一个 clamp 表达式），并保持 viewBox 的 1000:720 比例。
-   之前试过两种更宽的摆法，都失败了：
-   - inset:0 铺满面板：右栏那块不透明文字区把地图盖掉大半；
-   - width:62%：地图有 893px 宽，而左栏只有 336px，右半截压在文字区底下，
-     露出来的是新疆到中原的一条切片，完全认不出是中国。
-   一张认不出来的地图不如一张小的：宽度对齐左栏，轮廓完整，纵向居中。 */
-.site-menu-map {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  z-index: 0;
-  width: clamp(15rem, 25vw, 21rem);
-  aspect-ratio: 1000 / 720;
-  translate: 0 -50%;
-  opacity: 1;
-}
-
-/* 左手栏：半透明，让底下的地图透出来。
-   不用 border-radius 的卡片——全屏面板本身已经是"一张纸"，
-   再给左栏加圆角会露出下面的一层边，看着像两张纸叠在一起。 */
-/* 左栏底衬。中间一大段必须够透，地图才看得见；两端压实是为了分类按钮
-   所在的上半部不糊、地图也不至于顶到分栏线上。 */
-.site-menu-rail {
-  background: linear-gradient(
-    90deg,
-    hsl(var(--paper) / 0.92),
-    hsl(var(--paper) / 0.18) 55%,
-    hsl(var(--paper) / 0.86)
-  );
-}
-
-/* 竖向渐隐：顶上一段压住按钮区，底部一段收尾，中间放开给地图 */
-.site-menu-veil::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    hsl(var(--paper) / 0.95) 0%,
-    hsl(var(--paper) / 0.7) 20%,
-    hsl(var(--paper) / 0) 34%,
-    hsl(var(--paper) / 0) 72%,
-    hsl(var(--paper) / 0.9) 100%
-  );
-}
-
-/* 右手必须完全不透明：这块是长文阅读区，压着地图读会花。
-   注意这里只能用 --paper / --ink / --vermillion 这几个"裸通道"变量。
-   --card 与 --border 存的是完整的 hsl(...) 值，写成 hsl(var(--card) / 0.5)
-   是非法 CSS，会静默回退到初始值——fill 回退成黑色，background 回退成 none。 */
-.site-menu-panel {
-  border-left: 1px solid hsl(var(--ink) / 0.12);
-  background:
-    linear-gradient(180deg, hsl(var(--paper)), hsl(var(--paper))),
-    radial-gradient(circle at 92% 4%, hsl(var(--vermillion) / 0.07), transparent 38%);
-}
-
-.site-menu-card {
-  border: 1px solid hsl(var(--ink) / 0.14);
-  border-radius: calc(var(--radius) * 2);
-  background: hsl(var(--paper));
-  box-shadow: inset 0 1px 0 hsl(var(--paper) / 0.7);
+/* 条目行：整行可点，悬停时淡染纸色并轻微右移，路径徽标保持安静 */
+.mega-link {
   transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+    background-color 0.15s ease,
+    transform 0.15s ease;
 }
 
-.site-menu-card:hover {
-  transform: translateY(-2px);
-  border-color: hsl(var(--vermillion) / 0.34);
-  box-shadow: 0 16px 36px hsl(var(--ink) / 0.08);
+.mega-link:hover {
+  background: hsl(var(--ink) / 0.045);
+  transform: translateX(2px);
 }
 
-/* 窄屏折叠为单列：左右分屏在手机上没有空间，改成菜单在上、内容在下。
-   地图保持铺满面板，此时它按宽度贴合，正好落在左栏那条菜单带后面。 */
+/* 右缘地图带：淡入纸面，边缘用遮罩融进面板，不做一张"贴上去的图" */
+.mega-map {
+  background:
+    radial-gradient(circle at 30% 20%, hsl(var(--vermillion) / 0.05), transparent 45%),
+    linear-gradient(90deg, hsl(var(--paper)) 0%, hsl(var(--paper) / 0.4) 40%);
+}
+
+.mega-map .hand-drawn-map {
+  opacity: 0.85;
+  -webkit-mask-image: radial-gradient(ellipse 78% 72% at 52% 50%, #000 55%, transparent 98%);
+  mask-image: radial-gradient(ellipse 78% 72% at 52% 50%, #000 55%, transparent 98%);
+}
+
 @media (max-width: 1023px) {
-  .site-menu-rail {
-    border-right: none;
-    border-bottom: 1px solid hsl(var(--ink) / 0.12);
-  }
-
-  .site-menu-panel {
-    border-left: none;
+  /* 窄屏没有 hover，也没有三列的宽度：面板占满内容区、单列堆叠 */
+  .mega-panel {
+    left: auto;
+    right: 0;
   }
 }
 
 /* ------------------------------------------------------------ 手绘中国舆图 */
-
-.hand-drawn-map {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
 
 /* 陆地填色用 --paper 而不是 --card：--card 存的是完整 hsl() 值，
    拼进 hsl(var(--card) / 0.46) 是非法 CSS，fill 会静默回退成不透明黑，
@@ -633,7 +561,6 @@
   fill: none;
   stroke: hsl(var(--ink) / 0.1);
   stroke-width: 7;
-  filter: none;
 }
 
 .map-land-faint {
@@ -697,13 +624,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .site-menu,
-  .site-menu-backdrop {
+  .mega-panel {
     animation: none;
   }
 
   .map-zone,
-  .site-menu-card,
+  .mega-link,
   .hand-drawn-map {
     transition: none;
   }

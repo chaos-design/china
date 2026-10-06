@@ -1,287 +1,253 @@
-import { ArrowRight, Compass, X } from "lucide-react";
-import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { Compass } from "lucide-react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 
 import { cn } from "../../lib/utils";
 import { HandDrawnMap } from "./hand-drawn-map";
 import { NAV_GROUPS, type NavGroup } from "./nav-groups";
 
-const FOCUSABLE =
-  'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"]), summary, input, select, textarea';
-
-interface SiteMenuProps {
-  /** 当前路由所属的分组；不在任何分组内时回落到第一个，保证面板永远有内容。 */
-  activeRouteGroupId: string | undefined;
-  onClose: () => void;
-  /** 打开面板的按钮。关闭时焦点必须回到它，见下面 effect 里的说明。 */
-  triggerRef: RefObject<HTMLButtonElement | null>;
-}
-
-function tabIdFor(group: NavGroup) {
-  return `site-menu-tab-${group.id}`;
-}
-
-function panelIdFor(group: NavGroup) {
-  return `site-menu-panel-${group.id}`;
-}
+const MENU_PANEL_ID = "site-mega-menu";
+/** 鼠标离开触发器/面板后，宽限这么多毫秒才收起，穿过缝隙不会把菜单关掉。 */
+const CLOSE_GRACE_MS = 140;
+/** 悬停经过触发器时略等片刻再展开，扫过顶栏不会一路闪面板。 */
+const OPEN_DELAY_MS = 60;
 
 /**
- * 全屏菜单面板。左手是分类，右手是该分类的完整内容，地图是左手那栏的底纹。
+ * 顶栏巨型下拉菜单（参考站外导航的多栏下拉交互）：
+ * 触发器悬停即展开，点击切换，移出面板/触发器一段宽限后收起，Escape 关闭。
  *
- * 为什么面板由 RootLayout 条件挂载而不是常驻：
- * 常驻意味着滤镜、地图路径、几十个节点一直挂在 DOM 上，遮罩的 aria 语义也要靠
- * inert 之类的手段才能对屏幕阅读器隐藏。条件挂载让"打开才存在"变成事实而不是约定，
- * 代价只是没有退出动画——用 CSS 入场动画补偿更划算。
+ * 与旧版全屏面板的差别是有意的：
+ * - 下拉是「披露控件」（disclosure pattern）而不是模态框——它不接管页面，
+ *   因此不需要焦点陷阱、backdrop 和 inert；焦点可以自由进出面板，
+ *   焦点离开触发器与面板时自动收起，键盘用户和鼠标用户走同一套关闭逻辑。
+ * - 面板常驻在顶栏 DOM 里（内容按 open 条件挂载），定位锚在导航栏下方，
+ *   宽度与导航内容区对齐，三列分类并排，右侧留一条手绘地图带。
+ * - 手绘地图仍在：它跟着「悬停/当前路由的分区」高亮，是面板的识别性装饰，
+ *   窄屏（<xl）整体隐藏，不参与布局。
+ * - 鼠标与焦点处理都挂在 wrapperRef 的原生监听上而不是 JSX 属性：
+ *   包裹层和列都是纯静态元素，Biome（以及 ARIA 本身）不允许给静态元素
+ *   挂交互处理器；委托还能让列的 hover 高亮只写一处。
  */
-export function SiteMenu({ activeRouteGroupId, onClose, triggerRef }: SiteMenuProps) {
-  const initialGroupId = NAV_GROUPS.some((group) => group.id === activeRouteGroupId)
-    ? (activeRouteGroupId as string)
-    : NAV_GROUPS[0].id;
+export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | undefined }) {
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+  const [hoverGroupId, setHoverGroupId] = useState<string | undefined>(undefined);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const openTimerRef = useRef<number | null>(null);
 
-  const [activeGroupId, setActiveGroupId] = useState(initialGroupId);
+  // 当前路由所属分组，决定默认高亮列与地图分区
   const activeGroup = useMemo(
-    () => NAV_GROUPS.find((group) => group.id === activeGroupId) ?? NAV_GROUPS[0],
-    [activeGroupId],
+    () => NAV_GROUPS.find((group) => group.id === activeRouteGroupId) ?? NAV_GROUPS[0],
+    [activeRouteGroupId],
   );
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const tabRefs = useRef(new Map<string, HTMLButtonElement>());
+  const focusGroupId = hoverGroupId ?? activeGroup.id;
+  const focusGroup = NAV_GROUPS.find((group) => group.id === focusGroupId) ?? NAV_GROUPS[0];
 
-  const focusTab = useCallback((groupId: string) => {
-    setActiveGroupId(groupId);
-    // 等 tabpanel 换完再挪焦点，否则 arrow 键连按会打在旧面板的元素上。
-    window.requestAnimationFrame(() => tabRefs.current.get(groupId)?.focus());
+  const cancelTimers = useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (openTimerRef.current !== null) {
+      window.clearTimeout(openTimerRef.current);
+      openTimerRef.current = null;
+    }
   }, []);
 
-  // Esc 关闭 + Tab 焦点循环 + 关闭后把焦点还给触发按钮。
-  // 这三件事必须挂在同一个 effect 里：拆开就会出现"焦点跑了但没关"或"关了但焦点丢了"。
+  const scheduleOpen = useCallback(() => {
+    cancelTimers();
+    openTimerRef.current = window.setTimeout(() => {
+      setOpen(true);
+      openTimerRef.current = null;
+    }, OPEN_DELAY_MS);
+  }, [cancelTimers]);
+
+  const scheduleClose = useCallback(() => {
+    cancelTimers();
+    closeTimerRef.current = window.setTimeout(() => {
+      setOpen(false);
+      closeTimerRef.current = null;
+    }, CLOSE_GRACE_MS);
+  }, [cancelTimers]);
+
+  // 路由变化即收起：跳转后面板仍开着会挡住新页面。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 重置 effect 故意只依赖路由 pathname，体内不需要读它
   useEffect(() => {
-    const dialog = dialogRef.current;
-    dialog?.focus();
+    setOpen(false);
+    setHoverGroupId(undefined);
+  }, [location.pathname]);
 
-    function handleKeyDown(event: KeyboardEvent) {
+  // document 级兜底：Escape、面板外按下、焦点离开（披露模式没有焦点陷阱，靠这些关闭）
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-
-      if (event.key !== "Tab" || !dialog) return;
-
-      // 不用 offsetParent 过滤可见性：面板整体是 position: fixed，
-      // offsetParent 恒为 null，这个判断会把所有元素都滤掉，循环焦点直接失效。
-      // 面板是条件挂载的，里面没有折叠或 display:none 的分支，选择器过滤已经够了。
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE));
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (!first || !last) return;
-
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
+        setOpen(false);
+        triggerRef.current?.focus();
       }
     }
+    function onPointerDown(event: PointerEvent) {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      if (event.target instanceof Node && wrapper.contains(event.target)) return;
+      setOpen(false);
+    }
+    function onFocusOut(event: FocusEvent) {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const next = event.relatedTarget;
+      if (next instanceof Node && wrapper.contains(next)) return;
+      setOpen(false);
+    }
 
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("focusout", onFocusOut);
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      // 焦点回到触发按钮，而不是记住打开时的 activeElement：
-      // Firefox 在 macOS 上点击 button 不会给它焦点，那样记下来的 activeElement
-      // 是 body，关闭后键盘用户就丢了落脚点。
-      triggerRef.current?.focus();
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("focusout", onFocusOut);
     };
-  }, [onClose, triggerRef]);
+  }, [open]);
 
-  function handleTabKeyDown(event: React.KeyboardEvent) {
-    const index = NAV_GROUPS.findIndex((group) => group.id === activeGroupId);
-    if (index < 0) return;
+  // wrapper 上的鼠标/焦点处理。mouseenter/mouseleave 不冒泡，直接挂在
+  // 包裹元素上正好覆盖「触发器 + 面板」整体；mouseover 委托负责列高亮。
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
 
-    let nextIndex: number | null = null;
-    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
-      nextIndex = (index + 1) % NAV_GROUPS.length;
-    } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
-      nextIndex = (index - 1 + NAV_GROUPS.length) % NAV_GROUPS.length;
-    } else if (event.key === "Home") {
-      nextIndex = 0;
-    } else if (event.key === "End") {
-      nextIndex = NAV_GROUPS.length - 1;
-    }
+    // 用 const 箭头函数而不是 function 声明：函数声明会提升到 null 守卫之前，
+    // TS 无法在闭包里保留 wrapper 的非空收窄
+    const onWrapperOver = (event: MouseEvent) => {
+      const column = (event.target instanceof Element ? event.target : null)?.closest(
+        "[data-menu-group]",
+      );
+      if (column) setHoverGroupId(column.getAttribute("data-menu-group") ?? undefined);
+    };
+    const onWrapperFocusOut = (event: FocusEvent) => {
+      const next = event.relatedTarget;
+      if (next instanceof Node && wrapper.contains(next)) return;
+      setOpen(false);
+    };
 
-    if (nextIndex === null) return;
-    event.preventDefault();
-    focusTab(NAV_GROUPS[nextIndex].id);
+    wrapper.addEventListener("mouseenter", cancelTimers);
+    wrapper.addEventListener("mouseleave", scheduleClose);
+    wrapper.addEventListener("mouseover", onWrapperOver);
+    wrapper.addEventListener("focusout", onWrapperFocusOut);
+    return () => {
+      wrapper.removeEventListener("mouseenter", cancelTimers);
+      wrapper.removeEventListener("mouseleave", scheduleClose);
+      wrapper.removeEventListener("mouseover", onWrapperOver);
+      wrapper.removeEventListener("focusout", onWrapperFocusOut);
+    };
+  }, [cancelTimers, scheduleClose]);
+
+  // 卸载时清掉挂起的定时器，避免 StrictMode 双挂载后残留一个迟到的 setOpen
+  useEffect(() => cancelTimers, [cancelTimers]);
+
+  function renderColumn(group: NavGroup): ReactNode {
+    const isFocus = group.id === focusGroup.id;
+    return (
+      <div
+        className={cn(
+          "mega-col relative flex flex-col gap-1.5 px-5 py-5 sm:px-6",
+          // 分隔线只在列与列之间，末列不画
+          group.id !== NAV_GROUPS[NAV_GROUPS.length - 1].id && "lg:border-ink/10 lg:border-r",
+        )}
+        data-menu-group={group.id}
+        key={group.id}
+      >
+        <div className="flex items-baseline justify-between gap-3 pb-2">
+          <span className="font-kai text-base text-ink">{group.label}</span>
+          <span className="font-mono-tech text-[10px] text-muted-foreground uppercase">
+            {String(group.items.length).padStart(2, "0")}
+          </span>
+        </div>
+        <ul className="flex flex-col">
+          {group.items.map((item) => (
+            <li key={item.to}>
+              <NavLink
+                className={cn(
+                  "mega-link -mx-2 flex flex-col gap-0.5 rounded-md px-2 py-2",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                )}
+                onClick={() => setOpen(false)}
+                to={item.to}
+              >
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="font-kai text-[15px] text-ink">{item.label}</span>
+                  <span className="font-mono-tech text-[10px] text-muted-foreground">
+                    {item.to}
+                  </span>
+                </span>
+                <span className="text-xs leading-relaxed text-muted-foreground">
+                  {item.description}
+                </span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+        {/* 当前分组淡染一层底色，扫过列时随 hover 走（纯装饰） */}
+        <div
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-x-0 bottom-0 top-0 -z-10 transition-opacity duration-200",
+            isFocus ? "opacity-100" : "opacity-0",
+          )}
+          style={{
+            background:
+              "linear-gradient(180deg, hsl(var(--vermillion) / 0.05), hsl(var(--vermillion) / 0.015) 55%, transparent)",
+          }}
+        />
+      </div>
+    );
   }
 
   return (
-    <div className="fixed inset-0 z-50">
-      {/* 遮罩做成 button 而不是 div：Esc 与关闭按钮是键盘路径，
-          这里只需要一个可点的"关掉"目标，button 自带 Enter/Space 语义。 */}
+    <div className="relative" ref={wrapperRef}>
       <button
-        aria-label="关闭全览目录"
-        className="site-menu-backdrop absolute inset-0 h-full w-full cursor-default bg-ink/45 backdrop-blur-sm"
-        onClick={onClose}
+        aria-controls={MENU_PANEL_ID}
+        aria-expanded={open}
+        aria-haspopup="true"
+        className="btn-ink inline-flex items-center gap-2 rounded-full bg-paper/90 px-4 py-1.5 font-kai text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+        onClick={() => setOpen((value) => !value)}
+        onFocus={scheduleOpen}
+        onMouseEnter={scheduleOpen}
+        ref={triggerRef}
         type="button"
-      />
-
-      <div
-        aria-label="全览目录"
-        aria-modal="true"
-        className="site-menu relative flex h-full w-full flex-col"
-        ref={dialogRef}
-        role="dialog"
-        tabIndex={-1}
       >
-        {/* 地图铺满整个面板，作为底纹。
-            放在面板根部而不是左栏内部是有原因的：中国是横长的（viewBox 1000×720），
-            左栏是竖窄的（~336×700）。SVG 用 preserveAspectRatio="meet" 时按宽度贴合，
-            塞进左栏只有 336×242，上下会空出四百多像素。铺满面板则能按高度贴合，
-            得到一张接近满屏的大图。
-            地图压在左手栏那一侧（inset 负值收到左半边），右半边完全留给文字。 */}
-        <div className="site-menu-map pointer-events-none">
-          <HandDrawnMap activeZone={activeGroup.mapZone} />
-        </div>
+        <Compass aria-hidden="true" className="h-4 w-4 text-primary" />
+        全览地图
+      </button>
 
-        <header className="relative z-10 flex shrink-0 items-center justify-between gap-4 border-ink/10 border-b bg-paper/78 px-5 py-3 backdrop-blur-xl sm:px-8">
-          <div className="flex items-baseline gap-3">
-            <Compass aria-hidden="true" className="h-4 w-4 self-center text-primary" />
-            <h2 className="font-kai text-lg text-ink">全览目录</h2>
-            <span className="hidden font-mono-tech text-[10px] tracking-[0.25em] text-muted-foreground uppercase sm:inline">
-              atlas index
-            </span>
-          </div>
-          <button
-            aria-label="关闭全览目录"
-            className="btn-ink grid h-9 w-9 place-items-center rounded-full bg-paper/90 text-ink"
-            onClick={onClose}
-            type="button"
-          >
-            <X aria-hidden="true" className="h-4 w-4" />
-          </button>
-        </header>
+      {open ? (
+        <section
+          aria-label="全览目录"
+          className={cn(
+            "mega-panel absolute right-0 top-full z-40 mt-3 w-[min(56rem,calc(100vw-3rem))]",
+            "rounded-2xl border border-ink/12 bg-paper/97 backdrop-blur-xl",
+          )}
+          id={MENU_PANEL_ID}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_13rem]">
+            {NAV_GROUPS.map((group) => renderColumn(group))}
 
-        <div className="site-menu-split relative z-10 grid min-h-0 flex-1 lg:grid-cols-[clamp(15rem,25vw,21rem)_minmax(0,1fr)]">
-          {/* 左手：地图底纹上的分类列表。
-              用 div 而不是 nav：tablist 不是 landmark，套在 nav 里会让
-              "导航地标"和"可交互控件容器"两个角色互相干扰读屏。 */}
-          <div
-            aria-label="内容分类"
-            aria-orientation="vertical"
-            className="site-menu-rail relative flex min-h-0 flex-col overflow-hidden border-ink/10 border-r"
-            onKeyDown={handleTabKeyDown}
-            role="tablist"
-          >
-            {/* 竖向渐隐层。地图在面板根部，这里只负责把列表区域的对比度拉回来，
-                并让地图看起来是从栏外延续进来的，而不是被裁在一个方框里。 */}
-            {/* relative + z-10：veil 的 ::after 渐隐层是这个 div 的伪元素，
-                会盖住自己的子节点。不抬起来的话，未选中的分类按钮会整片发白，
-                看起来像被禁用了。 */}
-            <div className="site-menu-veil relative flex-1">
-              <ul className="relative z-10 flex flex-col gap-2 p-4 sm:p-5">
-                {NAV_GROUPS.map((group) => {
-                  const isActive = group.id === activeGroupId;
-                  return (
-                    <li key={group.id}>
-                      <button
-                        aria-controls={panelIdFor(group)}
-                        aria-selected={isActive}
-                        className={cn(
-                          "site-menu-tab w-full rounded-sm border px-3.5 py-3 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                          isActive
-                            ? "border-vermillion/40 bg-paper text-ink shadow-[0_10px_30px_hsl(var(--ink)/0.1)]"
-                            : "border-ink/12 bg-paper/85 text-muted-foreground hover:border-ink/25 hover:text-ink",
-                        )}
-                        id={tabIdFor(group)}
-                        onClick={() => setActiveGroupId(group.id)}
-                        ref={(node) => {
-                          if (node) tabRefs.current.set(group.id, node);
-                          else tabRefs.current.delete(group.id);
-                        }}
-                        role="tab"
-                        tabIndex={isActive ? 0 : -1}
-                        type="button"
-                      >
-                        <span className="flex items-center justify-between gap-2">
-                          <span className="font-kai text-base">{group.label}</span>
-                          <span className="font-mono-tech text-[10px] text-muted-foreground">
-                            {String(group.items.length).padStart(2, "0")}
-                          </span>
-                        </span>
-                        <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                          {group.items.length} 个入口
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+            {/* 右缘地图带：装饰性识别区，随悬停/当前路由切换分区高亮。
+                窄屏没有空间，整条隐藏（<lg）；不接受指针事件，免得挡住面板边缘。 */}
+            <div
+              aria-hidden="true"
+              className="mega-map pointer-events-none relative hidden overflow-hidden lg:block"
+            >
+              <div className="absolute inset-y-0 right-0 flex w-full items-center justify-center px-3">
+                <HandDrawnMap activeZone={focusGroup.mapZone} />
+              </div>
             </div>
           </div>
-
-          {/* 右手：当前分类的完整内容。tabIndex=0 是 WAI-ARIA APG 对可滚动 tabpanel 的要求，
-              否则键盘用户进到面板里的链接后无法用方向键滚动本区域 */}
-          <div
-            aria-labelledby={tabIdFor(activeGroup)}
-            className="site-menu-panel min-h-0 overflow-y-auto"
-            id={panelIdFor(activeGroup)}
-            role="tabpanel"
-            // biome-ignore lint/a11y/noNoninteractiveTabindex: 见上一行注释，APG 明确要求
-            tabIndex={0}
-          >
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-7 sm:px-8 sm:py-9">
-              <header className="flex flex-col gap-2.5">
-                <span className="eyebrow">{activeGroup.mapZone}</span>
-                <h3 className="font-kai text-2xl text-ink sm:text-3xl">{activeGroup.label}</h3>
-                <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-                  {activeGroup.blurb}
-                </p>
-              </header>
-
-              <ul className="flex flex-col gap-4">
-                {activeGroup.items.map((item) => (
-                  <li key={item.to}>
-                    <article className="site-menu-card group flex flex-col gap-3 p-5">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <h4 className="font-kai text-xl text-ink">{item.label}</h4>
-                        <code className="font-mono-tech text-[11px] text-muted-foreground">
-                          {item.to}
-                        </code>
-                      </div>
-                      <p className="text-sm leading-relaxed text-muted-foreground">
-                        {item.description}
-                      </p>
-                      <ul className="flex flex-wrap gap-1.5">
-                        {item.highlights.map((highlight) => (
-                          <li
-                            className="rounded-full border border-ink/15 bg-card/70 px-2.5 py-0.5 text-xs text-ink"
-                            key={highlight}
-                          >
-                            {highlight}
-                          </li>
-                        ))}
-                      </ul>
-                      <NavLink
-                        className="mt-1 inline-flex w-fit items-center gap-1.5 font-kai text-sm text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                        onClick={onClose}
-                        to={item.to}
-                      >
-                        进入
-                        <ArrowRight
-                          aria-hidden="true"
-                          className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
-                        />
-                      </NavLink>
-                    </article>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
+        </section>
+      ) : null}
     </div>
   );
 }
