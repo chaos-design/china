@@ -63,6 +63,7 @@ export function HistoryScrollUnfold({
   const lightRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
+    let pendingHold: gsap.core.Tween | null = null;
     const stage = stageRef.current;
     const paper = paperRef.current;
     const mask = maskRef.current;
@@ -183,7 +184,16 @@ export function HistoryScrollUnfold({
       const handleComplete = onComplete
         ? () => {
             if (animationConfig.holdDuration > 0) {
-              gsap.delayedCall(animationConfig.holdDuration, onComplete);
+              // 必须自己留住这个 tween：delayedCall 是在 timeline 的事件回调里创建的，
+              // 而事件回调早于 context 作用域结束，gsap.context 记不到它，
+              // 于是它挂在全局 timeline 上，context.revert() 杀不掉。
+              // 后果是组件卸载后 holdDuration 之后回调照样触发——线上是对已卸载的
+              // 组件 setState，测试里是上一条用例的回调污染下一条用例的 sessionStorage。
+              pendingHold?.kill();
+              pendingHold = gsap.delayedCall(animationConfig.holdDuration, () => {
+                pendingHold = null;
+                onComplete();
+              });
             } else {
               onComplete();
             }
@@ -193,7 +203,10 @@ export function HistoryScrollUnfold({
       timeline.eventCallback("onComplete", handleComplete);
     }, stage);
 
-    return () => context.revert();
+    return () => {
+      pendingHold?.kill();
+      context.revert();
+    };
   }, [
     animationConfig.contentDelayRatio,
     animationConfig.contentRevealRatio,
