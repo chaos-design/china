@@ -137,7 +137,7 @@ describe("<App /> routing", () => {
 
     for (const group of ["编年与制度", "文化与交通", "地域与近代"]) {
       expect(
-        Array.from(panel.querySelectorAll(".mega-col .font-kai")).some(
+        Array.from(panel.querySelectorAll(".mega-col .mega-col-title")).some(
           (node) => node.textContent === group,
         ),
       ).toBe(true);

@@ -70,16 +70,55 @@ describe("<RootLayout /> menu trigger", () => {
     });
     expect(screen.getByLabelText("全览目录")).toBeInTheDocument();
   });
+
+  it("keeps the hover-opened panel open when the trigger is then clicked", async () => {
+    vi.useFakeTimers();
+    renderLayout("/");
+    const trigger = within(screen.getByRole("navigation")).getByRole("button", {
+      name: /全览地图/,
+    });
+
+    fireEvent.mouseEnter(trigger);
+    await act(async () => {
+      vi.advanceTimersByTime(80);
+    });
+    // 悬停已展开，接着点击不能把它切换关掉
+    fireEvent.click(trigger);
+    expect(screen.getByLabelText("全览目录")).toBeInTheDocument();
+    fireEvent.click(trigger);
+    expect(screen.getByLabelText("全览目录")).toBeInTheDocument();
+  });
+
+  it("does not show a category/entry counter beside the trigger", () => {
+    renderLayout("/");
+    const nav = screen.getByRole("navigation");
+    expect(nav.textContent).not.toMatch(/类\s*\/|篇/);
+  });
 });
 
 describe("<SiteMenu /> columns and content", () => {
   it("shows all three categories as columns, in editorial order", async () => {
     const panel = await openMenu();
     const titles = Array.from(panel.querySelectorAll(".mega-col")).map(
-      (col) => col.querySelector(".font-kai")?.textContent,
+      (col) => col.querySelector(".mega-col-title")?.textContent,
     );
 
     expect(titles).toEqual(["编年与制度", "文化与交通", "地域与近代"]);
+  });
+
+  it("sets category titles in a different typeface from the entries, with no counters", async () => {
+    const panel = await openMenu();
+
+    for (const col of Array.from(panel.querySelectorAll(".mega-col"))) {
+      const title = col.querySelector(".mega-col-title");
+      expect(title).toHaveClass("font-body");
+      expect(title).not.toHaveClass("font-kai");
+      for (const link of Array.from(col.querySelectorAll("a"))) {
+        expect(link.querySelector(".font-kai")).not.toBeNull();
+      }
+      // 不再显示 01 / 02 之类的条目编号
+      expect(col.textContent).not.toMatch(/\d/);
+    }
   });
 
   it("lists every destination by name only, linking to its in-site path", async () => {
@@ -154,6 +193,9 @@ describe("<SiteMenu /> keyboard and dismissal", () => {
 
     expect(screen.queryByLabelText("全览目录")).not.toBeInTheDocument();
     expect(document.activeElement).toBe(trigger);
+    // 焦点回到触发器不应把面板重新打开
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(screen.queryByLabelText("全览目录")).not.toBeInTheDocument();
   });
 
   it("closes when a pointer goes down outside the panel but not inside it", async () => {

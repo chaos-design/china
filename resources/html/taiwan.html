@@ -27,7 +27,7 @@ body{
 /* ===================== 布局：左右两栏，各自独立滚动 ===================== */
 .layout{display:flex; height:100vh;}
 .sidebar{
-  flex:0 0 306px; width:306px; height:100%;
+  flex:0 0 220px; width:220px; height:100%;
   display:flex; flex-direction:column;
   background:var(--bg-deep); border-right:1px solid var(--line);
 }
@@ -66,6 +66,21 @@ body{
 .progress{height:3px; background:rgba(176,141,87,.2); border-radius:3px; overflow:hidden; margin-top:13px;}
 .progress > i{display:block; height:100%; width:0;
   background:linear-gradient(90deg,var(--red),var(--gold)); transition:width .16s linear;}
+
+/* ===================== 侧栏简介区（原右侧 Hero） ===================== */
+.side-hero{flex:0 0 auto; padding:24px 20px 0; border-bottom:1px solid var(--line);}
+.side-hero-kicker{font-size:12px; letter-spacing:6px; color:var(--gold); margin-bottom:16px;}
+.side-hero-title{
+  display:flex; align-items:baseline; gap:20px; flex-wrap:wrap;
+}
+.side-hero-title h1{font-size:34px; letter-spacing:8px; line-height:1; font-weight:700; color:var(--ink);}
+.side-hero-title span{font-family:Georgia,serif; font-size:14px; letter-spacing:4px; color:var(--ink-soft);}
+.side-hero-rule{margin:16px 0 14px; height:2px; width:100px; background:linear-gradient(90deg,var(--red),transparent);}
+.side-hero-lead{font-size:14px; line-height:1.9; color:#3a342c; text-align:justify; letter-spacing:.3px;}
+.side-hero-stats{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:20px;}
+.side-hero-stat{background:rgba(251,247,239,.72); border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
+.side-hero-stat b{display:block; font-size:20px; letter-spacing:.5px; color:var(--red-deep);}
+.side-hero-stat span{display:block; margin-top:4px; font-size:11px; line-height:1.6; color:var(--ink-soft);}
 
 /* ===================== 侧栏目录 ===================== */
 .nav-label{
@@ -146,10 +161,6 @@ body{
 .pager-dot.active{
   background:linear-gradient(135deg,var(--red),var(--red-deep)); color:#f7ecd6;
   border-color:var(--red-deep); box-shadow:0 4px 12px rgba(158,43,37,.25);
-}
-.pager-spacer{flex:1 1 auto;}
-.pager-count{
-  font-family:Georgia,serif; font-size:12.5px; letter-spacing:2px; color:var(--ink-soft);
 }
 .pager-arrow{
   width:32px; height:32px; border-radius:50%; cursor:pointer; flex:0 0 32px;
@@ -249,22 +260,27 @@ body{
 }
 
 /* 时间轴 */
-.tl{list-style:none; position:relative; padding-left:2px; perspective:1100px;}
+/* 竖线与圆点共用一根轴 --tl-axis，两者都相对同一原点定位：
+   .tl 不能有 padding-left——::before 相对 .tl 的内边距盒定位，圆点却相对 li（内容盒），
+   旧版 padding-left:2px 让圆点整体右偏 2px，线落在圆点左侧而不是圆心。
+   线宽 1px → 中心 axis+0.5；圆点 9px、left=axis-4 → 中心 axis+0.5。 */
+.tl{--tl-axis:100px; list-style:none; position:relative; padding-left:0; perspective:1100px;}
 .tl::before{
-  content:""; position:absolute; left:100px; top:26px; bottom:26px; width:1px;
+  content:""; position:absolute; left:var(--tl-axis); top:26px; bottom:26px; width:1px;
   background:linear-gradient(180deg,transparent,var(--gold-soft) 8%,var(--gold-soft) 92%,transparent);
 }
 .tl li{display:flex; gap:0; padding:15px 0; position:relative;}
 .tl-year{
   flex:0 0 112px; width:112px; font-family:Georgia,serif; font-size:13.5px;
   letter-spacing:.5px; color:var(--red-deep); text-align:right; padding-right:22px; line-height:1.7;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  /* 长年份换行而不是省略号截断：时间是条目的主键，截掉就无法辨认 */
+  white-space:normal; overflow-wrap:anywhere;
 }
 .tl-dot{
-  position:absolute; left:96px; top:22px; width:9px; height:9px; border-radius:50%;
+  position:absolute; left:calc(var(--tl-axis) - 4px); top:22px; width:9px; height:9px; border-radius:50%;
   background:var(--red); box-shadow:0 0 0 4px rgba(158,43,37,.13); z-index:1;
 }
-/* 点心对齐：圆点中心 (96+4.5=100.5) 落在竖线中心 (100+0.5=100.5) 上；
+/* 点心对齐：水平见 .tl 上的注释；
    垂直方向圆点中心 22+4.5=26.5 与年份行中心（15 + 13.5×1.7/2 ≈ 26.5）对齐，
    竖线 top:26px 从第一颗点起步，不再伸进章节标题里。 */
 .tl-body{padding-left:26px; min-width:0;}
@@ -445,26 +461,29 @@ body{
 @media (max-width:960px){
   .layout{flex-direction:column;}
   .sidebar{flex:0 0 auto; width:100%; height:auto; border-right:none; border-bottom:1px solid var(--line);}
+  .side-hero{padding:20px; border-bottom:1px solid var(--line);}
+  .side-hero-title h1{font-size:28px; letter-spacing:6px;}
+  .side-hero-stats{grid-template-columns:repeat(2,1fr); gap:8px;}
+  .side-hero-stat{padding:10px 12px;}
+  .side-hero-stat b{font-size:18px;}
+  .side-hero-stat span{font-size:10px;}
   .side-scroll{overflow:visible; padding:10px 12px 14px;}
   .nav{display:flex; gap:7px; overflow-x:auto; padding-bottom:3px;}
   .nav-item{flex:0 0 auto; margin-bottom:0; padding:8px 13px;}
   .nav-item.active::before{display:none;}
   .nav-idx{display:none;}
   .side-foot{display:none;}
-  .hero{padding:38px 20px 28px;}
-  .hero-title h1{font-size:52px; letter-spacing:9px;}
-  .hero::before{font-size:190px; top:-28px; right:-8px;}
-  .pager{padding:11px 20px;}
   .chapter{padding:26px 20px 0;}
   .ch-title{font-size:24px; letter-spacing:2.5px;}
   .pane.ash .chapter::before{left:-20px; right:-20px;}
   .module{padding:19px 17px;}
   .pull{padding:19px 17px;}
   .note{padding:15px 16px;}
-  .tl::before{left:8px; top:28px;}
+  .tl{--tl-axis:8px;}
+  .tl::before{top:28px;}
   .tl li{flex-direction:column; padding-left:23px;}
   .tl-year{flex:none; width:auto; text-align:left; padding-right:0; font-size:15px;}
-  .tl-dot{left:4px; top:23px;}
+  .tl-dot{top:23px;}
   .tl-body{padding-left:0; margin-top:6px;}
   .fig{padding:16px 11px 10px;}
   .fig-body{gap:14px;}
@@ -532,6 +551,8 @@ body{
       <p class="brand-sub">地理、历史、风物，以及一段不能跳过的近代。</p>
       <div class="progress"><i id="progressBar"></i></div>
     </div>
+    <!-- 简介区：原右侧 Hero 的内容，包含标题、导语、统计卡片 -->
+    <div class="side-hero" id="sideHero"></div>
     <div class="side-scroll">
       <div class="nav-label">目 次</div>
       <ul class="nav" id="nav"></ul>
@@ -540,13 +561,7 @@ body{
   </nav>
 
   <main class="content" id="content">
-    <div class="pager" id="pager" role="tablist" aria-label="分卷导航">
-      <button class="pager-arrow" id="prevBtn" type="button" aria-label="上一卷">‹</button>
-      <div class="pager-dots" id="dots"></div>
-      <button class="pager-arrow" id="nextBtn" type="button" aria-label="下一卷">›</button>
-      <span class="pager-spacer"></span>
-      <span class="pager-count" id="pagerCount"></span>
-    </div>
+    <!-- 右侧只展示当前选中的章节面板，不再需要顶部分页工具条 -->
   </main>
 </div>
 
@@ -1101,31 +1116,26 @@ body{
            renderSources(block.sources) + '</article>';
   }
 
-  /* ===================== 首屏 ===================== */
-  function renderHero(hero){
+  /* ===================== 侧栏简介区 ===================== */
+  function renderSideHero(hero){
     var stats = hero.stats.map(function(s){
-      return '<div class="stat"><b>' + renderInline(s.v) + '</b><span>' + renderInline(s.k) + '</span></div>';
+      return '<div class="side-hero-stat"><b>' + renderInline(s.v) + '</b><span>' + renderInline(s.k) + '</span></div>';
     }).join('');
-    return '<header class="hero">' +
-      '<div class="hero-kicker">' + renderInline(hero.kicker) + '</div>' +
-      '<div class="hero-title"><h1>' + renderInline(hero.title) + '</h1><span>' +
-        renderInline(hero.latin) + '</span></div>' +
-      '<div class="hero-rule"></div>' +
-      '<p class="hero-lead">' + renderInline(hero.lead) + '</p>' +
-      '<div class="hero-stats">' + stats + '</div>' +
-    '</header>';
+    return '<div class="side-hero-kicker">' + renderInline(hero.kicker) + '</div>' +
+           '<div class="side-hero-title"><h1>' + renderInline(hero.title) + '</h1><span>' +
+             renderInline(hero.latin) + '</span></div>' +
+           '<div class="side-hero-rule"></div>' +
+           '<p class="side-hero-lead">' + renderInline(hero.lead) + '</p>' +
+           '<div class="side-hero-stats">' + stats + '</div>';
   }
 
-  /* ===================== 装配：首屏 + 分页工具条 ===================== */
+  /* ===================== 装配：侧栏简介 + 章节面板 ===================== */
   var content = document.getElementById('content');
   var nav = document.getElementById('nav');
-  var dots = document.getElementById('dots');
-  var pagerCount = document.getElementById('pagerCount');
-  var prevBtn = document.getElementById('prevBtn');
-  var nextBtn = document.getElementById('nextBtn');
+  var sideHero = document.getElementById('sideHero');
   var progressBar = document.getElementById('progressBar');
 
-  content.insertAdjacentHTML('afterbegin', renderHero(DATA.hero));
+  sideHero.innerHTML = renderSideHero(DATA.hero);
 
   function navItem(ch){
     var li = document.createElement('li');
@@ -1140,12 +1150,11 @@ body{
   function paneMarkup(ch, index){
     var blocks = ch.blocks.map(renderBlock).join('');
     return '<div class="pane' + (ch.tone === 'dark' ? ' ash' : '') + '" id="' + ch.id + '" ' +
-             'role="tabpanel" aria-labelledby="dot-' + ch.id + '"' +
              (index === 0 ? '' : ' aria-hidden="true"') + '>' +
       '<section class="chapter">' +
         '<header class="ch-head">' +
-          '<div class="ch-idx">' + renderInline(ch.index) + ' · ' +
-            renderInline(ICONS[ch.id] || '') + '</div>' +
+          // 不再重复「卷一」之类的序号：左侧目次标明位置，正文只留意象字
+          '<div class="ch-idx">' + renderInline(ICONS[ch.id] || '') + '</div>' +
           '<h2 class="ch-title">' + renderInline(ch.title) + '</h2>' +
           '<p class="ch-lead">' + renderInline(ch.lead) + '</p>' +
         '</header>' + blocks +
@@ -1153,7 +1162,6 @@ body{
     '</div>';
   }
 
-  var dotEls = [];
   var paneEls = [];
   var navEls = [];
 
@@ -1163,21 +1171,7 @@ body{
 
     content.insertAdjacentHTML('beforeend', paneMarkup(ch, index));
     paneEls.push(document.getElementById(ch.id));
-
-    var dot = document.createElement('button');
-    dot.className = 'pager-dot' + (index === 0 ? ' active' : '');
-    dot.id = 'dot-' + ch.id;
-    dot.type = 'button';
-    dot.setAttribute('role', 'tab');
-    dot.setAttribute('aria-controls', ch.id);
-    dot.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
-    dot.textContent = ch.index;
-    dot.addEventListener('click', function(){ goTo(ch.id, true); });
-    dots.appendChild(dot);
-    dotEls.push(dot);
   });
-
-  pagerCount.textContent = DATA.chapters.length + ' 卷';
 
   /* ===================== 延伸出口 + 页脚 ===================== */
   // 页面跑在 iframe srcDoc 里，无法用 React Router 跳转，因此出口一律用普通 <a>。
@@ -1211,9 +1205,8 @@ body{
     '<p>' + escapeHTML((DATA.outbound && DATA.outbound.note) || '') + '</p>';
   content.appendChild(foot);
 
-  /* ===================== 分页逻辑 ===================== */
-  // 一次只显示一卷。不做「一屏接一屏」的连续下滑：五卷正文总长约两万像素，
-  // 连续滚动会让读者失去位置感，也难以把「近代」这一卷单独引用或截图。
+  /* ===================== 章节切换逻辑 ===================== */
+  // 一次只显示一章。左侧目次点击切换，右侧只展示当前章节。
   var currentId = DATA.chapters[0].id;
 
   function goTo(id, smooth){
@@ -1225,14 +1218,8 @@ body{
       pane.classList.toggle('active', isOn);
       if(isOn){ pane.removeAttribute('aria-hidden'); } else { pane.setAttribute('aria-hidden', 'true'); }
     });
-    dotEls.forEach(function(dot, i){
-      dot.classList.toggle('active', i === index);
-      dot.setAttribute('aria-selected', i === index ? 'true' : 'false');
-    });
     navEls.forEach(function(li, i){ li.classList.toggle('active', i === index); });
 
-    prevBtn.disabled = index === 0;
-    nextBtn.disabled = index === DATA.chapters.length - 1;
     currentId = id;
 
     // scrollTo 是标准方法，但部分宿主（含 jsdom）没有实现。缺失时直接改 scrollTop，
@@ -1244,41 +1231,10 @@ body{
     }
     progressBar.style.width = '0%';
 
-    // 切卷后把焦点交给新面板，键盘用户不会停在已隐藏的标签上
+    // 切章后把焦点交给新面板，键盘用户不会停在已隐藏的标签上
     var pane = paneEls[index];
     if(pane){ pane.setAttribute('tabindex', '-1'); pane.focus({ preventScroll: true }); }
   }
-
-  function step(delta){
-    var index = DATA.chapters.findIndex(function(ch){ return ch.id === currentId; });
-    var next = index + delta;
-    if(next < 0 || next >= DATA.chapters.length){ return; }
-    goTo(DATA.chapters[next].id, true);
-  }
-
-  prevBtn.addEventListener('click', function(){ step(-1); });
-  nextBtn.addEventListener('click', function(){ step(1); });
-
-  content.addEventListener('keydown', function(event){
-    // 目标是按钮或链接（卷标签、注释词、出站链接）时交给浏览器默认行为；
-    // 上一版用 event.target !== content 判断，而 content 没有 tabindex，
-    // keydown 的目标永远是它的后代，这个翻页路径从未生效过。
-    var target = event.target;
-    if(target.closest && target.closest('button, a')){ return; }
-    if(!content.contains(target)){ return; }
-    if(event.key === 'PageDown' || event.key === 'ArrowRight'){ event.preventDefault(); step(1); }
-    if(event.key === 'PageUp' || event.key === 'ArrowLeft'){ event.preventDefault(); step(-1); }
-  });
-
-  // 首屏里滚动，工具条吸顶并显示进度；进入卷正文后进度条不再有意义
-  var heroEl = content.querySelector('.hero');
-  content.addEventListener('scroll', function(){
-    if(!heroEl){ return; }
-    var heroHeight = heroEl.offsetHeight;
-    var top = content.scrollTop;
-    var ratio = Math.min(1, top / heroHeight);
-    progressBar.style.width = (ratio * 100).toFixed(1) + '%';
-  }, { passive: true });
 
   /* ===================== 注释交互 ===================== */
   // 桌面靠 :hover；窄屏靠 .open（CSS 把 tip 变为底部浮层）。键盘走原生 button 语义，

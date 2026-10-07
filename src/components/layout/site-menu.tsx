@@ -14,7 +14,7 @@ const OPEN_DELAY_MS = 60;
 
 /**
  * 顶栏巨型下拉菜单（参考站外导航的多栏下拉交互）：
- * 触发器悬停即展开，点击切换，移出面板/触发器一段宽限后收起，Escape 关闭。
+ * 触发器悬停即展开（点击/键盘只打开不切换），移出面板/触发器一段宽限后收起，Escape 关闭。
  *
  * 与旧版全屏面板的差别是有意的：
  * - 下拉是「披露控件」（disclosure pattern）而不是模态框——它不接管页面，
@@ -45,32 +45,37 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
   const focusGroupId = hoverGroupId ?? activeGroup.id;
   const focusGroup = NAV_GROUPS.find((group) => group.id === focusGroupId) ?? NAV_GROUPS[0];
 
-  const cancelTimers = useCallback(() => {
+  /** 只取消关闭定时器——用于鼠标进入 wrapper/面板时，防止误关。 */
+  const cancelCloseTimer = useCallback(() => {
     if (closeTimerRef.current !== null) {
       window.clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
+  }, []);
+  /** 取消所有定时器——用于点击、路由变化、卸载等需要完全重置的场景。 */
+  const cancelAllTimers = useCallback(() => {
+    cancelCloseTimer();
     if (openTimerRef.current !== null) {
       window.clearTimeout(openTimerRef.current);
       openTimerRef.current = null;
     }
-  }, []);
+  }, [cancelCloseTimer]);
 
   const scheduleOpen = useCallback(() => {
-    cancelTimers();
+    cancelCloseTimer();
     openTimerRef.current = window.setTimeout(() => {
       setOpen(true);
       openTimerRef.current = null;
     }, OPEN_DELAY_MS);
-  }, [cancelTimers]);
+  }, [cancelCloseTimer]);
 
   const scheduleClose = useCallback(() => {
-    cancelTimers();
+    cancelAllTimers();
     closeTimerRef.current = window.setTimeout(() => {
       setOpen(false);
       closeTimerRef.current = null;
     }, CLOSE_GRACE_MS);
-  }, [cancelTimers]);
+  }, [cancelAllTimers]);
 
   // 路由变化即收起：跳转后面板仍开着会挡住新页面。
   // biome-ignore lint/correctness/useExhaustiveDependencies: 重置 effect 故意只依赖路由 pathname，体内不需要读它
@@ -133,20 +138,20 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
       setOpen(false);
     };
 
-    wrapper.addEventListener("mouseenter", cancelTimers);
+    wrapper.addEventListener("mouseenter", cancelCloseTimer);
     wrapper.addEventListener("mouseleave", scheduleClose);
     wrapper.addEventListener("mouseover", onWrapperOver);
     wrapper.addEventListener("focusout", onWrapperFocusOut);
     return () => {
-      wrapper.removeEventListener("mouseenter", cancelTimers);
+      wrapper.removeEventListener("mouseenter", cancelCloseTimer);
       wrapper.removeEventListener("mouseleave", scheduleClose);
       wrapper.removeEventListener("mouseover", onWrapperOver);
       wrapper.removeEventListener("focusout", onWrapperFocusOut);
     };
-  }, [cancelTimers, scheduleClose]);
+  }, [cancelCloseTimer, scheduleClose]);
 
   // 卸载时清掉挂起的定时器，避免 StrictMode 双挂载后残留一个迟到的 setOpen
-  useEffect(() => cancelTimers, [cancelTimers]);
+  useEffect(() => cancelAllTimers, [cancelAllTimers]);
 
   function renderColumn(group: NavGroup): ReactNode {
     const isFocus = group.id === focusGroup.id;
@@ -160,12 +165,12 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
         data-menu-group={group.id}
         key={group.id}
       >
-        <div className="flex items-baseline justify-between gap-3 pb-2">
-          <span className="font-kai text-base text-ink">{group.label}</span>
-          <span className="font-mono-tech text-[10px] text-muted-foreground uppercase">
-            {String(group.items.length).padStart(2, "0")}
-          </span>
-        </div>
+        {/* 主标题（分类）与次标题（条目）用字体区分层级：
+            分类是无衬线小字、拉开字距、朱色，读作「栏目签」；条目是楷体正文字号，读作「去处」。
+            两者若同为楷体，只靠字号差两级分不出主次。 */}
+        <h3 className="mega-col-title pb-2 font-body text-xs font-medium tracking-[0.3em] text-vermillion">
+          {group.label}
+        </h3>
         <ul className="flex flex-col">
           {group.items.map((item) => (
             <li key={item.to}>
@@ -182,7 +187,7 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
                     truncate 兜住超长名称——nowrap 保证永远一行，
                     overflow 才不会把面板横向撑出滚动条。
                     现有名称最长六字，实际不会触发截断，这是安全网不是常规状态。 */}
-                <span className="block truncate font-kai text-[15px] text-ink">{item.label}</span>
+                <span className="block truncate font-kai text-base text-ink">{item.label}</span>
               </NavLink>
             </li>
           ))}
@@ -210,8 +215,13 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
         aria-expanded={open}
         aria-haspopup="true"
         className="btn-ink inline-flex items-center gap-2 rounded-full bg-paper/90 px-4 py-1.5 font-kai text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-        onClick={() => setOpen((value) => !value)}
-        onFocus={scheduleOpen}
+        // 悬停是主交互。点击（含键盘 Enter/Space）只负责打开、不做切换：
+        // 鼠标悬停 60ms 后面板已展开，紧接着的点击若是 toggle 会把它立刻关掉。
+        // 也不挂 onFocus 打开——Escape 关闭后焦点回到触发器，会把面板重新打开。
+        onClick={() => {
+          cancelAllTimers();
+          setOpen(true);
+        }}
         onMouseEnter={scheduleOpen}
         ref={triggerRef}
         type="button"

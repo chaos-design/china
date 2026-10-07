@@ -126,9 +126,19 @@ describe("html resource metadata", () => {
     expect(taiwan.title).toBe("台湾 · 山海之间的百年");
     expect(taiwan.html).toContain('"id": "humiliation"');
     expect(taiwan.html).not.toContain('data-resource="taiwan.json"');
-    // 分页结构：五卷各自是 role=tabpanel，工具条是 role=tablist
-    expect(taiwan.html).toContain('role="tablist"');
-    expect(taiwan.html).toContain('role="tabpanel"');
+    // 侧栏导航取代顶部分页：不再有 role=tablist 的工具条
+    expect(taiwan.html).not.toContain('role="tablist"');
+    // 章节面板不再使用 role=tabpanel（侧栏 nav 直接切换，无需 ARIA tab 语义）
+    expect(taiwan.html).not.toContain('role="tabpanel"');
+    // 正文区不再出现「卷x」：章节头只留意象字，分页按钮用目次名，不显示「5 卷」计数
+    expect(taiwan.html).not.toContain("renderInline(ch.index) + ' · '");
+    // 侧栏 nav 项直接使用 ch.nav，不再创建 pager dots
+    expect(taiwan.html).toContain('li.innerHTML = \'<span class="nav-idx"');
+    expect(taiwan.html).not.toContain("pagerCount");
+    // 时间轴：竖线与圆点共用 --tl-axis，年份换行而非省略号截断
+    expect(taiwan.html).toContain("left:var(--tl-axis)");
+    expect(taiwan.html).toContain("left:calc(var(--tl-axis) - 4px)");
+    expect(taiwan.html).not.toMatch(/\.tl-year\{[^}]*text-overflow:ellipsis/);
     // 地图由数据里的经纬度投影生成，不是写死的 path
     expect(taiwan.html).toContain('"projection"');
     // 全文简体：繁体常见字形不应出现

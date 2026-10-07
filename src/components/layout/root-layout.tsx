@@ -3,7 +3,7 @@ import { Link, matchPath, Outlet, useLocation } from "react-router-dom";
 import { useAccent } from "../../hooks/use-accent";
 import { ROUTE_LAYOUT_CONFIGS } from "../../route-layout-config";
 import { AccentPicker } from "../accent-picker";
-import { findNavGroupId, NAV_GROUPS } from "./nav-groups";
+import { findNavGroupId } from "./nav-groups";
 import { SiteMenu } from "./site-menu";
 
 function GithubMark() {
@@ -45,13 +45,7 @@ export function RootLayout() {
             <span className="text-2xl font-black tracking-tight text-ink">中国古代全览</span>
           </Link>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="font-mono-tech text-[10px] tracking-[0.25em] text-muted-foreground uppercase">
-              {NAV_GROUPS.length} 类 /{" "}
-              {NAV_GROUPS.reduce((total, group) => total + group.items.length, 0)} 篇
-            </span>
-            <SiteMenu activeRouteGroupId={activeGroupId} />
-          </div>
+          <SiteMenu activeRouteGroupId={activeGroupId} />
         </nav>
       </header>
 
