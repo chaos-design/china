@@ -63,19 +63,14 @@ body{
 }
 .brand-line{margin-top:12px; height:1px; background:linear-gradient(90deg,var(--gold-soft),transparent);}
 .brand-sub{margin-top:9px; font-size:12.5px; line-height:1.85; color:var(--ink-soft); letter-spacing:.3px;}
-.progress{height:3px; background:rgba(176,141,87,.2); border-radius:3px; overflow:hidden; margin-top:13px;}
+.progress{flex:0 0 auto; width:150px; height:3px; background:rgba(176,141,87,.2); border-radius:3px; overflow:hidden; margin-left:8px;}
 .progress > i{display:block; height:100%; width:0;
   background:linear-gradient(90deg,var(--red),var(--gold)); transition:width .16s linear;}
 
 /* ===================== 侧栏简介区（原右侧 Hero） ===================== */
 .side-hero{flex:0 0 auto; padding:24px 20px 0; border-bottom:1px solid var(--line);}
 .side-hero-kicker{font-size:12px; letter-spacing:6px; color:var(--gold); margin-bottom:16px;}
-.side-hero-title{
-  display:flex; align-items:baseline; gap:20px; flex-wrap:wrap;
-}
-.side-hero-title h1{font-size:34px; letter-spacing:8px; line-height:1; font-weight:700; color:var(--ink);}
-.side-hero-title span{font-family:Georgia,serif; font-size:14px; letter-spacing:4px; color:var(--ink-soft);}
-.side-hero-rule{margin:16px 0 14px; height:2px; width:100px; background:linear-gradient(90deg,var(--red),transparent);}
+.side-hero-rule{margin:0 0 14px; height:2px; width:100px; background:linear-gradient(90deg,var(--red),transparent);}
 .side-hero-lead{font-size:14px; line-height:1.9; color:#3a342c; text-align:justify; letter-spacing:.3px;}
 .side-hero-stats{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:20px;}
 .side-hero-stat{background:rgba(251,247,239,.72); border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
@@ -84,17 +79,13 @@ body{
 
 /* ===================== 内容区顶部分页菜单 =====================
    吸顶常驻：sticky 挂在 .content 内，滚动不带走它；一行内展示，超出部分横向滚动。 */
-.content-menu{
-  position:sticky; top:0; z-index:30;
-  display:flex; align-items:center; gap:14px;
-  padding:12px 58px;
-  background:rgba(250,246,238,.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  border-bottom:1px solid var(--line);
-}
-.menu-label{
-  font-size:11px; letter-spacing:4px; color:var(--ink-soft); flex:0 0 auto;
-  padding-right:14px; border-right:1px dashed var(--gold-soft);
-}
+  .content-menu{
+    position:sticky; top:0; z-index:30;
+    display:flex; align-items:center; gap:14px;
+    padding:12px 58px;
+    background:rgba(250,246,238,.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
 .nav{list-style:none; display:flex; align-items:center; gap:7px; flex:1 1 auto; min-width:0;
   overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;}
 .nav::-webkit-scrollbar{display:none;}
@@ -468,15 +459,14 @@ body{
   .layout{flex-direction:column;}
   .sidebar{flex:0 0 auto; width:100%; height:auto; border-right:none; border-bottom:1px solid var(--line);}
   .side-hero{padding:20px; border-bottom:1px solid var(--line);}
-  .side-hero-title h1{font-size:28px; letter-spacing:6px;}
   .side-hero-stats{grid-template-columns:repeat(2,1fr); gap:8px;}
   .side-hero-stat{padding:10px 12px;}
   .side-hero-stat b{font-size:18px;}
   .side-hero-stat span{font-size:10px;}
   .side-scroll{overflow:visible;}
   .content-menu{padding:10px 20px; gap:10px;}
-  .menu-label{padding-right:10px;}
   .nav{gap:6px;}
+  .progress{width:90px;}
   .nav-item{padding:7px 12px;}
   .nav-idx{display:none;}
   .side-foot{display:none;}
@@ -556,7 +546,6 @@ body{
       <div class="brand-title">台湾<small>山海之间</small></div>
       <div class="brand-line"></div>
       <p class="brand-sub">地理、历史、风物，以及一段不能跳过的近代。</p>
-      <div class="progress"><i id="progressBar"></i></div>
     </div>
     <!-- 简介区：原右侧 Hero 的内容，包含标题、导语、统计卡片 -->
     <div class="side-hero" id="sideHero"></div>
@@ -567,8 +556,9 @@ body{
   <main class="content" id="content">
     <!-- 目次菜单挂在内容区顶部：吸顶、单行，滚动不带走 -->
     <div class="content-menu">
-      <span class="menu-label">目 次</span>
       <ul class="nav" id="nav"></ul>
+      <!-- 阅读进度：从侧栏迁来，常驻吸顶菜单右端 -->
+      <div class="progress"><i id="progressBar"></i></div>
     </div>
     <!-- 右侧只展示当前选中的章节面板 -->
   </main>
@@ -1131,8 +1121,6 @@ body{
       return '<div class="side-hero-stat"><b>' + renderInline(s.v) + '</b><span>' + renderInline(s.k) + '</span></div>';
     }).join('');
     return '<div class="side-hero-kicker">' + renderInline(hero.kicker) + '</div>' +
-           '<div class="side-hero-title"><h1>' + renderInline(hero.title) + '</h1><span>' +
-             renderInline(hero.latin) + '</span></div>' +
            '<div class="side-hero-rule"></div>' +
            '<p class="side-hero-lead">' + renderInline(hero.lead) + '</p>' +
            '<div class="side-hero-stats">' + stats + '</div>';
@@ -1244,6 +1232,14 @@ body{
     var pane = paneEls[index];
     if(pane){ pane.setAttribute('tabindex', '-1'); pane.focus({ preventScroll: true }); }
   }
+
+  /* ===================== 阅读进度 ===================== */
+  // 进度条常驻吸顶菜单右端，随 .content 滚动填充；切章时 goTo 已把它归零，
+  // smooth 滚动过程中本监听会继续接管，不需要额外状态。
+  content.addEventListener('scroll', function(){
+    var max = content.scrollHeight - content.clientHeight;
+    progressBar.style.width = (max > 0 ? (content.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
 
   /* ===================== 注释交互 ===================== */
   // 桌面靠 :hover；窄屏靠 .open（CSS 把 tip 变为底部浮层）。键盘走原生 button 语义，
