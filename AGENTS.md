@@ -123,7 +123,7 @@ HTML resource routing:
 - `src/pages/ancient/china/page.css` must keep `#loading` as `position: absolute`, not `fixed`. With `inset: 0; z-index: 99` on the viewport it covers `<header>`, and since the panel only disappears when Three.js initialises successfully, an initialisation failure leaves navigation permanently unclickable — the symptom looks like "the menu does nothing", not like a page error.
 ### The header mega menu
 
-The header has a single trigger (「全览地图」) that opens a **hover mega dropdown** anchored under the navigation bar (modeled on the Claude.ai nav): three category columns side by side, each listing its entries with descriptions and in-site paths, plus a decorative hand-drawn China map strip on the right edge. Files:
+The header has a single trigger (「全览地图」) that opens a **hover mega dropdown** anchored under the navigation bar (modeled on the Claude.ai nav): three category columns side by side, each listing its entries by name only (no subtitle, no visible path; long names truncate to one line), plus a decorative hand-drawn China map strip on the right edge. Files:
 
 | File | Role |
 | --- | --- |

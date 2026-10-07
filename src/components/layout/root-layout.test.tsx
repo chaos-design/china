@@ -82,7 +82,7 @@ describe("<SiteMenu /> columns and content", () => {
     expect(titles).toEqual(["编年与制度", "文化与交通", "地域与近代"]);
   });
 
-  it("lists every destination with an absolute in-site path and a description", async () => {
+  it("lists every destination by name only, linking to its in-site path", async () => {
     // 下拉与全屏面板不同：三列同时可见，五条入口都在 DOM 里，一次断言完
     const panel = await openMenu("/");
 
@@ -99,8 +99,10 @@ describe("<SiteMenu /> columns and content", () => {
       const link = within(panel).getByRole("link", { name });
       visited += 1;
       expect(link).toHaveAttribute("href", href);
-      // 条目不能只是光秃秃一个标题：描述文本在同一行组件里
-      expect(link.textContent?.length ?? 0).toBeGreaterThan(16);
+      // 条目只显示名称：不带副标题，也不把站内路径渲染成文本
+      expect(link.textContent).toMatch(name);
+      expect(link.textContent).not.toContain(href);
+      expect(link).toHaveAttribute("title", link.textContent);
     }
     expect(visited).toBe(expected.length);
   });

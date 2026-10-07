@@ -171,21 +171,18 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
             <li key={item.to}>
               <NavLink
                 className={cn(
-                  "mega-link -mx-2 flex flex-col gap-0.5 rounded-md px-2 py-2",
+                  "mega-link -mx-2 block rounded-md px-2 py-2",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                 )}
                 onClick={() => setOpen(false)}
+                title={item.label}
                 to={item.to}
               >
-                <span className="flex items-baseline justify-between gap-3">
-                  <span className="font-kai text-[15px] text-ink">{item.label}</span>
-                  <span className="font-mono-tech text-[10px] text-muted-foreground">
-                    {item.to}
-                  </span>
-                </span>
-                <span className="text-xs leading-relaxed text-muted-foreground">
-                  {item.description}
-                </span>
+                {/* 只留名称：不显示站内路径，也不加副标题。
+                    truncate 兜住超长名称——nowrap 保证永远一行，
+                    overflow 才不会把面板横向撑出滚动条。
+                    现有名称最长六字，实际不会触发截断，这是安全网不是常规状态。 */}
+                <span className="block truncate font-kai text-[15px] text-ink">{item.label}</span>
               </NavLink>
             </li>
           ))}

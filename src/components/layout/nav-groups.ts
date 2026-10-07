@@ -11,7 +11,6 @@ import type { MapZoneId } from "./china-map-geometry";
  * 放进资源元数据反而会让数据层承担分类职责。
  */
 export interface NavLeaf {
-  description: string;
   /** 右侧面板里的短标签，让条目不止于一句话说明。 */
   highlights: readonly string[];
   label: string;
@@ -33,13 +32,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "chronology",
     items: [
       {
-        description: "3D 朝代浮岛、更替节点与民族线索",
         highlights: ["3D 朝代浮岛", "更替节点", "民族迁徙线索"],
         label: "朝代时间长河",
         to: "/china/timeline",
       },
       {
-        description: "按朝代查看政策、机构、人物与疆域",
         highlights: ["385 条政策卡片", "按朝代筛选", "机构与人物"],
         label: "朝代政策全览",
         to: "/china/policies",
@@ -54,13 +51,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "culture",
     items: [
       {
-        description: "二十项传统技艺的工序与故事",
         highlights: ["二十项传统技艺", "工序拆解", "匠人与故事"],
         label: "中华非遗瑰宝",
         to: "/intangible-culture-heritage",
       },
       {
-        description: "汉唐至明清的海陆交通与疆域线索",
         highlights: ["陆上丝路", "海上丝路", "海疆经略"],
         label: "丝绸之路与海疆",
         to: "/silk-road",
@@ -75,7 +70,6 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "region",
     items: [
       {
-        description: "地形结构、岛屿编年、风土人情与近代",
         highlights: ["五卷分页", "地形剖面与投影地图", "1895—1945 日治"],
         label: "台湾专题",
         to: "/taiwan",
