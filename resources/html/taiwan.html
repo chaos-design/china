@@ -27,7 +27,7 @@ body{
 /* ===================== 布局：左右两栏，各自独立滚动 ===================== */
 .layout{display:flex; height:100vh;}
 .sidebar{
-  flex:0 0 220px; width:220px; height:100%;
+  flex:0 0 300px; width:300px; height:100%;
   display:flex; flex-direction:column;
   background:var(--bg-deep); border-right:1px solid var(--line);
 }
@@ -82,28 +82,34 @@ body{
 .side-hero-stat b{display:block; font-size:20px; letter-spacing:.5px; color:var(--red-deep);}
 .side-hero-stat span{display:block; margin-top:4px; font-size:11px; line-height:1.6; color:var(--ink-soft);}
 
-/* ===================== 侧栏目录 ===================== */
-.nav-label{
-  font-size:11px; letter-spacing:4px; color:var(--ink-soft);
-  padding:0 8px 9px; border-bottom:1px dashed var(--gold-soft); margin-bottom:11px;
+/* ===================== 内容区顶部分页菜单 =====================
+   吸顶常驻：sticky 挂在 .content 内，滚动不带走它；一行内展示，超出部分横向滚动。 */
+.content-menu{
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; gap:14px;
+  padding:12px 58px;
+  background:rgba(250,246,238,.92); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
 }
-.nav{list-style:none;}
+.menu-label{
+  font-size:11px; letter-spacing:4px; color:var(--ink-soft); flex:0 0 auto;
+  padding-right:14px; border-right:1px dashed var(--gold-soft);
+}
+.nav{list-style:none; display:flex; align-items:center; gap:7px; flex:1 1 auto; min-width:0;
+  overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;}
+.nav::-webkit-scrollbar{display:none;}
 .nav-item{
-  display:flex; gap:11px; align-items:baseline;
-  padding:10px 11px; margin-bottom:5px; border-radius:11px; cursor:pointer;
-  transition:.2s; position:relative; border:1px solid transparent;
+  flex:0 0 auto; display:flex; gap:7px; align-items:baseline; white-space:nowrap;
+  padding:8px 13px; border-radius:20px; cursor:pointer;
+  transition:.2s; border:1px solid transparent;
 }
 .nav-item:hover{background:var(--panel); border-color:var(--line);}
 .nav-item.active{
   background:linear-gradient(135deg,#fff,#f6efe0);
-  border-color:var(--gold-soft); box-shadow:0 6px 18px rgba(176,141,87,.2);
+  border-color:var(--gold-soft); box-shadow:0 4px 12px rgba(176,141,87,.18);
 }
-.nav-item.active::before{
-  content:""; position:absolute; left:-12px; top:11px; bottom:11px; width:4px;
-  background:var(--red); border-radius:0 4px 4px 0;
-}
-.nav-idx{font-family:Georgia,serif; font-size:12px; color:var(--gold); letter-spacing:1px; flex:0 0 auto;}
-.nav-name{font-size:15px; letter-spacing:.8px; color:var(--ink);}
+.nav-idx{font-family:Georgia,serif; font-size:12px; color:var(--gold); letter-spacing:1px;}
+.nav-name{font-size:14.5px; letter-spacing:.8px; color:var(--ink);}
 .nav-item.active .nav-name{color:var(--red-deep);}
 
 .side-foot{
@@ -467,10 +473,11 @@ body{
   .side-hero-stat{padding:10px 12px;}
   .side-hero-stat b{font-size:18px;}
   .side-hero-stat span{font-size:10px;}
-  .side-scroll{overflow:visible; padding:10px 12px 14px;}
-  .nav{display:flex; gap:7px; overflow-x:auto; padding-bottom:3px;}
-  .nav-item{flex:0 0 auto; margin-bottom:0; padding:8px 13px;}
-  .nav-item.active::before{display:none;}
+  .side-scroll{overflow:visible;}
+  .content-menu{padding:10px 20px; gap:10px;}
+  .menu-label{padding-right:10px;}
+  .nav{gap:6px;}
+  .nav-item{padding:7px 12px;}
   .nav-idx{display:none;}
   .side-foot{display:none;}
   .chapter{padding:26px 20px 0;}
@@ -553,15 +560,17 @@ body{
     </div>
     <!-- 简介区：原右侧 Hero 的内容，包含标题、导语、统计卡片 -->
     <div class="side-hero" id="sideHero"></div>
-    <div class="side-scroll">
-      <div class="nav-label">目 次</div>
-      <ul class="nav" id="nav"></ul>
-    </div>
+    <div class="side-scroll"></div>
     <div class="side-foot">数字依史料口径整理，存争议处已标注区间与出处。</div>
   </nav>
 
   <main class="content" id="content">
-    <!-- 右侧只展示当前选中的章节面板，不再需要顶部分页工具条 -->
+    <!-- 目次菜单挂在内容区顶部：吸顶、单行，滚动不带走 -->
+    <div class="content-menu">
+      <span class="menu-label">目 次</span>
+      <ul class="nav" id="nav"></ul>
+    </div>
+    <!-- 右侧只展示当前选中的章节面板 -->
   </main>
 </div>
 
