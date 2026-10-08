@@ -476,6 +476,165 @@
   box-shadow: 0 0 0 0 hsl(var(--ink));
 }
 
+/* ------------------------------------------------------------ 手绘中国舆图 */
+
+/* 基础规则必须排在 .mega-map .hand-drawn-map 之前：
+   反过来会形成降序专一性，基础 display/尺寸在某些工具链下被覆盖告警。 */
+.hand-drawn-map {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ------------------------------------------------------------ 顶栏下拉菜单 */
+
+@keyframes mega-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 面板：锚在触发器下方、与导航内容区对齐的一张"纸"。
+   列间用细分隔线，右缘留一条手绘地图带（<xl 隐藏）。 */
+.mega-panel {
+  animation: mega-menu-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  box-shadow: 0 24px 60px hsl(var(--ink) / 0.16);
+  transform-origin: top right;
+}
+
+/* 条目行：整行可点，悬停时淡染纸色并轻微右移，路径徽标保持安静 */
+.mega-link {
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.mega-link:hover {
+  background: hsl(var(--ink) / 0.045);
+  transform: translateX(2px);
+}
+
+/* 右缘地图带：淡入纸面，边缘用遮罩融进面板，不做一张"贴上去的图" */
+.mega-map {
+  background:
+    radial-gradient(circle at 30% 20%, hsl(var(--vermillion) / 0.05), transparent 45%),
+    linear-gradient(90deg, hsl(var(--paper)) 0%, hsl(var(--paper) / 0.4) 40%);
+}
+
+.mega-map .hand-drawn-map {
+  opacity: 0.85;
+  -webkit-mask-image: radial-gradient(ellipse 78% 72% at 52% 50%, #000 55%, transparent 98%);
+  mask-image: radial-gradient(ellipse 78% 72% at 52% 50%, #000 55%, transparent 98%);
+}
+
+@media (max-width: 1023px) {
+  /* 窄屏没有 hover，也没有三列的宽度：面板占满内容区、单列堆叠 */
+  .mega-panel {
+    left: auto;
+    right: 0;
+  }
+}
+
+/* ------------------------------------------------------------ 手绘中国舆图 */
+
+/* 陆地填色用 --paper 而不是 --card：--card 存的是完整 hsl() 值，
+   拼进 hsl(var(--card) / 0.46) 是非法 CSS，fill 会静默回退成不透明黑，
+   整幅地图变成一块黑板。--paper 是裸通道，可以正常加透明度。
+   描边比"看起来应该有的"粗一倍：这张图要缩到 ~890px 宽显示在左栏后面，
+   1.6 的描边缩完不足 1.5px，再被遮罩淡出后基本等于没画。 */
+/* 陆地比纸面略深一档，轮廓才读得出来。缩到 336px 宽后描边不足 1px，
+   只靠线条的话整幅图会散成一堆灰点。 */
+.map-land {
+  fill: hsl(var(--ink) / 0.045);
+  stroke: hsl(var(--ink) / 0.5);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+}
+
+/* 洇墨：同轮廓更粗更淡的一层，模拟宣纸吃墨后的边缘 */
+.map-land-bleed {
+  fill: none;
+  stroke: hsl(var(--ink) / 0.1);
+  stroke-width: 7;
+}
+
+.map-land-faint {
+  fill: hsl(var(--ink) / 0.04);
+  stroke: hsl(var(--ink) / 0.38);
+  stroke-width: 1.8;
+}
+
+.map-zone {
+  opacity: 0.34;
+  transition: opacity 0.34s ease;
+}
+
+.map-zone-active {
+  opacity: 1;
+}
+
+.map-mark {
+  fill: none;
+  stroke: hsl(var(--ink) / 0.66);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 点刻的直径就是描边宽度的一半，所以必须比 map-mark 粗，否则缩到菜单栏宽度后看不见 */
+.map-stipple {
+  fill: none;
+  stroke: hsl(var(--ink) / 0.5);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.map-river {
+  fill: none;
+  stroke: hsl(var(--blueprint) / 0.85);
+  stroke-width: 3.4;
+  stroke-linecap: round;
+}
+
+.map-river-thin {
+  stroke-width: 2;
+  stroke-dasharray: 9 7;
+}
+
+/* 长城与驿道用红与赭，跟墨色的山水分开读 */
+.map-wall {
+  fill: none;
+  stroke: hsl(var(--vermillion) / 0.82);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 4 8;
+}
+
+.map-route {
+  fill: none;
+  stroke: hsl(var(--ochre) / 0.95);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-dasharray: 20 11;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mega-panel {
+    animation: none;
+  }
+
+  .map-zone,
+  .mega-link,
+  .hand-drawn-map {
+    transition: none;
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0;

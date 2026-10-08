@@ -180,7 +180,39 @@ describe("<HistoryScrollUnfold />", () => {
     const [, registeredCallback] = eventCallbackCalls[eventCallbackCalls.length - 1] ?? [];
     registeredCallback?.();
 
+    // 停留时长交给 delayedCall，回调本身包一层：包一层是为了能在卸载时 kill 掉这个
+    // tween（见组件里 pendingHold 的注释）。
     expect(onComplete).not.toHaveBeenCalled();
-    expect(delayedCall).toHaveBeenCalledWith(1.5, onComplete);
+    expect(delayedCall).toHaveBeenCalledTimes(1);
+    const [holdDuration, holdCallback] = delayedCall.mock.calls[0] ?? [];
+    expect(holdDuration).toBe(1.5);
+
+    // 停留结束才真正回调
+    (holdCallback as () => void)();
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it("kills a pending hold timer when it unmounts mid-hold", () => {
+    // 回归：delayedCall 是在 timeline 事件回调里创建的，不在 gsap.context 的记录
+    // 窗口内，所以 context.revert() 杀不掉它。卸载后 holdDuration 到了仍会触发
+    // onComplete——测试里表现为上一条用例污染下一条用例的 sessionStorage。
+    const onComplete = vi.fn();
+    const kill = vi.fn();
+    const delayedCall = vi.fn(() => ({ kill }) as unknown as gsap.core.Tween);
+    gsapMock.delayedCall.mockImplementation(delayedCall);
+
+    const { unmount } = render(
+      <HistoryScrollUnfold config={{ holdDuration: 1.5 }} onComplete={onComplete}>
+        <p>停留片刻</p>
+      </HistoryScrollUnfold>,
+    );
+
+    const eventCallbackCalls = gsapMock.timelineInstance.eventCallback.mock.calls;
+    const [, registeredCallback] = eventCallbackCalls[eventCallbackCalls.length - 1] ?? [];
+    registeredCallback?.();
+
+    unmount();
+
+    expect(kill).toHaveBeenCalledTimes(1);
   });
 });

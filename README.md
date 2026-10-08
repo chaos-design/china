@@ -18,6 +18,7 @@
 | 时间长河 | https://china.chaosmic.cn/china/timeline | 基于 Three.js 的 3D 朝代与少数民族关系漫游，包含主时间轴、战争连线、民族副线、吞并箭头、朝代筛选与时间范围筛选。`/china` 会重定向到此页面。 | ![3D 时间长河](./screenshots/china-timeline.webp) |
 | 政策全览 | https://china.chaosmic.cn/china/policies | 按朝代整理核心政策、制度机构、历史人物、疆域治理与文化科技内容。 | ![朝代政策全览](./screenshots/china-policies.webp) |
 | HTML 专题资源 | https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片、阅读指南等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
+| 台湾专题 | https://china.chaosmic.cn/taiwan | 五卷分页：地形剖面与经纬度投影地图、岛屿编年、风土人情，以及 1895—1945 年日治与 1947 年之后的近代，逐节标注资料出处。内容存于 `resources/html-data/taiwan.json`，渲染逻辑在 `resources/html/taiwan.html`。 | - |
 
 ## 技术栈
 
@@ -105,6 +106,10 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 
 `/ancient-china` 是唯一保留的旧版 HTML 页面（141 kB，`showInHome: false`），它同时是生成式路由的测试夹具。
 
+当前 HTML 资源路由：`/ancient-china`（旧版，首页不展示）、`/intangible-culture-heritage`、`/silk-road`、`/taiwan`。
+
+> **关于站点定位**：本项目自称「中国古代全览」，但四个 HTML 资源并非都属于中国古代范畴。非遗、丝绸之路与旧版朝代页符合，`/taiwan` 是地理与近现代史主题，不符合。站点名与 `<title>` 保持不变——改动品牌文案的影响面（SEO、分享卡片、已部署 URL 语义）远大于收益，且此定位扩展尚需更多同类页面佐证。此处显式记录该例外，后续新增专题时应明确判断它是否落在「中国古代」框架内；框架之外的资源，要么同步放宽 README 与 `index.html` 的定位表述，要么像本条一样把例外写在文档里，不要让一个页面悄悄改变站点的含义。
+
 新增 HTML 专题资源时，应同时提供：
 
 - `resources/html/<name>.html`：原始 HTML 内容。
@@ -112,6 +117,62 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 - 可选 `resources/html-data/<name>.json`：供 HTML 中 `id="ndata"` 且带 `data-resource` 的空脚本标签内联使用。
 
 如只新增 HTML 而未提供 `html-resource` 元数据，应用会自动跳过该资源，避免阻塞首页与路由初始化。
+
+### 顶部菜单
+
+顶部导航是三组 hover 展开的下拉，不是扁平链接列表：
+
+| 分组 | 叶子 |
+| --- | --- |
+| 编年与制度 | 朝代时间长河、朝代政策全览 |
+| 文化与交通 | 中华非遗瑰宝、丝绸之路与海疆 |
+| 地域与近代 | 台湾专题 |
+
+分组硬编码在 `src/components/layout/root-layout.tsx` 的 `NAV_GROUPS`，因为它表达的是编辑判断（哪些内容属于同一类），放进资源元数据会让数据层承担分类职责。新增资源时要在 `NAV_GROUPS` 里补一条叶子——代码里有一道校验，路径若没有对应的可用资源会在启动时抛错，避免留下死链。
+
+展开状态放在 React 而非纯 CSS：`:hover` 在触屏上会粘住，`:focus-within` 在鼠标移开后不会收起。因此 hover 与 click 统一落到 state，键盘走原生 `button` + `role="menu"`，视觉过渡仍由 CSS 完成。收起有 120 ms 延迟，指针从按钮移到面板的路上不会闪。
+
+### `/taiwan` 的区块式内容
+
+五卷各自是一个 `role="tabpanel"`，一次只显示一卷，顶部有 `role="tablist"` 分页条（`卷一`…`卷五`）与前后翻页箭头。**刻意不做「一屏接一屏」的连续下滑**：五卷正文合计约两万字，连续滚动会让读者失去位置感，也让「近代」这一卷无法被单独引用或截图。
+
+`resources/html-data/taiwan.json` 的章节通过 `blocks[].type` 区分渲染形式：
+
+| type | 渲染 |
+| --- | --- |
+| `profile` | 内联手绘 SVG 地形剖面（西→东） |
+| `map` | 由数据里的经纬度投影生成的 SVG 地图 |
+| `prose` / `grid` / `list` / `timeline` / `quote` | 正文段落、卡片网格、要点列表、时间轴、引语 |
+| `note` | 提示条，用于数字口径说明 |
+
+渲染函数与配色全部写在 `resources/html/taiwan.html` 内部，未抽成共享模板——目前只有这一个消费方，抽取属于过度设计。等第二个资源需要同一套区块时，再把渲染器提到 `resources/html/_shared/`。
+
+**地图怎么改。** `map` 块只写数据，投影由代码负责：
+
+```jsonc
+{
+  "type": "map",
+  "projection": { "lat0": 25.55, "lon0": 120.2, "scale": 250 },
+  "shapes": [{ "id": "taiwan-island", "kind": "island",
+               "points": [[121.93, 25.3], /* …顺时针闭合… */] }],
+  "labels": [{ "text": "台北", "lon": 121.55, "lat": 25.04, "anchor": "start" }],
+  "links":  [{ "from": [120.08, 25.16], "to": [120.4, 25.13], "text": "约130公里" }]
+}
+```
+
+- 经度按 `cos(lat)` 收缩，**每个点用自己的纬度**，不要整幅图用一个 `cos(lat0)`——台湾南北跨 3.4 度，那样北部会被横向拉宽、形状失真。
+- 点位顺序必须顺时针且首尾相接（`M…L…Z`），否则会自交。
+- 画布尺寸由所有点位与注记的包围盒算出来，改坐标不需要改 `viewBox`。
+- 竖长图（岛屿，`height > width * 1.2`）走 `.fig.is-portrait`，按高度反推宽度；横向图（剖面、海峡）走 `.fig.is-wide`。**不要给竖图加 `flex-grow`**，会被拉成宽扁的形状。
+- 轮廓是按公开地理资料的近似坐标手绘的，精度约 ±0.02 度，`note` 里已声明「不是测绘图」。要更准需要引入真实 GeoJSON，那是另一个量级的依赖。
+
+两点内容约定：
+
+- `renderInline()` 先对全部文本转义，再只放行 `<b>` 与 `<T t='解释'>关键词</T>`。JSON 里写其他标签会变成可见文本。
+- `<T>` 渲染为 `<button>`，桌面 hover、键盘 focus、触屏点击三条通路都可用；窄屏（<960px）下解释变为固定底部浮层。**不要**把它改成文档流内的块级元素——那会把段落行盒劈成两半。
+- 存在学术争议的数字（二二八死亡人数、慰安妇人数、白色恐怖案件数）一律写成区间并就地说明争议，另在页脚附免责说明。更新数字时请保持该写法，不要为了显得权威而把区间收敛成单点值。
+
+该页 5 卷、28 张卡片、28 条编年，HTML 与 JSON 各自独立 chunk，主 bundle 不受影响。
 
 ### HTML 资源的按需加载
 
@@ -244,6 +305,7 @@ npx vercel dev
 | --- | --- | --- |
 | `/` | 136 kB | `index` 98 kB + `home` 38 kB |
 | `/silk-road` | 193 kB | HTML 与 JSON 各自独立 chunk |
+| `/taiwan` | 33 kB | HTML 14 kB + JSON 19 kB，地图由经纬度投影生成，无外部图片 |
 | `/china/policies` | 341–377 kB | 页面 138 kB + 当前朝代的 1–2 张疆域图 |
 | `/china/timeline` | 287 kB | Three.js 场景 |
 | `/intangible-culture-heritage` | ~1,381 kB | JS 122 kB + 视口内可见的手艺实拍图 |

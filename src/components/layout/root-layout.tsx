@@ -1,23 +1,10 @@
 import { Asterisk } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { Link, matchPath, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, matchPath, Outlet, useLocation } from "react-router-dom";
 import { useAccent } from "../../hooks/use-accent";
-import { cn } from "../../lib/utils";
 import { ROUTE_LAYOUT_CONFIGS } from "../../route-layout-config";
 import { AccentPicker } from "../accent-picker";
-
-const NAV_LINKS = [
-  { to: "/china/timeline", label: "时间长河", end: true },
-  { to: "/china/policies", label: "政策全览", end: true },
-];
-
-const MENU_MOTION_DURATION_MS = 320;
-
-type MenuMotion = {
-  from: number;
-  to: number;
-  direction: -1 | 1;
-};
+import { findNavGroupId } from "./nav-groups";
+import { SiteMenu } from "./site-menu";
 
 function GithubMark() {
   return (
@@ -32,10 +19,6 @@ function GithubMark() {
   );
 }
 
-function getActiveMenuIndex(pathname: string) {
-  return NAV_LINKS.findIndex((link) => matchPath({ path: link.to, end: link.end }, pathname));
-}
-
 export function RootLayout() {
   const location = useLocation();
   const layoutConfig = ROUTE_LAYOUT_CONFIGS.find((config) =>
@@ -44,24 +27,11 @@ export function RootLayout() {
   const showFooter = layoutConfig?.showFooter ?? false;
   const showThemePicker = layoutConfig?.showThemePicker ?? false;
   const accentState = useAccent();
-  const activeMenuIndex = getActiveMenuIndex(location.pathname);
-  const previousMenuIndexRef = useRef(activeMenuIndex);
-  const [menuMotion, setMenuMotion] = useState<MenuMotion | null>(null);
 
-  useEffect(() => {
-    const previousMenuIndex = previousMenuIndexRef.current;
-    if (activeMenuIndex < 0 || previousMenuIndex < 0 || activeMenuIndex === previousMenuIndex) {
-      previousMenuIndexRef.current = activeMenuIndex;
-      return;
-    }
-
-    const direction = activeMenuIndex > previousMenuIndex ? 1 : -1;
-    setMenuMotion({ from: previousMenuIndex, to: activeMenuIndex, direction });
-    previousMenuIndexRef.current = activeMenuIndex;
-
-    const timer = window.setTimeout(() => setMenuMotion(null), MENU_MOTION_DURATION_MS);
-    return () => window.clearTimeout(timer);
-  }, [activeMenuIndex]);
+  // 直接派生，不需要 state：路由变了就重算，避免多一次渲染与一处可能过期的副本。
+  const activeGroupId = findNavGroupId(location.pathname, (path, pathname) =>
+    Boolean(matchPath({ path, end: true }, pathname)),
+  );
 
   return (
     <div className="paper-backdrop flex h-screen overflow-hidden flex-col font-body text-foreground">
@@ -73,47 +43,9 @@ export function RootLayout() {
           >
             <Asterisk className="h-5 w-5 self-center text-primary transition-transform duration-300 group-hover:rotate-90 group-hover:bg-transparent" />
             <span className="text-2xl font-black tracking-tight text-ink">中国古代全览</span>
-            {/* <span className="font-mono-tech text-[10px] tracking-[0.25em] text-muted-foreground uppercase">
-              /atlas
-            </span> */}
           </Link>
 
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-2 rounded-full px-2 py-1">
-            {NAV_LINKS.map((link, index) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end={link.end}
-                className={({ isActive }) =>
-                  cn(
-                    "group flex items-baseline gap-1.5 rounded-none border border-transparent bg-transparent px-3 py-1.5 text-base transition-colors duration-300 hover:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
-                    isActive ? "text-ink" : "text-muted-foreground hover:text-ink",
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <span
-                    className={cn(
-                      "nav-underline",
-                      isActive && "nav-underline-active",
-                      isActive &&
-                        menuMotion?.to === index &&
-                        (menuMotion.direction > 0
-                          ? "nav-underline-forward"
-                          : "nav-underline-backward"),
-                      !isActive &&
-                        menuMotion?.from === index &&
-                        (menuMotion.direction > 0
-                          ? "nav-underline-leaving-forward"
-                          : "nav-underline-leaving-backward"),
-                    )}
-                  >
-                    {link.label}
-                  </span>
-                )}
-              </NavLink>
-            ))}
-          </div>
+          <SiteMenu activeRouteGroupId={activeGroupId} />
         </nav>
       </header>
 
