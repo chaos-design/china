@@ -4,6 +4,7 @@ import { Link, matchPath, Outlet, useLocation } from "react-router-dom";
 import { useAccent } from "../../hooks/use-accent";
 import { ROUTE_LAYOUT_CONFIGS } from "../../route-layout-config";
 import { AccentPicker } from "../accent-picker";
+import { RouteErrorBoundary } from "../route-error-boundary";
 import { findNavGroupId } from "./nav-groups";
 import { SiteMenu } from "./site-menu";
 
@@ -67,11 +68,17 @@ export function RootLayout() {
       </header>
 
       <main ref={mainRef} className="relative z-10 min-h-0 w-full flex-1 overflow-y-auto p-0">
-        {/* key 用 location.pathname：真实路径变化才强制 <Outlet> 子树整体重挂载。
-            兄弟 HTML 资源路由复用同一组件类型时，React 默认只更新 props 而不换 iframe；
-            重挂载才能保证 srcDoc 真正刷新。用 pathname 而非 location.key，避免同页的
-            search/state 变化也触发重挂载而丢失页面内部状态。 */}
-        <Outlet key={location.pathname} />
+        {/* 路由级错误边界：兜住懒加载 chunk 拉取/求值失败、或任意页面渲染期抛错，
+            降级为可恢复卡片（重新加载/返回首页），而非整棵 React 树 unmount 白屏。
+            key 随 pathname 变化，让边界每次切路由都重挂载、重置 hasError——否则某页
+            出过错后，切到正常页面仍会卡在降级态。 */}
+        <RouteErrorBoundary key={location.pathname}>
+          {/* key 用 location.pathname：真实路径变化才强制 <Outlet> 子树整体重挂载。
+              兄弟 HTML 资源路由复用同一组件类型时，React 默认只更新 props 而不换 iframe；
+              重挂载才能保证 srcDoc 真正刷新。用 pathname 而非 location.key，避免同页的
+              search/state 变化也触发重挂载而丢失页面内部状态。 */}
+          <Outlet key={location.pathname} />
+        </RouteErrorBoundary>
 
         {showFooter ? (
           <footer className="relative z-10 bg-paper/85 backdrop-blur">
