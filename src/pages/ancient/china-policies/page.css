@@ -379,22 +379,46 @@
     transform 0.15s,
     box-shadow 0.2s;
 }
-/* 悬停 / 键盘聚焦：把被省略号裁掉的完整维度名在条目内原地展开（允许换行），
-   并在左侧印一枚红印条提示「这里展开了」。整项高度自然增高、下方条目顺次
-   下移，鼠标始终落在当前项上不会闪烁。条目上的原生 title（见
-   dimension-menu.tsx）再兜一层——个别贴底/极窄被菜单内部滚动裁到的场景，
-   系统 tooltip 仍能看全，任何环境都不会「折叠后看不到信息」。 */
+/* 悬停 / 键盘聚焦：高亮当前项 + 左侧红印条提示「这里展开了」。
+   完整维度名的展示交给 .dim-tip 气泡（见下方）：position:fixed 相对视口，
+   逃开 .dimension-wrap / .dim-menu-list 的 overflow 裁剪，贴边自动翻转；
+   按钮上的原生 title（见 dimension-menu.tsx）再兜一层。 */
 .acp-root .dim-tab-vertical:hover,
 .acp-root .dim-tab-vertical:focus-visible {
   background: #f5e6c8;
   transform: translateX(2px);
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  line-height: 1.35;
   box-shadow:
     0 2px 10px rgba(139, 58, 58, 0.18),
     inset 3px 0 0 #8b3a3a;
+}
+/* 完整维度名气泡：随 mouseenter / focus 即时出现（JS 写 left/top，CSS 管观感）。
+   .acp-root 无 transform/filter，fixed 即相对视口，不会被卡片或菜单裁剪。 */
+.acp-root .dim-tip {
+  position: fixed;
+  z-index: 80;
+  white-space: nowrap;
+  background: #2a221a;
+  color: #f5e6c8;
+  font-size: 12.5px;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  border: 1px solid #c9a96e;
+  box-shadow: 0 6px 18px rgba(40, 28, 18, 0.35);
+  pointer-events: none;
+  animation: acpTipIn 0.12s ease-out;
+}
+@keyframes acpTipIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .acp-root .dim-tab-vertical.active {
   background: linear-gradient(90deg, #8b3a3a, #a85440);
