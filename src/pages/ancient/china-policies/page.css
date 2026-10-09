@@ -265,23 +265,31 @@
   overflow-y: auto;
 }
 
-/* 「朝代维度」菜单：.layout 里的独立固定列，钉在朝代栏与内容区之间。
-   整列是固定高度的 flex 项，右侧 .main-wrap 内部滚动不会带动它；
-   条目（权谋/军事/科技…工艺）随朝代刷新，多到放不下时本列自己出现内部滚动条。 */
+/* 「朝代维度」菜单：钉在朝代栏与内容区之间的悬浮卡片。
+   不再铺满整列高度（对齐到内容高度、垂直居中），左侧留一段走道与朝代栏脱开，
+   像一枚锚在页边的标签页。条目（权谋/军事/科技…工艺）随朝代刷新，
+   放不下时卡片内部滚动，右侧 .main-wrap 滚动不会带动它。 */
 .acp-root .dimension-wrap {
+  position: relative;
   display: flex;
   flex-direction: column;
-  flex: 0 0 184px;
-  width: 184px;
-  height: 100%;
+  flex: 0 0 168px;
+  width: 168px;
+  height: auto;
+  max-height: 60vh;
+  align-self: center;
+  /* 左侧留走道：和朝代栏脱开，不再整条粘合 */
+  margin: 0 18px 0 14px;
   min-height: 0;
   overflow: hidden;
-  background: linear-gradient(180deg, #efe4cb 0%, #e6d5b2 100%);
-  border-right: 2px solid #c9a96e;
-  box-shadow: 4px 0 14px rgba(90, 60, 30, 0.1);
-  padding: 14px 0 10px;
+  background: linear-gradient(180deg, #f7eed9 0%, #efe2c6 100%);
+  border: 1px solid #d4b896;
+  border-radius: 14px;
+  box-shadow:
+    0 10px 30px rgba(90, 60, 30, 0.14),
+    0 1px 0 rgba(255, 250, 240, 0.85) inset;
+  padding: 12px 10px 10px;
   z-index: 40;
-  scrollbar-width: thin;
   overscroll-behavior: contain;
 }
 .acp-root .dimension-menu {
@@ -291,26 +299,53 @@
   min-height: 0;
   overflow: hidden;
 }
+/* 锚点：一枚印章式的小圆钉挂在标题上方，暗示这组标签是「钉在页边」的 */
 .acp-root .dimension-title {
-  font-size: 15px;
+  position: relative;
+  font-size: 14px;
   color: #5b2a2a;
   font-weight: 700;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
   text-align: center;
-  padding: 0 10px 10px;
-  border-bottom: 2px solid #c9a96e;
-  margin: 0 10px 8px;
+  padding: 14px 6px 9px;
+  margin: 0 6px 6px;
+  border-bottom: 1px dashed #c9a96e;
+}
+.acp-root .dimension-title::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #cf7a66, #8b3a3a 70%);
+  box-shadow:
+    0 0 0 3px rgba(139, 58, 58, 0.16),
+    0 2px 4px rgba(90, 60, 30, 0.3);
+}
+.acp-root .dimension-title::after {
+  /* 从锚钉垂下的一短线，衔接到标签列表 */
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 5px;
+  border-left: 2px dashed rgba(139, 58, 58, 0.5);
 }
 .acp-root .dim-menu-list {
   flex: 1;
   min-height: 0;
   margin: 0;
-  padding: 2px 10px;
+  padding: 2px;
   list-style: none;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 5px;
 }
 .acp-root .dim-menu-list::-webkit-scrollbar {
   width: 5px;
@@ -319,31 +354,37 @@
   background: #c9a96e;
   border-radius: 3px;
 }
-/* 纵向维度条目：宽栏里整行排布，比横向标签更省竖向空间 */
+/* 纵向维度条目：紧凑排布，当前项用印泥红高亮，像一枚点亮的小章 */
 .acp-root .dim-tab-vertical {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  background: rgba(255, 250, 240, 0.5);
-  border: 1px solid transparent;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  letter-spacing: 0.3px;
+  color: #5a4030;
+  background: rgba(255, 252, 245, 0.55);
+  border: 1px solid rgba(212, 184, 150, 0.5);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   transition:
     background 0.2s,
-    border-color 0.2s;
+    border-color 0.2s,
+    transform 0.15s,
+    box-shadow 0.2s;
 }
 .acp-root .dim-tab-vertical:hover {
-  background: rgba(245, 230, 200, 0.85);
+  background: #f5e6c8;
+  transform: translateX(2px);
 }
 .acp-root .dim-tab-vertical.active {
-  background: #8b3a3a;
+  background: linear-gradient(90deg, #8b3a3a, #a85440);
   color: #f5e6c8;
   border-color: #5b2a2a;
+  box-shadow: 0 2px 8px rgba(139, 58, 58, 0.32);
+  font-weight: 600;
 }
 .acp-root main {
   max-width: 1100px;
@@ -798,23 +839,21 @@
   .acp-root .timeline-legend {
     margin: 8px 14px 0;
   }
-  /* 窄屏下朝代栏堆叠成整行，维度菜单也改成横向滚动条，避免占掉一屏高度 */
+  /* 窄屏下朝代栏堆叠成整行，维度卡片改成横向滚动条，避免占掉一屏高度 */
   .acp-root .dimension-wrap {
-    flex-direction: column;
     flex: 0 0 auto;
-    width: 100%;
-    height: auto;
-    border-right: none;
-    border-bottom: 2px solid #c9a96e;
-    box-shadow: 0 4px 14px rgba(90, 60, 30, 0.1);
-    padding: 6px 0;
+    width: auto;
+    margin: 0;
+    max-height: none;
+    align-self: stretch;
+    border-radius: 10px;
   }
   .acp-root .dimension-title {
     display: none;
   }
   .acp-root .dim-menu-list {
     flex-direction: row;
-    padding: 4px 10px;
+    padding: 4px 8px;
     overflow-x: auto;
     overflow-y: hidden;
     gap: 6px;
