@@ -32,6 +32,7 @@ export const DimensionMenu = memo(function DimensionMenu({
               type="button"
               className={`dim-tab dim-tab-vertical${key === active ? " active" : ""}`}
               aria-current={key === active ? "true" : undefined}
+              title={key}
               onClick={() => onSelect(key)}
             >
               {key}

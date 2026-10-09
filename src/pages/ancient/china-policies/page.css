@@ -356,6 +356,7 @@
 }
 /* 纵向维度条目：紧凑排布，当前项用印泥红高亮，像一枚点亮的小章 */
 .acp-root .dim-tab-vertical {
+  position: relative;
   display: block;
   width: 100%;
   text-align: left;
@@ -366,6 +367,9 @@
   color: #5a4030;
   background: rgba(255, 252, 245, 0.55);
   border: 1px solid rgba(212, 184, 150, 0.5);
+  /* 默认单行省略：长维度名（如「军事·八旗·绿营·开疆」）放不下时收成一行 + …，
+     把整列高度压在紧凑状态。完整文字始终在 DOM 里（无障碍名不受影响），
+     只是在 hover / 键盘聚焦时展开（见下方 :hover 规则），避免「折叠后看不到信息」。 */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -375,9 +379,22 @@
     transform 0.15s,
     box-shadow 0.2s;
 }
-.acp-root .dim-tab-vertical:hover {
+/* 悬停 / 键盘聚焦：把被省略号裁掉的完整维度名在条目内原地展开（允许换行），
+   并在左侧印一枚红印条提示「这里展开了」。整项高度自然增高、下方条目顺次
+   下移，鼠标始终落在当前项上不会闪烁。条目上的原生 title（见
+   dimension-menu.tsx）再兜一层——个别贴底/极窄被菜单内部滚动裁到的场景，
+   系统 tooltip 仍能看全，任何环境都不会「折叠后看不到信息」。 */
+.acp-root .dim-tab-vertical:hover,
+.acp-root .dim-tab-vertical:focus-visible {
   background: #f5e6c8;
   transform: translateX(2px);
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.35;
+  box-shadow:
+    0 2px 10px rgba(139, 58, 58, 0.18),
+    inset 3px 0 0 #8b3a3a;
 }
 .acp-root .dim-tab-vertical.active {
   background: linear-gradient(90deg, #8b3a3a, #a85440);
