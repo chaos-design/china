@@ -60,6 +60,10 @@
   min-height: 0;
   overflow: hidden;
 }
+/* 左侧栏：独立的「中国朝代」菜单 + 钉在栏底的图例。
+   .layout 是固定高度的 flex 行，本栏只是其中一个 flex 项，所以右侧 .main-wrap
+   内部滚到哪里，本栏都不会跟着移动；只有视口矮到 9 个朝代放不下时，
+   菜单自己（.timeline）才会出现内部滚动条。 */
 .acp-root .timeline-wrap {
   display: flex;
   flex-direction: column;
@@ -74,6 +78,16 @@
   padding: 14px 0 10px;
   z-index: 50;
   scrollbar-width: thin;
+  /* 在菜单上滚轮到底时不要把滚动链传给外层内容区 */
+  overscroll-behavior: contain;
+}
+/* 「中国朝代」菜单：左栏里的独立单元，独占剩余高度 */
+.acp-root .dynasty-menu {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 .acp-root .timeline::-webkit-scrollbar {
   width: 6px;
@@ -87,21 +101,22 @@
   min-height: 0;
   position: relative;
   overflow-y: auto;
-  padding: 4px 0;
+  padding: 2px 0;
 }
 .acp-root .timeline-track {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   position: relative;
   padding: 0 10px;
 }
+/* 条目行高压到 42px 左右，让 9 个朝代在常见的 900px 视口里一屏看全 */
 .acp-root .tl-node {
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: 26px 1fr;
   align-items: center;
-  gap: 8px;
-  padding: 8px 6px;
+  gap: 6px;
+  padding: 5px 6px;
   cursor: pointer;
   position: relative;
   z-index: 2;
@@ -118,8 +133,8 @@
 }
 .acp-root .tl-node .dot-row {
   position: relative;
-  width: 28px;
-  height: 30px;
+  width: 26px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -145,11 +160,11 @@
 .acp-root .tl-node .dot {
   position: relative;
   z-index: 2;
-  width: 15px;
-  height: 15px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   background: #fffaf0;
-  border: 4px solid #8b6a3a;
+  border: 3px solid #8b6a3a;
   box-shadow: 0 2px 6px rgba(90, 60, 30, 0.25);
   transition:
     background 0.3s,
@@ -199,13 +214,13 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
   flex: 1;
   text-align: left;
 }
 .acp-root .tl-node .name {
-  font-size: 16px;
+  font-size: 15px;
   color: #5a4030;
   font-weight: 700;
   letter-spacing: 2px;
@@ -213,7 +228,7 @@
   white-space: nowrap;
 }
 .acp-root .tl-node .era {
-  font-size: 12px;
+  font-size: 11px;
   color: #8b6a3a;
   font-weight: 700;
   line-height: 1.3;

@@ -191,6 +191,9 @@ describe("<AncientChinaPoliciesReactPage />", () => {
     render(<AncientChinaPoliciesReactPage />);
 
     fireEvent.click(screen.getByRole("button", { name: /^元 / }));
+    // 「元」的 SVG 图形只在「疆域·地区划分」维度里。现在只挂载当前维度分区，
+    // 需要先把维度切到含图的那一个，图形按钮才会在 DOM 里。
+    fireEvent.click(screen.getByRole("button", { name: "疆域·地区划分" }));
 
     const contentArea = document.getElementById("contentArea");
     const figureButton = contentArea?.querySelector<HTMLButtonElement>(".policy-figure-button");
