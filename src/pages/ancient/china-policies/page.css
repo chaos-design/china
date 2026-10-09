@@ -264,6 +264,87 @@
   min-width: 0;
   overflow-y: auto;
 }
+
+/* 「朝代维度」菜单：.layout 里的独立固定列，钉在朝代栏与内容区之间。
+   整列是固定高度的 flex 项，右侧 .main-wrap 内部滚动不会带动它；
+   条目（权谋/军事/科技…工艺）随朝代刷新，多到放不下时本列自己出现内部滚动条。 */
+.acp-root .dimension-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 184px;
+  width: 184px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, #efe4cb 0%, #e6d5b2 100%);
+  border-right: 2px solid #c9a96e;
+  box-shadow: 4px 0 14px rgba(90, 60, 30, 0.1);
+  padding: 14px 0 10px;
+  z-index: 40;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+.acp-root .dimension-menu {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.acp-root .dimension-title {
+  font-size: 15px;
+  color: #5b2a2a;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-align: center;
+  padding: 0 10px 10px;
+  border-bottom: 2px solid #c9a96e;
+  margin: 0 10px 8px;
+}
+.acp-root .dim-menu-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 2px 10px;
+  list-style: none;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.acp-root .dim-menu-list::-webkit-scrollbar {
+  width: 5px;
+}
+.acp-root .dim-menu-list::-webkit-scrollbar-thumb {
+  background: #c9a96e;
+  border-radius: 3px;
+}
+/* 纵向维度条目：宽栏里整行排布，比横向标签更省竖向空间 */
+.acp-root .dim-tab-vertical {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  background: rgba(255, 250, 240, 0.5);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+.acp-root .dim-tab-vertical:hover {
+  background: rgba(245, 230, 200, 0.85);
+}
+.acp-root .dim-tab-vertical.active {
+  background: #8b3a3a;
+  color: #f5e6c8;
+  border-color: #5b2a2a;
+}
 .acp-root main {
   max-width: 1100px;
   margin: 0 auto;
@@ -716,6 +797,35 @@
   }
   .acp-root .timeline-legend {
     margin: 8px 14px 0;
+  }
+  /* 窄屏下朝代栏堆叠成整行，维度菜单也改成横向滚动条，避免占掉一屏高度 */
+  .acp-root .dimension-wrap {
+    flex-direction: column;
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 2px solid #c9a96e;
+    box-shadow: 0 4px 14px rgba(90, 60, 30, 0.1);
+    padding: 6px 0;
+  }
+  .acp-root .dimension-title {
+    display: none;
+  }
+  .acp-root .dim-menu-list {
+    flex-direction: row;
+    padding: 4px 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 6px;
+    min-height: 44px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .acp-root .dim-tab-vertical {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 5px 12px;
+    border-radius: 16px;
   }
   .acp-root .main-wrap {
     flex: 1;

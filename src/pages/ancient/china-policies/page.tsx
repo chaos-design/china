@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { DimensionMenu } from "./dimension-menu";
 import { DynastyMenu } from "./dynasty-menu";
 import "./page.css";
 import { DYNASTIES, GLOSSARY } from "./data";
@@ -120,6 +121,14 @@ export function AncientChinaPoliciesReactPage() {
     }
   }, []);
 
+  // 稳定引用：传给左侧维度菜单，选择时只更新该朝代的维度选择
+  const selectDim = useCallback(
+    (key: string) => {
+      setDimState((prev) => ({ ...prev, [dynasty.id]: key }));
+    },
+    [dynasty.id],
+  );
+
   // 稳定引用：配合 PolicyCardView 的 memo，切换维度时未变的卡片不会重渲染
   const openFigure = useCallback(
     ({ id, title }: { id: PolicyCardData["figure"]; title: string }) => {
@@ -235,6 +244,13 @@ export function AncientChinaPoliciesReactPage() {
           </aside>
         </aside>
 
+        {/* 朝代维度菜单：独立的左侧列，钉在朝代栏与内容区之间。
+            整列是 .layout 里固定高度的 flex 项，右侧 .main-wrap 内部滚动
+            不会带动它；条目随当前朝代刷新，放不下时本列自己内部滚动。 */}
+        <div className="dimension-wrap">
+          <DimensionMenu dims={dimKeys} active={activeDim} onSelect={selectDim} />
+        </div>
+
         <div className="main-wrap" ref={mainWrapRef}>
           <main>
             <div id="contentArea">
@@ -245,19 +261,7 @@ export function AncientChinaPoliciesReactPage() {
                 {/* biome-ignore lint/security/noDangerouslySetInnerHtml: trusted local data rendered with term highlighting */}
                 <div className="intro" dangerouslySetInnerHTML={{ __html: introHtml }} />
 
-                <div className="dim-tabs">
-                  {dimKeys.map((k) => (
-                    <button
-                      type="button"
-                      key={k}
-                      className={`dim-tab${k === activeDim ? " active" : ""}`}
-                      onClick={() => setDimState((prev) => ({ ...prev, [dynasty.id]: k }))}
-                    >
-                      {k}
-                    </button>
-                  ))}
-                </div>
-
+                {/* 维度标签已抽到左侧 DimensionMenu，这里只渲染当前维度的卡片分区 */}
                 {/* 只挂载当前维度。以前 10 个维度全部渲染、非当前项用 display:none 藏着，
                     385 张卡片 + 术语解析在首屏一次性构建；既然隐藏的分区没有任何可见价值，
                     就只在选中时构建对应的卡片子树。 */}
