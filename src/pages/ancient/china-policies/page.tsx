@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { DimensionMenu } from "./dimension-menu";
+import { DynastyMenu } from "./dynasty-menu";
 import "./page.css";
 import { DYNASTIES, GLOSSARY } from "./data";
 import { normalizePunctuation, parseTerms } from "./parse";
@@ -38,7 +40,9 @@ interface PolicyCardViewProps {
   onFigureClick: (figure: { id: PolicyCardData["figure"]; title: string }) => void;
 }
 
-function PolicyCardView({ card, onFigureClick }: PolicyCardViewProps) {
+// memo + 稳定的 onFigureClick：切换维度/朝代时，同一批卡片的 props 不变，
+// 重渲染会被整块跳过（卡片里的术语高亮、SVG 图都是纯函数式的重活）。
+const PolicyCardView = memo(function PolicyCardView({ card, onFigureClick }: PolicyCardViewProps) {
   const figureTitle = getPlainCardTitle(card.title);
   const figure = card.figure && isPolicyFigureId(card.figure) ? card.figure : null;
 
@@ -125,7 +129,7 @@ function PolicyCardView({ card, onFigureClick }: PolicyCardViewProps) {
       </CardContent>
     </Card>
   );
-}
+});
 
 export function AncientChinaPoliciesReactPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -160,10 +164,10 @@ export function AncientChinaPoliciesReactPage() {
     }
   }, []);
 
-  // Switching the active dimension re-renders the card stack, so snap the content
-  // back to the top — otherwise the user stays pinned to the previous dimension's
-  // scroll position while new, shorter content fills the viewport.
-  const switchDim = useCallback(
+  // 稳定引用：传给左侧维度菜单，选择时只更新该朝代的维度选择；
+  // 切换维度会重渲染卡片栈，顺手把内容区滚动回顶部，避免停留在
+  // 上一维度的滚动位置、让新内容从半截开始显示。
+  const selectDim = useCallback(
     (key: string) => {
       setDimState((prev) => ({ ...prev, [dynasty.id]: key }));
       if (mainWrapRef.current) {
@@ -171,6 +175,14 @@ export function AncientChinaPoliciesReactPage() {
       }
     },
     [dynasty.id],
+  );
+
+  // 稳定引用：配合 PolicyCardView 的 memo，切换维度时未变的卡片不会重渲染
+  const openFigure = useCallback(
+    ({ id, title }: { id: PolicyCardData["figure"]; title: string }) => {
+      if (id) setLightboxFigure({ id, title });
+    },
+    [],
   );
 
   // Scroll the active timeline node into view when the dynasty changes.
@@ -263,27 +275,12 @@ export function AncientChinaPoliciesReactPage() {
     <div className="acp-root" ref={rootRef}>
       <div className="layout">
         <aside className="timeline-wrap">
-          <div className="timeline-title">中 国 朝 代</div>
-          <div className="timeline">
-            <div className="timeline-track" ref={trackRef}>
-              {DYNASTIES.map((d, i) => (
-                <button
-                  type="button"
-                  key={d.id}
-                  className={`tl-node${i === currentIdx ? " active" : ""}`}
-                  onClick={() => goTo(i)}
-                >
-                  <div className="dot-row">
-                    <div className="dot" />
-                  </div>
-                  <div className="info">
-                    <div className="name">{d.name}</div>
-                    <div className="era">{d.era}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
+          <DynastyMenu
+            activeIndex={currentIdx}
+            dynasties={DYNASTIES}
+            onSelect={goTo}
+            trackRef={trackRef}
+          />
           <aside className="legend-panel timeline-legend" aria-label="图例说明">
             <div className="legend-heading">
               <strong>图例</strong>
@@ -297,6 +294,13 @@ export function AncientChinaPoliciesReactPage() {
           </aside>
         </aside>
 
+        {/* 朝代维度菜单：独立的左侧列，钉在朝代栏与内容区之间。
+            整列是 .layout 里固定高度的 flex 项，右侧 .main-wrap 内部滚动
+            不会带动它；条目随当前朝代刷新，放不下时本列自己内部滚动。 */}
+        <div className="dimension-wrap">
+          <DimensionMenu dims={dimKeys} active={activeDim} onSelect={selectDim} />
+        </div>
+
         <div className="main-wrap" ref={mainWrapRef}>
           <main>
             <div id="contentArea">
@@ -307,36 +311,21 @@ export function AncientChinaPoliciesReactPage() {
                 {/* biome-ignore lint/security/noDangerouslySetInnerHtml: trusted local data rendered with term highlighting */}
                 <div className="intro" dangerouslySetInnerHTML={{ __html: introHtml }} />
 
-                <div className="dim-tabs">
-                  {dimKeys.map((k) => (
-                    <button
-                      type="button"
-                      key={k}
-                      className={`dim-tab${k === activeDim ? " active" : ""}`}
-                      onClick={() => switchDim(k)}
-                    >
-                      {k}
-                    </button>
-                  ))}
-                </div>
-
-                {dimKeys.map((k) => (
-                  <div
-                    key={k}
-                    className={`dim-section${k === activeDim ? " active" : ""}`}
-                    data-dim={k}
-                  >
-                    {dynasty.dimensions[k].map((card, ci) => (
+                {/* 维度标签已抽到左侧 DimensionMenu，这里只渲染当前维度的卡片分区 */}
+                {/* 只挂载当前维度。以前 10 个维度全部渲染、非当前项用 display:none 藏着，
+                    385 张卡片 + 术语解析在首屏一次性构建；既然隐藏的分区没有任何可见价值，
+                    就只在选中时构建对应的卡片子树。 */}
+                {activeDim ? (
+                  <div className="dim-section active" data-dim={activeDim}>
+                    {dynasty.dimensions[activeDim].map((card, cardIndex) => (
                       <PolicyCardView
                         card={card}
-                        key={`${k}-${ci}`}
-                        onFigureClick={({ id, title }) => {
-                          if (id) setLightboxFigure({ id, title });
-                        }}
+                        key={`${activeDim}-${cardIndex}`}
+                        onFigureClick={openFigure}
                       />
                     ))}
                   </div>
-                ))}
+                ) : null}
               </section>
             </div>
           </main>
