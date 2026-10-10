@@ -106,6 +106,48 @@ describe("<AncientChinaPoliciesReactPage />", () => {
     expect(screen.getByRole("button", { name: "军事·武力征服" })).toHaveClass("active");
   });
 
+  it("scrolls the content to the top when a dimension tab is switched", () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    const mainWrapEl = document.querySelector<HTMLElement>(".main-wrap");
+    expect(mainWrapEl).toBeInTheDocument();
+
+    let written: number | undefined;
+    const originalDesc = Object.getOwnPropertyDescriptor(mainWrapEl, "scrollTop");
+    Object.defineProperty(mainWrapEl, "scrollTop", {
+      configurable: true,
+      set: (value: number) => {
+        written = value;
+      },
+      get: () => (originalDesc?.get ? originalDesc.get.call(mainWrapEl) : 0),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "工艺·古法制造" }));
+
+    // switchDim writes mainWrapRef.current.scrollTop = 0, snapping the content to the top.
+    expect(written).toBe(0);
+  });
+
+  it("renders craft cards as a numbered process flow with step detail", () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    const dimTab = screen.getByRole("button", { name: "工艺·古法制造" });
+    fireEvent.click(dimTab);
+
+    const activeSection = document.querySelector<HTMLElement>(".dim-section.active");
+    expect(activeSection).toBeInTheDocument();
+    expect(activeSection!.getAttribute("data-dim")).toBe("工艺·古法制造");
+
+    const qinCraft = activeSection!.querySelector<HTMLElement>(".craft-steps");
+    expect(qinCraft).toBeInTheDocument();
+    // The process ribbon + the numbered detail list both carry the step titles.
+    expect(qinCraft!.querySelectorAll(".craft-flow-node").length).toBeGreaterThan(0);
+    expect(qinCraft!.querySelectorAll(".craft-flow-arrow").length).toBeGreaterThan(0);
+    expect(qinCraft!.querySelectorAll(".craft-steps-list li").length).toBeGreaterThan(0);
+    // The step name "选料" is lifted into its own styled element.
+    expect(qinCraft!.textContent).toContain("选料");
+  });
+
   it("renders the territory SVG figure for every dynasty without falling back to img", async () => {
     render(<AncientChinaPoliciesReactPage />);
 
