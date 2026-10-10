@@ -106,6 +106,79 @@ describe("<AncientChinaPoliciesReactPage />", () => {
     expect(screen.getByRole("button", { name: "军事·武力征服" })).toHaveClass("active");
   });
 
+  it("scrolls the content to the top when a dimension tab is switched", () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    const mainWrapEl = document.querySelector<HTMLElement>(".main-wrap");
+    expect(mainWrapEl).toBeInTheDocument();
+
+    let written: number | undefined;
+    const originalDesc = Object.getOwnPropertyDescriptor(mainWrapEl, "scrollTop");
+    Object.defineProperty(mainWrapEl, "scrollTop", {
+      configurable: true,
+      set: (value: number) => {
+        written = value;
+      },
+      get: () => (originalDesc?.get ? originalDesc.get.call(mainWrapEl) : 0),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "工艺·古法制造" }));
+
+    // switchDim writes mainWrapRef.current.scrollTop = 0, snapping the content to the top.
+    expect(written).toBe(0);
+  });
+
+  it("renders craft cards as a numbered process flow with step detail", () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    const dimTab = screen.getByRole("button", { name: "工艺·古法制造" });
+    fireEvent.click(dimTab);
+
+    const activeSection = document.querySelector<HTMLElement>(".dim-section.active");
+    expect(activeSection).toBeInTheDocument();
+    expect(activeSection!.getAttribute("data-dim")).toBe("工艺·古法制造");
+
+    const qinCraft = activeSection!.querySelector<HTMLElement>(".craft-steps");
+    expect(qinCraft).toBeInTheDocument();
+    // The process ribbon + the numbered detail list both carry the step titles.
+    expect(qinCraft!.querySelectorAll(".craft-flow-node").length).toBeGreaterThan(0);
+    expect(qinCraft!.querySelectorAll(".craft-flow-arrow").length).toBeGreaterThan(0);
+    expect(qinCraft!.querySelectorAll(".craft-steps-list li").length).toBeGreaterThan(0);
+    // The step name "选料" is lifted into its own styled element.
+    expect(qinCraft!.textContent).toContain("选料");
+  });
+
+  it("renders 官制 rank tables as styled .impact-block divs, plain impacts as <p>", () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    // The default 权谋 dimension keeps the plain-prose layout: <p><strong>【影响】</strong>.
+    const plainSection = document.querySelector<HTMLElement>(".dim-section.active");
+    expect(plainSection).toBeInTheDocument();
+    expect(plainSection!.getAttribute("data-dim")).toBe("权谋·中央集权");
+    const impactStrong = [...plainSection!.querySelectorAll("p strong")].find((strong) =>
+      strong.textContent?.includes("【影响】"),
+    );
+    expect(impactStrong).toBeDefined();
+    expect(plainSection!.querySelector(".impact-block")).not.toBeInTheDocument();
+
+    // 官制·职级对照 embeds a raw rank comparison table inside its impact string,
+    // so it must switch to the div-based layout with the styled table.
+    fireEvent.click(screen.getByRole("button", { name: "官制·职级对照" }));
+
+    const rankSection = document.querySelector<HTMLElement>(".dim-section.active");
+    expect(rankSection).toBeInTheDocument();
+    expect(rankSection!.getAttribute("data-dim")).toBe("官制·职级对照");
+
+    const impactBlock = rankSection!.querySelector<HTMLElement>(".impact-block");
+    expect(impactBlock).toBeInTheDocument();
+    expect(impactBlock!.querySelector(".impact-label")?.textContent).toContain("【影响】");
+    // The embedded table renders as a real styled table with a header row.
+    expect(rankSection!.querySelector(".rank-tbl .rt-row.rt-head")).toBeInTheDocument();
+    expect(rankSection!.querySelectorAll(".rank-tbl .rt-row").length).toBeGreaterThan(1);
+    // 文职/武职 sections keep their distinct accent classes.
+    expect(rankSection!.querySelector(".rank-section.mil")).toBeInTheDocument();
+  });
+
   it("renders the territory SVG figure for every dynasty without falling back to img", async () => {
     render(<AncientChinaPoliciesReactPage />);
 

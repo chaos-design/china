@@ -660,28 +660,220 @@
 
 .acp-root .craft-steps {
   margin: 8px 0 10px;
-  padding: 10px 14px;
+  padding: 12px 14px 8px;
   background: #fff8e8;
+  border: 1px solid #e6d3a8;
   border-left: 3px solid #c9a96e;
-  border-radius: 3px;
-}
-.acp-root .craft-steps ol {
-  margin: 0;
-  padding-left: 22px;
-}
-.acp-root .craft-steps ol li {
-  font-size: 13.5px;
-  color: #3a2818;
-  margin: 3px 0;
-  line-height: 1.65;
+  border-radius: 4px;
 }
 .acp-root .craft-steps .step-title {
   font-weight: bold;
   color: #8b3a3a;
   letter-spacing: 1px;
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   font-size: 13px;
+}
+
+/* 工艺·古法制造 — process ribbon of step names, then a numbered step detail list. */
+.acp-root .craft-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 2px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, #f6ecd4, #f2e4c4);
+  border: 1px solid #e0c99a;
+  border-radius: 4px;
+}
+.acp-root .craft-flow-node {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  background: #fffaf0;
+  border: 1px solid #d9c08a;
+  border-radius: 14px;
+  font-size: 12.5px;
+  color: #5a4030;
+  line-height: 1.35;
+}
+.acp-root .craft-flow-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #8b3a3a;
+  color: #f5e6c8;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+.acp-root .craft-flow-label {
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.acp-root .craft-flow-arrow {
+  color: #c9a96e;
+  font-weight: 700;
+  margin: 0 3px;
+}
+.acp-root .craft-steps-list {
+  list-style: none;
+  counter-reset: craft-step;
+  padding: 0;
+  margin: 0;
+}
+.acp-root .craft-steps-list li {
+  position: relative;
+  padding: 4px 0 4px 30px;
+  margin: 0;
+  counter-increment: craft-step;
+  font-size: 13.5px;
+  color: #3a2818;
+  line-height: 1.65;
+}
+.acp-root .craft-steps-list li + li {
+  border-top: 1px dashed #efe0c0;
+}
+.acp-root .craft-steps-list li::before {
+  content: counter(craft-step);
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fffaf0;
+  border: 1.5px solid #c9a96e;
+  color: #8b3a3a;
+  font-size: 11px;
+  font-weight: 700;
+}
+.acp-root .craft-steps-list li.has-name .craft-step-name {
+  color: #8b3a3a;
+  font-weight: 700;
+}
+.acp-root .craft-steps-list .craft-step-body {
+  display: block;
+}
+.acp-root .craft-steps-list .craft-step-sep {
+  color: #8b6a3a;
+  font-weight: 700;
+}
+
+/* 官制·职级对照 — the impact string embeds a <div class="rank-tbl"> comparison table.
+ * These classes previously had no styles, so the table collapsed into one unreadable
+ * line of text. Style it as a proper, scrollable four-column table. */
+.acp-root .impact-block {
+  font-size: 14.5px;
+  color: #3a2818;
+  margin: 5px 0;
+}
+.acp-root .impact-block .impact-label {
+  color: #5b2a2a;
+  font-weight: bold;
+}
+.acp-root .rank-section {
+  margin: 14px 0 8px;
+  padding: 8px 12px;
+  background: linear-gradient(90deg, rgba(139, 58, 58, 0.14), transparent 70%);
+  border-left: 4px solid #8b3a3a;
+  border-radius: 0 4px 4px 0;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #5b2a2a;
+}
+.acp-root .rank-section.mil {
+  border-left-color: #4a6a8a;
+  background: linear-gradient(90deg, rgba(74, 106, 138, 0.14), transparent 70%);
+  color: #344b63;
+}
+.acp-root .rank-section .sub {
+  display: block;
+  margin-top: 2px;
+  color: #8b6a3a;
+  font-size: 12px;
+  font-weight: normal;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+.acp-root .rank-tbl {
+  margin: 4px 0 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #d4b896;
+  border-radius: 5px;
+  background: #fdf6e3;
+  box-shadow: 0 2px 10px rgba(90, 60, 30, 0.08);
+}
+.acp-root .rank-tbl .rt-row {
+  display: grid;
+  grid-template-columns: minmax(92px, 1fr) minmax(104px, 1.1fr) minmax(150px, 1.5fr) minmax(
+      190px,
+      2.1fr
+    );
+  align-items: center;
+  min-width: 560px;
+}
+.acp-root .rank-tbl .rt-row + .rt-row {
+  border-top: 1px solid #efe0c0;
+}
+.acp-root .rank-tbl .rt-row > div {
+  padding: 7px 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #3a2818;
+  border-right: 1px solid #efe0c0;
+}
+.acp-root .rank-tbl .rt-row > div:last-child {
+  border-right: 0;
+}
+.acp-root .rank-tbl .rt-row > div:first-child {
+  font-weight: 700;
+  color: #5b2a2a;
+  white-space: nowrap;
+}
+.acp-root .rank-tbl .rt-row.rt-head {
+  background: #8b3a3a;
+}
+.acp-root .rank-tbl .rt-row.rt-head > div {
+  background: transparent;
+  color: #f5e6c8;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 1px;
+  border-right: 1px solid rgba(245, 230, 200, 0.28);
+}
+.acp-root .rank-tbl .rt-row.rt-head > div:first-child {
+  color: #f5e6c8;
+}
+.acp-root .rank-tbl .rt-row:not(.rt-head):nth-child(even) {
+  background: #f7efdb;
+}
+.acp-root .rank-tbl .rt-row > div:nth-child(2) {
+  color: #8b6a3a;
+  font-size: 12.5px;
+}
+
+@media (max-width: 700px) {
+  .acp-root .rank-tbl .rt-row {
+    grid-template-columns: minmax(72px, 1fr) minmax(82px, 1.1fr) minmax(110px, 1.4fr) minmax(
+        150px,
+        2fr
+      );
+  }
+  .acp-root .rank-tbl .rt-row > div {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
 }
 
 .acp-root ruby {
