@@ -1,8 +1,10 @@
 import { Asterisk } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { Link, matchPath, Outlet, useLocation } from "react-router-dom";
 import { useAccent } from "../../hooks/use-accent";
 import { ROUTE_LAYOUT_CONFIGS } from "../../route-layout-config";
 import { AccentPicker } from "../accent-picker";
+import { RouteErrorBoundary } from "../route-error-boundary";
 import { findNavGroupId } from "./nav-groups";
 import { SiteMenu } from "./site-menu";
 
@@ -21,6 +23,7 @@ function GithubMark() {
 
 export function RootLayout() {
   const location = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
   const layoutConfig = ROUTE_LAYOUT_CONFIGS.find((config) =>
     matchPath({ path: config.path, end: true }, location.pathname),
   );
@@ -32,6 +35,21 @@ export function RootLayout() {
   const activeGroupId = findNavGroupId(location.pathname, (path, pathname) =>
     Boolean(matchPath({ path, end: true }, pathname)),
   );
+
+  // 切路由时把滚动位置清回顶部。外层 <main> 是所有路由共用的滚动容器，
+  // 从一条 HTML 资源跳到另一条（iframe srcDoc）或跳到政策/时间页时，
+  // 否则残留的 scroll 会停在旧位置，造成"路由变了但内容没刷新"的错觉。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 依赖 pathname 是故意的——effect 本体不读它，但需要路径变化时重跑以滚动归零
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    // jsdom 的 Element 没有实现 scrollTo；真浏览器有。两条路都归零滚动位置。
+    if (typeof el.scrollTo === "function") {
+      el.scrollTo({ top: 0, left: 0 });
+    } else {
+      el.scrollTop = 0;
+    }
+  }, [location.pathname]);
 
   return (
     <div className="paper-backdrop flex h-screen overflow-hidden flex-col font-body text-foreground">
@@ -49,8 +67,18 @@ export function RootLayout() {
         </nav>
       </header>
 
-      <main className="relative z-10 min-h-0 w-full flex-1 overflow-y-auto p-0">
-        <Outlet />
+      <main ref={mainRef} className="relative z-10 min-h-0 w-full flex-1 overflow-y-auto p-0">
+        {/* 路由级错误边界：兜住懒加载 chunk 拉取/求值失败、或任意页面渲染期抛错，
+            降级为可恢复卡片（重新加载/返回首页），而非整棵 React 树 unmount 白屏。
+            key 随 pathname 变化，让边界每次切路由都重挂载、重置 hasError——否则某页
+            出过错后，切到正常页面仍会卡在降级态。 */}
+        <RouteErrorBoundary key={location.pathname}>
+          {/* key 用 location.pathname：真实路径变化才强制 <Outlet> 子树整体重挂载。
+              兄弟 HTML 资源路由复用同一组件类型时，React 默认只更新 props 而不换 iframe；
+              重挂载才能保证 srcDoc 真正刷新。用 pathname 而非 location.key，避免同页的
+              search/state 变化也触发重挂载而丢失页面内部状态。 */}
+          <Outlet key={location.pathname} />
+        </RouteErrorBoundary>
 
         {showFooter ? (
           <footer className="relative z-10 bg-paper/85 backdrop-blur">

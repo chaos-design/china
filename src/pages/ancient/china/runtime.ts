@@ -30,6 +30,45 @@ function ensureThreeRuntime() {
   window.THREE = Object.assign({}, Three, { OrbitControls });
 }
 
+/* 运行时清理登记：路由切换卸载时，stopAncientChinaRuntime() 会调用 disposeActiveRuntime()。
+   旧实现只把 __ancientChinaRuntimeDisposed 置 true 让 RAF 下一帧自停，但 WebGL 上下文、
+   document/window 上的全局监听、canvas 节点全部残留，反复进出「时间长河」会累积泄漏。
+   这里把「可安全移除的监听 + 当前 RAF + renderer」都登记进来，集中释放。 */
+const activeRuntime = {
+  rafId: 0,
+  listeners: [] as Array<{
+    target: EventTarget;
+    type: string;
+    fn: EventListenerOrEventListenerObject;
+  }>,
+  renderer: null as unknown,
+};
+
+function trackListener(target: EventTarget, type: string, fn: EventListenerOrEventListenerObject) {
+  target.addEventListener(type, fn);
+  activeRuntime.listeners.push({ target, type, fn });
+}
+
+function disposeActiveRuntime() {
+  // 先让动画帧停止，避免释放中途又渲染一帧
+  if (activeRuntime.rafId) cancelAnimationFrame(activeRuntime.rafId);
+  activeRuntime.rafId = 0;
+  // 移除所有登记过的事件监听（window/document/canvas 上的全局监听是泄漏主因）
+  for (const { target, type, fn } of activeRuntime.listeners) {
+    target.removeEventListener(type, fn);
+  }
+  activeRuntime.listeners.length = 0;
+  // 释放 WebGL 上下文与 GPU 资源；同时移除挂载的 canvas 节点
+  const renderer = activeRuntime.renderer;
+  if (renderer) {
+    renderer.dispose();
+    const canvas = renderer.domElement as HTMLCanvasElement | null;
+    canvas?.parentNode?.removeChild(canvas);
+    renderer.forceContextLoss && renderer.forceContextLoss();
+  }
+  activeRuntime.renderer = null;
+}
+
 export function formatRuntimeYear(y: number) {
   return y < 0 ? `前${-y}` : String(y);
 }
@@ -298,9 +337,10 @@ function executeAncientChinaRuntime({
       raycaster = new THREE.Raycaster();
       raycaster.params.Line.threshold = 2.2;
       mouse = new THREE.Vector2();
-      addEventListener("resize", onResize);
-      renderer.domElement.addEventListener("pointermove", onPointerMove);
-      renderer.domElement.addEventListener("click", onClick);
+      activeRuntime.renderer = renderer;
+      trackListener(window, "resize", onResize);
+      trackListener(renderer.domElement, "pointermove", onPointerMove);
+      trackListener(renderer.domElement, "click", onClick);
 
       bindUI();
       document.getElementById("loading").classList.add("hidden");
@@ -1366,7 +1406,7 @@ function executeAncientChinaRuntime({
     return peers.slice(0, 6);
   }
 
-  document.addEventListener("mouseover", (e) => {
+  trackListener(document, "mouseover", function onPersonMouseOver(e) {
     // 在浮卡内部不触发隐藏(也不重新渲染)
     if (e.target.closest("#person-card")) return;
     const t = e.target.closest(".person");
@@ -1429,7 +1469,7 @@ function executeAncientChinaRuntime({
     pcEl.style.left = left + "px";
     pcEl.style.top = top + "px";
   });
-  document.addEventListener("mouseout", (e) => {
+  trackListener(document, "mouseout", function onPersonMouseOut(e) {
     const fromPerson = e.target.closest(".person");
     if (!fromPerson) return;
     // 如果 relatedTarget 仍在徽章或卡内,不隐藏
@@ -1643,7 +1683,7 @@ function executeAncientChinaRuntime({
       dynBtnGroup.appendChild(b);
     });
     // 点击页面其它处关闭 popover
-    document.addEventListener("click", (e) => {
+    trackListener(document, "click", function onDocClickClosePopover(e) {
       if (!dynBtnGroup.contains(e.target)) {
         dynBtnGroup
           .querySelectorAll(".dyn-popover.show")
@@ -1849,7 +1889,7 @@ function executeAncientChinaRuntime({
 
   function animate() {
     if (window.__ancientChinaRuntimeDisposed) return;
-    requestAnimationFrame(animate);
+    activeRuntime.rafId = requestAnimationFrame(animate);
     const t = performance.now() * 0.001;
     if (starGroup) starGroup.rotation.y += 0.00015;
     // 副线条带轻微呼吸
@@ -1905,7 +1945,7 @@ function executeAncientChinaRuntime({
     }
     init();
   })();
-  window.addEventListener("error", (e) => {
+  trackListener(window, "error", function onWindowError(e) {
     const el = document.getElementById("loading");
     if (el && !el.classList.contains("hidden")) {
       el.style.flexDirection = "column";
@@ -1926,6 +1966,10 @@ function executeAncientChinaRuntime({
 
 export function startAncientChinaRuntime() {
   window.__ancientChinaRuntimeDisposed = false;
+  // 重新进入页面先重置登记，避免上一次运行残留的监听被重复移除/复用
+  activeRuntime.rafId = 0;
+  activeRuntime.listeners.length = 0;
+  activeRuntime.renderer = null;
   const canvasHost = document.getElementById("cv");
   if (canvasHost) {
     canvasHost.replaceChildren();
@@ -1949,4 +1993,5 @@ export function startAncientChinaRuntime() {
 
 export function stopAncientChinaRuntime() {
   window.__ancientChinaRuntimeDisposed = true;
+  disposeActiveRuntime();
 }

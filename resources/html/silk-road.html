@@ -452,13 +452,19 @@
     height: auto;
     aspect-ratio: 340 / 236;
     cursor: zoom-in;            /* 提示：点击放大查看 */
+    /* --mu = 1 个屏幕像素折算成的 SVG 用户单位，由 syncMapUnit() 写在这层上。
+       地图注记（字号、白描边、标记点、引线、虚线节距）一律按它换算，而不是写死 user unit：
+       以前 .hist-name 固定 5.2 单位，在中国范围视图（viewBox 只有 165 宽，屏幕约 960px）
+       会被放大到约 30px，比正文还大；换成按比例换算后，世界视图与中国视图的字号在屏幕上一致。
+       0.5 只是首帧兜底值，真实值在首次 setMapScope() 后写入。 */
+    --mu: 0.5;
   }
   /* 缩放层平滑过渡 */
   #zoomLayer { transition: transform 0.35s ease; transform-box: view-box; }
 
-  /* 地图上的标注样式 */
-  .route-land { fill: none; stroke: var(--land-color); stroke-width: 1; stroke-linecap: round; }
-  .route-sea  { fill: none; stroke: var(--sea-color); stroke-width: 1; stroke-dasharray: 1.4 4.6; stroke-linecap: round; }
+  /* 地图上的标注样式（长度一律 = 目标屏幕像素 × --mu） */
+  .route-land { fill: none; stroke: var(--land-color); stroke-width: calc(var(--mu) * 2.6px); stroke-linecap: round; }
+  .route-sea  { fill: none; stroke: var(--sea-color); stroke-width: calc(var(--mu) * 2.6px); stroke-dasharray: calc(var(--mu) * 4px) calc(var(--mu) * 13px); stroke-linecap: round; }
   /* 朝代疆域范围：直接在陆地上着色（比浅蓝底图深一点），不画线框 */
   .territory-fill {
     fill: var(--map-territory); fill-opacity: 0.4;
@@ -466,35 +472,41 @@
   }
   .territory-label {
     fill: #7a3322; fill-opacity: 0.92;
-    font-size: 7px; font-weight: 700;
-    paint-order: stroke; stroke: #fff; stroke-width: 2.4; stroke-opacity: 0.8;
+    font-size: calc(var(--mu) * 13px); font-weight: 700;
+    paint-order: stroke; stroke: #fff; stroke-width: calc(var(--mu) * 3px); stroke-opacity: 0.8;
   }
   /* 现代中国疆域参考线：仅描边、不填充，标示当今中国版图范围 */
   .china-border {
     fill: none;
-    stroke: #d98b80; stroke-width: 0.5; stroke-opacity: 0.55;
-    stroke-linejoin: round; stroke-dasharray: 4 2.5;
+    stroke: #d98b80; stroke-width: calc(var(--mu) * 1.4px); stroke-opacity: 0.55;
+    stroke-linejoin: round;
+    stroke-dasharray: calc(var(--mu) * 11px) calc(var(--mu) * 7px);
     pointer-events: none;
   }
   /* 南海断续线（九段线）：用较短实线段表现，去掉虚线 dash */
   .china-border.nine-dash {
     stroke-dasharray: none;
-    stroke-width: 0.6; stroke-linecap: round;
+    stroke-width: calc(var(--mu) * 1.7px); stroke-linecap: round;
   }
-  /* 标记点：缩小尺寸 + 白色外发光光晕 */
+  /* 标记点：缩小尺寸 + 白色外发光光晕（半径由 JS 按 --mu 换算） */
   .node-halo { fill: #fff; opacity: 0.55; }
-  .node-dot { stroke: #fff; stroke-width: 0.9; filter: url(#nodeGlow); }
-  .frontier-marker { fill: var(--frontier-color); stroke: #fff; stroke-width: 0.9; filter: url(#nodeGlow); }
+  .node-dot { stroke: #fff; stroke-width: calc(var(--mu) * 1.8px); filter: url(#nodeGlow); }
+  .frontier-marker { fill: var(--frontier-color); stroke: #fff; stroke-width: calc(var(--mu) * 1.8px); filter: url(#nodeGlow); }
   .world.china-scope .node-halo { opacity: 0.4; }
-  .world.china-scope .node-dot,
-  .world.china-scope .frontier-marker { stroke-width: 0.45; }
   /* 节点标签：紧邻地图标点，古今地名双行，白描边保证压在地图上仍清晰 */
-  .label-leader { stroke: #9a8e72; stroke-width: 0.5; opacity: 0.7; }
-  .label-leader.far { stroke: #7a6f55; stroke-width: 0.6; stroke-dasharray: 2 1.5; opacity: 0.85; } /* 远引线：虚线强化指向 */
+  .label-leader { stroke: #9a8e72; stroke-width: calc(var(--mu) * 1.1px); opacity: 0.7; }
+  .label-leader.far { stroke: #7a6f55; stroke-width: calc(var(--mu) * 1.3px); stroke-dasharray: calc(var(--mu) * 9px) calc(var(--mu) * 7px); opacity: 0.85; } /* 远引线：虚线强化指向 */
   .leader-knot { fill: #7a6f55; }
-  .node-label { paint-order: stroke; stroke: #fff; stroke-width: 2px; stroke-linejoin: round; }
-  .hist-name { font-size: 5.2px; font-weight: 700; }          /* 历史地名（主）*/
-  .modern-name { font-size: 4px; font-weight: 400; fill: #6f6347; stroke-width: 1px; } /* 今地名（注释）*/
+  .node-label { paint-order: stroke; stroke: #fff; stroke-width: calc(var(--mu) * 3px); stroke-linejoin: round; }
+  .hist-name { font-size: calc(var(--mu) * 11px); font-weight: 700; }          /* 历史地名（主）*/
+  .modern-name { font-size: calc(var(--mu) * 8.5px); font-weight: 400; fill: #6f6347; stroke-width: calc(var(--mu) * 2px); } /* 今地名（注释）*/
+  /* JS 生成的注记（郡区 / 城邑 / 国名 / 大洲 / 海域）：同样走 --mu */
+  .map-label { paint-order: stroke; stroke: #fff; stroke-linejoin: round; }
+  .map-label-place { font-size: calc(var(--mu) * 10px); font-weight: 700; stroke-width: calc(var(--mu) * 2.2px); stroke-opacity: 0.7; }
+  .map-label-star { font-size: calc(var(--mu) * 12px); }
+  .map-label-country { font-size: calc(var(--mu) * 9px); font-weight: 600; letter-spacing: 0.3; }
+  .map-label-continent { font-size: calc(var(--mu) * 13px); font-weight: 700; }
+  .map-label-ocean { font-size: calc(var(--mu) * 10.5px); font-style: italic; }
   .node-label.land .hist-name { fill: #8a5a14; }
   .node-label.sea  .hist-name { fill: #145a8a; }
   .node-label.frontier .hist-name { fill: #1f6b41; }
@@ -773,6 +785,57 @@ function ll(lon, lat) {
 }
 
 /* ============================================================
+   一·二、地图注记的渲染比例尺
+   viewBox 会在「世界视图」(340 宽) 与「中国范围视图」(165 宽) 之间切换，
+   而两者都渲染到同一块约 960px 宽的地图画布上，缩放倍率差了一倍。
+   注记如果按固定 user unit 写死，同一个 5.2 单位在中国视图下会变成约 30px。
+   所以先算出「1 屏幕像素 = 多少 user unit」，写成 --mu 交给 CSS，
+   JS 现画的注记则用 mapUnit(px) 取长度，两种视图下屏幕字号才一致。
+   ============================================================ */
+const WORLD_VIEW_BOX = [320, 24, 340, 236];
+const CHINA_VIEW_BOX = [480, 62, 165, 112];
+let currentMapViewBox = WORLD_VIEW_BOX;
+const worldSvg = document.getElementById('worldSvg');
+
+/* 目标屏幕像素：改这里就能整体调大 / 调小地图注记 */
+const MAP_LABEL_PX = {
+  hist: 11,             // 历史地名（主）
+  modern: 8.5,          // 今地名（注释）
+  territory: 13,        // 疆域范围标注
+  place: 10,            // 郡区 / 城邑注记
+  country: 9,           // 周边国名
+  continent: 13,        // 大洲名
+  ocean: 10.5,          // 海域名
+  markerDot: 5.5,       // 标记点半径
+  markerHalo: 10,       // 光晕半径
+  markerObstacle: 20,   // 避让障碍边长
+  markerSquare: 9,      // 海疆方块边长
+  labelBlockHeight: 21, // 古今双行标签块高
+  labelLineGap: 12,     // 古今双行行距
+  knotRadius: 2.2,      // 远引线末端连接点半径
+  leaderDistPerUnit: 2, // 水平放置时标签的轻微上移量
+};
+/* 引线长度档位（屏幕 px）：先近后远；超过 FAR 档就改虚线并补连接点 */
+const LEADER_DIST_PX = [14, 32, 52, 76, 104];
+const FAR_LEADER_PX = 52;
+
+let mapUnitPerPx = 0.5;
+
+/* 把目标屏幕像素换算成当前 viewBox 下的 user unit */
+function mapUnit(px) {
+  return px * mapUnitPerPx;
+}
+
+/* 重新测量画布宽度并更新 --mu / mapUnitPerPx */
+function syncMapUnit() {
+  const box = currentMapViewBox || WORLD_VIEW_BOX;
+  const renderedWidth = worldSvg ? worldSvg.getBoundingClientRect().width : 0;
+  mapUnitPerPx = renderedWidth > 0 ? box[2] / renderedWidth : 0.5;
+  if (worldSvg) worldSvg.style.setProperty('--mu', String(mapUnitPerPx));
+  return mapUnitPerPx;
+}
+
+/* ============================================================
    二、现代世界地图轮廓（真实国界，等距经纬度投影）
    数据源：Natural Earth 衍生的世界国界 GeoJSON，经 ll() 投影
    预转换为 viewBox 720×360 坐标系下的单一 SVG path d 字符串。
@@ -845,19 +908,15 @@ function ll(lon, lat) {
   const g = document.getElementById('placeLabels');
   g.setAttribute('opacity', '0.55');
   const SVGNS = 'http://www.w3.org/2000/svg';
+  // 以下注记字号走 CSS 的 --mu（见 .map-label-* 规则），不再写死 user unit
   // 郡区注记（块内文字）—— 秦专属注记不再固定显示
   [].forEach(r => {
     const [x, y] = ll(r.lon, r.lat);
     const t = document.createElementNS(SVGNS, 'text');
     t.setAttribute('x', x); t.setAttribute('y', y);
     t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('font-size', '4.2');
-    t.setAttribute('font-weight', '700');
+    t.setAttribute('class', 'map-label map-label-place');
     t.setAttribute('fill', '#4a3b2a');
-    t.setAttribute('paint-order', 'stroke');
-    t.setAttribute('stroke', '#fff');
-    t.setAttribute('stroke-width', '1.1');
-    t.setAttribute('stroke-opacity', '0.7');
     t.textContent = r.name;
     g.appendChild(t);
   });
@@ -866,30 +925,25 @@ function ll(lon, lat) {
     const [x, y] = ll(p.lon, p.lat);
     if (p.capital) {
       const star = document.createElementNS(SVGNS, 'text');
-      star.setAttribute('x', x - 3.2); star.setAttribute('y', y + 1.4);
+      star.setAttribute('x', x - mapUnit(6)); star.setAttribute('y', y + mapUnit(3));
       star.setAttribute('text-anchor', 'middle');
-      star.setAttribute('font-size', '5');
+      star.setAttribute('class', 'map-label map-label-star');
       star.setAttribute('fill', '#1a1a1a');
       star.textContent = '★';
       g.appendChild(star);
     } else {
       const dot = document.createElementNS(SVGNS, 'circle');
       dot.setAttribute('cx', x); dot.setAttribute('cy', y);
-      dot.setAttribute('r', '1');
+      dot.setAttribute('r', mapUnit(2));
       dot.setAttribute('fill', '#b03a2e');
       dot.setAttribute('stroke', '#fff');
-      dot.setAttribute('stroke-width', '0.4');
+      dot.setAttribute('stroke-width', mapUnit(0.8));
       g.appendChild(dot);
     }
     const t = document.createElementNS(SVGNS, 'text');
-    t.setAttribute('x', x + 1.6); t.setAttribute('y', y + 1.6);
-    t.setAttribute('font-size', '4.2');
-    t.setAttribute('font-weight', '700');
+    t.setAttribute('x', x + mapUnit(3)); t.setAttribute('y', y + mapUnit(3));
+    t.setAttribute('class', 'map-label map-label-place');
     t.setAttribute('fill', '#3a2a1a');
-    t.setAttribute('paint-order', 'stroke');
-    t.setAttribute('stroke', '#fff');
-    t.setAttribute('stroke-width', '1.1');
-    t.setAttribute('stroke-opacity', '0.75');
     t.textContent = p.name;
     g.appendChild(t);
   });
@@ -899,20 +953,15 @@ function ll(lon, lat) {
     const tri = document.createElementNS(SVGNS, 'text');
     tri.setAttribute('x', x); tri.setAttribute('y', y);
     tri.setAttribute('text-anchor', 'middle');
-    tri.setAttribute('font-size', '4');
+    tri.setAttribute('class', 'map-label map-label-place');
     tri.setAttribute('fill', '#5a4a3a');
     tri.textContent = '▲';
     g.appendChild(tri);
     const t = document.createElementNS(SVGNS, 'text');
-    t.setAttribute('x', x); t.setAttribute('y', y + 4.2);
+    t.setAttribute('x', x); t.setAttribute('y', y + mapUnit(8));
     t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('font-size', '4');
-    t.setAttribute('font-weight', '700');
+    t.setAttribute('class', 'map-label map-label-place');
     t.setAttribute('fill', '#5a4a3a');
-    t.setAttribute('paint-order', 'stroke');
-    t.setAttribute('stroke', '#fff');
-    t.setAttribute('stroke-width', '1');
-    t.setAttribute('stroke-opacity', '0.7');
     t.textContent = m.name;
     g.appendChild(t);
   });
@@ -922,10 +971,8 @@ function ll(lon, lat) {
     const t = document.createElementNS(SVGNS, 'text');
     t.setAttribute('x', x); t.setAttribute('y', y);
     t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('font-size', '4');
-    t.setAttribute('font-weight', '600');
+    t.setAttribute('class', 'map-label map-label-country');
     t.setAttribute('fill', '#9a8c72');
-    t.setAttribute('letter-spacing', '0.3');
     t.textContent = c.name;
     g.appendChild(t);
   });
@@ -971,8 +1018,7 @@ function ll(lon, lat) {
     const t = document.createElementNS(SVGNS, 'text');
     t.setAttribute('x', x); t.setAttribute('y', y);
     t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('font-size', '11');
-    t.setAttribute('font-weight', '700');
+    t.setAttribute('class', 'map-label map-label-continent');
     t.setAttribute('fill', '#8a7a55');
     t.setAttribute('opacity', '0.75');
     t.textContent = name;
@@ -983,8 +1029,7 @@ function ll(lon, lat) {
     const t = document.createElementNS(SVGNS, 'text');
     t.setAttribute('x', x); t.setAttribute('y', y);
     t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('font-size', '8');
-    t.setAttribute('font-style', 'italic');
+    t.setAttribute('class', 'map-label map-label-ocean');
     t.setAttribute('fill', '#5a8bb0');
     t.setAttribute('opacity', '0.8');
     t.textContent = name;
@@ -1015,10 +1060,8 @@ const routesLayer = document.getElementById('routesLayer');
 const territoryLayer = document.getElementById('territoryLayer');
 const mapTitle = document.getElementById('mapTitle');
 const SVGNS = 'http://www.w3.org/2000/svg';
-const worldSvg = document.getElementById('worldSvg');
-const WORLD_VIEW_BOX = [320, 24, 340, 236];
-const CHINA_VIEW_BOX = [480, 62, 165, 112];
-let currentMapViewBox = WORLD_VIEW_BOX;
+/* worldSvg / WORLD_VIEW_BOX / CHINA_VIEW_BOX / currentMapViewBox 已提前到「一·二」声明，
+   因为地图注记的绘制要在首次绘制前就知道缩放比例尺。 */
 
 function isInChinaRegion(point) {
   const [lon, lat] = point;
@@ -1039,10 +1082,13 @@ function setMapScope(source) {
   currentMapViewBox = isChinaScope ? CHINA_VIEW_BOX : WORLD_VIEW_BOX;
   worldSvg.setAttribute('viewBox', currentMapViewBox.join(' '));
   worldSvg.classList.toggle('china-scope', isChinaScope);
+  // viewBox 变了，缩放倍率跟着变，注记字号必须同步重算
+  syncMapUnit();
 }
 
-function getCurrentMapBounds(padding = 2) {
+function getCurrentMapBounds(paddingPx = 6) {
   const [x, y, width, height] = currentMapViewBox;
+  const padding = mapUnit(paddingPx);
   return {
     maxX: x + width - padding,
     maxY: y + height - padding,
@@ -1164,7 +1210,7 @@ function renderContent(era) {
 /* ============================================================
    六、地图标注绘制
    ============================================================ */
-function drawPolyline(points, cls) {
+function drawPolyline(points, cls, animate = true) {
   if (!points || points.length < 2) return;
   const d = points.map((p,i) => {
     const [x,y] = ll(p[0],p[1]);
@@ -1173,7 +1219,15 @@ function drawPolyline(points, cls) {
   const path = document.createElementNS(SVGNS,'path');
   path.setAttribute('d', d);
   path.setAttribute('class', cls);
+  // 动画结束后要恢复的虚线节距（屏幕像素 × --mu，别写死 user unit）
+  const settleDash = cls.includes('land')
+    ? mapUnit(4) + ' ' + mapUnit(4)
+    : mapUnit(4) + ' ' + mapUnit(13);
   routesLayer.appendChild(path);
+  if (!animate) {
+    path.style.strokeDasharray = settleDash;
+    return;
+  }
   // 用 stroke-dashoffset 做路线生长动画
   const len = path.getTotalLength();
   path.style.strokeDasharray = len;
@@ -1185,7 +1239,7 @@ function drawPolyline(points, cls) {
     // 动画结束后恢复虚线样式
     setTimeout(() => {
       path.style.transition = 'none';
-      path.style.strokeDasharray = cls.includes('land') ? '4 4' : '1.4 4.6';
+      path.style.strokeDasharray = settleDash;
       path.style.strokeDashoffset = '0';
     }, 1150);
   });
@@ -1196,7 +1250,11 @@ function drawPolyline(points, cls) {
    territory: { range:[[lon,lat],...], label:"…", labelAt:[lon,lat] }
    仅作示意性范围，史实依据通行史学常识，不精确到边界。
    ------------------------------------------------------------ */
+/* 当前朝代范围标注（如「秦疆域」）的占位框，绘制疆域时写入，节点标签避让时读取 */
+let territoryLabelRect = null;
+
 function drawTerritory(t) {
+  territoryLabelRect = null;
   if (!t || !t.range || t.range.length < 3) return;
   const pts = t.range.map(p => ll(p[0], p[1]).join(',')).join(' ');
   const poly = document.createElementNS(SVGNS, 'polygon');
@@ -1214,6 +1272,11 @@ function drawTerritory(t) {
     tx.setAttribute('class', 'territory-label');
     tx.textContent = t.label;
     territoryLayer.appendChild(tx);
+    // 登记成障碍：「秦疆域」这类范围名居中，常常正好压在核心标点（咸阳/长安）上，
+    // 把它交给节点标签的避让算法处理，节点标签就会自己挪开而不是叠字。
+    const w = measureTextWidth(t.label, MAP_LABEL_PX.territory);
+    const h = mapUnit(MAP_LABEL_PX.territory * 1.3);
+    territoryLabelRect = { x: lx - w / 2, y: ly - h / 2, w, h };
   }
 }
 
@@ -1223,12 +1286,23 @@ function drawTerritory(t) {
    既补充了点位信息，也同时呈现古代与现代地名，不再依赖左下角图例。
    ------------------------------------------------------------ */
 const COLOR_MAP = { land:'var(--land-color)', sea:'var(--sea-color)', frontier:'var(--frontier-color)' };
-// 估算标签宽度（按缩小后的地图标注字号粗略测算），用于碰撞框
+// 估算一段文字在当前 --mu 下的宽度（汉字按全宽、其余按 0.55 倍估），用于碰撞框
+function measureTextWidth(text, fontPx) {
+  return [...String(text || '')].reduce(
+    (w, ch) => w + mapUnit(/[\u4e00-\u9fa5]/.test(ch) ? fontPx : fontPx * 0.55),
+    0,
+  );
+}
+// 估算标签宽度（取古今两行较宽者），用于碰撞框
 function estLabelWidth(node) {
   const hist = node.name || '';
-  const modern = node.modern || '';
-  const measure = s => [...s].reduce((w,ch)=> w + (/[一-龥]/.test(ch)?4.5:2.6), 0);
-  return Math.max(measure(hist), measure('今'+modern)) + 4; // 取古今两行较宽者
+  const modern = node.modern ? '今' + node.modern : '';
+  return (
+    Math.max(
+      measureTextWidth(hist, MAP_LABEL_PX.hist),
+      measureTextWidth(modern, MAP_LABEL_PX.modern),
+    ) + mapUnit(4)
+  );
 }
 // 候选放置方位：8 个方向（含正上/正下）×多档引线距离，距离越大引线越长。
 // 标点过密时，自动用更长的引线把标签引到远处空白处标注，避免互相遮盖。
@@ -1242,28 +1316,30 @@ const DIRECTIONS = [
   { ux: 0,  uy: 1,   anchor:'middle'},  // 正下
   { ux: 0,  uy:-1,   anchor:'middle'}   // 正上
 ];
-const LEADER_DISTS = [7, 16, 26, 38, 52]; // 引线长度档位：先近后远
-const LABEL_H = 10.6; // 双行标签高度（含古名行+今名行）
-
-/* 生成所有候选放置点：方向 × 距离，按"先近后远、先右后左"排序 */
+/* 生成所有候选放置点：方向 × 距离，按"先近后远、先右后左"排序。
+   引线长度以屏幕像素定义，绘制时按当前 --mu 现算：viewBox 会随朝代切换，
+   写死 user unit 会让两种视图下的标签间距差一倍。 */
 function buildPlacements() {
   const list = [];
-  LEADER_DISTS.forEach(dist => {
+  LEADER_DIST_PX.forEach(distPx => {
+    const dist = mapUnit(distPx);
     DIRECTIONS.forEach(d => {
       // 标签锚点（文字起始）相对标记的偏移
       const dx = d.ux * dist;
-      const dy = d.uy * dist + (d.uy === 0 ? -1 : 0); // 水平方向略上移使双行居中
+      const dy = d.uy * dist + (d.uy === 0 ? -mapUnit(MAP_LABEL_PX.leaderDistPerUnit) : 0);
       list.push({ dx, dy, anchor:d.anchor, dist });
     });
   });
   return list;
 }
-const PLACEMENTS = buildPlacements();
 
 function getNodeMarkerMetrics() {
-  return worldSvg.classList.contains('china-scope')
-    ? { dotR: 1, haloR: 1.9, obstacle: 3.2, square: 2 }
-    : { dotR: 2.2, haloR: 4, obstacle: 6, square: 4.2 };
+  return {
+    dotR: mapUnit(MAP_LABEL_PX.markerDot),
+    haloR: mapUnit(MAP_LABEL_PX.markerHalo),
+    obstacle: mapUnit(MAP_LABEL_PX.markerObstacle),
+    square: mapUnit(MAP_LABEL_PX.markerSquare),
+  };
 }
 
 /* 绘制全部节点：先画标记，再用避让算法逐个放置文字标签 */
@@ -1278,6 +1354,8 @@ function drawNodes(nodes) {
     w:marker.obstacle,
     h:marker.obstacle,
   }));
+  // 疆域范围标注（如「秦疆域」）也占位，节点标签要绕开它，否则居中的范围名会被压字
+  if (territoryLabelRect) placed.push(territoryLabelRect);
   // 1) 先画所有标记点（缩小尺寸 + 光晕；保证标签压在标记之上）
   nodes.forEach(node => {
     const [x,y] = ll(node.lon, node.lat);
@@ -1301,21 +1379,22 @@ function drawNodes(nodes) {
     }
   });
   // 2) 逐节点放置标签：先近后远尝试，碰撞则换方向/拉长引线引到远处
+  const placements = buildPlacements();
+  const bounds = getCurrentMapBounds();
   nodes.forEach(node => {
     const [x,y] = ll(node.lon, node.lat);
     const w = estLabelWidth(node);
     let chosen = null;
-    for (const p of PLACEMENTS) {
+    for (const p of placements) {
       const rect = labelRect(x, y, p, w);
       // 不超出当前可见地图边界；中国范围视图会随朝代动态收紧。
-      const bounds = getCurrentMapBounds();
       if (rect.x < bounds.minX || rect.x + rect.w > bounds.maxX || rect.y < bounds.minY || rect.y + rect.h > bounds.maxY) continue;
       const hit = placed.some(r => !(rect.x+rect.w < r.x || rect.x > r.x+r.w || rect.y+rect.h < r.y || rect.y > r.y+r.h));
       if (!hit) { chosen = { p, rect }; break; }
     }
     // 全部候选都冲突时，退而取最远档的右侧位（信息不丢，仅轻微叠放）
     if (!chosen) {
-      const p = PLACEMENTS[PLACEMENTS.length - DIRECTIONS.length]; // 最远档第一个方向
+      const p = placements[placements.length - DIRECTIONS.length]; // 最远档第一个方向
       chosen = { p, rect: labelRect(x, y, p, w) };
     }
     placed.push(chosen.rect);
@@ -1325,12 +1404,13 @@ function drawNodes(nodes) {
 
 /* 计算某放置点下标签的包围盒（左上角 + 宽高）。middle 锚点居中展开。*/
 function labelRect(x, y, p, w) {
+  const labelH = mapUnit(MAP_LABEL_PX.labelBlockHeight);
   let bx;
   if (p.anchor === 'end') bx = x + p.dx - w;
   else if (p.anchor === 'middle') bx = x + p.dx - w/2;
   else bx = x + p.dx;
-  const by = y + p.dy - LABEL_H/2;
-  return { x:bx, y:by, w, h:LABEL_H };
+  const by = y + p.dy - labelH/2;
+  return { x:bx, y:by, w, h:labelH };
 }
 
 /* 绘制单个节点的双行文字标签（古名 + 今名），含连接引线。
@@ -1338,22 +1418,24 @@ function labelRect(x, y, p, w) {
 function drawNodeLabel(node, x, y, p, w) {
   const tx = x + p.dx;
   const histY = y + p.dy;
+  const farLeader = p.dist >= mapUnit(FAR_LEADER_PX);
   // 引线终点：连到标签的靠近标记一侧
   let ex;
-  if (p.anchor === 'end') ex = tx + 1;          // 标签在左，连到其右端
-  else if (p.anchor === 'middle') ex = tx;       // 居中
-  else ex = tx - 1;                              // 标签在右，连到其左端
-  const ey = histY - 2;
+  if (p.anchor === 'end') ex = tx + mapUnit(2);        // 标签在左，连到其右端
+  else if (p.anchor === 'middle') ex = tx;             // 居中
+  else ex = tx - mapUnit(2);                           // 标签在右，连到其左端
+  const ey = histY - mapUnit(4);
   const line = document.createElementNS(SVGNS,'line');
   line.setAttribute('x1', x); line.setAttribute('y1', y);
   line.setAttribute('x2', ex); line.setAttribute('y2', ey);
   // 引线较长时（被引到远处）用更明显的虚线样式，便于追踪到对应标点
-  line.setAttribute('class', p.dist >= 26 ? 'label-leader far' : 'label-leader');
+  line.setAttribute('class', farLeader ? 'label-leader far' : 'label-leader');
   routesLayer.appendChild(line);
   // 远引线在标签端补一个小连接点，强化指向关系
-  if (p.dist >= 26) {
+  if (farLeader) {
     const k = document.createElementNS(SVGNS,'circle');
-    k.setAttribute('cx', ex); k.setAttribute('cy', ey); k.setAttribute('r', 1.1);
+    k.setAttribute('cx', ex); k.setAttribute('cy', ey);
+    k.setAttribute('r', mapUnit(MAP_LABEL_PX.knotRadius));
     k.setAttribute('class','leader-knot');
     routesLayer.appendChild(k);
   }
@@ -1372,7 +1454,7 @@ function drawNodeLabel(node, x, y, p, w) {
   if (node.modern) {
     const t2 = document.createElementNS(SVGNS,'tspan');
     t2.setAttribute('x', tx);
-    t2.setAttribute('dy', '4.8');
+    t2.setAttribute('dy', String(mapUnit(MAP_LABEL_PX.labelLineGap)));
     t2.setAttribute('class','modern-name');
     t2.textContent = node.modern;
     text.appendChild(t2);
@@ -1394,20 +1476,8 @@ function selectEra(id) {
   // 渲染右侧文字介绍
   renderContent(era);
 
-
-  // 清空旧标注
-  routesLayer.innerHTML = '';
-  territoryLayer.innerHTML = '';
-  setMapScope(era);
   // 地图标题：朝代 · 时间 · 丝路标注
-  mapTitle.textContent = era.name + ' · ' + era.time + ' · 丝路标注';
-  // 绘疆域范围（先绘，压在路线/节点下方）
-  drawTerritory(era.territory);
-  // 绘路线
-  drawPolyline(era.routes.land, 'route-land');
-  drawPolyline(era.routes.sea, 'route-sea');
-  // 绘节点（后绘保证压在线上方）：标记 + 古今地名标签，自动避让
-  drawNodes(era.nodes);
+  drawMap(era, era.name + ' · ' + era.time + ' · 丝路标注', true);
 }
 
 /* 选中「现代丝绸之路」专题 —— 与朝代切换相互独立 */
@@ -1448,15 +1518,44 @@ function selectModern() {
     renderRefs(MODERN.refs);
   bindTabs(infoCard);
 
-  // 重绘地图标注
+  drawMap(MODERN, MODERN.name + ' · 2013年~至今 · 丝路标注', true);
+}
+
+/* ============================================================
+   七·二、地图绘制入口
+   - 切朝代 / 切现代专题：带动画重绘
+   - 画布宽度变化：只按新比例重排（不重放路线生长动画）
+   activeMapSource 记住当前画的是什么，供 resize 后重排使用。
+   ============================================================ */
+let activeMapSource = null;
+
+function drawMap(source, title, animate) {
+  activeMapSource = { source, title };
+  // 清空旧标注
   routesLayer.innerHTML = '';
   territoryLayer.innerHTML = '';
-  setMapScope(MODERN);
-  mapTitle.textContent = MODERN.name + ' · 2013年~至今 · 丝路标注';
-  drawPolyline(MODERN.routes.land, 'route-land');
-  drawPolyline(MODERN.routes.sea, 'route-sea');
-  drawNodes(MODERN.nodes);
+  setMapScope(source);         // 内部会同步 --mu，注记字号按新 viewBox 重算
+  mapTitle.textContent = title;
+  // 绘疆域范围（先绘，压在路线/节点下方）
+  drawTerritory(source.territory);
+  // 绘路线
+  drawPolyline(source.routes.land, 'route-land', animate);
+  drawPolyline(source.routes.sea, 'route-sea', animate);
+  // 绘节点（后绘保证压在线上方）：标记 + 古今地名标签，自动避让
+  drawNodes(source.nodes);
 }
+
+function drawActiveMap(animate) {
+  if (!activeMapSource) return;
+  drawMap(activeMapSource.source, activeMapSource.title, animate);
+}
+
+/* 画布宽度变了就必须按新的 --mu 重排注记，否则字号与引线间距会与地图脱节 */
+let mapResizeTimer = 0;
+addEventListener('resize', () => {
+  clearTimeout(mapResizeTimer);
+  mapResizeTimer = setTimeout(() => drawActiveMap(false), 160);
+});
 
 /* ============================================================
    七·五、点击地图 → 弹出放大弹窗（可拖拽缩放、横纵向滚动）
