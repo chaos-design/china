@@ -29,6 +29,24 @@ describe("normalizePunctuation", () => {
     expect(normalizePunctuation("范雎'远交近攻':交远攻近")).toBe("范雎‘远交近攻’：交远攻近");
   });
 
+  it("widens CJK-adjacent question and exclamation marks", () => {
+    expect(normalizePunctuation("真的吗?好的!")).toBe("真的吗？好的！");
+    // ASCII-adjacent ones (code, shell syntax) stay half-width.
+    expect(normalizePunctuation("运行 hello?world 命令")).toBe("运行 hello?world 命令");
+  });
+
+  it("passes empty and pure-ASCII strings through untouched", () => {
+    expect(normalizePunctuation("")).toBe("");
+    expect(normalizePunctuation("hello, world: ok")).toBe("hello, world: ok");
+  });
+
+  it("leaves unbalanced parenthesis runs unchanged instead of corrupting them", () => {
+    // A close with no prior open, and opens with no close at all — the pairing
+    // loop must skip/stop rather than convert half a pair.
+    expect(normalizePunctuation("分江)再合(流")).toBe("分江)再合(流");
+    expect(normalizePunctuation("前 214 ((年 置郡")).toBe("前 214 ((年 置郡");
+  });
+
   it("leaves already-full-width punctuation unchanged", () => {
     expect(normalizePunctuation("剑身含锡 18-22% 而不脆。")).toBe("剑身含锡 18-22% 而不脆。");
   });

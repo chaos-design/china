@@ -148,6 +148,34 @@ describe("<AncientChinaPoliciesReactPage />", () => {
     expect(qinCraft!.textContent).toContain("选料");
   });
 
+  it("renders 官制 rank tables as styled .impact-block divs, plain impacts as <p>", () => {
+    render(<AncientChinaPoliciesReactPage />);
+
+    // The default 权谋 dimension keeps the plain-prose layout: <p><strong>【影响】</strong>.
+    const plainSection = document.querySelector<HTMLElement>(".dim-section.active");
+    expect(plainSection).toBeInTheDocument();
+    expect(plainSection!.getAttribute("data-dim")).toBe("权谋·中央集权");
+    expect(plainSection!.querySelector("p strong")?.textContent).toContain("【影响】");
+    expect(plainSection!.querySelector(".impact-block")).not.toBeInTheDocument();
+
+    // 官制·职级对照 embeds a raw rank comparison table inside its impact string,
+    // so it must switch to the div-based layout with the styled table.
+    fireEvent.click(screen.getByRole("button", { name: "官制·职级对照" }));
+
+    const rankSection = document.querySelector<HTMLElement>(".dim-section.active");
+    expect(rankSection).toBeInTheDocument();
+    expect(rankSection!.getAttribute("data-dim")).toBe("官制·职级对照");
+
+    const impactBlock = rankSection!.querySelector<HTMLElement>(".impact-block");
+    expect(impactBlock).toBeInTheDocument();
+    expect(impactBlock!.querySelector(".impact-label")?.textContent).toContain("【影响】");
+    // The embedded table renders as a real styled table with a header row.
+    expect(rankSection!.querySelector(".rank-tbl .rt-row.rt-head")).toBeInTheDocument();
+    expect(rankSection!.querySelectorAll(".rank-tbl .rt-row").length).toBeGreaterThan(1);
+    // 文职/武职 sections keep their distinct accent classes.
+    expect(rankSection!.querySelector(".rank-section.mil")).toBeInTheDocument();
+  });
+
   it("renders the territory SVG figure for every dynasty without falling back to img", async () => {
     render(<AncientChinaPoliciesReactPage />);
 
