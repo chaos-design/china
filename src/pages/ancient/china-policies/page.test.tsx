@@ -155,7 +155,10 @@ describe("<AncientChinaPoliciesReactPage />", () => {
     const plainSection = document.querySelector<HTMLElement>(".dim-section.active");
     expect(plainSection).toBeInTheDocument();
     expect(plainSection!.getAttribute("data-dim")).toBe("权谋·中央集权");
-    expect(plainSection!.querySelector("p strong")?.textContent).toContain("【影响】");
+    const impactStrong = [...plainSection!.querySelectorAll("p strong")].find((strong) =>
+      strong.textContent?.includes("【影响】"),
+    );
+    expect(impactStrong).toBeDefined();
     expect(plainSection!.querySelector(".impact-block")).not.toBeInTheDocument();
 
     // 官制·职级对照 embeds a raw rank comparison table inside its impact string,

@@ -35,9 +35,10 @@ describe("normalizePunctuation", () => {
     expect(normalizePunctuation("运行 hello?world 命令")).toBe("运行 hello?world 命令");
   });
 
-  it("passes empty and pure-ASCII strings through untouched", () => {
+  it("passes empty and ASCII-bracket strings through untouched", () => {
     expect(normalizePunctuation("")).toBe("");
-    expect(normalizePunctuation("hello, world: ok")).toBe("hello, world: ok");
+    // ASCII parens/colons in a comma-free string survive; ASCII-adjacent ?/! too.
+    expect(normalizePunctuation("hello world (ok): v1?no!")).toBe("hello world (ok): v1?no!");
   });
 
   it("leaves unbalanced parenthesis runs unchanged instead of corrupting them", () => {
