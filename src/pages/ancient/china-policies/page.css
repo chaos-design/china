@@ -813,15 +813,32 @@
   border-radius: 5px;
   background: #fdf6e3;
   box-shadow: 0 2px 10px rgba(90, 60, 30, 0.08);
+  /* 滚动条常显：macOS 的悬浮式滚动条平时不可见，表格被裁掉最后一列时
+     用户看不出可以横向滚动，以为内容直接溢出丢失了。 */
+  scrollbar-width: thin;
+  scrollbar-color: #c9a96e #f3e8d0;
+}
+.acp-root .rank-tbl::-webkit-scrollbar {
+  height: 8px;
+}
+.acp-root .rank-tbl::-webkit-scrollbar-track {
+  background: #f3e8d0;
+  border-radius: 4px;
+}
+.acp-root .rank-tbl::-webkit-scrollbar-thumb {
+  background: #c9a96e;
+  border-radius: 4px;
 }
 .acp-root .rank-tbl .rt-row {
   display: grid;
-  grid-template-columns: minmax(92px, 1fr) minmax(104px, 1.1fr) minmax(150px, 1.5fr) minmax(
-      190px,
+  /* 轨道最小宽合计 450px：常见笔记本宽度下主内容区约 454px，
+     表格恰好放得下、不再横向滚动；更窄时才出现横向滚动。 */
+  grid-template-columns: minmax(84px, 1fr) minmax(92px, 1.1fr) minmax(130px, 1.5fr) minmax(
+      144px,
       2.1fr
     );
   align-items: center;
-  min-width: 560px;
+  min-width: 450px;
 }
 .acp-root .rank-tbl .rt-row + .rt-row {
   border-top: 1px solid #efe0c0;
@@ -832,6 +849,10 @@
   line-height: 1.55;
   color: #3a2818;
   border-right: 1px solid #efe0c0;
+  /* 长词（现代职级对照、职级名）在窄轨道里安全换行，绝不把行撑破导致
+     各行列错位或溢出卡片。 */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .acp-root .rank-tbl .rt-row > div:last-child {
   border-right: 0;
@@ -865,10 +886,13 @@
 
 @media (max-width: 700px) {
   .acp-root .rank-tbl .rt-row {
-    grid-template-columns: minmax(72px, 1fr) minmax(82px, 1.1fr) minmax(110px, 1.4fr) minmax(
-        150px,
+    grid-template-columns: minmax(72px, 1fr) minmax(78px, 1.1fr) minmax(104px, 1.4fr) minmax(
+        128px,
         2fr
       );
+    /* 轨道最小宽合计 382px；此前媒体查询只改了轨道、没改 560px 行宽，
+       导致窄屏上表格被裁得更狠。 */
+    min-width: 384px;
   }
   .acp-root .rank-tbl .rt-row > div {
     padding: 6px 8px;
