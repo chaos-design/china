@@ -831,14 +831,16 @@
 }
 .acp-root .rank-tbl .rt-row {
   display: grid;
-  /* 轨道最小宽合计 450px：常见笔记本宽度下主内容区约 454px，
-     表格恰好放得下、不再横向滚动；更窄时才出现横向滚动。 */
-  grid-template-columns: minmax(84px, 1fr) minmax(92px, 1.1fr) minmax(130px, 1.5fr) minmax(
-      144px,
-      2.1fr
+  /* 轨道最小宽合计 434px：常见笔记本宽度下主内容区约 454px，
+     表格恰好放得下、不再横向滚动；更窄时才出现横向滚动。
+     「武职」列职名较长（如「五军都督府左右都督」）需要更宽的轨道，
+     「品级」列多是两三个字可以收窄，把空间让给职名列。 */
+  grid-template-columns: minmax(112px, 1.3fr) minmax(64px, 0.7fr) minmax(120px, 1.4fr) minmax(
+      138px,
+      2fr
     );
   align-items: center;
-  min-width: 450px;
+  min-width: 434px;
 }
 .acp-root .rank-tbl .rt-row + .rt-row {
   border-top: 1px solid #efe0c0;
@@ -860,7 +862,9 @@
 .acp-root .rank-tbl .rt-row > div:first-child {
   font-weight: 700;
   color: #5b2a2a;
-  white-space: nowrap;
+  /* 职名可能很长（如「总督（挂兵部尚书衔）」），必须允许换行，
+     否则 nowrap 会把文字硬裁进下一列。 */
+  white-space: normal;
 }
 .acp-root .rank-tbl .rt-row.rt-head {
   background: #8b3a3a;
@@ -886,13 +890,13 @@
 
 @media (max-width: 700px) {
   .acp-root .rank-tbl .rt-row {
-    grid-template-columns: minmax(72px, 1fr) minmax(78px, 1.1fr) minmax(104px, 1.4fr) minmax(
-        128px,
+    grid-template-columns: minmax(96px, 1.2fr) minmax(56px, 0.7fr) minmax(100px, 1.4fr) minmax(
+        124px,
         2fr
       );
-    /* 轨道最小宽合计 382px；此前媒体查询只改了轨道、没改 560px 行宽，
+    /* 轨道最小宽合计 376px；此前媒体查询只改了轨道、没改行宽，
        导致窄屏上表格被裁得更狠。 */
-    min-width: 384px;
+    min-width: 376px;
   }
   .acp-root .rank-tbl .rt-row > div {
     padding: 6px 8px;
