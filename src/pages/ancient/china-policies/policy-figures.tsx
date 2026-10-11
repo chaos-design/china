@@ -12,6 +12,7 @@ interface PolicyFigureComponentProps {
 const FIGURE_MODULES = {
   "han-ring-pommel-saber": () => import("./figures/han-ring-pommel-saber.svg?raw"),
   "han-thirteen-provinces": () => import("./figures/han-thirteen-provinces.svg?raw"),
+  "ming-red-yi-cannon": () => import("./figures/ming-red-yi-cannon.svg?raw"),
   "ming-two-capitals-thirteen-provinces": () =>
     import("./figures/ming-two-capitals-thirteen-provinces.svg?raw"),
   "qin-bronze-sword": () => import("./figures/qin-bronze-sword.svg?raw"),
@@ -19,6 +20,7 @@ const FIGURE_MODULES = {
   "qing-eighteen-provinces": () => import("./figures/qing-eighteen-provinces.svg?raw"),
   "song-twenty-three-circuits": () => import("./figures/song-twenty-three-circuits.svg?raw"),
   "sui-grand-canal": () => import("./figures/sui-grand-canal.svg?raw"),
+  "tang-block-print": () => import("./figures/tang-block-print.svg?raw"),
   "tang-fifteen-circuits": () => import("./figures/tang-fifteen-circuits.svg?raw"),
   "wjnb-prefectures": () => import("./figures/wjnb-prefectures.svg?raw"),
   "yuan-provinces": () => import("./figures/yuan-provinces.svg?raw"),

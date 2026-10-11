@@ -5,7 +5,7 @@ import { DimensionMenu } from "./dimension-menu";
 import { DynastyMenu } from "./dynasty-menu";
 import "./page.css";
 import { DYNASTIES, GLOSSARY } from "./data";
-import { parseTerms } from "./parse";
+import { normalizePunctuation, parseTerms } from "./parse";
 import { isPolicyFigureId, PolicyFigure } from "./policy-figures";
 import type { PolicyCard as PolicyCardData } from "./types";
 
@@ -24,6 +24,15 @@ function ParsedText({ as: Tag = "span", className, html }: ParsedTextProps) {
 
 function getPlainCardTitle(title: string) {
   return title.replace(/\[\[(.*?)\]\]/g, "$1");
+}
+
+/** Split a craft step into its leading name (before the first colon) and body.
+ * Step strings look like "选料：取上等[[赤铜]]…" — the name may itself carry
+ * [[term]] markup, so it is rendered through the same pipeline as the body. */
+function splitCraftStep(step: string): { name: string | null; body: string | null } {
+  const match = step.match(/^(.+?)[：:](.*)$/);
+  if (!match) return { name: null, body: step };
+  return { name: match[1], body: match[2] || null };
 }
 
 interface PolicyCardViewProps {
@@ -55,20 +64,54 @@ const PolicyCardView = memo(function PolicyCardView({ card, onFigureClick }: Pol
         {card.steps?.length ? (
           <div className="craft-steps">
             <span className="step-title">【古法工序】</span>
-            <ol>
-              {card.steps.map((step) => (
-                <li key={step}>
-                  <ParsedText html={step} />
-                </li>
-              ))}
+            <div className="craft-flow" aria-hidden="true">
+              {card.steps.map((step, i) => {
+                const label = (step.match(/^([^：:]+)[：:]/)?.[1] ?? step).replace(
+                  /\[\[[^\]|]+(?:\|[^\]]+)?\]\]/g,
+                  "",
+                );
+                return (
+                  <span key={i} className="craft-flow-node">
+                    <span className="craft-flow-index">{i + 1}</span>
+                    <span className="craft-flow-label">{label}</span>
+                    {i < card.steps!.length - 1 ? (
+                      <span className="craft-flow-arrow">→</span>
+                    ) : null}
+                  </span>
+                );
+              })}
+            </div>
+            <ol className="craft-steps-list">
+              {card.steps.map((step) => {
+                const { name, body } = splitCraftStep(step);
+                return (
+                  <li key={step} className={name ? "has-name" : undefined}>
+                    <span className="craft-step-body">
+                      {name ? <ParsedText className="craft-step-name" html={name} /> : null}
+                      {name && body ? <span className="craft-step-sep">：</span> : null}
+                      {body ? <ParsedText html={body} /> : null}
+                    </span>
+                  </li>
+                );
+              })}
             </ol>
           </div>
         ) : null}
         {card.impact ? (
-          <p>
-            <strong>【影响】</strong>
-            <ParsedText html={card.impact} />
-          </p>
+          // The 官制·职级对照 cards embed a <div class="rank-tbl"> comparison table
+          // inside the impact string, so render those in a div context; every other
+          // impact is plain prose and keeps the original <p> layout.
+          card.impact.includes("<div") ? (
+            <div className="impact-block">
+              <span className="impact-label">【影响】</span>
+              <ParsedText as="div" html={card.impact} />
+            </div>
+          ) : (
+            <p>
+              <strong>【影响】</strong>
+              <ParsedText html={card.impact} />
+            </p>
+          )
         ) : null}
         {figure ? (
           <div className="card-img">
@@ -121,10 +164,15 @@ export function AncientChinaPoliciesReactPage() {
     }
   }, []);
 
-  // 稳定引用：传给左侧维度菜单，选择时只更新该朝代的维度选择
+  // 稳定引用：传给左侧维度菜单，选择时只更新该朝代的维度选择；
+  // 切换维度会重渲染卡片栈，顺手把内容区滚动回顶部，避免停留在
+  // 上一维度的滚动位置、让新内容从半截开始显示。
   const selectDim = useCallback(
     (key: string) => {
       setDimState((prev) => ({ ...prev, [dynasty.id]: key }));
+      if (mainWrapRef.current) {
+        mainWrapRef.current.scrollTop = 0;
+      }
     },
     [dynasty.id],
   );
@@ -195,9 +243,11 @@ export function AncientChinaPoliciesReactPage() {
       const key = el.getAttribute("data-term") ?? "";
       const item = GLOSSARY[key];
       if (!item) return;
-      if (tipTitleRef.current) tipTitleRef.current.textContent = item.title || key;
+      if (tipTitleRef.current)
+        tipTitleRef.current.textContent = normalizePunctuation(item.title || key);
       if (tipTypeRef.current) tipTypeRef.current.textContent = item.type || "";
-      if (tipBodyRef.current) tipBodyRef.current.textContent = item.body || "";
+      if (tipBodyRef.current)
+        tipBodyRef.current.textContent = normalizePunctuation(item.body || "");
       tip.classList.add("show");
       moveTooltip(e.clientX, e.clientY);
     }

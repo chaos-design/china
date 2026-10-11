@@ -142,6 +142,10 @@ out
 # Firebase cache directory
 .firebase/
 
+# Agent / workspace tooling directories (never commit)
+.codebuddy/
+.workbuddy/
+
 # TernJS port file
 .tern-port
 
