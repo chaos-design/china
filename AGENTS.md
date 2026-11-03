@@ -103,9 +103,9 @@ Current public routes:
 
 Route-level layout options live in `src/route-layout-config.ts`.
 
-Current HTML resource slugs: `/ancient-china` (legacy, hidden from home), `/intangible-culture-heritage`, `/silk-road`, `/taiwan`.
+Current HTML resource slugs: `/ancient-china` (legacy, hidden from home), `/intangible-culture-heritage`, `/silk-road`, `/taiwan`, `/liberation-war`.
 
-The site's stated scope is 中国古代, but the HTML resources are not all 中国古代 material. Three of the four (非遗, 丝绸之路, and the legacy 朝代浮岛 page) are cultural-history topics that fit; `/taiwan` is geography plus modern history and deliberately does not. When adding a resource, decide explicitly whether it fits the 中国古代 frame. If it does not, either widen the framing in `README.md` / `index.html` metadata, or keep the resource but document the exception here — do not silently expand the site's meaning through a single page.
+The site's stated scope is 中国古代, but the HTML resources are not all 中国古代 material. 非遗 and 丝绸之路 are cultural-history topics that fit the frame. Three deliberate exceptions: `/taiwan` (geography plus modern history, 1895–1945 日治五十年), `/liberation-war` (解放战争 1946–1949 interactive map built on the same real-borders / province-shape basemap as 丝绸之路 — note its base shapes and the `PROVINCES` outline are shared constants in `resources/html-data/liberation-war.json` extracted from `resources/html-data/silk-road.json`; keep them in sync if the basemap data changes), and the legacy 朝代浮岛 page (hidden from home). When adding a resource, decide explicitly whether it fits the 中国古代 frame. If it does not, either widen the framing in `README.md` / `index.html` metadata, or keep the resource but document the exception here — do not silently expand the site's meaning through a single page.
 
 HTML resource routing:
 

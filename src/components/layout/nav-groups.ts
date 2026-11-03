@@ -74,6 +74,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         label: "台湾专题",
         to: "/taiwan",
       },
+      {
+        highlights: ["四阶段时间轴", "战役地点与解放区", "进军箭头与行军路线"],
+        label: "解放战争交互图",
+        to: "/liberation-war",
+      },
     ],
     label: "地域与近代",
     mapZone: "islands",

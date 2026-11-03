@@ -61,6 +61,17 @@ describe("html resource metadata", () => {
           }),
         }),
         expect.objectContaining({
+          fileName: "liberation-war.html",
+          path: "/liberation-war",
+          resource: expect.objectContaining({
+            homeEntries: [
+              expect.objectContaining({
+                title: "解放战争历史地理交互图",
+              }),
+            ],
+          }),
+        }),
+        expect.objectContaining({
           fileName: "silk-road.html",
           path: "/silk-road",
           resource: expect.objectContaining({
@@ -121,6 +132,12 @@ describe("html resource metadata", () => {
     expect(silkRoad.title).toBe("中国各朝代丝绸之路与海疆发展史 · 世界地图版");
     expect(silkRoad.html).toContain('"ERAS": [');
     expect(silkRoad.html).not.toContain('data-resource="silk-road.json"');
+
+    const liberationWar = await loadDocument("/liberation-war");
+    expect(liberationWar.title).toBe("解放战争 · 历史地理交互图");
+    expect(liberationWar.html).toContain('"STAGES": [');
+    expect(liberationWar.html).toContain('"PROVINCES": [');
+    expect(liberationWar.html).not.toContain('data-resource="liberation-war.json"');
 
     const taiwan = await loadDocument("/taiwan");
     expect(taiwan.title).toBe("台湾 · 山海之间的百年");
@@ -310,6 +327,11 @@ describe("html resource metadata", () => {
           path: "/silk-road",
           status: "available",
           title: "丝绸之路与海疆发展史",
+        }),
+        expect.objectContaining({
+          path: "/liberation-war",
+          status: "available",
+          title: "解放战争历史地理交互图",
         }),
         expect.objectContaining({
           path: "/taiwan",
