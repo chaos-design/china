@@ -10,6 +10,7 @@
     --ccp-color: #b5342a;        /* 解放军 / 解放区（朱红） */
     --ccp-new: #e07a5a;          /* 本阶段新解放区域（赭红，更亮） */
     --kmt-color: #3f6ea8;        /* 国统区 / 国军（沉静蓝） */
+    --accent: #9c4221;
     /* 米黄古典浅色外壳（与站库其余资源页一致） */
     --bg: #f3ead6;
     --bg-2: #e8dcc0;
@@ -26,13 +27,18 @@
     --surface-3: rgba(120,90,50,0.11);
     --value-text: #8a4a1e;
     /* 地图本体颜色 */
-    --map-ocean: #b9d4e8;
-    --map-land: #ded5c4;
-    --map-stroke: #b9c9d6;
-    --map-province: #e8e0cf;
+    --map-ocean: #c9dce6;
+    --map-land: #e9dfca;
+    --map-land-dim: #e4dbc9;
+    --map-stroke: #b6c8d2;
+    --map-province: #f1e7d2;
+    --mountain: #a07a50;
+    --river: #6f97ab;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
 
   body {
     font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
@@ -53,9 +59,11 @@
   .dot-kmt { background: var(--kmt-color); }
   .line-ccp { border-top-color: var(--ccp-color); border-top-style: solid; }
   .line-kmt { border-top-color: var(--kmt-color); }
-  .sq-ccp { background: rgba(181,52,42,0.45); border: 1px solid var(--ccp-color); }
-  .sq-ccp-new { background: rgba(224,122,90,0.55); border: 1px solid var(--ccp-new); }
-  .sq-kmt { background: rgba(63,110,168,0.25); border: 1px solid var(--kmt-color); }
+  .sq-ccp { background: rgba(181,52,42,0.52); border: 1px solid var(--ccp-color); }
+  .sq-ccp-new { background: rgba(224,122,90,0.58); border: 1px solid var(--ccp-new); }
+  .sq-kmt { background: rgba(58,111,174,0.34); border: 1px solid var(--kmt-color); }
+  .mt-sample { font-size: 11px; line-height: 1; letter-spacing: -1px; color: #8a6a45; font-style: italic; }
+  .river-sample { width: 20px; height: 2px; background: #6f97ab; display: inline-block; border-radius: 2px; opacity: .75; }
 
   /* ===================== 左右布局 ===================== */
   .layout { display: block; width: 100%; }
@@ -81,25 +89,32 @@
   }
 
   /* 阶段时间轴 */
-  .stage-timeline { position: relative; padding: 6px 0; margin-right: -12px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  .stage-timeline { position: relative; padding: 6px 0; margin-right: -12px; flex: 0 1 auto; min-height: 0; overflow-y: auto; }
   .stage-timeline::-webkit-scrollbar { width: 6px; }
   .stage-timeline::-webkit-scrollbar-thumb { background: rgba(156,66,33,0.32); border-radius: 3px; }
   .stage-timeline-inner { position: relative; }
   .stage-timeline-inner::before {
     content: ""; position: absolute; left: 18.75px; top: 12px; bottom: 12px;
-    border-left: 2.5px dashed rgba(156,66,33,0.5);
+    border-left: 2.5px dashed rgba(156,66,33,0.50);
+  }
+  .stage-progress {
+    position: absolute; left: 18.75px; top: 12px; width: 2.5px; height: 0;
+    background: linear-gradient(var(--gold), rgba(156,66,33,.35));
+    border-radius: 2px; z-index: 0;
+    transition: height .45s cubic-bezier(.2,.7,.3,1);
   }
   .stage-nav {
     position: relative;
     padding: 13px 6px 13px 40px; margin: 0 6px 8px 0;
     cursor: pointer; border-radius: 6px;
-    transition: all 0.18s ease;
+    transition: background .18s ease;
+    z-index: 1;
   }
   .stage-nav::before {
     content: ""; position: absolute; left: 12px; top: 17px;
     width: 16px; height: 16px; border-radius: 50%;
     background: var(--card-solid); border: 3px solid var(--gold);
-    box-sizing: border-box; transition: all 0.18s ease; z-index: 1;
+    box-sizing: border-box; transition: background .18s ease, box-shadow .18s ease; z-index: 1;
   }
   .stage-nav:hover { background: rgba(156,66,33,0.10); }
   .stage-nav:hover::before { box-shadow: 0 0 0 3px rgba(156,66,33,0.18); }
@@ -112,13 +127,17 @@
     0%, 100% { box-shadow: 0 0 5px 1px rgba(156,66,33,0.40); filter: brightness(1); }
     50%      { box-shadow: 0 0 11px 4px rgba(156,66,33,0.65); filter: brightness(1.15); }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .stage-nav.active::before { animation: none; box-shadow: 0 0 8px 2px rgba(156,66,33,0.55); }
+  .stage-nav .stage-index {
+    position: absolute; right: 8px; top: 14px;
+    font-size: 10px; letter-spacing: 1px; color: rgba(122,106,82,.55);
+    font-variant-numeric: tabular-nums;
   }
   .stage-nav .stage-name { font-size: 15px; font-weight: 800; color: var(--text-main); line-height: 1.3; }
   .stage-nav.active .stage-name { color: var(--accent); }
   .stage-nav .stage-time { font-size: 12px; color: var(--text-sub); margin-top: 3px; }
-  .stage-nav .stage-intent { font-size: 11.5px; color: var(--text-sub); margin-top: 5px; line-height: 1.5; }
+  .stage-nav .stage-intent { display: none; font-size: 11.5px; color: var(--text-sub); margin-top: 5px; line-height: 1.5; }
+  .stage-nav.active .stage-intent { display: block; animation: fadeUp .28s ease both; }
+  .stage-nav:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 
   .panel-tools {
     flex: 0 0 auto;
@@ -126,31 +145,69 @@
     border-top: 1px dashed var(--border);
   }
   .tool-btn {
+    position: relative; overflow: hidden;
     flex: 1;
     border: 1px solid var(--border); background: var(--surface);
     color: var(--text-sub); padding: 6px 10px; border-radius: 16px;
-    font-size: 13px; cursor: pointer; transition: all 0.15s ease;
+    font-size: 13px; cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease;
   }
   .tool-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .tool-btn:active { transform: translateY(1px); }
+  .tool-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   .tool-btn.playing { background: var(--gold); border-color: var(--gold); color: #fff; font-weight: 600; }
+  .tool-btn .tb-fill {
+    position: absolute; inset: 0; background: rgba(255,255,255,.18);
+    transform: scaleX(0); transform-origin: left center; pointer-events: none;
+  }
+  .tool-btn.playing .tb-fill { animation: playFill var(--play-ms, 5200ms) linear forwards; }
+  @keyframes playFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+  /* 当前态势 */
+  .panel-live {
+    flex: 0 0 auto; border-top: 1px dashed var(--border);
+    padding: 9px 0 7px 0;
+  }
+  .pl-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: 11px; letter-spacing: 1px; color: var(--text-sub); margin-bottom: 6px;
+  }
+  .pl-head b { font-size: 11.5px; color: var(--text-main); font-weight: 700; letter-spacing: .5px; }
+  .pl-row { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-sub); }
+  .pl-row + .pl-row { margin-top: 3px; }
+  .pl-row b {
+    margin-left: auto; font-size: 17px; line-height: 1; color: var(--value-text);
+    font-variant-numeric: tabular-nums; font-weight: 800;
+  }
+  .pl-row.kmt b { color: #33567f; }
+  .pl-swatch { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+  .pl-swatch.cc { background: var(--ccp-color); }
+  .pl-swatch.kmt { background: var(--kmt-color); }
+  .pl-unit { font-size: 11px; opacity: .8; }
+  .pl-track {
+    height: 5px; border-radius: 3px; overflow: hidden; display: flex;
+    background: rgba(120,90,50,.10); margin: 5px 0 6px;
+  }
+  .pl-track i { display: block; height: 100%; transition: width .6s cubic-bezier(.2,.7,.3,1); }
+  .pl-track .cc { background: var(--ccp-color); }
+  .pl-track .kmt { background: var(--kmt-color); opacity: .55; }
 
   /* 图例 */
-  .panel-legend { flex: 0 0 auto; border-top: 1px dashed var(--border); padding: 10px 0 4px 0; }
-  .panel-legend .legend-title { font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; }
+  .panel-legend { flex: 0 0 auto; border-top: 1px dashed var(--border); padding: 9px 0 4px 0; }
+  .panel-legend .legend-title { font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 7px; }
   .panel-legend .legend-row {
     display: flex; align-items: center; gap: 7px;
-    font-size: 12.5px; color: var(--text-sub); margin-bottom: 6px;
+    font-size: 12px; color: var(--text-sub); margin-bottom: 5px;
   }
   .panel-legend .legend-note {
-    margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);
-    font-size: 11px; line-height: 1.6; color: var(--text-sub);
+    margin-top: 7px; padding-top: 7px; border-top: 1px dashed var(--border);
+    font-size: 10.5px; line-height: 1.6; color: var(--text-sub);
   }
   .panel-legend .legend-note b { color: var(--text-main); font-weight: 600; }
 
   .right-panel {
     position: relative; z-index: 2;
     margin-left: 302px; min-width: 0;
-    padding: 20px 16px 64px 0;
+    padding: 20px 16px 24px 0;
   }
 
   /* 阶段标题 */
@@ -159,10 +216,14 @@
     border: 1px solid var(--border); border-radius: 8px;
     padding: 14px 18px; margin-bottom: 14px;
     box-shadow: var(--shadow);
+    overflow: hidden;
   }
-  .content-head .head-stage { font-size: 13px; font-weight: 700; color: var(--gold); letter-spacing: 2px; }
+  .content-head .head-stage { font-size: 12px; font-weight: 700; color: var(--gold); letter-spacing: 2px; }
   .content-head h1 { font-size: 22px; font-weight: 800; margin: 2px 0 4px; color: var(--text-main); }
-  .content-head .head-intent { font-size: 13.5px; color: var(--text-sub); max-width: 860px; }
+  .content-head .head-intent { font-size: 13.5px; color: var(--text-sub); max-width: 880px; }
+  .content-head > * { animation: fadeUp .38s cubic-bezier(.2,.7,.3,1) both; }
+  .content-head > *:nth-child(2) { animation-delay: .04s; }
+  .content-head > *:nth-child(3) { animation-delay: .08s; }
 
   /* 信息卡 */
   .info-card {
@@ -184,21 +245,35 @@
     display: flex; gap: 8px; align-items: flex-start;
     padding: 7px 9px; margin-bottom: 5px;
     border: 1px solid transparent; border-radius: 6px;
-    cursor: pointer; transition: all 0.15s ease; font-size: 13px;
+    cursor: pointer; transition: background .15s ease, border-color .15s ease;
+    font-size: 13px;
   }
   .battle-list li:hover { background: var(--surface-2); border-color: var(--border); }
   .battle-list li.selected { background: rgba(156,66,33,0.12); border-color: var(--gold); }
+  .battle-list .b-idx {
+    font-size: 10px; color: rgba(122,106,82,.6); font-variant-numeric: tabular-nums;
+    width: 15px; flex: 0 0 auto; padding-top: 2px; letter-spacing: .5px;
+  }
   .battle-list .b-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; flex: 0 0 auto; background: var(--ccp-color); }
   .battle-list .b-dot.kind-defense { border-radius: 2px; }
   .battle-list .b-dot.kind-planned { background: transparent; border: 2px dashed var(--ccp-color); }
   .battle-list .b-name { font-weight: 700; color: var(--text-main); }
   .battle-list .b-time { font-size: 11.5px; color: var(--text-sub); }
   .battle-detail {
-    margin-top: 10px; padding: 10px 12px;
+    position: relative;
+    margin-top: 10px; padding: 10px 34px 10px 12px;
     background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px;
     font-size: 13px; color: var(--text-main); line-height: 1.65;
+    animation: fadeUp .25s ease both;
   }
   .battle-detail .bd-title { font-weight: 700; color: var(--gold); margin-bottom: 4px; }
+  .bd-close {
+    position: absolute; top: 5px; right: 6px;
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 1px solid transparent; background: transparent;
+    color: var(--text-sub); font-size: 17px; line-height: 1; cursor: pointer;
+  }
+  .bd-close:hover { background: var(--surface-3); color: var(--gold); }
   .fact-list { list-style: none; }
   .fact-list li {
     padding: 8px 10px; margin-bottom: 6px;
@@ -210,114 +285,360 @@
   /* 地图 */
   .map-box {
     position: relative;
-    background: var(--map-ocean);
-    border-radius: 8px; box-shadow: var(--shadow);
+    background: var(--card-solid);
+    border-radius: 10px; box-shadow: var(--shadow);
     overflow: hidden; border: 1px solid var(--border);
     margin-bottom: 14px;
   }
   .map-title {
     background: var(--card-solid); color: var(--text-main);
-    padding: 10px 16px; font-size: 14px; font-weight: 600;
+    padding: 9px 14px; font-size: 14px; font-weight: 600;
     border-bottom: 1px solid var(--border);
     display: flex; justify-content: space-between; align-items: center;
     gap: 10px; flex-wrap: wrap;
   }
-  .map-title .hint { font-size: 12px; color: var(--text-sub); font-weight: 400; }
-  .map-tools { display: flex; align-items: center; gap: 8px; }
-  .zoom-btn {
-    border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
-    font-size: 12px; padding: 3px 12px; border-radius: 14px; cursor: pointer;
-    transition: all 0.15s ease; white-space: nowrap;
+  .mt-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .mt-left .mt-name { white-space: nowrap; }
+  .map-chip {
+    font-size: 11px; font-weight: 700; letter-spacing: .5px;
+    color: var(--accent); background: rgba(156,66,33,.09);
+    border: 1px solid rgba(156,66,33,.22);
+    padding: 1px 8px; border-radius: 999px; white-space: nowrap;
+    transition: background .2s ease, color .2s ease;
   }
-  .zoom-btn:hover { border-color: var(--gold); color: var(--gold); }
-  /* 地图按 viewBox 142×112 单位铺满容器，注记/线宽写死 SVG 用户单位（默认缩放下即屏幕读数）。
-     放大后注记按 SVG 规则整体等比变大，属于可接受的读图行为（与 taiwan.html 地图一致）。 */
-  svg.war-map { display: block; width: 100%; height: auto; aspect-ratio: 142 / 112; }
-  svg.war-map.grabbable { cursor: grab; }
+  .map-chip.live { background: rgba(156,66,33,.16); }
+  .map-tools { display: flex; align-items: center; gap: 6px; }
+  .map-tools .hint { font-size: 11.5px; color: var(--text-sub); font-weight: 400; margin-right: 2px; }
+  .zoom-readout {
+    font-size: 11px; color: var(--text-sub); font-variant-numeric: tabular-nums;
+    min-width: 34px; text-align: right; margin-right: 2px;
+  }
+  .zoom-btn {
+    width: 26px; height: 24px; line-height: 1;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
+    font-size: 13px; padding: 0; border-radius: 12px; cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
+  }
+  .zoom-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+  .zoom-btn:disabled { opacity: .35; cursor: default; }
+  .zoom-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  /* 阶段进度条：手动切换时 650ms 填充，自动播放时 5.2s 填充 */
+  .stage-track {
+    display: flex; gap: 6px; align-items: stretch;
+    padding: 8px 14px 0; background: var(--card-solid);
+    border-bottom: 1px solid var(--border);
+  }
+  .st-seg {
+    flex: 1 1 0; min-width: 0; border: 0; background: transparent;
+    padding: 0 0 7px; cursor: pointer; text-align: left;
+    color: var(--text-sub);
+  }
+  .st-seg:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 3px; }
+  .st-bar { display: block; height: 3px; border-radius: 2px; background: rgba(120,90,50,.13); overflow: hidden; }
+  .st-bar i { display: block; width: 0; height: 100%; background: var(--accent); border-radius: 2px; }
+  .st-seg.done .st-bar i { width: 100%; background: rgba(156,66,33,.55); }
+  .st-seg.active .st-bar i { width: 0; }
+  .st-name {
+    display: block; margin-top: 4px; font-size: 10.5px; letter-spacing: .4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .st-seg.active .st-name { color: var(--accent); font-weight: 700; }
+  .st-seg.done .st-name { color: rgba(122,106,82,.8); }
+
+  .map-canvas { position: relative; overflow: hidden; background: var(--map-ocean); }
+  .map-canvas::after {
+    content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background:
+      radial-gradient(ellipse at 50% 42%, rgba(255,255,255,0) 55%, rgba(120,90,50,.16) 100%),
+      linear-gradient(180deg, rgba(255,255,255,.12), rgba(120,90,50,.04));
+    mix-blend-mode: multiply;
+  }
+  .map-canvas::before {
+    content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+    background: linear-gradient(105deg, rgba(255,248,232,0) 30%, rgba(255,248,232,.55) 48%, rgba(255,248,232,0) 66%);
+    transform: translateX(-100%); opacity: 0;
+  }
+  .map-canvas.flash::before { animation: mapSweep .8s ease-out; }
+  @keyframes mapSweep {
+    0% { transform: translateX(-100%); opacity: 0; }
+    25% { opacity: .8; }
+    100% { transform: translateX(100%); opacity: 0; }
+  }
+
+  svg.war-map { display: block; width: 100%; height: auto; aspect-ratio: 151.5 / 115.36; touch-action: pan-y; }
+  svg.war-map.grabbable { cursor: grab; touch-action: none; }
   svg.war-map.grabbing { cursor: grabbing; }
+  svg.war-map:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
 
-  .map-label { paint-order: stroke; stroke: #fff; stroke-linejoin: round; }
-  .prov-label { font-size: 2.6; fill: #6f6347; font-weight: 600; stroke-width: 0.7; }
-  .city-label { font-size: 3.0; fill: #4a3a28; font-weight: 700; stroke-width: 0.8; }
-  .battle-label { font-size: 3.4; font-weight: 700; fill: #7c1f14; stroke-width: 0.9; }
-  .route-label { font-size: 2.9; font-weight: 600; fill: var(--value-text); stroke-width: 0.75; }
-  .zone-note { font-size: 3.6; font-weight: 700; stroke-width: 0.9; }
-  .zone-note.cc { fill: #9c4221; }
-  .zone-note.kmt { fill: #33567f; }
-  .arrow-label { font-size: 2.9; font-weight: 600; stroke-width: 0.75; }
-  .arrow-label.cc { fill: #9c4221; }
-  .arrow-label.kmt { fill: #33567f; }
-
-  .world-land { fill: var(--map-land); stroke: var(--map-stroke); stroke-width: 0.4; stroke-opacity: 0.6; }
-  .taiwan-shape { fill: var(--map-land); stroke: var(--map-stroke); stroke-width: 0.5; }
+  /* ===================== 地图图层 ===================== */
+  .ocean { fill: url(#oceanGrad); }
+  .world-land { fill: var(--map-land-dim); stroke: #b9c9cf; stroke-width: .6; stroke-opacity: .55; vector-effect: non-scaling-stroke; }
+  .prov {
+    fill: var(--map-province); stroke: #c7b89c; stroke-width: .7;
+    vector-effect: non-scaling-stroke;
+    transition: fill .55s ease, stroke .3s ease;
+  }
+  .prov.prov-ccp { fill: rgba(181,52,42,0.52); }
+  .prov.prov-new { fill: rgba(224,122,90,0.58); }
+  .prov.prov-kmt { fill: rgba(58,111,174,0.34); }
+  .prov.prov-flash { animation: provFlash 1.25s ease-out; }
+  @keyframes provFlash {
+    0% { stroke: var(--ccp-new); stroke-width: 1.8; }
+    100% { stroke: #c7b89c; stroke-width: .7; }
+  }
+  .island-land { fill: var(--map-land); stroke: #b9c9cf; stroke-width: .6; vector-effect: non-scaling-stroke; }
   .china-border {
-    fill: none; stroke: #d98b80; stroke-width: 1.0; stroke-opacity: 0.5;
-    stroke-linejoin: round; stroke-dasharray: 7 4.5;
+    fill: none; stroke: #a86955; stroke-width: 1.15; stroke-opacity: .72;
+    stroke-linejoin: round; vector-effect: non-scaling-stroke;
     pointer-events: none;
   }
   .nine-dash {
-    fill: none; stroke: #d98b80; stroke-width: 1.2;
-    stroke-linecap: round; stroke-opacity: 0.5; pointer-events: none;
+    fill: none; stroke: #b5533f; stroke-width: 1.25;
+    stroke-linecap: round; stroke-opacity: .92; vector-effect: non-scaling-stroke;
+    pointer-events: none;
+  }
+  .graticule {
+    fill: none; stroke: #7896a6; stroke-width: .5; stroke-opacity: .22;
+    vector-effect: non-scaling-stroke; pointer-events: none;
+  }
+  .grat-label { fill: #6e8492; font-size: .82px; opacity: .55; letter-spacing: .3px; }
+
+  .mt-ridge { fill: none; stroke: var(--mountain); stroke-width: 5; stroke-opacity: .085; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .mt-glyph { fill: none; stroke: #8f6a43; stroke-width: 1.1; stroke-opacity: .7; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .river { fill: none; stroke: #5b87a0; stroke-opacity: .85; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+  .route-line {
+    fill: none; stroke: var(--ccp-color); stroke-width: 2.0;
+    stroke-linecap: round; stroke-linejoin: round; opacity: .88;
+    stroke-dasharray: 1; stroke-dashoffset: 1;
+  }
+  .route-line.draw { transition: stroke-dashoffset .95s cubic-bezier(.3,.7,.3,1) .08s; stroke-dashoffset: 0; }
+  .route-line.enter { animation: routeFade .3s ease .02s both; }
+  @keyframes routeFade { from { opacity: 0; } to { opacity: .88; } }
+
+  .arrow-line { fill: none; stroke-linecap: round; opacity: 0; }
+  .arrow-line.cc { stroke: var(--ccp-color); stroke-width: 1.45; }
+  .arrow-line.kmt { stroke: var(--kmt-color); stroke-width: 1.35; stroke-dasharray: 3.2 2.6; }
+  .arrow-line.enter { animation: arrowIn .35s ease .18s both; }
+  @keyframes arrowIn { from { opacity: 0; } to { opacity: .95; } }
+  .arrow-line.kmt.enter { animation: arrowIn .35s ease .18s both, dashFlow 1.4s linear infinite; }
+  @keyframes dashFlow { to { stroke-dashoffset: -5.8; } }
+
+  .city-dot { fill: #5f5a4a; stroke: #fff; stroke-width: .55; vector-effect: non-scaling-stroke; }
+  .city-ring { fill: none; stroke: #6f6347; stroke-width: .5; opacity: .5; vector-effect: non-scaling-stroke; }
+
+  .battle-marker { cursor: pointer; transform-box: fill-box; transform-origin: center; }
+  .battle-marker.enter { animation: markerIn .5s cubic-bezier(.2,1.35,.5,1) both; animation-delay: var(--enter-delay, 0ms); }
+  @keyframes markerIn { from { opacity: 0; transform: scale(.25); } to { opacity: 1; transform: scale(1); } }
+  .battle-marker .halo { fill: #fff; opacity: .45; }
+  .battle-marker .dotk { stroke: #fff; stroke-width: .8; vector-effect: non-scaling-stroke; }
+  .battle-marker .dotk.kind-ccp, .battle-marker .dotk.kind-defense { fill: var(--ccp-color); }
+  .battle-marker .dotk.kind-planned { fill: var(--map-ocean); stroke: var(--ccp-color); stroke-width: 1; stroke-dasharray: 1.2 1; }
+  .battle-marker:hover .halo { opacity: .85; }
+  .battle-marker:hover { filter: brightness(1.05); }
+  .battle-marker.selected .dotk { stroke: var(--gold); stroke-width: 1.3; }
+  .battle-marker.selected .halo { fill: var(--gold); opacity: .32; }
+  .battle-marker:focus-visible { outline: none; }
+  .battle-marker:focus-visible .halo { fill: var(--gold); opacity: .5; }
+  .battle-marker .pulse {
+    fill: none; stroke: var(--ccp-color); stroke-width: 1.1; opacity: 0;
+    vector-effect: non-scaling-stroke;
+  }
+  .battle-marker.selected .pulse { animation: battlePulse 1.8s ease-out infinite; }
+  @keyframes battlePulse {
+    0% { r: 2.2; opacity: .55; }
+    70% { r: 6.4; opacity: 0; }
+    100% { r: 6.4; opacity: 0; }
   }
 
-  .prov { fill: var(--map-province); stroke: #c9bda2; stroke-width: 0.4; transition: fill 0.5s ease; }
-  .prov.prov-ccp { fill: rgba(181,52,42,0.42); }
-  .prov.prov-new { fill: rgba(224,122,90,0.55); stroke: var(--ccp-new); }
-  .prov.prov-kmt { fill: rgba(63,110,168,0.18); }
+  /* 注记 */
+  .map-label {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    paint-order: stroke fill;
+    stroke: rgba(251,246,234,.94);
+    stroke-linejoin: round; stroke-linecap: round;
+    pointer-events: none;
+    animation: labelIn .34s ease both;
+  }
+  @keyframes labelIn { from { opacity: 0; } to { opacity: var(--label-op, 1); } }
+  .map-label.quiet { animation: none; }
+  .prov-label {
+    font-family: "Songti SC", "STSong", "Noto Serif SC", "SimSun", serif;
+    fill: #584b38; font-weight: 600; letter-spacing: .04em;
+    stroke-width: .38; --label-op: .96;
+  }
+  .city-label { fill: #3f3427; font-weight: 650; stroke-width: .4; --label-op: .96; }
+  .city-label.rank-1 { fill: #2d2419; font-weight: 800; letter-spacing: .06em; }
+  .city-label.rank-2 { font-weight: 700; }
+  .battle-label {
+    fill: #8d2015; font-weight: 800; stroke-width: .5;
+    pointer-events: auto; cursor: pointer; --label-op: 1;
+  }
+  .battle-label:hover, .battle-label.selected { fill: #b5342a; }
+  .route-label { fill: #9c4221; font-weight: 700; stroke-width: .72; letter-spacing: .02em; --label-op: .95; }
+  .arrow-label { font-weight: 650; stroke-width: .36; --label-op: .9; }
+  .arrow-label.cc { fill: #9c4221; }
+  .arrow-label.kmt { fill: #33567f; }
+  .mt-label {
+    font-family: "Songti SC", "STSong", "Noto Serif SC", serif;
+    fill: #8a6a45; font-weight: 600; font-style: italic; letter-spacing: .08em;
+    stroke-width: .3; --label-op: .88;
+  }
+  .river-label { fill: #4f7488; font-style: italic; font-weight: 600; stroke-width: .3; --label-op: .9; }
+  .sea-label { fill: #3f6c82; font-style: italic; letter-spacing: .42em; stroke-width: .38; --label-op: .66; }
+  .neighbor-label { fill: #8a7c66; letter-spacing: .18em; stroke-width: .35; --label-op: .55; }
+  .tw-note { fill: #33567f; font-weight: 700; stroke-width: .34; --label-op: .8; }
+  .leader { stroke: #8a7a60; stroke-width: .45; stroke-dasharray: 1.2 1.2; opacity: .5; vector-effect: non-scaling-stroke; pointer-events: none; }
+  .leader.battle { stroke: #9c4221; opacity: .45; }
 
-  .route-line { fill: none; stroke: var(--ccp-color); stroke-width: 1.5; stroke-linecap: round; opacity: 0.85; }
-  .arrow-line { fill: none; stroke-linecap: round; opacity: 0.9; }
-  .arrow-line.cc { stroke: var(--ccp-color); stroke-width: 1.3; }
-  .arrow-line.kmt { stroke: var(--kmt-color); stroke-width: 1.2; stroke-dasharray: 3.2 2.6; }
-  .city-dot { fill: #6f6347; stroke: #fff; stroke-width: 0.5; }
+  /* 南海诸岛插图 */
+  .inset-frame {
+    fill: rgba(251,246,234,.78); stroke: rgba(120,90,50,.55);
+    stroke-width: 1.1; vector-effect: non-scaling-stroke;
+    filter: drop-shadow(0 2px 4px rgba(80,60,35,.18));
+    pointer-events: none;
+  }
+  .inset-ocean { fill: url(#oceanGrad); }
+  .inset-head { fill: rgba(246,238,220,.97); }
+  .inset-rule { stroke: rgba(120,90,50,.35); stroke-width: .7; vector-effect: non-scaling-stroke; }
+  .inset-title { fill: #3f6374; font-size: 1.2px; font-weight: 700; letter-spacing: .18em; }
+  .inset-sub { fill: #77685a; font-size: .78px; letter-spacing: .08em; }
 
-  .battle-marker { cursor: pointer; }
-  .battle-marker .halo { fill: #fff; opacity: 0.55; }
-  .battle-marker .dotk { stroke: #fff; stroke-width: 0.8; }
-  .battle-marker .dotk.kind-ccp { fill: var(--ccp-color); }
-  .battle-marker .dotk.kind-defense { fill: var(--ccp-color); }
-  .battle-marker .dotk.kind-planned { fill: var(--map-ocean); stroke: var(--ccp-color); stroke-width: 0.9; stroke-dasharray: 1.2 1.0; }
-  .battle-marker.selected .dotk { stroke: var(--gold); stroke-width: 1.1; }
-  .battle-marker.selected .halo { fill: var(--gold); opacity: 0.35; }
+  /* 比例尺 */
+  .map-scale {
+    position: absolute; left: 12px; bottom: 10px; z-index: 4;
+    background: rgba(251,246,234,.86); backdrop-filter: blur(4px);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 5px 9px 4px; pointer-events: none;
+    box-shadow: 0 2px 8px rgba(120,90,50,.10);
+  }
+  .ms-track {
+    height: 5px; border: 1px solid #6f6347; border-radius: 1px;
+    background: linear-gradient(90deg, #6f6347 0 50%, rgba(251,246,234,.9) 50% 100%);
+    margin-bottom: 2px;
+  }
+  .ms-cap {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 9.5px; color: #5d5140; font-variant-numeric: tabular-nums; line-height: 1.3;
+  }
+  .ms-cap b { font-weight: 700; font-size: 10px; }
+  .ms-note { font-size: 8.5px; color: #85765f; letter-spacing: .02em; margin-top: 1px; }
+
+  .map-north {
+    position: absolute; top: 10px; right: 12px; z-index: 4;
+    width: 30px; text-align: center; pointer-events: none;
+    color: #5f513e; font-size: 9px; font-weight: 700; letter-spacing: 1px;
+    opacity: .78;
+  }
+  .map-north svg { display: block; width: 21px; height: 27px; margin: 0 auto 1px; filter: drop-shadow(0 1px 1px rgba(80,60,35,.18)); }
 
   /* 悬停提示（屏幕层，定位由 JS 计算） */
   .map-tip {
-    position: absolute; z-index: 5; pointer-events: none;
+    position: absolute; z-index: 6; pointer-events: none;
     background: var(--card-solid); border: 1px solid var(--border);
     border-radius: 8px; box-shadow: 0 8px 24px rgba(120,90,50,0.22);
-    padding: 9px 12px; max-width: 260px;
+    padding: 9px 12px; max-width: 270px;
     font-size: 12px; color: var(--text-main); line-height: 1.55;
     opacity: 0; transform: translateY(4px);
-    transition: opacity 0.18s ease, transform 0.18s ease;
+    transition: opacity .16s ease, transform .16s ease;
   }
   .map-tip.show { opacity: 1; transform: translateY(0); }
   .map-tip .tip-title { font-size: 13px; font-weight: 700; color: var(--gold); }
   .map-tip .tip-time { font-size: 11px; color: var(--text-sub); margin-bottom: 3px; }
+  .map-tip .tip-badge {
+    display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: .4px;
+    padding: 0 5px; border-radius: 3px; margin-left: 4px; vertical-align: 1px;
+    border: 1px solid currentColor; opacity: .85;
+  }
+  .map-tip .tip-badge.cc { color: var(--ccp-color); }
+  .map-tip .tip-badge.kmt { color: var(--kmt-color); }
+
+  /* 屏幕阅读器 */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
 
   .page-foot {
-    position: fixed; left: 302px; right: 0; bottom: 0; z-index: 1;
-    font-size: 11px; color: var(--text-sub); line-height: 1.6;
-    padding: 8px 16px; border-top: 1px solid var(--border);
+    position: static; margin-left: 302px;
+    font-size: 10.5px; color: var(--text-sub); line-height: 1.6;
+    padding: 10px 16px 14px; border-top: 1px solid var(--border);
     background: var(--card-bg); pointer-events: none;
   }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
   /* 全局加载层 */
   .app-loading {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; align-items: center; justify-content: center;
-    background: var(--bg); transition: opacity 0.4s ease;
+    background: radial-gradient(ellipse at 50% 35%, #fbf5e6 0%, var(--bg) 55%, var(--bg-2) 100%);
+    transition: opacity .45s ease, visibility .45s ease;
   }
   .app-loading.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
-  .app-loading .al-inner { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-  .app-loading .al-spinner {
-    width: 44px; height: 44px; border-radius: 50%;
-    border: 4px solid rgba(156,66,33,0.18);
-    border-top-color: var(--accent, #9c4221);
-    animation: alSpin 0.9s linear infinite;
+  .al-card {
+    width: min(420px, 84vw);
+    display: flex; flex-direction: column; align-items: center;
+    gap: 14px; padding: 30px 30px 24px;
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 16px 50px rgba(120,90,50,.16);
+    text-align: center;
   }
-  @keyframes alSpin { to { transform: rotate(360deg); } }
-  .app-loading .al-text { font-size: 14px; letter-spacing: 2px; color: var(--accent, #9c4221); font-weight: 600; }
-  @media (prefers-reduced-motion: reduce) { .app-loading .al-spinner { animation-duration: 2s; } }
+  .al-seal {
+    width: 54px; height: 54px; border: 2px solid var(--gold); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gold); font-family: "Songti SC", "STSong", serif; font-size: 18px;
+    letter-spacing: 3px; padding-left: 3px; transform: rotate(-3deg);
+    box-shadow: inset 0 0 0 3px rgba(156,66,33,.08);
+  }
+  .al-title { font-size: 17px; font-weight: 800; letter-spacing: 2px; color: var(--text-main); }
+  .al-desc { font-size: 11.5px; color: var(--text-sub); letter-spacing: 1px; margin-top: -8px; }
+  .al-bar-wrap { width: 100%; }
+  .al-bar {
+    width: 100%; height: 4px; border-radius: 3px; overflow: hidden;
+    background: rgba(156,66,33,.14);
+  }
+  .al-bar i {
+    display: block; width: 0; height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--ccp-new));
+    transition: width .34s ease;
+  }
+  .al-meta {
+    display: flex; justify-content: space-between; align-items: baseline;
+    width: 100%; margin-top: 7px; font-size: 11.5px; color: var(--text-sub);
+  }
+  .al-meta #alPct { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--gold); }
+  .al-err {
+    display: none; width: 100%; padding: 10px 12px; border-radius: 6px;
+    background: rgba(181,52,42,.08); border: 1px solid rgba(181,52,42,.25);
+    color: #8d2015; font-size: 12px; line-height: 1.6; text-align: left;
+  }
+  .al-card.error .al-bar-wrap, .al-card.error .al-meta { display: none; }
+  .al-card.error .al-err { display: block; }
+  .al-retry {
+    display: none; margin-top: 2px; padding: 6px 16px; border-radius: 16px;
+    border: 1px solid var(--gold); background: var(--gold); color: #fff;
+    font-size: 12.5px; cursor: pointer;
+  }
+  .al-card.error .al-retry { display: inline-block; }
+  @media (prefers-reduced-motion: reduce) {
+    .stage-nav.active::before { animation: none; box-shadow: 0 0 8px 2px rgba(156,66,33,0.55); }
+    .app-loading .al-bar i { transition: none; }
+    .content-head > * { animation: none; }
+    .map-label, .battle-marker.enter, .route-line, .arrow-line, .map-canvas.flash::before,
+    .tool-btn.playing .tb-fill, .battle-marker.selected .pulse { animation: none !important; }
+    .route-line { stroke-dashoffset: 0 !important; transition: none !important; }
+    .arrow-line { opacity: .95; }
+    .st-bar i, .pl-track i, .stage-progress { transition: none !important; }
+  }
+
+  @media (max-height: 820px) and (min-width: 901px) {
+    .stage-nav { padding-top: 10px; padding-bottom: 10px; }
+    .panel-live { padding: 6px 0 4px 0; }
+    .panel-legend .legend-note { display: none; }
+    .panel-legend .legend-row { margin-bottom: 4px; }
+  }
 
   /* ===================== 移动端 ===================== */
   @media (max-width: 900px) {
@@ -327,39 +648,77 @@
       display: block; border-left: 1px solid var(--border);
     }
     .stage-timeline { overflow-y: visible; overflow-x: auto; padding: 0 0 0 24px; }
-    .stage-timeline-inner::before { display: none; }
+    .stage-timeline-inner::before, .stage-progress { display: none; }
     .stage-timeline-inner { display: flex; gap: 8px; }
     .stage-nav { position: static; padding: 8px 12px; margin: 0; flex: 0 0 auto; border-bottom: 4px solid transparent; }
     .stage-nav::before { display: none; }
+    .stage-nav .stage-index { display: none; }
     .stage-nav.active { border-bottom-color: var(--gold); }
     .stage-nav .stage-intent { display: none; }
-    .panel-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+    .panel-live { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 8px 0; }
+    .pl-head { width: 100%; margin-bottom: 0; }
+    .pl-row { flex: 0 0 auto; }
+    .pl-row b { margin-left: 2px; font-size: 15px; }
+    .pl-track { flex: 1 1 120px; margin: 0; }
+    .panel-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
     .panel-legend .legend-title { margin-bottom: 0; }
     .panel-legend .legend-note { display: none; }
     .panel-tools { padding: 8px 0 0 0; }
     .right-panel { width: 100%; margin-left: 0; padding: 12px 0 30px; }
     .info-grid { grid-template-columns: 1fr; }
-    .page-foot { position: static; left: auto; right: auto; bottom: auto; padding: 12px 4px; pointer-events: auto; }
+    .page-foot { position: static; margin-left: 0; padding: 12px 4px; pointer-events: auto; }
+    .map-tools .hint { display: none; }
+  }
+  @media (max-width: 560px) {
+    .content-head h1 { font-size: 19px; }
+    .map-title { padding: 8px 10px; }
+    .mt-left .mt-name { font-size: 13px; }
+    .map-chip { display: none; }
+    .stage-track { padding: 8px 10px 0; }
+    .st-name { font-size: 9.5px; }
+    .zoom-readout { display: none; }
+    .map-scale { left: 8px; bottom: 8px; padding: 4px 7px; }
+    .ms-note { display: none; }
   }
 </style>
 </head>
 <body>
 
 <div class="app-loading" id="appLoading" role="status" aria-live="polite">
-  <div class="al-inner">
-    <div class="al-spinner" aria-hidden="true"></div>
-    <div class="al-text">解放战争图谱加载中…</div>
+  <div class="al-card" id="alCard">
+    <div class="al-seal" aria-hidden="true">解放</div>
+    <div class="al-title">解放战争 · 战略态势图</div>
+    <div class="al-desc">真实疆域 · 地形注记 · 四阶段演变</div>
+    <div class="al-bar-wrap">
+      <div class="al-bar"><i id="alBar"></i></div>
+      <div class="al-meta"><span id="alText">解析地图数据…</span><span id="alPct">0%</span></div>
+    </div>
+    <div class="al-err" id="alErr"></div>
+    <button class="al-retry" id="alRetry" type="button">重新加载</button>
   </div>
 </div>
 
 <div class="layout">
-  <nav class="left-panel" id="leftPanel">
+  <nav class="left-panel" id="leftPanel" aria-label="阶段与控制">
     <div class="nav-title">解放战争 · 四阶段</div>
-    <div class="stage-timeline"><div class="stage-timeline-inner" id="stageTimelineInner"></div></div>
+    <div class="stage-timeline">
+      <div class="stage-timeline-inner" id="stageTimelineInner">
+        <div class="stage-progress" id="stageProgress"></div>
+      </div>
+    </div>
 
     <div class="panel-tools">
-      <button class="tool-btn" id="btnPlay" type="button" title="按 4 秒间隔自动推进各阶段">▶ 自动播放</button>
+      <button class="tool-btn" id="btnPlay" type="button" title="按 5.2 秒间隔自动推进各阶段" aria-pressed="false">
+        <span class="tb-fill" aria-hidden="true"></span><span class="tb-label">▶ 自动播放</span>
+      </button>
       <button class="tool-btn" id="btnReset" type="button" title="回到第一阶段并清除选中战役">回到起点</button>
+    </div>
+
+    <div class="panel-live" aria-live="polite">
+      <div class="pl-head"><span>当前态势</span><b id="plStage">1946.7 — 1947.6</b></div>
+      <div class="pl-row"><span class="pl-swatch cc"></span><span>解放区</span><span class="pl-unit">省</span><b id="plCc">6</b></div>
+      <div class="pl-track"><i class="cc" id="plCcBar" style="width:19%"></i><i class="kmt" id="plKmtBar" style="width:81%"></i></div>
+      <div class="pl-row kmt"><span class="pl-swatch kmt"></span><span>国统区</span><span class="pl-unit">省</span><b id="plKmt">25</b></div>
     </div>
 
     <div class="panel-legend">
@@ -367,16 +726,20 @@
       <div class="legend-row"><i class="sq-sample sq-ccp"></i>解放军控制区</div>
       <div class="legend-row"><i class="sq-sample sq-ccp-new"></i>本阶段新解放区域</div>
       <div class="legend-row"><i class="sq-sample sq-kmt"></i>国统区</div>
+      <div class="legend-row"><i class="line-sample line-solid" style="border-top-color:#a86955;border-top-width:2px"></i>国界（实线）</div>
+      <div class="legend-row"><i class="dot" style="background:#5f5a4a;width:7px;height:7px"></i>城市参考点</div>
       <div class="legend-row"><i class="dot dot-ccp"></i>圆形 · 进攻 / 歼灭性战役</div>
       <div class="legend-row"><i class="dot dot-ccp" style="border-radius:2px"></i>方形 · 防御 / 阻击战役</div>
       <div class="legend-row"><i class="dot dot-ccp" style="background:transparent;border:2px dashed var(--ccp-color)"></i>空心 · 未竟 / 计划行动</div>
       <div class="legend-row"><i class="line-sample line-solid line-ccp"></i>实线箭头 · 解放军进军</div>
       <div class="legend-row"><i class="line-sample line-kmt"></i>虚线箭头 · 国军攻势</div>
       <div class="legend-row"><i class="line-sample line-solid line-ccp" style="width:26px;height:3px;background:var(--ccp-color);border:none;border-radius:2px;opacity:.85"></i>粗线 · 主力行军路线</div>
+      <div class="legend-row"><i class="mt-sample">∧∧∧</i>山脉（区位示意）</div>
+      <div class="legend-row"><i class="river-sample"></i>黄河 / 长江等主要河流</div>
       <div class="legend-note">
-        底图为真实国界与省界轮廓（等距经纬度投影），控制区与战况按通行史学常识整理，
-        战役地点为示意性定位，供学习参考。
-        <b>悬停地图标记可看战役详情</b>；点击左侧阶段或「自动播放」观察解放进程演变。
+        底图为真实国界与省界（<b>Albers 等积投影</b>，标准纬线 25°N / 47°N），
+        山脉、河流为区位示意，邻国陆地仅作方位参考。控制区按通行史学常识整理；
+        <b>悬停或点击地图标记</b>查看战役详情，放大后显示更多省名、山脉与河流注记。
       </div>
     </div>
   </nav>
@@ -384,41 +747,81 @@
   <section class="right-panel">
     <div class="content-head" id="contentHead"></div>
 
-    <div class="map-box">
+    <div class="map-box" id="mapBox">
       <div class="map-title">
-        <span>解放战争 · 战略态势图</span>
+        <div class="mt-left">
+          <span class="mt-name">解放战争 · 战略态势图</span>
+          <span class="map-chip" id="mapChip">第 1 / 4 阶段</span>
+        </div>
         <div class="map-tools">
-          <span class="hint">滚轮 / 按钮缩放，放大后拖拽平移</span>
-          <button class="zoom-btn" id="btnZoomOut" type="button" aria-label="缩小">−</button>
+          <span class="hint">滚轮缩放 · 放大后拖拽平移并显示更多注记</span>
+          <span class="zoom-readout" id="zoomReadout">1.0×</span>
+          <button class="zoom-btn" id="btnZoomOut" type="button" aria-label="缩小地图">−</button>
           <button class="zoom-btn" id="btnZoomReset" type="button" aria-label="重置缩放">⟲</button>
-          <button class="zoom-btn" id="btnZoomIn" type="button" aria-label="放大">＋</button>
+          <button class="zoom-btn" id="btnZoomIn" type="button" aria-label="放大地图">＋</button>
         </div>
       </div>
-      <svg class="war-map" id="warSvg" viewBox="500 62 142 112" preserveAspectRatio="xMidYMid meet" role="img" aria-label="解放战争时期中国战略态势地图">
-        <defs>
-          <marker id="arrow-ccp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 Z" fill="var(--ccp-color)"/>
-          </marker>
-          <marker id="arrow-kmt" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 Z" fill="var(--kmt-color)"/>
-          </marker>
-          <filter id="battleGlow" x="-120%" y="-120%" width="340%" height="340%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="0.6" result="blur"/>
-            <feFlood flood-color="#ffffff" flood-opacity="0.9" result="color"/>
-            <feComposite in="color" in2="blur" operator="in" result="glow"/>
-            <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        <rect x="500" y="62" width="142" height="112" fill="var(--map-ocean)"/>
-        <g id="landLayer"></g>
-        <g id="provLayer"></g>
-        <g id="borderLayer"></g>
-        <g id="routeLayer"></g>
-        <g id="arrowLayer"></g>
-        <g id="battleLayer"></g>
-        <g id="labelLayer"></g>
-      </svg>
-      <div class="map-tip" id="mapTip" aria-hidden="true"></div>
+
+      <div class="stage-track" id="stageTrack" role="group" aria-label="四阶段进度"></div>
+
+      <div class="map-canvas" id="mapCanvas">
+        <svg class="war-map" id="warSvg" viewBox="0 0 151.5 115.36" preserveAspectRatio="xMidYMid meet"
+             role="group" aria-label="解放战争时期中国战略态势地图，可用方向键切换阶段，加减号缩放">
+          <defs>
+            <linearGradient id="oceanGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#d6e5eb"/>
+              <stop offset="55%" stop-color="#c6dbe4"/>
+              <stop offset="100%" stop-color="#b7d0dc"/>
+            </linearGradient>
+            <marker id="arrow-ccp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.2" markerHeight="4.2" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 Z" fill="var(--ccp-color)"/>
+            </marker>
+            <marker id="arrow-kmt" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.0" markerHeight="4.0" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 Z" fill="var(--kmt-color)"/>
+            </marker>
+            <filter id="battleGlow" x="-140%" y="-140%" width="380%" height="380%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="0.55" result="blur"/>
+              <feFlood flood-color="#fffdf6" flood-opacity="0.9" result="color"/>
+              <feComposite in="color" in2="blur" operator="in" result="glow"/>
+              <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <rect class="ocean" x="0" y="0" width="151.5" height="115.36"/>
+
+          <g id="baseGeo">
+            <path class="world-land" id="worldLand" d=""/>
+            <g id="provLayer"></g>
+            <path class="island-land" id="islandLand" d=""/>
+            <path class="china-border" id="chinaBorder" d=""/>
+          </g>
+
+          <path class="graticule" id="graticule" d=""/>
+          <g id="gratLayer"></g>
+          <g id="terrainLayer"></g>
+          <g id="routeLayer"></g>
+          <g id="arrowLayer"></g>
+          <g id="battleLayer"></g>
+          <g id="labelLayer"></g>
+          <g id="insetGroup"></g>
+        </svg>
+
+        <div class="map-scale" id="mapScale" aria-hidden="true">
+          <div class="ms-track" id="msTrack"></div>
+          <div class="ms-cap"><span>0</span><b id="msLabel">500 公里</b><span id="msMax">500</span></div>
+          <div class="ms-note">Albers 等积投影 · 25°N / 47°N</div>
+        </div>
+
+        <div class="map-north" aria-hidden="true">
+          <svg viewBox="0 0 22 28">
+            <path d="M11 1 L18 23 L11 18.5 L4 23 Z" fill="#8a5a3a"/>
+            <path d="M11 1 L11 18.5 L4 23 Z" fill="#c09570"/>
+          </svg>
+          <span>N</span>
+        </div>
+
+        <div class="map-tip" id="mapTip" role="tooltip" aria-hidden="true"></div>
+      </div>
     </div>
 
     <div class="info-card">
@@ -434,264 +837,880 @@
         </div>
       </div>
     </div>
+
+    <div class="sr-only" id="liveStatus" role="status" aria-live="polite"></div>
   </section>
 
-  <div class="page-foot">本页面内容依据通行史学常识整理；战役地点按现代省界近似定位，箭头为示意性战略方向而非精确行军路线。台湾在 1949 年仍为国军控制，地图保留其原样位置。</div>
+  <div class="page-foot">
+    底图：阿里云 DataV / 高德行政区划边界（民政部标准）；地形：Natural Earth 1:50m 陆地轮廓。
+    Albers 等积投影（标准纬线 25°N / 47°N，中央经线 105°E），比例尺为图上量算近似值。
+    战役地点按史实位置标注，箭头为示意性战略方向而非精确行军路线。台湾在 1949 年仍为国军控制，港、澳为特殊行政区，均未计入省数。
+  </div>
 </div>
 
 <script type="application/json" id="ndata" data-resource="liberation-war.json"></script>
 <script>
 "use strict";
-const DATA = JSON.parse(document.getElementById("ndata")?.textContent || "{}");
 
-/* ===================== 视口（缩放 / 平移） ===================== */
+/* ===================== 数据与常量 ===================== */
+const DATA = (() => {
+  try { return JSON.parse(document.getElementById("ndata")?.textContent || "{}"); }
+  catch (err) { return { __error: err }; }
+})();
+
+const NS = "http://www.w3.org/2000/svg";
 const SVG = document.getElementById("warSvg");
-const VB = { cx: 571, cy: 118, hw: 71, hh: 56 };
-const ZOOM_LEVELS = [1, 1.6, 2.4, 3.4];
-let zoomIdx = 0;
-let panX = 0, panY = 0;
+const MAP_CANVAS = document.getElementById("mapCanvas");
+const MAP_BOX = document.getElementById("mapBox");
+const VIEW = Array.isArray(DATA.VIEW?.box) ? DATA.VIEW.box : [0, 0, 151.5, 115.36];
+const VIEW_W = VIEW[2];
+const VIEW_H = VIEW[3];
+const INSET = Array.isArray(DATA.VIEW?.inset) ? DATA.VIEW.inset : null;
+const INSET_VB = Array.isArray(DATA.VIEW?.insetViewBox) ? DATA.VIEW.insetViewBox : null;
+const KM_PER_UNIT = 1 / (DATA.PROJECTION?.scale || 0.025);
+const ZOOM_LEVELS = [1, 1.5, 2.2, 3.2];
+const PLAY_MS = 5200;
+const REDUCED = (() => {
+  try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+  catch (err) { return false; }
+})();
 
-function applyViewBox() {
-  const z = ZOOM_LEVELS[zoomIdx];
-  const hw = VB.hw / z, hh = VB.hh / z;
-  SVG.setAttribute("viewBox",
-    (VB.cx - hw + panX).toFixed(2) + " " + (VB.cy - hh + panY).toFixed(2) + " " +
-    (hw * 2).toFixed(2) + " " + (hh * 2).toFixed(2));
-  SVG.classList.toggle("grabbable", z > 1);
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+function el(name, attrs = {}, parent = null) {
+  const node = document.createElementNS(NS, name);
+  for (const key in attrs) {
+    if (attrs[key] !== undefined && attrs[key] !== null) node.setAttribute(key, attrs[key]);
+  }
+  if (parent) parent.appendChild(node);
+  return node;
 }
 
-/* ===================== 工具 ===================== */
-function el(name, attrs, parent) {
-  const node = document.createElementNS("http://www.w3.org/2000/svg", name);
-  for (const k in attrs) node.setAttribute(k, attrs[k]);
-  if (parent) parent.appendChild(node);
+function svgText(text, attrs, parent) {
+  const node = el("text", attrs, parent);
+  node.textContent = text;
   return node;
 }
 
 function provShort(name) {
   return name
-    .replace(/(壮族|回族|维吾尔族|藏族|蒙古族)自治区$/, "")
+    .replace(/(壮族|回族|维吾尔族?|藏族|蒙古族)?自治区$/, "")
+    .replace(/特别行政区$/, "")
     .replace(/市$/, "")
     .replace(/省$/, "");
 }
 
+const CN_RE = /[\u2E80-\u9FFF\uF900-\uFAFF]/;
+
+/* ===================== 状态 ===================== */
+let currentStage = 0;
+let playing = false;
+let playTimer = null;
+let zoomIdx = 0;
+let view = { x: VIEW[0], y: VIEW[1], w: VIEW_W, h: VIEW_H };
+let viewRaf = 0;
+let dragging = false;
+let dragMoved = false;
+let dragStart = null;
+let panStart = null;
+let wheelAt = 0;
+let suppressClick = false;
+
+let provByName = {};
+let staticLabels = [];
+let dynamicLabels = [];
+let battleAnchors = [];
+let currentBattles = [];
+let selectedBattle = -1;
+let labelTimer = 0;
+let trackTimer = 0;
+let flashTimer = 0;
+let countValues = { cc: 0, kmt: 0 };
+
+/* ===================== 加载进度 ===================== */
+const loading = document.getElementById("appLoading");
+const alCard = document.getElementById("alCard");
+const alBar = document.getElementById("alBar");
+const alText = document.getElementById("alText");
+const alPct = document.getElementById("alPct");
+const alErr = document.getElementById("alErr");
+
+function setLoad(pct, text) {
+  alBar.style.width = pct + "%";
+  alPct.textContent = Math.round(pct) + "%";
+  if (text) alText.textContent = text;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function nextPaint(ms = 60) {
+  // 用定时器而不是 rAF：iframe 在后台或离屏时 rAF 会被节流/暂停，
+  // 初始化流程不能因此卡在进度条中间。
+  return new Promise((resolve) => {
+    setTimeout(resolve, REDUCED ? 0 : ms);
+  });
+}
+
+function hideLoading() {
+  loading.classList.add("hidden");
+  setTimeout(() => { loading.style.display = "none"; }, 520);
+}
+
+function showLoadError(err) {
+  alCard.classList.add("error");
+  alText.textContent = "地图初始化失败";
+  alPct.textContent = "";
+  alBar.style.width = "0%";
+  alErr.textContent = "无法完成地图绘制：" + (err && err.message ? err.message : String(err)) +
+    "。请检查网络后重试，或返回上一页。";
+}
+
 /* ===================== 基础地图 ===================== */
 function buildBase() {
-  const landLayer = document.getElementById("landLayer");
   const provLayer = document.getElementById("provLayer");
-  const borderLayer = document.getElementById("borderLayer");
-  const labelLayer = document.getElementById("labelLayer");
+  const baseGeo = document.getElementById("baseGeo");
+  const gratLayer = document.getElementById("gratLayer");
+  const worldLand = document.getElementById("worldLand");
+  const islandLand = document.getElementById("islandLand");
+  const chinaBorder = document.getElementById("chinaBorder");
+  const graticule = document.getElementById("graticule");
+  const terrainLayer = document.getElementById("terrainLayer");
 
-  if (DATA.WORLD_PATH) el("path", { d: DATA.WORLD_PATH, class: "world-land" }, landLayer);
-  // 台湾岛（1949 年仍为国军控制，保留陆色底以示意）
-  if (DATA.TAIWAN_BORDER) el("path", { d: DATA.TAIWAN_BORDER, class: "taiwan-shape" }, landLayer);
+  SVG.setAttribute("viewBox", [view.x, view.y, view.w, view.h].join(" "));
+  const ocean = document.querySelector(".ocean");
+  if (ocean) {
+    ocean.setAttribute("x", VIEW[0]); ocean.setAttribute("y", VIEW[1]);
+    ocean.setAttribute("width", VIEW_W); ocean.setAttribute("height", VIEW_H);
+  }
+  worldLand.setAttribute("d", DATA.WORLD_PATH || "");
+  islandLand.setAttribute("d", DATA.ISLANDS_PATH || "");
+  chinaBorder.setAttribute("d", DATA.CHINA_BORDER || "");
+  graticule.setAttribute("d", DATA.GRATICULE?.d || "");
 
-  // 省级底图：每个省一条 path，按阶段切换 class
-  const provByName = {};
   DATA.PROVINCES.forEach((p) => {
-    const path = el("path", { d: p.d, class: "prov", "data-prov": p.n }, provLayer);
+    const path = el("path", { d: p.d, class: "prov", "data-prov": p.n, "aria-label": p.n }, provLayer);
     path.addEventListener("mousemove", (e) => showProvTip(e, p));
     path.addEventListener("mouseleave", hideTip);
     provByName[p.n] = path;
   });
-  window.__provByName = provByName;
 
-  if (DATA.CHINA_BORDER) el("path", { d: DATA.CHINA_BORDER, class: "china-border" }, borderLayer);
-  if (DATA.NINE_DASH) el("path", { d: DATA.NINE_DASH, class: "nine-dash" }, borderLayer);
+  (DATA.GRATICULE?.labels || []).forEach((l) => {
+    const node = svgText(l.t, { x: l.x, y: l.y, "text-anchor": l.a, class: "map-label grat-label" }, gratLayer);
+    node.style.setProperty("--label-op", ".5");
+    staticLabels.push({ node, text: l.t, x: l.x, y: l.y, type: "grat", size: 0.82, priority: 2, anchor: l.a, fixed: true });
+  });
 
-  // 省名注记
+  (DATA.MOUNTAINS || []).forEach((m, i) => {
+    el("path", { d: m.d, class: "mt-ridge" }, terrainLayer);
+    el("path", { d: m.g, class: "mt-glyph" }, terrainLayer);
+    staticLabels.push({
+      text: m.n, x: m.label[0], y: m.label[1], type: "mountain",
+      size: 1.0, priority: 10 + (i % 3), showAt: 1.5,
+    });
+  });
+
+  (DATA.RIVERS || []).forEach((r) => {
+    el("path", { d: r.d, class: "river", "stroke-width": (r.w || 0.5) + 0.18 }, terrainLayer);
+    staticLabels.push({
+      text: r.n, x: r.label[0], y: r.label[1], type: "river",
+      size: 0.95, priority: 12, showAt: 1.5,
+    });
+  });
+
+  (DATA.SEAS || []).forEach((s) => {
+    staticLabels.push({ text: s.t, x: s.x, y: s.y, type: "sea", size: s.s || 1.05, priority: 4, anchor: "middle" });
+  });
+
+  (DATA.NEIGHBORS || []).forEach((n) => {
+    staticLabels.push({ text: n.t, x: n.x, y: n.y, type: "neighbor", size: 1.18, priority: 3, anchor: "middle" });
+  });
+
   DATA.PROVINCES.forEach((p) => {
-    el("text", {
-      x: p.c[0], y: p.c[1] + 1.5, "text-anchor": "middle", class: "map-label prov-label",
-    }, labelLayer).textContent = provShort(p.n);
+    if (p.n === "香港特别行政区" || p.n === "澳门特别行政区") return;
+    const isTw = p.n === "台湾省";
+    staticLabels.push({
+      text: provShort(p.n), x: p.c[0], y: p.c[1], type: isTw ? "taiwan" : "province",
+      size: isTw ? 1.45 : 1.62, priority: isTw ? 82 : 48, anchor: "middle",
+    });
   });
 
-  // 主要城市参考点
-  const CITIES = [
-    { name: "北  平", x: 593.4, y: 97.4 },
-    { name: "南  京", x: 598.3, y: 110.7 },
-    { name: "上海", x: 603.0, y: 117.5 },
-    { name: "武汉", x: 588.5, y: 113.2 },
-    { name: "重庆", x: 575.6, y: 120.2 },
-    { name: "广州", x: 586.8, y: 134.6 },
-    { name: "兰州", x: 565.2, y: 106.9 },
-    { name: "沈阳", x: 606.5, y: 94.5 },
-    { name: "长  春", x: 611.5, y: 91.0 },
-    { name: "西  安", x: 580.6, y: 107.5 },
-    { name: "郑州", x: 589.5, y: 105.5 },
-    { name: "徐州", x: 594.6, y: 102.5 },
-  ];
-  CITIES.forEach((c) => {
-    el("circle", { cx: c.x, cy: c.y, r: 0.9, class: "city-dot" }, labelLayer);
-    el("text", { x: c.x + 2.2, y: c.y + 1.1, class: "map-label city-label" }, labelLayer).textContent = c.name;
+  (DATA.CITIES || []).forEach((c) => {
+    el("circle", { cx: c.x, cy: c.y, r: 0.56, class: "city-dot" }, terrainLayer);
+    if (c.rank <= 2) el("circle", { cx: c.x, cy: c.y, r: 1.12, class: "city-ring" }, terrainLayer);
+    staticLabels.push({
+      text: c.n, x: c.x, y: c.y, type: "city", rank: c.rank,
+      size: c.rank === 1 ? 1.78 : c.rank === 2 ? 1.62 : 1.42,
+      priority: c.rank === 1 ? 72 : c.rank === 2 ? 66 : 58,
+      showAt: c.rank === 3 ? 1.5 : 0,
+    });
   });
 
-  // 控制区计数注记（位置固定，文字随阶段更新）
-  el("text", { x: 548, y: 88, "text-anchor": "middle", class: "map-label zone-note cc", "data-zone": "cc" }, labelLayer).textContent = "";
-  el("text", { x: 616, y: 130, "text-anchor": "middle", class: "map-label zone-note kmt", "data-zone": "kmt" }, labelLayer).textContent = "";
+  const tw = DATA.PROVINCES.find((p) => p.n === "台湾省");
+  if (tw) {
+    staticLabels.push({
+      text: "1949 国军控制", x: tw.c[0] + 1.35, y: tw.c[1] + 2.8, type: "tw-note",
+      size: 1.0, priority: 80, anchor: "start",
+    });
+  }
+
+  buildInset(baseGeo, islandLand);
+}
+
+function buildInset(baseGeo, islandLand) {
+  if (!INSET || !INSET_VB) return;
+  const group = document.getElementById("insetGroup");
+  const [ix, iy, iw, ih] = INSET;
+  const [vx, vy, vw, vh] = INSET_VB;
+  const headH = 3.0;
+  const pad = 2.8;
+  const ivb = [vx - pad, vy - pad, vw + pad * 2, vh + pad * 2];
+
+  el("rect", { x: ix, y: iy, width: iw, height: ih, rx: 1, class: "inset-frame" }, group);
+  el("rect", { x: ix, y: iy, width: iw, height: headH, rx: 1, class: "inset-head" }, group);
+
+  const nested = el("svg", {
+    x: ix + 0.35, y: iy + headH + 0.15, width: iw - 0.7, height: ih - headH - 0.45,
+    viewBox: ivb.join(" "), preserveAspectRatio: "xMidYMid meet",
+    overflow: "hidden",
+  }, group);
+  el("rect", { x: ivb[0], y: ivb[1], width: ivb[2], height: ivb[3], class: "inset-ocean" }, nested);
+  el("use", { href: "#baseGeo" }, nested);
+  el("path", { d: DATA.NINE_DASH || "", class: "nine-dash" }, nested);
+  el("line", { x1: ix, y1: iy + headH, x2: ix + iw, y2: iy + headH, class: "inset-rule" }, group);
+
+  svgText("南海诸岛", { x: ix + 1.0, y: iy + 2.15, class: "inset-title" }, group);
+  svgText("未按比例", { x: ix + iw - 1.0, y: iy + 2.1, "text-anchor": "end", class: "inset-sub" }, group);
 }
 
 /* ===================== 阶段渲染 ===================== */
-let currentStage = 0;
-let playTimer = null;
-
 function stageProvinces(stage) {
   const set = new Set(stage.ccp || []);
   (stage.newFree || []).forEach((p) => set.add(p));
   return set;
 }
 
-function renderStage(index) {
+function countedProvinces() {
+  return DATA.PROVINCES.filter((p) => !p.kind);
+}
+
+function renderStage(index, opts = {}) {
+  if (!DATA.STAGES || !DATA.STAGES[index]) return;
   currentStage = index;
   const stage = DATA.STAGES[index];
 
-  document.querySelectorAll(".stage-nav").forEach((node, i) => {
+  $$(".stage-nav").forEach((node, i) => {
     node.classList.toggle("active", i === index);
     if (i === index) node.setAttribute("aria-current", "step");
     else node.removeAttribute("aria-current");
   });
 
+  updateStageProgress();
+
+  document.getElementById("mapChip").textContent = "第 " + (index + 1) + " / " + DATA.STAGES.length + " 阶段";
+  document.getElementById("mapChip").classList.toggle("live", playing);
+
   const head = document.getElementById("contentHead");
   head.innerHTML =
-    '<div class="head-stage">STAGE ' + (index + 1) + " / " + DATA.STAGES.length + "</div>" +
+    '<div class="head-stage">STAGE ' + (index + 1) + ' / ' + DATA.STAGES.length + " · " + stage.name.replace(/^第.阶段 · /, "") + "</div>" +
     "<h1>" + stage.name + " · " + stage.time + "</h1>" +
     '<p class="head-intent">' + stage.intent + "</p>";
 
-  // 省份上色
   const free = stageProvinces(stage);
   const newFree = new Set(stage.newFree || []);
-  Object.entries(window.__provByName).forEach(([name, path]) => {
-    path.classList.remove("prov-ccp", "prov-new", "prov-kmt");
-    if (newFree.has(name)) path.classList.add("prov-new");
-    else if (free.has(name)) path.classList.add("prov-ccp");
-    else path.classList.add("prov-kmt");
+  Object.entries(provByName).forEach(([name, path]) => {
+    const prov = DATA.PROVINCES.find((p) => p.n === name);
+    path.classList.remove("prov-ccp", "prov-new", "prov-kmt", "prov-flash");
+    if (!prov || prov.kind === "neutral") return;
+    if (prov.kind === "kmt") { path.classList.add("prov-kmt"); return; }
+    if (newFree.has(name)) {
+      path.classList.add("prov-new", "prov-flash");
+      setTimeout(() => path.classList.remove("prov-flash"), 1300);
+    } else if (free.has(name)) {
+      path.classList.add("prov-ccp");
+    } else {
+      path.classList.add("prov-kmt");
+    }
   });
-  document.querySelector('[data-zone="cc"]').textContent = "解放区 " + free.size + " 省";
-  document.querySelector('[data-zone="kmt"]').textContent =
-    "国统区 " + (DATA.PROVINCES.length - free.size) + " 省";
 
-  // 行军路线（粗线 + 箭头 + 标签）
-  const routeLayer = document.getElementById("routeLayer");
-  routeLayer.innerHTML = "";
+  const counted = countedProvinces();
+  const ccCount = counted.filter((p) => free.has(p.n)).length;
+  const kmtCount = counted.length - ccCount;
+  animateCount("plCc", countValues.cc, ccCount, 480);
+  animateCount("plKmt", countValues.kmt, kmtCount, 480);
+  countValues = { cc: ccCount, kmt: kmtCount };
+  document.getElementById("plStage").textContent = stage.time;
+  document.getElementById("plCcBar").style.width = (ccCount / Math.max(1, counted.length) * 100).toFixed(2) + "%";
+  document.getElementById("plKmtBar").style.width = (kmtCount / Math.max(1, counted.length) * 100).toFixed(2) + "%";
+
+  renderRoutes(stage);
+  renderArrows(stage);
+  renderBattles(stage);
+  renderBattleList(stage);
+  renderFacts(stage);
+
+  document.getElementById("battleDetail").hidden = true;
+  selectedBattle = -1;
+  hideTip();
+
+  scheduleLabelLayout(!opts.instant);
+  syncHash();
+  announce(stage, ccCount, kmtCount);
+  flashMap();
+  if (!playing) setPlayLabel("▶ 自动播放");
+}
+
+function routeAnchor(pts, ratio) {
+  let total = 0;
+  const segs = [];
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    const d = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+    segs.push(d);
+    total += d;
+  }
+  if (!total) return pts[0];
+  let acc = 0;
+  const target = total * ratio;
+  for (let i = 0; i < segs.length; i += 1) {
+    if (acc + segs[i] >= target) {
+      const t = (target - acc) / (segs[i] || 1);
+      return [
+        pts[i][0] + (pts[i + 1][0] - pts[i][0]) * t,
+        pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t,
+      ];
+    }
+    acc += segs[i];
+  }
+  return pts[pts.length - 1];
+}
+
+function renderRoutes(stage) {
+  const layer = document.getElementById("routeLayer");
+  layer.innerHTML = "";
+  dynamicLabels = dynamicLabels.filter((l) => l.type !== "route");
   (stage.routes || []).forEach((route) => {
     if (!route.pts || route.pts.length < 2) return;
     const d = route.pts.map((p, i) => (i === 0 ? "M" + p[0] + "," + p[1] : "L" + p[0] + "," + p[1])).join(" ");
-    el("path", { d: d, class: "route-line", "marker-end": "url(#arrow-ccp)" }, routeLayer);
+    const path = el("path", {
+      d, class: "route-line enter", pathLength: 1,
+      "marker-end": "url(#arrow-ccp)",
+    }, layer);
+    setTimeout(() => path.classList.add("draw"), 30);
     if (route.label) {
-      const mid = route.pts[Math.floor(route.pts.length / 2)];
-      el("text", { x: mid[0] - 2, y: mid[1] - 2.4, "text-anchor": "end", class: "map-label route-label" }, routeLayer)
-        .textContent = route.label;
+      let label = route.label;
+      if (label === "华东—华中追歼线") label = "追歼线";
+      const anchor = routeAnchor(route.pts, 0.3);
+      dynamicLabels.push({
+        text: label, x: anchor[0], y: anchor[1] - 2.4, type: "route",
+        size: 1.18, priority: 56, anchor: "middle",
+      });
     }
   });
+}
 
-  // 进军箭头（实线红 = 解放军，虚线蓝 = 国军）
-  const arrowLayer = document.getElementById("arrowLayer");
-  arrowLayer.innerHTML = "";
+function renderArrows(stage) {
+  const layer = document.getElementById("arrowLayer");
+  layer.innerHTML = "";
+  dynamicLabels = dynamicLabels.filter((l) => l.type !== "arrow");
   (stage.arrows || []).forEach((arrow) => {
     const kind = arrow.kind === "kmt" ? "kmt" : "cc";
     el("line", {
-      x1: arrow.from[0], y1: arrow.from[1],
-      x2: arrow.to[0], y2: arrow.to[1],
-      class: "arrow-line " + kind,
+      x1: arrow.from[0], y1: arrow.from[1], x2: arrow.to[0], y2: arrow.to[1],
+      class: "arrow-line enter " + kind,
       "marker-end": kind === "kmt" ? "url(#arrow-kmt)" : "url(#arrow-ccp)",
-    }, arrowLayer);
-    if (arrow.label) {
-      const mx = (arrow.from[0] + arrow.to[0]) / 2, my = (arrow.from[1] + arrow.to[1]) / 2;
-      el("text", { x: mx, y: my - 2, "text-anchor": "middle", class: "map-label arrow-label " + kind }, arrowLayer)
-        .textContent = arrow.label;
+      pathLength: 1,
+    }, layer);
+    if (arrow.label && arrow.label !== "跃进大别山" && arrow.label !== "渡江") {
+      const mx = (arrow.from[0] + arrow.to[0]) / 2;
+      const my = (arrow.from[1] + arrow.to[1]) / 2;
+      dynamicLabels.push({
+        text: arrow.label, x: mx, y: my - 1.55, type: "arrow", kind,
+        size: 1.05, priority: 50, anchor: "middle",
+      });
     }
   });
+}
 
-  // 战役标记
-  const battleLayer = document.getElementById("battleLayer");
-  battleLayer.innerHTML = "";
-  (stage.battles || []).forEach((b, i) => {
+const BATTLE_SHORT = {
+  "辽东自卫反击": "辽东", "鲁南战役": "鲁南", "莱芜战役": "莱芜",
+  "蟠龙镇战斗": "蟠龙镇", "孟良崮战役": "孟良崮",
+  "鲁西南战役·强渡黄河": "鲁西南", "挺进大别山": "大别山",
+  "陈谢集团渡河": "陈谢渡河", "沙家店战役": "沙家店", "冀—张战斗": "冀—张",
+  "辽沈·锦州": "锦州", "辽沈·黑山大虎山": "黑山", "辽沈·长春": "长春",
+  "淮海战役": "淮海", "平津战役": "平津", "渡江战役": "渡江",
+  "解放武汉": "武汉", "衡宝战役": "衡宝", "成都战役": "成都",
+  "广西战役": "广西", "海南岛（未渡）": "海南岛", "台湾（未渡）": "台湾",
+};
+function battleLabel(b) {
+  return BATTLE_SHORT[b.name] || b.name;
+}
+
+function renderBattles(stage) {
+  const layer = document.getElementById("battleLayer");
+  layer.innerHTML = "";
+  currentBattles = stage.battles || [];
+  battleAnchors = [];
+  dynamicLabels = dynamicLabels.filter((l) => l.type !== "battle");
+
+  currentBattles.forEach((b, i) => {
     const g = el("g", {
-      class: "battle-marker kind-" + (b.kind || "attack"),
+      class: "battle-marker enter kind-" + (b.kind || "attack"),
       "data-idx": i,
       filter: "url(#battleGlow)",
-    }, battleLayer);
-    el("circle", { cx: b.x, cy: b.y, r: 2.6, class: "halo" }, g);
+      role: "button",
+      tabindex: "0",
+      "aria-label": b.name + "，" + (b.time || ""),
+    }, layer);
+    g.style.setProperty("--enter-delay", i * 65 + "ms");
+
+    el("circle", { cx: b.x, cy: b.y, r: 1.75, class: "halo" }, g);
+    el("circle", { cx: b.x, cy: b.y, r: 2.2, class: "pulse" }, g);
     if (b.kind === "defense") {
       el("rect", {
-        x: b.x - 1.3, y: b.y - 1.3, width: 2.6, height: 2.6,
+        x: b.x - 1.0, y: b.y - 1.0, width: 2.0, height: 2.0, rx: 0.15,
         class: "dotk kind-defense",
       }, g);
     } else {
       el("circle", {
-        cx: b.x, cy: b.y, r: 1.4,
+        cx: b.x, cy: b.y, r: 1.02,
         class: "dotk kind-" + (b.side || "ccp") + (b.kind === "planned" ? " kind-planned" : ""),
       }, g);
     }
-    el("text", { x: b.x + 1.8, y: b.y - 1.8, class: "map-label battle-label" }, g).textContent = b.name;
+
     g.addEventListener("mousemove", (e) => showBattleTip(e, b));
     g.addEventListener("mouseleave", hideTip);
-    g.addEventListener("click", () => selectBattle(i));
-  });
+    g.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (suppressClick) return;
+      selectBattle(i, { focus: false });
+    });
+    g.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        selectBattle(i, { focus: false });
+      }
+    });
 
-  // 战役列表
-  const battleList = document.getElementById("battleList");
-  battleList.innerHTML = "";
+    battleAnchors.push({ x: b.x, y: b.y, r: 1.35 });
+    dynamicLabels.push({
+      text: battleLabel(b), x: b.x, y: b.y, type: "battle", index: i,
+      size: b.rank === 1 ? 1.7 : 1.55, priority: b.rank === 1 ? 94 : 90,
+      battle: b,
+    });
+  });
+}
+
+function renderBattleList(stage) {
+  const list = document.getElementById("battleList");
+  list.innerHTML = "";
   (stage.battles || []).forEach((b, i) => {
     const li = document.createElement("li");
     li.dataset.idx = i;
+    li.tabIndex = 0;
+    li.setAttribute("role", "button");
+    li.setAttribute("aria-label", b.name + "，" + (b.time || ""));
     li.innerHTML =
+      '<span class="b-idx">' + String(i + 1).padStart(2, "0") + "</span>" +
       '<span class="b-dot kind-' + (b.kind || "attack") + '"></span>' +
-      '<span><span class="b-name">' + b.name + "</span> " +
+      "<span><span class=\"b-name\">" + b.name + "</span> " +
       '<span class="b-time">' + (b.time || "") + "</span></span>";
-    li.addEventListener("click", () => selectBattle(i));
-    battleList.appendChild(li);
+    li.addEventListener("click", () => selectBattle(i, { focus: true }));
+    li.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        selectBattle(i, { focus: true });
+      }
+    });
+    list.appendChild(li);
   });
+}
 
-  // 关键态势
-  const factList = document.getElementById("factList");
-  factList.innerHTML = "";
+function renderFacts(stage) {
+  const list = document.getElementById("factList");
+  list.innerHTML = "";
   (stage.facts || []).forEach((f) => {
     const li = document.createElement("li");
     li.innerHTML = "<b>" + f.title + "</b>" + f.text;
-    factList.appendChild(li);
+    list.appendChild(li);
   });
-
-  document.getElementById("battleDetail").hidden = true;
-  hideTip();
 }
 
-function selectBattle(index) {
+function selectBattle(index, opts = {}) {
   const stage = DATA.STAGES[currentStage];
-  const battle = stage.battles[index];
+  const battle = stage.battles?.[index];
   if (!battle) return;
-  document.querySelectorAll("#battleList li").forEach((li) => {
-    li.classList.toggle("selected", +li.dataset.idx === index);
+  selectedBattle = index;
+
+  $$("#battleList li").forEach((li) => li.classList.toggle("selected", +li.dataset.idx === index));
+  $$(".battle-marker").forEach((g) => g.classList.toggle("selected", +g.dataset.idx === index));
+  $$(".battle-label").forEach((node) => {
+    node.classList.toggle("selected", node.dataset.idx === String(index));
   });
-  document.querySelectorAll(".battle-marker").forEach((g) => {
-    g.classList.toggle("selected", +g.dataset.idx === index);
-  });
+
   const detail = document.getElementById("battleDetail");
   detail.hidden = false;
   detail.innerHTML =
+    '<button class="bd-close" type="button" aria-label="关闭战役详情">×</button>' +
     '<div class="bd-title">' + battle.name + " · " + (battle.time || "") + "</div>" +
     (battle.note || "");
+  detail.querySelector(".bd-close").addEventListener("click", clearSelection);
+
+  const li = document.querySelector('#battleList li[data-idx="' + index + '"]');
+  if (li && li.scrollIntoView && (opts.focus || window.innerWidth <= 900)) {
+    li.scrollIntoView({ block: "nearest", behavior: REDUCED ? "auto" : "smooth" });
+  }
+
+  if (opts.focus) focusBattle(battle);
+}
+
+function clearSelection() {
+  selectedBattle = -1;
+  document.getElementById("battleDetail").hidden = true;
+  $$("#battleList li").forEach((li) => li.classList.remove("selected"));
+  $$(".battle-marker").forEach((g) => g.classList.remove("selected"));
+  $$(".battle-label").forEach((node) => node.classList.remove("selected"));
+}
+
+function focusBattle(battle) {
+  if (zoomIdx !== 0) return;
+  const w = VIEW_W / 1.5;
+  const h = VIEW_H / 1.5;
+  setZoom(1, null, null, {
+    x: battle.x - w / 2,
+    y: battle.y - h / 2,
+  });
+}
+
+/* ===================== 注记排布 ===================== */
+function labelScale() {
+  const z = ZOOM_LEVELS[zoomIdx];
+  const pxPerUnit = (SVG.clientWidth || 900) / (VIEW_W / z);
+  let s = Math.max(1, 9.2 / (1.45 * pxPerUnit));
+  s *= Math.pow(1 / z, 0.28);
+  return clamp(s, 0.82, 1.9);
+}
+
+function textUnits(text, fs) {
+  let u = 0;
+  for (const ch of text) u += CN_RE.test(ch) ? 1 : 0.55;
+  return u * fs + 0.22;
+}
+
+function rectFor(cand, w, h) {
+  let x = cand.x;
+  if (cand.anchor === "middle") x -= w / 2;
+  else if (cand.anchor === "end") x -= w;
+  return { x, y: cand.y, w, h, anchor: cand.anchor };
+}
+
+function overlap(a, b) {
+  return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+}
+
+function candidates(type, x, y) {
+  const up = 1.25, right = 1.45;
+  switch (type) {
+    case "battle":
+      return [
+        { x: x + right, y: y - 1.45, anchor: "start" },
+        { x: x - right, y: y - 1.45, anchor: "end" },
+        { x: x, y: y - 2.5, anchor: "middle" },
+        { x: x, y: y + 2.15, anchor: "middle" },
+        { x: x + 1.2, y: y + 1.55, anchor: "start" },
+        { x: x - 1.2, y: y + 1.55, anchor: "end" },
+      ];
+    case "city":
+      return [
+        { x: x + 1.05, y: y - 1.2, anchor: "start" },
+        { x: x - 1.05, y: y - 1.2, anchor: "end" },
+        { x: x, y: y - 1.9, anchor: "middle" },
+        { x: x, y: y + 1.55, anchor: "middle" },
+      ];
+    case "route":
+    case "arrow":
+      return [
+        { x, y: y - 1.1, anchor: "middle" },
+        { x, y: y + 1.55, anchor: "middle" },
+        { x: x + 1.2, y: y - 0.4, anchor: "start" },
+      ];
+    case "province":
+    case "taiwan":
+      return [
+        { x, y: y - 0.6, anchor: "middle" },
+        { x, y: y - 2.2, anchor: "middle" },
+        { x, y: y + 1.6, anchor: "middle" },
+        { x: x + 1.1, y: y - 0.4, anchor: "start" },
+        { x: x - 1.1, y: y - 0.4, anchor: "end" },
+      ];
+    case "tw-note":
+      return [{ x, y, anchor: "start" }];
+    default:
+      return [
+        { x, y, anchor: "middle" },
+        { x: x + 1.2, y: y - 0.5, anchor: "start" },
+        { x, y: y - 1.6, anchor: "middle" },
+      ];
+  }
+}
+
+function labelClass(type, item) {
+  if (type === "province") return "map-label prov-label";
+  if (type === "taiwan") return "map-label prov-label tw-note";
+  if (type === "city") return "map-label city-label rank-" + (item.rank || 3);
+  if (type === "battle") return "map-label battle-label";
+  if (type === "route") return "map-label route-label";
+  if (type === "arrow") return "map-label arrow-label " + (item.kind || "cc");
+  if (type === "mountain") return "map-label mt-label";
+  if (type === "river") return "map-label river-label";
+  if (type === "sea") return "map-label sea-label";
+  if (type === "neighbor") return "map-label neighbor-label";
+  if (type === "tw-note") return "map-label tw-note";
+  return "map-label grat-label";
+}
+
+function scheduleLabelLayout(animate) {
+  clearTimeout(labelTimer);
+  labelTimer = setTimeout(() => layoutLabels(animate), animate === false ? 0 : 120);
+}
+
+function layoutLabels(animate = true) {
+  const layer = document.getElementById("labelLayer");
+  if (!layer) return;
+  layer.innerHTML = "";
+
+  const z = ZOOM_LEVELS[zoomIdx];
+  const scale = labelScale();
+  const jobs = [];
+
+  const hasTaiwanBattle = dynamicLabels.some((l) => l.type === "battle" && l.text === "台湾");
+  const hasHainanBattle = dynamicLabels.some((l) => l.type === "battle" && l.text === "海南岛");
+  const visibleCities = new Set(
+    staticLabels.filter((l) => l.type === "city" && (!l.showAt || z >= l.showAt - 0.01)).map((l) => l.text),
+  );
+  staticLabels.forEach((l) => {
+    if (l.showAt && z < l.showAt - 0.01) return;
+    if (hasTaiwanBattle && l.type === "taiwan") return;
+    if (hasHainanBattle && l.text === "海南") return;
+    // 直辖市/省名与城市同名时只保留一个（城市优先）
+    if (l.type === "province" && visibleCities.has(l.text)) return;
+    jobs.push(Object.assign({}, l));
+  });
+  dynamicLabels.forEach((l) => jobs.push(Object.assign({}, l)));
+
+  const basePositions = jobs.map((j) => ({ x: j.x, y: j.y }));
+  jobs.forEach((j, i) => {
+    let density = 1;
+    if (j.type === "province" || j.type === "city") {
+      let near = 0;
+      basePositions.forEach((p, k) => {
+        if (k === i) return;
+        if (Math.abs(p.x - j.x) < 7.5 && Math.abs(p.y - j.y) < 5) near += 1;
+      });
+      density = clamp(1.08 - near * 0.018, 0.84, 1.06);
+    }
+    j.fs = j.size * scale * density;
+  });
+
+  jobs.sort((a, b) => b.priority - a.priority);
+
+  const blocked = [];
+  if (INSET) blocked.push({ x: INSET[0] - 0.4, y: INSET[1] - 2.6, w: INSET[2] + 0.8, h: INSET[3] + 4.2 });
+  blocked.push({ x: 1.6, y: VIEW_H - 9.4, w: 27, h: 9.4 });
+
+  battleAnchors.forEach((a) => blocked.push({ x: a.x - a.r * 0.82, y: a.y - a.r * 0.82, w: a.r * 1.64, h: a.r * 1.64 }));
+  // 城市与战役同址时只保留战役注记，避免「武汉 / 武汉」这类重复
+  const cityOnBattle = new Set();
+  (DATA.CITIES || []).forEach((c) => {
+    if (battleAnchors.some((a) => Math.hypot(a.x - c.x, a.y - c.y) < 1.25)) cityOnBattle.add(c.n);
+  });
+  for (let ji = jobs.length - 1; ji >= 0; ji -= 1) {
+    if (jobs[ji].type === "city" && jobs[ji].rank > 1 && cityOnBattle.has(jobs[ji].text)) jobs.splice(ji, 1);
+  }
+  (DATA.CITIES || []).forEach((c) => blocked.push({ x: c.x - 0.45, y: c.y - 0.45, w: 0.9, h: 0.9 }));
+
+  const placed = [];
+  const margin = 1.0;
+
+  jobs.forEach((job) => {
+    let done = false;
+    const sizes = job.type === "province" ? [job.fs, job.fs * 0.86] : [job.fs];
+    for (let si = 0; si < sizes.length && !done; si += 1) {
+      const fs = sizes[si];
+      const w = textUnits(job.text, fs);
+      const h = fs * 1.12;
+      const cands = candidates(job.type, job.x, job.y);
+      for (let ci = 0; ci < cands.length; ci += 1) {
+        const rect = rectFor(cands[ci], w, h);
+        if (rect.x < margin || rect.y < margin || rect.x + rect.w > VIEW_W - margin || rect.y + rect.h > VIEW_H - margin) continue;
+        let hit = false;
+        for (let bi = 0; bi < blocked.length; bi += 1) {
+          if (overlap(rect, blocked[bi])) { hit = true; break; }
+        }
+        if (!hit) {
+          for (let pi = 0; pi < placed.length; pi += 1) {
+            if (overlap(rect, placed[pi])) { hit = true; break; }
+          }
+        }
+        if (hit) continue;
+
+        const node = svgText(job.text, {
+          x: cands[ci].x, y: rect.y + fs * 0.8,
+          "text-anchor": cands[ci].anchor,
+          class: labelClass(job.type, job),
+        }, layer);
+        node.style.fontSize = fs.toFixed(2) + "px";
+        if (!animate) node.classList.add("quiet");
+        if (job.type === "battle") {
+          node.dataset.idx = String(job.index);
+          node.addEventListener("mousemove", (e) => showBattleTip(e, job.battle));
+          node.addEventListener("mouseleave", hideTip);
+          node.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (!suppressClick) selectBattle(job.index, { focus: false });
+          });
+        }
+
+        const dist = Math.hypot(rect.x + rect.w / 2 - job.x, rect.y + rect.h / 2 - job.y);
+        if (dist > 2.4 && job.type !== "province" && job.type !== "sea" && job.type !== "neighbor" && job.type !== "grat") {
+          const tx = clamp(job.x, rect.x, rect.x + rect.w);
+          const ty = clamp(job.y, rect.y, rect.y + rect.h);
+          el("line", {
+            x1: job.x, y1: job.y, x2: tx, y2: ty,
+            class: "leader " + (job.type === "battle" ? "battle" : ""),
+          }, layer);
+        }
+
+        placed.push(rect);
+        done = true;
+        break;
+      }
+    }
+  });
+
+  const ordered = layer.querySelectorAll(".map-label");
+  ordered.forEach((node, i) => {
+    node.style.animationDelay = Math.min(i * 12, 240) + "ms";
+  });
+}
+
+/* ===================== 阶段进度 ===================== */
+function buildStageTrack() {
+  const track = document.getElementById("stageTrack");
+  track.innerHTML = "";
+  DATA.STAGES.forEach((stage, i) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "st-seg" + (i === 0 ? " active" : "");
+    btn.dataset.i = i;
+    btn.setAttribute("aria-label", "跳到第 " + (i + 1) + " 阶段：" + stage.name);
+    btn.innerHTML = '<span class="st-bar"><i></i></span><span class="st-name">' +
+      stage.name.replace(/^第.阶段 · /, "") + "</span>";
+    btn.addEventListener("click", () => {
+      stopPlay();
+      renderStage(i);
+    });
+    track.appendChild(btn);
+  });
+}
+
+function updateStageProgress(preserve = false) {
+  clearTimeout(trackTimer);
+  const segs = $$(".st-seg");
+  segs.forEach((seg, i) => {
+    const fill = seg.querySelector(".st-bar i");
+    seg.classList.toggle("done", i < currentStage);
+    seg.classList.toggle("active", i === currentStage);
+    fill.style.transition = "none";
+    fill.style.width = i < currentStage ? "100%" : "0%";
+    if (i === currentStage) {
+      void fill.offsetWidth;
+      if (preserve) {
+        fill.style.transition = "none";
+        fill.style.width = "100%";
+      } else {
+        fill.style.transition = "width " + (playing ? PLAY_MS : 650) + "ms cubic-bezier(.25,.7,.3,1)";
+        fill.style.width = "100%";
+      }
+    }
+  });
+  const active = document.querySelector(".stage-nav.active");
+  const inner = document.getElementById("stageTimelineInner");
+  const bar = document.getElementById("stageProgress");
+  if (active && inner && bar) {
+    const a = active.getBoundingClientRect();
+    const b = inner.getBoundingClientRect();
+    bar.style.height = Math.max(0, a.top - b.top + 25) + "px";
+  }
+  // 阶段较多时让时间轴自动跟随当前阶段，避免激活项被工具条遮住
+  const timeline = document.querySelector(".stage-timeline");
+  if (active && timeline && window.innerWidth > 900 && timeline.scrollHeight > timeline.clientHeight + 4) {
+    const top = active.offsetTop - 8;
+    timeline.scrollTo({
+      top: clamp(top, 0, timeline.scrollHeight - timeline.clientHeight),
+      behavior: REDUCED ? "auto" : "smooth",
+    });
+  }
+}
+
+/* ===================== 数字 / 状态 ===================== */
+function animateCount(id, from, to, duration) {
+  const node = document.getElementById(id);
+  if (!node) return;
+  if (REDUCED || from === to) { node.textContent = String(to); return; }
+  const start = performance.now();
+  const diff = to - from;
+  const token = String((Number(node.dataset.tick) || 0) + 1);
+  node.dataset.tick = token;
+  function tick(t) {
+    if (node.dataset.tick !== token) return;
+    const k = clamp((t - start) / duration, 0, 1);
+    const e = 1 - Math.pow(1 - k, 3);
+    node.textContent = String(Math.round(from + diff * e));
+    if (k < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  // iframe 后台时 rAF 可能被节流，保证最终值一定落位
+  setTimeout(() => { if (node.dataset.tick === token) node.textContent = String(to); }, duration + 120);
+}
+
+function announce(stage, cc, kmt) {
+  const live = document.getElementById("liveStatus");
+  live.textContent = "已切换至" + stage.name + "，" + stage.time + "。解放区 " + cc + " 省，国统区 " + kmt + " 省。";
+}
+
+function flashMap() {
+  clearTimeout(flashTimer);
+  const canvas = MAP_CANVAS;
+  canvas.classList.remove("flash");
+  void canvas.offsetWidth;
+  if (!REDUCED) canvas.classList.add("flash");
+  flashTimer = setTimeout(() => canvas.classList.remove("flash"), 900);
 }
 
 /* ===================== 悬停提示 ===================== */
 const tip = document.getElementById("mapTip");
 
 function positionTip(clientX, clientY) {
-  const box = document.querySelector(".map-box").getBoundingClientRect();
+  const box = MAP_CANVAS.getBoundingClientRect();
+  const tw = tip.offsetWidth || 240;
+  const th = tip.offsetHeight || 100;
   let x = clientX - box.left + 14;
   let y = clientY - box.top + 14;
-  const tw = 260, th = tip.offsetHeight || 120;
-  if (x + tw > box.width) x = clientX - box.left - tw - 14;
-  if (y + th > box.height) y = clientY - box.top - th - 14;
-  tip.style.left = x + "px";
-  tip.style.top = y + "px";
+  if (x + tw > box.width - 8) x = clientX - box.left - tw - 14;
+  if (y + th > box.height - 8) y = clientY - box.top - th - 14;
+  tip.style.left = Math.max(8, x) + "px";
+  tip.style.top = Math.max(8, y) + "px";
 }
 
 function showBattleTip(e, b) {
+  const kindLabel = b.kind === "defense" ? "防御" : b.kind === "planned" ? "未竟行动" : "进攻";
   tip.innerHTML =
-    '<div class="tip-title">' + b.name + "</div>" +
-    '<div class="tip-time">' + (b.time || "") +
-    (b.kind === "defense" ? " · 防御" : b.kind === "planned" ? " · 未竟行动" : " · 进攻") + "</div>" +
+    '<div class="tip-title">' + b.name +
+    '<span class="tip-badge ' + (b.side === "kmt" ? "kmt" : "cc") + '">' + kindLabel + "</span></div>" +
+    '<div class="tip-time">' + (b.time || "") + "</div>" +
     (b.note || "");
   tip.classList.add("show");
   positionTip(e.clientX, e.clientY);
@@ -700,12 +1719,14 @@ function showBattleTip(e, b) {
 function showProvTip(e, p) {
   const stage = DATA.STAGES[currentStage];
   const free = stageProvinces(stage);
-  const state = free.has(p.n)
-    ? (new Set(stage.newFree || []).has(p.n) ? "本阶段新解放" : "解放区")
-    : "国统区";
+  let state = "国统区";
+  if (p.kind === "neutral") state = "特殊行政区";
+  else if (p.kind === "kmt") state = "国军控制";
+  else if (new Set(stage.newFree || []).has(p.n)) state = "本阶段新解放";
+  else if (free.has(p.n)) state = "解放区";
   tip.innerHTML =
     '<div class="tip-title">' + p.n + "</div>" +
-    '<div class="tip-time">当前阶段（' + stage.time + "）：" + state + "</div>";
+    '<div class="tip-time">' + stage.time + " · " + state + "</div>";
   tip.classList.add("show");
   positionTip(e.clientX, e.clientY);
 }
@@ -713,62 +1734,308 @@ function showProvTip(e, p) {
 function hideTip() { tip.classList.remove("show"); }
 
 /* ===================== 缩放与平移 ===================== */
-function setZoom(idx) {
-  zoomIdx = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, idx));
-  if (zoomIdx === 0) { panX = 0; panY = 0; }
+function applyInitialZoom() {
+  const z = ZOOM_LEVELS[zoomIdx];
+  const w = VIEW_W / z;
+  const h = VIEW_H / z;
+  view = clampView({
+    x: VIEW[0] + (VIEW_W - w) / 2,
+    y: VIEW[1] + (VIEW_H - h) / 2,
+    w, h,
+  });
   applyViewBox();
+  updateZoomUi();
 }
 
-document.getElementById("btnZoomIn").addEventListener("click", () => setZoom(zoomIdx + 1));
-document.getElementById("btnZoomOut").addEventListener("click", () => setZoom(zoomIdx - 1));
-document.getElementById("btnZoomReset").addEventListener("click", () => setZoom(0));
-SVG.addEventListener("wheel", (e) => {
-  e.preventDefault();
-  setZoom(zoomIdx + (e.deltaY < 0 ? 1 : -1));
-}, { passive: false });
+function applyViewBox() {
+  SVG.setAttribute("viewBox", view.x.toFixed(2) + " " + view.y.toFixed(2) + " " + view.w.toFixed(2) + " " + view.h.toFixed(2));
+  SVG.classList.toggle("grabbable", zoomIdx > 0);
+}
 
-let dragging = false, dragStart = null, panStart = null;
-SVG.addEventListener("mousedown", (e) => {
-  if (zoomIdx === 0) return;
-  dragging = true;
-  SVG.classList.add("grabbing");
-  dragStart = { x: e.clientX, y: e.clientY };
-  panStart = { x: panX, y: panY };
-});
-window.addEventListener("mousemove", (e) => {
-  if (!dragging) return;
-  const scale = (VB.hw * 2 / ZOOM_LEVELS[zoomIdx]) / (SVG.clientWidth || 1);
-  panX = panStart.x - (e.clientX - dragStart.x) / scale;
-  panY = panStart.y - (e.clientY - dragStart.y) / scale;
-  applyViewBox();
-});
-window.addEventListener("mouseup", () => {
-  dragging = false;
-  SVG.classList.remove("grabbing");
-});
+function clampView(v) {
+  const w = VIEW_W / ZOOM_LEVELS[zoomIdx];
+  const h = VIEW_H / ZOOM_LEVELS[zoomIdx];
+  v.w = w; v.h = h;
+  v.x = clamp(v.x, 0, VIEW_W - w);
+  v.y = clamp(v.y, 0, VIEW_H - h);
+  return v;
+}
+
+function updateZoomUi() {
+  const z = ZOOM_LEVELS[zoomIdx];
+  document.getElementById("zoomReadout").textContent = z.toFixed(1) + "×";
+  document.getElementById("btnZoomIn").disabled = zoomIdx >= ZOOM_LEVELS.length - 1;
+  document.getElementById("btnZoomOut").disabled = zoomIdx <= 0;
+  document.getElementById("btnZoomReset").disabled = zoomIdx === 0;
+  updateScaleBar();
+}
+
+function updateScaleBar() {
+  const z = ZOOM_LEVELS[zoomIdx];
+  const pxPerUnit = (SVG.clientWidth || 900) / (VIEW_W / z);
+  const options = [1000, 500, 300, 200, 100, 50, 25, 10];
+  let km = options[options.length - 1];
+  for (let i = 0; i < options.length; i += 1) {
+    const px = options[i] / KM_PER_UNIT * pxPerUnit;
+    if (px <= 150) { km = options[i]; break; }
+  }
+  const px = km / KM_PER_UNIT * pxPerUnit;
+  const track = document.getElementById("msTrack");
+  track.style.width = Math.max(34, Math.round(px)) + "px";
+  document.getElementById("msLabel").textContent = km + " 公里";
+  document.getElementById("msMax").textContent = String(km);
+}
+
+function setZoom(idx, clientX, clientY, explicit) {
+  const next = clamp(idx, 0, ZOOM_LEVELS.length - 1);
+  if (next === zoomIdx && !explicit) { updateZoomUi(); return; }
+  const old = { x: view.x, y: view.y, w: view.w, h: view.h };
+  zoomIdx = next;
+  const nw = VIEW_W / ZOOM_LEVELS[zoomIdx];
+  const nh = VIEW_H / ZOOM_LEVELS[zoomIdx];
+  let target;
+  if (explicit) {
+    target = clampView({ x: explicit.x, y: explicit.y, w: nw, h: nh });
+  } else if (clientX != null && clientY != null) {
+    const rect = SVG.getBoundingClientRect();
+    const fx = clamp((clientX - rect.left) / Math.max(1, rect.width), 0, 1);
+    const fy = clamp((clientY - rect.top) / Math.max(1, rect.height), 0, 1);
+    target = clampView({
+      x: old.x + old.w * fx - nw * fx,
+      y: old.y + old.h * fy - nh * fy,
+      w: nw, h: nh,
+    });
+  } else {
+    target = clampView({
+      x: old.x + old.w / 2 - nw / 2,
+      y: old.y + old.h / 2 - nh / 2,
+      w: nw, h: nh,
+    });
+  }
+  animateView(target);
+  updateZoomUi();
+  hideTip();
+}
+
+function animateView(target) {
+  cancelAnimationFrame(viewRaf);
+  if (REDUCED) {
+    view = target;
+    applyViewBox();
+    scheduleLabelLayout(false);
+    return;
+  }
+  const start = { x: view.x, y: view.y, w: view.w, h: view.h };
+  const t0 = performance.now();
+  const duration = 300;
+  function step(t) {
+    const k = clamp((t - t0) / duration, 0, 1);
+    const e = 1 - Math.pow(1 - k, 3);
+    view.x = start.x + (target.x - start.x) * e;
+    view.y = start.y + (target.y - start.y) * e;
+    view.w = start.w + (target.w - start.w) * e;
+    view.h = start.h + (target.h - start.h) * e;
+    applyViewBox();
+    if (k < 1) {
+      viewRaf = requestAnimationFrame(step);
+    } else {
+      view = target;
+      applyViewBox();
+      scheduleLabelLayout(true);
+      updateScaleBar();
+      syncHash();
+    }
+  }
+  viewRaf = requestAnimationFrame(step);
+}
+
+function pointToUnit(clientX, clientY) {
+  const rect = SVG.getBoundingClientRect();
+  return {
+    x: view.x + (clientX - rect.left) / Math.max(1, rect.width) * view.w,
+    y: view.y + (clientY - rect.top) / Math.max(1, rect.height) * view.h,
+  };
+}
 
 /* ===================== 自动播放 / 复位 ===================== */
 const btnPlay = document.getElementById("btnPlay");
-function stopPlay() {
-  if (playTimer) { clearInterval(playTimer); playTimer = null; }
-  btnPlay.classList.remove("playing");
-  btnPlay.textContent = "▶ 自动播放";
+
+function setPlayLabel(text) {
+  const label = btnPlay.querySelector(".tb-label");
+  if (label) label.textContent = text;
 }
-btnPlay.addEventListener("click", () => {
-  if (playTimer) { stopPlay(); return; }
+
+function stopPlay(finished = false) {
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+  if (!playing) {
+    setPlayLabel("▶ 自动播放");
+    return;
+  }
+  playing = false;
+  btnPlay.classList.remove("playing");
+  btnPlay.setAttribute("aria-pressed", "false");
+  document.getElementById("mapChip").classList.remove("live");
+  setPlayLabel(finished ? "↻ 重新播放" : "▶ 自动播放");
+  updateStageProgress(true);
+}
+
+function startPlay() {
+  if (playing) { stopPlay(); return; }
+  if (currentStage >= DATA.STAGES.length - 1) renderStage(0, { instant: true });
+  playing = true;
+  btnPlay.style.setProperty("--play-ms", PLAY_MS + "ms");
   btnPlay.classList.add("playing");
-  btnPlay.textContent = "⏸ 停止";
-  playTimer = setInterval(() => {
-    renderStage((currentStage + 1) % DATA.STAGES.length);
-  }, 4000);
-});
+  btnPlay.setAttribute("aria-pressed", "true");
+  document.getElementById("mapChip").classList.add("live");
+  setPlayLabel("⏸ 暂停");
+  updateStageProgress();
+  playTimer = setTimeout(tickPlay, PLAY_MS);
+}
+
+function tickPlay() {
+  if (!playing) return;
+  if (currentStage >= DATA.STAGES.length - 1) {
+    stopPlay(true);
+    return;
+  }
+  renderStage(currentStage + 1);
+  playTimer = setTimeout(tickPlay, PLAY_MS);
+}
+
+btnPlay.addEventListener("click", startPlay);
+
 document.getElementById("btnReset").addEventListener("click", () => {
   stopPlay();
   setZoom(0);
+  clearSelection();
   renderStage(0);
 });
 
-/* ===================== 初始化 ===================== */
+/* ===================== 哈希状态 ===================== */
+function syncHash() {
+  try {
+    const stage = currentStage + 1;
+    const hash = "#stage=" + stage + "&z=" + ZOOM_LEVELS[zoomIdx];
+    if (window.location.hash !== hash) {
+      history.replaceState(null, "", hash);
+    }
+  } catch (err) { /* file:// 或沙箱环境下忽略 */ }
+}
+
+function readHash() {
+  const hash = window.location.hash || "";
+  const stageMatch = /stage=(\d+)/.exec(hash);
+  const zMatch = /z=([\d.]+)/.exec(hash);
+  if (stageMatch) currentStage = clamp(parseInt(stageMatch[1], 10) - 1, 0, (DATA.STAGES?.length || 1) - 1);
+  if (zMatch) {
+    const z = parseFloat(zMatch[1]);
+    const idx = ZOOM_LEVELS.findIndex((v) => Math.abs(v - z) < 0.01);
+    zoomIdx = idx >= 0 ? idx : 0;
+  }
+}
+
+/* ===================== 交互绑定 ===================== */
+function bindUi() {
+  document.getElementById("btnZoomIn").addEventListener("click", () => setZoom(zoomIdx + 1));
+  document.getElementById("btnZoomOut").addEventListener("click", () => setZoom(zoomIdx - 1));
+  document.getElementById("btnZoomReset").addEventListener("click", () => setZoom(0));
+
+  SVG.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const now = performance.now();
+    if (now - wheelAt < 170) return;
+    wheelAt = now;
+    setZoom(zoomIdx + (e.deltaY < 0 ? 1 : -1), e.clientX, e.clientY);
+  }, { passive: false });
+
+  SVG.addEventListener("pointerdown", (e) => {
+    if (zoomIdx === 0 || e.button !== 0) return;
+    // 战役标记与注记可点击；不要让拖拽捕获吞掉它们的 click
+    if (e.target.closest && e.target.closest(".battle-marker, .battle-label")) return;
+    dragging = true;
+    dragMoved = false;
+    dragStart = { x: e.clientX, y: e.clientY };
+    panStart = { x: view.x, y: view.y };
+    SVG.classList.add("grabbing");
+    if (SVG.setPointerCapture) {
+      try { SVG.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    }
+  });
+
+  SVG.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) dragMoved = true;
+    const rect = SVG.getBoundingClientRect();
+    const ux = dx / Math.max(1, rect.width) * view.w;
+    const uy = dy / Math.max(1, rect.height) * view.h;
+    view.x = panStart.x - ux;
+    view.y = panStart.y - uy;
+    clampView(view);
+    applyViewBox();
+    hideTip();
+  });
+
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    SVG.classList.remove("grabbing");
+    if (dragMoved) {
+      suppressClick = true;
+      setTimeout(() => { suppressClick = false; }, 60);
+      scheduleLabelLayout(false);
+      if (SVG.releasePointerCapture && e && e.pointerId != null) {
+        try { SVG.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      }
+    }
+  }
+
+  SVG.addEventListener("pointerup", endDrag);
+  SVG.addEventListener("pointercancel", endDrag);
+  SVG.addEventListener("pointerleave", (e) => { if (dragging) endDrag(e); });
+
+  SVG.addEventListener("dblclick", (e) => {
+    if (zoomIdx < ZOOM_LEVELS.length - 1) setZoom(zoomIdx + 1, e.clientX, e.clientY);
+  });
+
+  SVG.addEventListener("keydown", (e) => {
+    if (e.key === "+" || e.key === "=") { e.preventDefault(); setZoom(zoomIdx + 1); }
+    else if (e.key === "-" || e.key === "_") { e.preventDefault(); setZoom(zoomIdx - 1); }
+    else if (e.key === "0") { e.preventDefault(); setZoom(0); }
+    else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault(); stopPlay(); renderStage((currentStage + 1) % DATA.STAGES.length);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault(); stopPlay(); renderStage((currentStage - 1 + DATA.STAGES.length) % DATA.STAGES.length);
+    } else if (e.key === "Escape") {
+      hideTip(); clearSelection();
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    updateScaleBar();
+    scheduleLabelLayout(false);
+    updateStageProgress();
+  });
+
+  window.addEventListener("hashchange", () => {
+    const prevStage = currentStage;
+    const prevZoom = zoomIdx;
+    readHash();
+    if (currentStage !== prevStage) renderStage(currentStage, { instant: true });
+    if (zoomIdx !== prevZoom) setZoom(zoomIdx);
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && playing) stopPlay();
+  });
+
+  MAP_BOX.addEventListener("click", (e) => {
+    if (e.target === SVG || e.target.classList?.contains("ocean")) hideTip();
+  });
+}
+
+/* ===================== 导航 ===================== */
 function buildStageNav() {
   const inner = document.getElementById("stageTimelineInner");
   DATA.STAGES.forEach((stage, i) => {
@@ -777,6 +2044,7 @@ function buildStageNav() {
     div.setAttribute("role", "button");
     div.setAttribute("tabindex", "0");
     div.innerHTML =
+      '<span class="stage-index">0' + (i + 1) + "</span>" +
       '<div class="stage-name">' + stage.name + "</div>" +
       '<div class="stage-time">' + stage.time + "</div>" +
       '<div class="stage-intent">' + stage.intent + "</div>";
@@ -788,18 +2056,45 @@ function buildStageNav() {
   });
 }
 
-function init() {
-  if (!DATA.STAGES || DATA.STAGES.length === 0) {
-    document.getElementById("appLoading").classList.add("hidden");
-    return;
+/* ===================== 初始化 ===================== */
+async function boot() {
+  try {
+    setLoad(8, "解析地图数据…");
+    await nextPaint(100);
+
+    if (DATA.__error) throw DATA.__error;
+    if (!DATA.STAGES || DATA.STAGES.length === 0) throw new Error("阶段数据为空");
+
+    buildBase();
+    setLoad(32, "投影疆域边界…");
+    await nextPaint(130);
+
+    setLoad(58, "绘制山脉与河流…");
+    await nextPaint(120);
+
+    buildStageNav();
+    buildStageTrack();
+    bindUi();
+    setLoad(78, "布设图注与交互…");
+    await nextPaint(110);
+
+    readHash();
+    applyInitialZoom();
+    renderStage(currentStage, { instant: true });
+    setLoad(94, "校核比例与注记…");
+    await nextPaint(100);
+
+    setLoad(100, "就绪");
+    await nextPaint(360);
+    hideLoading();
+  } catch (err) {
+    showLoadError(err);
   }
-  buildBase();
-  buildStageNav();
-  renderStage(0);
-  applyViewBox();
-  document.getElementById("appLoading").classList.add("hidden");
 }
-init();
+
+document.getElementById("alRetry").addEventListener("click", () => window.location.reload());
+
+boot();
 </script>
 </body>
 </html>
