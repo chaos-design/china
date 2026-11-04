@@ -138,6 +138,43 @@ describe("html resource metadata", () => {
     expect(liberationWar.html).toContain('"STAGES": [');
     expect(liberationWar.html).toContain('"PROVINCES": [');
     expect(liberationWar.html).not.toContain('data-resource="liberation-war.json"');
+    // v2 数据模型：3D 高程、逐战役军事要素、控制区翻转与时间轴事件
+    expect(liberationWar.html).toContain('"TERRAIN": {');
+    expect(liberationWar.html).toContain('"CONTROL": [');
+    expect(liberationWar.html).toContain('"CITY_FLIPS": [');
+    expect(liberationWar.html).toContain('"EVENTS": [');
+    expect(liberationWar.html).toContain('"TIMELINE": {');
+    // 引擎已从 SVG 换到 canvas 3D 沙盘：不再有旧的 SVG 标记节点与过冲入场动画
+    expect(liberationWar.html).not.toContain("warSvg");
+    expect(liberationWar.html).not.toContain("markerIn");
+    expect(liberationWar.html).toContain('id="dynCv"');
+    const lwPayload = /<script type="application\/json" id="ndata">\n([\s\S]*?)\n<\/script>/.exec(
+      liberationWar.html,
+    )?.[1];
+    const lwData = JSON.parse(lwPayload ?? "{}") as {
+      TERRAIN: { plateaus: unknown[]; basins: unknown[]; ridges: unknown[] };
+      CONTROL: { prov: string; d: string }[];
+      STAGES: { battles: { t0: string; t1: string; ops: Record<string, unknown[]> }[] }[];
+      PROVINCES: { n: string }[];
+    };
+    // 每场战役都带军事要素（进攻/防守/合围/突破/撤退至少其一）与推进时间窗
+    const battles = lwData.STAGES.flatMap((s) => s.battles);
+    expect(battles.length).toBeGreaterThan(30);
+    for (const b of battles) {
+      expect(b.t0).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(b.t1).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(b.t0 <= b.t1).toBe(true);
+      expect(Object.values(b.ops).some((arr) => arr.length > 0)).toBe(true);
+    }
+    // 控制区翻转的省份必须都在底图省份清单内
+    const provNames = new Set(lwData.PROVINCES.map((p) => p.n));
+    for (const c of lwData.CONTROL) {
+      expect(provNames.has(c.prov)).toBe(true);
+    }
+    // 高程数据非空（3D 沙盘依赖）
+    expect(lwData.TERRAIN.ridges.length).toBeGreaterThan(15);
+    expect(lwData.TERRAIN.plateaus.length).toBeGreaterThan(0);
+    expect(lwData.TERRAIN.basins.length).toBeGreaterThan(0);
 
     const taiwan = await loadDocument("/taiwan");
     expect(taiwan.title).toBe("台湾 · 山海之间的百年");
