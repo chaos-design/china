@@ -304,37 +304,52 @@
   }
   .tl-head .tl-chap { font-size: 12px; color: var(--gold); font-weight: 700; }
   .tl-head .tl-hint { margin-left: auto; font-size: 10.5px; color: var(--text-sub); opacity: .85; }
-  .tl-ruler { position: relative; height: 26px; }
+  .tl-ruler { position: relative; height: 32px; margin-top: 3px; }
+  /* 阶段条：连续轨道、圆角只在两端、标签居中避让拖块 */
   .tl-band {
-    position: absolute; top: 6px; height: 10px;
-    background: rgba(156,66,33,.10); border: 1px solid rgba(156,66,33,.25);
+    position: absolute; top: 12px; height: 14px;
+    background: rgba(156,66,33,.08);
+    border: 1px solid rgba(156,66,33,.16); border-right-width: 0;
     cursor: pointer; overflow: hidden;
+    transition: background .15s ease;
   }
-  .tl-band + .tl-band { margin-left: 2px; }
+  .tl-band + .tl-band { margin-left: 0; }
+  .tl-band.edge-start { border-radius: 7px 0 0 7px; }
+  .tl-band.edge-end { border-right-width: 1px; border-radius: 0 7px 7px 0; }
   .tl-band b {
-    position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
-    font-size: 9.5px; font-weight: 700; color: var(--text-sub); letter-spacing: .5px; white-space: nowrap;
-    font-family: inherit;
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    font-size: 9.5px; font-weight: 700; color: var(--text-sub); letter-spacing: 1px; white-space: nowrap;
+    font-family: inherit; opacity: .8; transition: opacity .15s ease, color .15s ease;
   }
-  .tl-band.done { background: rgba(156,66,33,.22); }
+  .tl-band:hover { background: rgba(156,66,33,.13); }
+  .tl-band:hover b { opacity: 1; color: var(--accent); }
+  .tl-band.done { background: rgba(156,66,33,.16); }
+  .tl-band.done b { color: var(--accent); opacity: .9; }
+  /* 事件刻度：条带上方的小标线，不划过条面；悬停放大并浮出日期牌 */
   .tl-evt {
-    position: absolute; top: 2px; width: 2px; height: 16px;
-    background: rgba(156,66,33,.55); cursor: pointer;
+    position: absolute; top: 4px; width: 2px; height: 6px;
+    background: rgba(156,66,33,.42); cursor: pointer; border-radius: 1px;
+    transition: transform .12s ease, background .12s ease;
   }
-  .tl-evt:hover { background: var(--gold); }
+  .tl-evt::before {
+    content: ""; position: absolute; left: -3px; top: -3px; width: 8px; height: 12px;
+  }
+  .tl-evt:hover { background: var(--gold); transform: scaleY(1.6); }
   .tl-evt::after {
-    content: attr(data-t); position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+    content: attr(data-t); position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
     font-size: 9px; color: var(--text-sub); white-space: nowrap; opacity: 0; pointer-events: none;
+    background: var(--card-solid); border: 1px solid var(--border); border-radius: 4px;
+    padding: 1px 6px; box-shadow: 0 2px 6px rgba(120,90,50,.14);
     transition: opacity .15s ease;
   }
   .tl-evt:hover::after { opacity: 1; }
-  .tl-years { position: relative; height: 12px; margin-top: 2px; }
+  .tl-years { position: relative; height: 12px; margin-top: 3px; }
   .tl-year {
     position: absolute; top: 0; transform: translateX(-50%);
     font-size: 9.5px; color: var(--text-sub); font-variant-numeric: tabular-nums;
   }
   .tl-range {
-    position: absolute; left: 0; right: 0; top: 8px; width: 100%; height: 14px;
+    position: absolute; left: 0; right: 0; top: 10px; width: 100%; height: 18px;
     -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; margin: 0;
     z-index: 5;
   }
@@ -342,14 +357,15 @@
   .tl-range::-webkit-slider-runnable-track { height: 3px; background: transparent; }
   .tl-range::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
-    width: 14px; height: 18px; margin-top: -8px;
+    width: 12px; height: 18px; margin-top: -8px;
     background: var(--gold); border: 2px solid var(--card-solid);
-    border-radius: 4px; box-shadow: 0 1px 4px rgba(120,90,50,.4);
+    border-radius: 4px; box-shadow: 0 1px 5px rgba(120,90,50,.45);
     cursor: grab;
   }
+  .tl-range:active::-webkit-slider-thumb { cursor: grabbing; }
   .tl-range::-moz-range-track { height: 3px; background: transparent; }
   .tl-range::-moz-range-thumb {
-    width: 14px; height: 18px;
+    width: 12px; height: 18px;
     background: var(--gold); border: 2px solid var(--card-solid);
     border-radius: 4px; cursor: grab;
   }
@@ -2277,6 +2293,12 @@ function buildRuler() {
     });
     tlRuler.appendChild(band);
   });
+  // 首尾阶段条补圆角（连续轨道只有两端收口）
+  const bandEls = $$("#tlRuler .tl-band");
+  if (bandEls.length) {
+    bandEls[0].classList.add("edge-start");
+    bandEls[bandEls.length - 1].classList.add("edge-end");
+  }
   EVENTS.forEach((e) => {
     const el = document.createElement("div");
     el.className = "tl-evt";
