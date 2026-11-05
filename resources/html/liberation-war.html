@@ -101,8 +101,17 @@
     border: 1px solid var(--border); border-left: none;
     box-shadow: var(--shadow);
     padding: 8px 14px;
-    overflow: hidden;
+    /* 图例/沿革展开后整栏可滚动，短屏也不会把底部说明裁掉 */
+    overflow-x: hidden; overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent;
     transition: transform .28s cubic-bezier(.2,.7,.3,1), width .28s ease;
+  }
+  .left-panel::-webkit-scrollbar { width: 7px; }
+  .left-panel::-webkit-scrollbar-track { background: transparent; }
+  .left-panel::-webkit-scrollbar-thumb {
+    background: rgba(156,66,33,.34); border-radius: 4px;
+    border: 2px solid transparent; background-clip: padding-box;
   }
   .left-panel .nav-title {
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -254,8 +263,9 @@
   }
   .pl-battle b { color: var(--text-main); font-weight: 700; display: block; font-size: 12.5px; }
 
-  /* ===================== 军事图例（地图内低占用浮层） ===================== */
-  /* 侧栏只保留一个入口，图例本体浮在地图右上角，默认收起为 1 行 pill */
+  /* ===================== 侧栏折叠区：军事图例 / 番号沿革 ===================== */
+  /* 符号图示与图例整体收进左侧菜单，手动展开收起，绝不浮在地图内容区域 */
+  .rail-section { flex: 0 0 auto; }
   .legend-link {
     flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
     width: 100%; margin-top: 6px; padding: 6px 10px;
@@ -264,41 +274,46 @@
     font-size: 11.5px; font-weight: 700; letter-spacing: .5px; cursor: pointer;
     transition: background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease;
   }
-  .legend-link:hover { background: rgba(156,66,33,.09); border-color: var(--gold); color: var(--gold); }
+  .legend-link:hover, .legend-link[aria-expanded="true"] {
+    background: rgba(156,66,33,.09); border-color: var(--gold); color: var(--gold);
+  }
   .legend-link:active { transform: scale(.98); }
   .legend-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-  .legend-link i { font-style: normal; font-size: 11px; opacity: .7; }
-  .legend-dock {
-    position: absolute; top: 10px; right: 52px; z-index: 7;
-    width: 268px; max-width: calc(100% - 104px);
-    background: rgba(251,246,234,.95); backdrop-filter: blur(5px);
-    border: 1px solid var(--border); border-radius: 9px;
-    box-shadow: 0 6px 20px rgba(120,90,50,.20);
-    overflow: hidden;
-    transition: box-shadow .22s ease;
-  }
-  .legend-dock.collapsed { width: 106px; max-width: 106px; box-shadow: 0 2px 9px rgba(120,90,50,.14); }
-  .lg-toggle {
-    display: flex; align-items: center; gap: 6px; width: 100%;
-    padding: 6px 9px; border: none; background: transparent; cursor: pointer;
-    font-size: 11.5px; font-weight: 700; letter-spacing: .5px; color: var(--text-main);
-    white-space: nowrap;
-    transition: color .15s ease, transform .15s ease;
-  }
-  .lg-toggle:hover { color: var(--gold); }
-  .lg-toggle:active { transform: scale(.97); }
-  .lg-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
-  .lg-toggle .lg-flag { color: var(--ccp-color); font-size: 12px; }
-  .lg-toggle .lg-arrow { margin-left: auto; font-style: normal; font-size: 10px; color: var(--text-sub); transition: transform .2s ease; }
-  .legend-dock.collapsed .lg-arrow { transform: rotate(-90deg); }
-  .legend-dock.collapsed .lg-body { display: none; }
-  .lg-body {
-    max-height: min(54vh, 430px); overflow-y: auto; padding: 2px 9px 9px;
-    border-top: 1px dashed var(--border);
-    overscroll-behavior: contain;
-    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent;
+  .legend-link i { font-style: normal; font-size: 11px; opacity: .7; transition: transform .2s ease; }
+  .legend-link[aria-expanded="true"] i { transform: rotate(180deg); }
+  /* 展开区在侧栏内独立滚动，不挤压章节时间轴之外的任何地图区域 */
+  .rail-body {
+    display: none; margin-top: 6px; padding: 8px 10px 10px;
+    border: 1px dashed var(--border); border-radius: 8px;
+    background: var(--card-bg);
     animation: panelIn .22s ease both;
+    overscroll-behavior: contain; touch-action: pan-y;
+    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent;
   }
+  .rail-section.open .rail-body { display: block; }
+  .lg-body { max-height: min(38vh, 300px); overflow-y: auto; }
+  .lg-close {
+    width: 100%; margin-top: 8px; padding: 4px 8px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
+    font-size: 10.5px; font-weight: 700; cursor: pointer;
+  }
+  .lg-close:hover { border-color: var(--gold); color: var(--gold); }
+  .lg-close:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  /* 番号沿革：日期 + 沿革 + 出处 */
+  .units-body { max-height: min(38vh, 300px); overflow-y: auto; }
+  .unit-row { padding: 5px 0 6px; border-bottom: 1px dashed var(--border); }
+  .unit-row:last-of-type { border-bottom: none; }
+  .unit-row b { display: block; font-size: 10.5px; color: var(--value-text); font-variant-numeric: tabular-nums; }
+  .unit-row p { font-size: 11px; line-height: 1.6; color: var(--text-sub); margin: 2px 0 0; }
+  .unit-row em { display: block; font-style: normal; font-size: 9.5px; color: var(--text-sub); opacity: .78; margin-top: 2px; }
+  .units-body h4 {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1px; color: var(--gold);
+    margin: 9px 0 5px; display: flex; align-items: center; gap: 6px;
+  }
+  .units-body h4::after { content: ""; flex: 1; height: 1px; background: rgba(156,66,33,.18); }
+  .unit-src { font-size: 10px; line-height: 1.55; color: var(--text-sub); margin-bottom: 3px; }
+  .unit-src a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--border); }
+  .unit-src a:hover { border-bottom-color: var(--gold); }
   .lg-body::-webkit-scrollbar { width: 7px; }
   .lg-body::-webkit-scrollbar-track { background: transparent; }
   .lg-body::-webkit-scrollbar-thumb {
@@ -364,20 +379,53 @@
   }
   body.rail-collapsed .right-panel { padding-left: 12px; }
 
-  /* 阶段标题 */
+  /* 阶段标题：阶段名已在左侧菜单常驻，内容区不再重复 STAGE n */
   .content-head {
     background: var(--card-bg); backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border); border-radius: 8px;
-    padding: 14px 18px; margin-bottom: 14px;
+    padding: 11px 18px; margin-bottom: 14px;
     box-shadow: var(--shadow);
     overflow: hidden;
   }
-  .content-head .head-stage { font-size: 12px; font-weight: 700; color: var(--gold); letter-spacing: 2px; }
-  .content-head h1 { font-size: 22px; font-weight: 800; margin: 2px 0 4px; color: var(--text-main); }
+  .content-head h1 { font-size: 20px; font-weight: 800; margin: 0 0 4px; color: var(--text-main); }
   .content-head .head-intent { font-size: 13.5px; color: var(--text-sub); max-width: 880px; }
   .content-head > * { animation: fadeUp .38s cubic-bezier(.2,.7,.3,1) both; }
   .content-head > *:nth-child(2) { animation-delay: .04s; }
-  .content-head > *:nth-child(3) { animation-delay: .08s; }
+
+  /* 地图与战役详情同屏：详情为正常文档流中的右列，不覆盖地图、不中断播放 */
+  .viewer-row { display: flex; align-items: flex-start; gap: 14px; }
+  .viewer-row .map-box { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
+  .viewer-row .info-card {
+    flex: 0 0 330px; width: 330px; max-width: 34%;
+    position: sticky; top: 14px;
+    max-height: calc(100vh - 210px); min-height: 180px;
+    overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent;
+    padding: 12px 14px;
+  }
+  .viewer-row .info-card[hidden] { display: none !important; }
+  .viewer-row .info-card::-webkit-scrollbar { width: 7px; }
+  .viewer-row .info-card::-webkit-scrollbar-track { background: transparent; }
+  .viewer-row .info-card::-webkit-scrollbar-thumb {
+    background: rgba(156,66,33,.34); border-radius: 4px;
+    border: 2px solid transparent; background-clip: padding-box;
+  }
+  .ic-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px dashed var(--border);
+    font-size: 11px; font-weight: 700; letter-spacing: .5px; color: var(--gold);
+  }
+  .ic-focus {
+    flex: 0 0 auto; padding: 3px 8px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
+    font-size: 10.5px; font-weight: 700; cursor: pointer; letter-spacing: 0;
+  }
+  .ic-focus:hover { border-color: var(--gold); color: var(--gold); }
+  .ic-focus:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .ic-note { margin-top: 9px; font-size: 10.5px; line-height: 1.6; color: var(--text-sub); opacity: .86; }
+  @media (max-width: 1240px) {
+    .viewer-row .info-card { flex-basis: 288px; width: 288px; }
+  }
 
   /* 时间轴模拟条 */
   .tl-scrub {
@@ -536,8 +584,8 @@
   .map-canvas #terrainCv { z-index: 1; pointer-events: none; }
   .map-canvas #dynCv { z-index: 2; touch-action: none; }
   /* 地图内浮层是独立交互区：恢复原生触摸滚动，不参与画布的 pointer/wheel 手势 */
-  .map-float, .legend-dock, .mf-body, .lg-body { touch-action: pan-y; }
-  .map-float, .legend-dock { pointer-events: auto; }
+  .map-float, .mf-body { touch-action: pan-y; }
+  .map-float { pointer-events: auto; }
   .map-canvas:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
   .map-canvas.drag-orbit { cursor: grab; }
   .map-canvas.drag-orbit:active { cursor: grabbing; }
@@ -788,11 +836,11 @@
     100% { background: rgba(156,66,33,.13); }
   }
 
-  /* 信息卡（战役详情，悬浮面板选择后在此展开） */
+  /* 信息卡（战役详情，与地图同屏的右列） */
   .info-card {
     background: var(--card-bg); backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border); border-radius: 8px;
-    padding: 14px 18px; box-shadow: var(--shadow);
+    box-shadow: var(--shadow);
   }
   .detail-hint {
     font-size: 12.5px; color: var(--text-sub); line-height: 1.7;
@@ -1040,8 +1088,8 @@
 
   @media (prefers-reduced-motion: reduce) {
     .content-head > *, .battle-detail, .stage-nav.active .stage-intent, .map-caption, .player-dock,
-    .lg-body, .mf-panel, .map-ripple, .tick-flash, .mf-tab.pressed, .mf-panel li.flash { animation: none !important; transition: none !important; }
-    .pl-track i, .stage-progress, .focus-bar, .legend-dock, .mf-ink, .rail-info-pop { transition: none !important; }
+    .rail-body, .mf-panel, .map-ripple, .tick-flash, .mf-tab.pressed, .mf-panel li.flash { animation: none !important; transition: none !important; }
+    .pl-track i, .stage-progress, .focus-bar, .legend-link i, .mf-ink, .rail-info-pop { transition: none !important; }
   }
 
   /* ===================== 移动端 ===================== */
@@ -1069,11 +1117,15 @@
     .pl-track { flex: 1 1 120px; margin: 0; }
     .legend-link { margin-top: 8px; }
     .rail-info-pop { width: min(320px, 88vw); }
+    .lg-body { max-height: 40vh; }
+    .units-body { max-height: 40vh; }
     .right-panel { width: 100%; margin-left: 0; padding: 12px 0 210px; }
+    .viewer-row { flex-direction: column; }
+    .viewer-row .info-card {
+      position: static; flex-basis: auto; width: 100%; max-width: 100%; max-height: none;
+    }
     .map-float { width: 200px; top: 8px; left: 8px; max-width: calc(100% - 110px); }
     .mf-body { max-height: 34vh; }
-    .legend-dock { top: 8px; right: 8px; width: min(250px, calc(100% - 16px)); max-width: calc(100% - 16px); }
-    .legend-dock.collapsed { width: 106px; max-width: 106px; }
     .mt-hint { display: none; }
     .map-canvas { aspect-ratio: auto; height: 62vh; min-height: 340px; }
     .tl-head .tl-hint { display: none; }
@@ -1116,7 +1168,7 @@
 <div class="layout">
   <nav class="left-panel" id="leftPanel" aria-label="章节与模拟控制">
     <div class="nav-title">
-      <span>解放战争 · 四阶段</span>
+      <span>解放战争 · 五阶段</span>
       <button class="rail-toggle" id="railToggle" type="button" aria-expanded="true" aria-label="收起侧栏，扩大地图" title="收起侧栏，扩大地图">‹ 收起</button>
     </div>
     <div class="stage-timeline">
@@ -1145,68 +1197,11 @@
       </div>
     </div>
 
-    <button class="legend-link" id="legendOpenBtn" type="button" aria-expanded="false" aria-controls="legendBody">
-      <span>⚑ 军事图例与标图说明</span><i aria-hidden="true">↗</i>
-    </button>
-
-    <!-- 说明注释收进侧栏底部 icon：hover / focus / 点击均可展开 -->
-    <div class="rail-info" id="railInfo">
-      <button class="rail-info-btn" id="railInfoBtn" type="button" aria-expanded="false" aria-controls="railInfoBody"
-              aria-label="查看阅读说明与标图口径" title="悬停或点击查看说明">
-        <i class="ri-icon" aria-hidden="true">ⓘ</i><span>图例、投影与标图口径</span><i class="ri-arrow" aria-hidden="true">▴</i>
+    <div class="rail-section" id="railLegend">
+      <button class="legend-link" id="legendOpenBtn" type="button" aria-expanded="false" aria-controls="legendBody">
+        <span>⚑ 军事图例与标图说明</span><i aria-hidden="true">▾</i>
       </button>
-      <div class="rail-info-pop" id="railInfoBody" role="note" aria-label="阅读说明与标图口径">
-        <h4>如何使用这张图</h4>
-        <div class="detail-hint" id="detailHint">在地图左上角<b>「战役 / 态势」</b>面板中切换本阶段各役，或直接点击图中的战役标记：地图会定位到该役的具体位置与视图，下方信息卡展开<b>完整经过、编制番号、兵力与阶段推进</b>。时间轴推进时自动局部放大当前战役，随时点<b>「⟲ 恢复全局视图」</b>回到原始缩放。</div>
-        <h4>底图 · 投影 · 标图口径</h4>
-        <p>底图：阿里云 DataV / 高德行政区划边界（民政部标准）；地形：Natural Earth 1:50m 陆地轮廓 + 山脉高原高程数据（3D 夸张渲染）。Albers 等积投影（标准纬线 25°N / 47°N，中央经线 105°E），比例尺为图上量算近似值。</p>
-        <p>战役地点按史实位置标注，箭头为<b>示意性战略方向</b>而非精确行军路线，按军事标图规范区分进攻、防御、合围、突破与撤退；部队番号牌与行动注记沿箭杆避让排布，放大后可查看更细粒度信息。</p>
-        <p>西藏 1951 年和平解放、台湾 1950 年拟渡未果，均按事实标注；港、澳为特殊行政区，未计入省数；南海诸岛因图幅所限暂未绘出。</p>
-        <h4>操作速记</h4>
-        <p>滚轮精细缩放 · 拖拽平移 / 环视 · 双击放大 · 空格播放暂停 · ←→ 快进快退 · 0 恢复全局 · V 切换 2D / 3D · R 展开收起侧栏。</p>
-      </div>
-    </div>
-  </nav>
-
-  <!-- 收起侧栏后的常驻展开把手，独立于地图画布 -->
-  <button class="rail-open" id="railOpen" type="button" aria-label="展开侧栏" title="展开侧栏（快捷键 R）">› 展开侧栏</button>
-
-  <section class="right-panel">
-    <div class="content-head" id="contentHead"></div>
-
-    <div class="map-box" id="mapBox">
-      <div class="map-title">
-        <div class="mt-left">
-          <span class="mt-name">解放战争 · 3D 战略态势沙盘</span>
-          <span class="map-chip" id="mapChip">第 1 / 4 阶段</span>
-        </div>
-        <span class="mt-hint">滚轮精细缩放 · 拖拽平移 · 点击战役聚焦</span>
-      </div>
-
-      <div class="map-canvas" id="mapCanvas" tabindex="0"
-           role="img" aria-label="解放战争 3D 战略态势沙盘：滚轮连续缩放，放大后拖拽平移，方向键快进快退，空格播放暂停">
-        <canvas id="terrainCv" aria-hidden="true"></canvas>
-        <canvas id="dynCv"></canvas>
-
-        <div class="map-scale" id="mapScale" aria-hidden="true">
-          <div class="ms-track" id="msTrack"></div>
-          <div class="ms-cap"><span>0</span><b id="msLabel">500 公里</b><span id="msMax">500</span></div>
-        </div>
-
-        <div class="map-north" aria-hidden="true">
-          <svg viewBox="0 0 22 28" id="northSvg">
-            <path d="M11 1 L18 23 L11 18.5 L4 23 Z" fill="#8a5a3a"/>
-            <path d="M11 1 L11 18.5 L4 23 Z" fill="#c09570"/>
-          </svg>
-          <span>N</span>
-        </div>
-
-        <!-- 军事图例：保持地图右上角原位，默认收起为单个 pill -->
-        <div class="legend-dock collapsed" id="legendDock" role="group" aria-label="军事图例">
-          <button class="lg-toggle" id="legendToggle" type="button" aria-expanded="false" aria-controls="legendBody">
-            <span class="lg-flag" aria-hidden="true">⚑</span><span>军事图例</span><i class="lg-arrow" aria-hidden="true">▾</i>
-          </button>
-          <div class="lg-body" id="legendBody">
+      <div class="lg-body rail-body" id="legendBody" role="group" aria-label="军事图例">
             <div class="lg-group">
               <h4>一 · 作战行动</h4>
               <div class="lg-row"><span class="lg-sym">
@@ -1243,7 +1238,7 @@
               <h4>三 · 底图与控制区</h4>
               <div class="lg-row"><span class="lg-sym"><i class="sq-sample sq-ccp"></i></span><span>解放军控制区</span></div>
               <div class="lg-row"><span class="lg-sym"><i class="sq-sample sq-kmt"></i></span><span>国军控制区</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="sq-sample sq-fringe"></i></span><span>尚未纳入（西藏 1951）</span></div>
+              <div class="lg-row"><span class="lg-sym"><i class="sq-sample sq-fringe"></i></span><span>尚未纳入（西藏 1951.5 前）</span></div>
               <div class="lg-row"><span class="lg-sym"><i class="terrain-sample"></i></span><span>高程晕渲＋山脊晕线（山丘 / 高原）</span></div>
               <div class="lg-row"><span class="lg-sym"><i class="river-sample"></i></span><span>主要河流（渐变水面＋岸线）</span></div>
               <div class="lg-row"><span class="lg-sym"><i class="rail-sample"></i></span><span>历史铁路（1946—1950）</span></div>
@@ -1251,9 +1246,70 @@
             <p class="lg-note">
               底图为真实国界与省界（<b>Albers 等积投影</b>，25°N / 47°N），3D 高程由山脉与高原数据叠加生成；
               箭头为<b>示意性战略方向</b>而非精确行军路线，番号与兵力按军史通行数字整理、存疑处标「约」。
-              时间推进会<b>自动局部放大</b>当前战役；手动缩放或拖拽后自动聚焦暂停，点「⟲ 恢复全局视图」即可回到原始缩放与视角并重新启用。
+              时间推进会<b>自动局部放大</b>当前战役；同一时段多场战役并进时，镜头按解放进程重要性交给<b>主视角战役</b>。手动缩放或拖拽后自动聚焦暂停，点「⟲ 恢复全局视图」即可回到原始缩放与视角并重新启用。
             </p>
-          </div>
+        <button class="lg-close" id="legendCloseBtn" type="button">收起图例 ▲</button>
+      </div>
+    </div>
+    <!-- 番号沿革：手动展开，列出改称时间与史料出处 -->
+    <div class="rail-section" id="railUnits">
+      <button class="legend-link" id="unitsOpenBtn" type="button" aria-expanded="false" aria-controls="unitsBody">
+        <span>⌘ 野战军番号沿革与出处</span><i aria-hidden="true">▾</i>
+      </button>
+      <div class="units-body rail-body" id="unitsBody" role="note" aria-label="野战军番号沿革与史料出处"></div>
+    </div>
+
+    <!-- 说明注释收进侧栏底部 icon：hover / focus / 点击均可展开 -->
+    <div class="rail-info" id="railInfo">
+      <button class="rail-info-btn" id="railInfoBtn" type="button" aria-expanded="false" aria-controls="railInfoBody"
+              aria-label="查看阅读说明与标图口径" title="悬停或点击查看说明">
+        <i class="ri-icon" aria-hidden="true">ⓘ</i><span>图例、投影与标图口径</span><i class="ri-arrow" aria-hidden="true">▴</i>
+      </button>
+      <div class="rail-info-pop" id="railInfoBody" role="note" aria-label="阅读说明与标图口径">
+        <h4>如何使用这张图</h4>
+        <div class="detail-hint" id="detailHint">在地图左上角<b>「战役 / 态势」</b>面板中切换本阶段各役，或直接点击图中的战役标记：<b>右侧详情栏与地图同屏</b>展开<b>完整经过、编制番号、兵力与阶段推进</b>，播放与时间轴演进不会被打断。暂停时点选会定位镜头，播放中只更新详情；需要定位可点详情栏的<b>「⌖ 定位到地图」</b>。军事图例与番号沿革都在左侧菜单中手动展开／收起。</div>
+        <h4>底图 · 投影 · 标图口径</h4>
+        <p>底图：阿里云 DataV / 高德行政区划边界（民政部标准）；地形：Natural Earth 1:50m 陆地轮廓 + 山脉高原高程数据（3D 夸张渲染）。Albers 等积投影（标准纬线 25°N / 47°N，中央经线 105°E），比例尺为图上量算近似值。</p>
+        <p>战役地点按史实位置标注，箭头为<b>示意性战略方向</b>而非精确行军路线，按军事标图规范区分进攻、防御、合围、突破与撤退；部队番号牌与行动注记沿箭杆避让排布，放大后可查看更细粒度信息。</p>
+        <p>新疆 1949 年 9 月和平起义、1950 年 3 月完成进驻，西藏 1951 年《十七条协议》后和平解放（1951 年 5 月前为灰色「尚未纳入」），台湾 1950 年拟渡未果，均按史实标注；港、澳为特殊行政区，未计入省数；南海诸岛因图幅所限暂未绘出。</p>
+        <h4>操作速记</h4>
+        <p>滚轮精细缩放 · 拖拽平移 / 环视 · 双击放大 · 空格播放暂停 · ←→ 快进快退 · 0 恢复全局 · V 切换 2D / 3D · R 展开收起侧栏。</p>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 收起侧栏后的常驻展开把手，独立于地图画布 -->
+  <button class="rail-open" id="railOpen" type="button" aria-label="展开侧栏" title="展开侧栏（快捷键 R）">› 展开侧栏</button>
+
+  <section class="right-panel">
+    <div class="content-head" id="contentHead"></div>
+
+    <div class="viewer-row" id="viewerRow">
+    <div class="map-box" id="mapBox">
+      <div class="map-title">
+        <div class="mt-left">
+          <span class="mt-name">解放战争 · 3D 战略态势沙盘</span>
+          <span class="map-chip" id="mapChip">第 1 / 4 阶段</span>
+        </div>
+        <span class="mt-hint">滚轮精细缩放 · 拖拽平移 · 点击战役聚焦</span>
+      </div>
+
+      <div class="map-canvas" id="mapCanvas" tabindex="0"
+           role="img" aria-label="解放战争 3D 战略态势沙盘：滚轮连续缩放，放大后拖拽平移，方向键快进快退，空格播放暂停">
+        <canvas id="terrainCv" aria-hidden="true"></canvas>
+        <canvas id="dynCv"></canvas>
+
+        <div class="map-scale" id="mapScale" aria-hidden="true">
+          <div class="ms-track" id="msTrack"></div>
+          <div class="ms-cap"><span>0</span><b id="msLabel">500 公里</b><span id="msMax">500</span></div>
+        </div>
+
+        <div class="map-north" aria-hidden="true">
+          <svg viewBox="0 0 22 28" id="northSvg">
+            <path d="M11 1 L18 23 L11 18.5 L4 23 Z" fill="#8a5a3a"/>
+            <path d="M11 1 L11 18.5 L4 23 Z" fill="#c09570"/>
+          </svg>
+          <span>N</span>
         </div>
 
         <div class="map-float" id="mapFloat" role="group" aria-label="战役与态势快速切换面板">
@@ -1280,7 +1336,13 @@
     </div>
 
     <div class="info-card" id="infoCard" hidden>
+      <div class="ic-head">
+        <span>战役详情 · 与地图同屏</span>
+        <button class="ic-focus" id="icFocus" type="button" title="只在需要时定位地图，不改变播放进度">⌖ 定位到地图</button>
+      </div>
       <div class="battle-detail" id="battleDetail" hidden></div>
+      <p class="ic-note">详情常驻右侧，播放与时间轴演进不受影响；播放中点选战役只更新本栏，不回拨时间、不抢镜头。</p>
+    </div>
     </div>
 
     <div class="sr-only" id="liveStatus" role="status" aria-live="polite"></div>
@@ -1314,8 +1376,8 @@
       <div class="pd-body" id="pdBody">
         <div class="tl-scrub" id="tlScrub">
           <div class="tl-ruler" id="tlRuler">
-            <input type="range" class="tl-range" id="tlRange" min="0" max="1492" step="1" value="0"
-                   aria-label="时间轴：拖动查看 1946—1950 年态势">
+            <input type="range" class="tl-range" id="tlRange" min="0" max="1989" step="1" value="0"
+                   aria-label="时间轴：拖动查看 1946—1951 年态势">
           </div>
           <div class="tl-years" id="tlYears"></div>
         </div>
@@ -1327,10 +1389,10 @@
             <button class="pd-step" id="btnStepFwd" type="button" aria-label="前进 3 天" title="前进 3 天">⏵</button>
             <button class="tool-btn" id="btnReset" type="button">↺ 回到起点</button>
             <div class="speed-row" role="group" aria-label="播放速度">
+              <button class="speed-chip" data-speed="0.25" type="button">0.25×</button>
               <button class="speed-chip" data-speed="0.5" type="button">0.5×</button>
               <button class="speed-chip on" data-speed="1" type="button">1×</button>
               <button class="speed-chip" data-speed="2" type="button">2×</button>
-              <button class="speed-chip" data-speed="4" type="button">4×</button>
             </div>
           </div>
 
@@ -1339,7 +1401,7 @@
             <button class="mode-btn" id="btn2d" type="button" aria-pressed="false">2D 平面图</button>
             <span class="pd-sep" aria-hidden="true"></span>
             <button class="zoom-btn" id="btnZoomOut" type="button" aria-label="缩小地图">−</button>
-            <input type="range" class="zoom-slider" id="zoomSlider" min="0.65" max="6" step="0.01" value="1"
+            <input type="range" class="zoom-slider" id="zoomSlider" min="0.65" max="8" step="0.01" value="1"
                    aria-label="地图缩放：拖动精细调节倍率">
             <button class="zoom-btn" id="btnZoomIn" type="button" aria-label="放大地图">＋</button>
             <span class="zoom-readout" id="zoomReadout">1.00×</span>
@@ -1397,7 +1459,7 @@ const easeInOut = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) 
 
 /* ===================== 日期工具 ===================== */
 const T_START = (DATA.TIMELINE?.start || "1946-06-26");
-const T_END = (DATA.TIMELINE?.end || "1950-06-30");
+const T_END = (DATA.TIMELINE?.end || "1951-10-31");
 // 日期序号：y*372 + m*31 + d（单调近似日历，双向一致即可，无需精确天数）
 const _ord = (s) => { const [y, m, d] = s.split("-").map(Number); return y * 372 + m * 31 + d; };
 const ORD_BASE = _ord(T_START);   // T_START -> 0
@@ -1569,10 +1631,10 @@ function hAt(x, y) {
 const CAM_DEFAULT_3D = { yaw: -0.3, pitch: 0.55, zoom: 1.0 };
 const CAM_DEFAULT_2D = { yaw: 0, pitch: 0, zoom: 1.0 };
 // 视角边界：沙盘只允许在地图上方小幅环视，不允许 360° 旋转；
-// 6× 上限 + 0.01 步进滑杆，支持对战役细节做精细放大。
+// 8× 上限 + 0.01 步进滑杆，支持对战役细节做精细放大。
 const YAW_LIMIT = 0.45;
 const PITCH_MIN = 0.28, PITCH_MAX = 1.0;
-const ZOOM_MIN = 0.65, ZOOM_MAX = 6;
+const ZOOM_MIN = 0.65, ZOOM_MAX = 8;
 const cam = {
   yaw: CAM_DEFAULT_3D.yaw, pitch: CAM_DEFAULT_3D.pitch, zoom: CAM_DEFAULT_3D.zoom,
   cx: VIEW_W / 2, cy: VIEW_H / 2,
@@ -1715,9 +1777,10 @@ function provStateAt(provName, t) {
   if (!prov) return "kmt";
   if (prov.kind === "kmt") return "kmt";
   if (prov.kind === "neutral") return "neutral";
-  if (prov.kind === "fringe") return "fringe";
   const flips = provFlips[provName];
+  // 西藏 1951.5 前为灰色「尚未纳入」，签订《十七条协议》后按解放区着色
   if (flips && flips.length && t >= flips[flips.length - 1]) return "ccp";
+  if (prov.kind === "fringe") return "fringe";
   return "kmt";
 }
 const PROV_COLORS = {
@@ -1734,11 +1797,13 @@ function cityFlipWithin(cityName, t, winDays) {
   const fl = cityFlips[cityName];
   return !!(fl && fl.some((d) => t - d <= winDays && t - d >= 0));
 }
-function countedProvinces() {
-  return DATA.PROVINCES.filter((p) => !p.kind);
+function countedProvinces(t) {
+  // fringe 省（西藏）在和平解放前不计入任何一方，1951.5.23 起才纳入统计
+  return DATA.PROVINCES.filter((p) => !p.kind ||
+    (p.kind === "fringe" && (provFlips[p.n] || []).some((d) => d <= t)));
 }
 function controlCounts(t) {
-  const list = countedProvinces();
+  const list = countedProvinces(t);
   let cc = 0;
   list.forEach((p) => { if (provStateAt(p.n, t) === "ccp") cc += 1; });
   return { cc, kmt: list.length - cc, total: list.length };
@@ -1754,7 +1819,8 @@ const STAGE_SPANS = [
   { d0: dateToDays("1946-06-26"), d1: dateToDays("1947-06-30") },
   { d0: dateToDays("1947-07-01"), d1: dateToDays("1948-09-11") },
   { d0: dateToDays("1948-09-12"), d1: dateToDays("1949-01-31") },
-  { d0: dateToDays("1949-02-01"), d1: DTOTAL },
+  { d0: dateToDays("1949-02-01"), d1: dateToDays("1950-06-30") },
+  { d0: dateToDays("1950-07-01"), d1: DTOTAL },
 ];
 function stageIndexAt(t) {
   for (let i = STAGE_SPANS.length - 1; i >= 0; i -= 1) if (t >= STAGE_SPANS[i].d0) return i;
@@ -1767,10 +1833,19 @@ function battlesInStage(i) {
 function activeBattles(t) {
   return ALL_BATTLES.filter((b) => t >= b._d0 - 1 && t <= b._d1 + 2);
 }
+/* 同一时段多役并进：按「解放进程重要性」权重选主视角，而不是简单取开始最晚的一役。
+   权重写在战役数据的 pri 字段（可在左侧番号沿革与数据里核对），rank/kind 只作次级修正。 */
+function battlePriority(b) {
+  return (Number(b.pri) || 0) + (b.rank === 1 ? 4 : 0) + (b.kind === "planned" ? -8 : 0);
+}
+function concurrentBattles(t) {
+  return ALL_BATTLES.filter((b) => t >= b._d0 && t <= b._d1);
+}
 function activeNow(t) {
-  let best = null;
-  ALL_BATTLES.forEach((b) => {
-    if (t >= b._d0 && t <= b._d1 && (!best || b._d0 >= best._d0)) best = b;
+  let best = null, bestScore = -Infinity;
+  concurrentBattles(t).forEach((b) => {
+    const score = battlePriority(b) * 1000 + b._d0;
+    if (score > bestScore) { bestScore = score; best = b; }
   });
   return best;
 }
@@ -1796,8 +1871,8 @@ function manpowerAt(t) {
 /* ===================== 全局状态 ===================== */
 let t = 0;                 // 当前时间（天）
 let playing = false;
-let playSpeed = 1;         // 0.5 / 1 / 2 / 4（1× = 15 天/秒）
-const PLAY_DAYS_PER_SEC = 15;
+let playSpeed = 1;         // 0.25 / 0.5 / 1 / 2（1× = 8 天/秒）
+const PLAY_DAYS_PER_SEC = 8;   // 放慢：1× 由 15 天/秒降到 8 天/秒，0.25× 可再慢四倍
 let selectedBattle = null;
 let lastProvKey = "";
 let lastStage = -1;
@@ -3144,7 +3219,7 @@ function buildRuler() {
     });
     tlRuler.appendChild(el);
   });
-  const yr0 = 1946, yr1 = 1950;
+  const yr0 = 1946, yr1 = 1951;
   for (let y = yr0; y <= yr1; y += 1) {
     const d = dateToDays(y + "-07-01");
     if (d < 0 || d > DTOTAL) continue;
@@ -3211,8 +3286,9 @@ function renderCaption() {
   const ab = activeNow(t);
   let nowD = dnumLocal(t);
   if (ab) {
+    const concurrent = concurrentBattles(t).length;
     capTitle.textContent = ab.name;
-    capTime.textContent = ab.time + " · " + ab.kindLabel();
+    capTime.textContent = ab.time + " · " + ab.kindLabel() + (concurrent > 1 ? " · 主视角（同期 " + concurrent + " 役）" : "");
     const phases = ab.phases.filter((p) => dnum(p.d) <= nowD + 3);
     capText.textContent = phases.length ? phases[phases.length - 1].text : "推进中…";
     const total = ab.phases.length;
@@ -3294,8 +3370,8 @@ function renderStageContent(i) {
   syncStageNav();
   const s = STAGES[i];
   const head = document.getElementById("contentHead");
+  // 阶段名/时间在左侧章节菜单常驻，内容区只保留一条标题与导语，不再重复 STAGE n
   head.innerHTML =
-    '<div class="head-stage">STAGE ' + (i + 1) + " / " + STAGES.length + " · " + s.name.replace(/^第.阶段 · /, "") + "</div>" +
     "<h1>" + s.name + " · " + s.time + "</h1>" +
     '<p class="head-intent">' + s.intent + "</p>";
   const list = document.getElementById("mfBattles");
@@ -3327,17 +3403,28 @@ function renderStageContent(i) {
     li.innerHTML = "<b>" + f.title + "</b>" + f.text;
     factList.appendChild(li);
   });
-  document.getElementById("battleDetail").hidden = true;
-  document.getElementById("infoCard").hidden = true;
-  selectedBattle = null;
+  // 阶段切换只重建列表：已打开的详情栏保持常驻，播放进度与镜头都不被打断
+  syncBattleList();
   document.getElementById("liveStatus").textContent = "已切换至" + s.name + "，" + s.time + "。";
   syncStageNav();
 }
+/* 详情栏与地图/播放解耦：播放中点选只更新详情；暂停时才按旧行为定位。
+   详情栏在正常文档流里，与地图并排，不覆盖画布、不暂停播放、不回拨时间。 */
+function syncDetailLayout() {
+  sizeCanvases();
+  onCameraChanged();
+  refreshUiBlocks();
+  ensureLoop();
+}
 function selectBattle(b, focus) {
   selectedBattle = b;
-  tweenT(b._d0 + 1, 520);
-  if (focus) focusBattle(b, "click");
-  document.getElementById("liveStatus").textContent = "已选择「" + b.name + "」，地图已定位至该战役的具体位置与视图状态。";
+  if (!playing) {
+    tweenT(b._d0 + 1, 520);
+    if (focus) focusBattle(b, "click");
+  }
+  document.getElementById("liveStatus").textContent = playing
+    ? "已选择「" + b.name + "」，详情在右侧同屏展开；播放进度与地图视角保持不变。"
+    : "已选择「" + b.name + "」，地图已定位至该战役的具体位置与视图状态。";
   // 列表点击反馈：一次性的高亮脉冲
   const selIdx = ALL_BATTLES.indexOf(b);
   $$("#mfBattles li").forEach((li) => {
@@ -3370,13 +3457,20 @@ function selectBattle(b, focus) {
   // 悬浮面板列表滚动（面板折叠时不滚）
   const li = document.querySelector('#mfBattles li[data-idx="' + ALL_BATTLES.indexOf(b) + '"]');
   if (li && li.scrollIntoView) li.scrollIntoView({ block: "nearest", behavior: REDUCED ? "auto" : "smooth" });
+  syncDetailLayout();
 }
 function clearSelection() {
   selectedBattle = null;
   document.getElementById("battleDetail").hidden = true;
   document.getElementById("infoCard").hidden = true;
   $$("#mfBattles li").forEach((li) => li.classList.remove("selected"));
+  syncDetailLayout();
 }
+document.getElementById("icFocus").addEventListener("click", () => {
+  if (!selectedBattle) return;
+  focusBattle(selectedBattle, "click");
+  document.getElementById("liveStatus").textContent = "已定位至「" + selectedBattle.name + "」，播放进度保持不变。";
+});
 /* ===================== 战役视图 / 自动聚焦 / 恢复全局 ===================== */
 /* 战役包围盒：战役点 + 全部军事要素（进攻、增援、防御、合围、突破、撤退） */
 function battleBounds(b) {
@@ -3404,9 +3498,10 @@ function battleView(b) {
   const bb = battleBounds(b);
   const base = camScale() / Math.max(0.01, cam.zoom);
   const shF = cam.threeD ? Math.max(0.35, Math.cos(cam.pitch)) : 1;
-  const bw = Math.max(11, (bb[2] - bb[0]) * 1.55 + 7);
-  const bh = Math.max(8, (bb[3] - bb[1]) * 1.7 + 6);
-  const zoom = clamp(Math.min(W / (bw * base), Hc / (bh * base * shF)), 1.55, 3.15);
+  // 局部放大加强：收紧包围盒留白并提高缩放上限，让单场战役的军事要素看得更清楚
+  const bw = Math.max(8.5, (bb[2] - bb[0]) * 1.28 + 4.5);
+  const bh = Math.max(6.5, (bb[3] - bb[1]) * 1.35 + 4);
+  const zoom = clamp(Math.min(W / (bw * base), Hc / (bh * base * shF)), 2.0, 4.4);
   return {
     cx: (bb[0] + bb[2]) / 2, cy: (bb[1] + bb[3]) / 2, zoom,
     yaw: cam.threeD ? CAM_DEFAULT_3D.yaw : 0,
@@ -3459,7 +3554,9 @@ function setFocusText(state) {
     const strong = document.createElement("b");
     strong.textContent = focusBattleName;
     txt.appendChild(strong);
-    txt.appendChild(document.createTextNode(" · 局部放大 " + cam.zoom.toFixed(2) + "×"));
+    const concurrent = concurrentBattles(t).length;
+    txt.appendChild(document.createTextNode(" · 局部放大 " + cam.zoom.toFixed(2) + "×" +
+      (concurrent > 1 ? " · 主视角（同期 " + concurrent + " 役）" : "")));
   } else if (state === "manual") {
     txt.appendChild(document.createTextNode("手动视图 · 自动聚焦已暂停"));
   } else if (state === "restored") {
@@ -4091,25 +4188,87 @@ mfFold.addEventListener("click", () => {
   setFloatFolded(!document.getElementById("mapFloat").classList.contains("folded"), true);
 });
 
-/* ===================== 军事图例（低占用浮层） ===================== */
+/* ===================== 侧栏折叠区：军事图例 / 番号沿革 ===================== */
+/* 图例已从地图内容区移入左侧菜单，只有点击开关才会展开或收起 */
 const LEGEND_KEY = "lw-legend-open";
-const legendDock = document.getElementById("legendDock");
-const legendToggle = document.getElementById("legendToggle");
+const UNITS_KEY = "lw-units-open";
+const railLegend = document.getElementById("railLegend");
+const railUnits = document.getElementById("railUnits");
 const legendOpenBtn = document.getElementById("legendOpenBtn");
+const unitsOpenBtn = document.getElementById("unitsOpenBtn");
 function setLegendOpen(open, persist) {
-  legendDock.classList.toggle("collapsed", !open);
-  legendToggle.setAttribute("aria-expanded", String(open));
+  railLegend.classList.toggle("open", open);
   legendOpenBtn.setAttribute("aria-expanded", String(open));
   if (persist) {
     try { localStorage.setItem(LEGEND_KEY, open ? "1" : "0"); } catch (err) { /* 隐私模式忽略 */ }
   }
   refreshUiBlocks();
 }
-legendToggle.addEventListener("click", () => setLegendOpen(legendDock.classList.contains("collapsed"), true));
+function setUnitsOpen(open, persist) {
+  railUnits.classList.toggle("open", open);
+  unitsOpenBtn.setAttribute("aria-expanded", String(open));
+  if (persist) {
+    try { localStorage.setItem(UNITS_KEY, open ? "1" : "0"); } catch (err) { /* 隐私模式忽略 */ }
+  }
+  refreshUiBlocks();
+}
+/* 手风琴：两个长面板不同时展开，避免短屏上侧栏被挤到需要长距离滚动 */
 legendOpenBtn.addEventListener("click", () => {
-  setLegendOpen(true, true);
-  legendToggle.focus();
+  const open = !railLegend.classList.contains("open");
+  setLegendOpen(open, true);
+  if (open) setUnitsOpen(false, true);
 });
+document.getElementById("legendCloseBtn").addEventListener("click", () => {
+  setLegendOpen(false, true);
+  legendOpenBtn.focus();
+});
+unitsOpenBtn.addEventListener("click", () => {
+  const open = !railUnits.classList.contains("open");
+  setUnitsOpen(open, true);
+  if (open) setLegendOpen(false, true);
+});
+
+/* 番号沿革面板：内容来自 META.units / META.sources，保证改称时间与出处可核对 */
+function buildUnitsPanel() {
+  const body = document.getElementById("unitsBody");
+  const units = DATA.META?.units || [];
+  const sources = DATA.META?.sources || [];
+  const corrections = DATA.META?.corrections || [];
+  const frag = document.createDocumentFragment();
+  units.forEach((u) => {
+    const row = document.createElement("div");
+    row.className = "unit-row";
+    const d = document.createElement("b"); d.textContent = u.d;
+    const p = document.createElement("p"); p.textContent = u.text;
+    const em = document.createElement("em"); em.textContent = "依据：" + u.ref;
+    row.append(d, p, em); frag.appendChild(row);
+  });
+  if (corrections.length) {
+    const h = document.createElement("h4"); h.textContent = "本图已考订";
+    frag.appendChild(h);
+    corrections.forEach((c) => {
+      const p = document.createElement("p"); p.className = "unit-row";
+      p.style.fontSize = "10.5px"; p.style.lineHeight = "1.6";
+      p.textContent = "· " + c; frag.appendChild(p);
+    });
+  }
+  if (sources.length) {
+    const h = document.createElement("h4"); h.textContent = "史料出处";
+    frag.appendChild(h);
+    sources.forEach((src) => {
+      const row = document.createElement("div"); row.className = "unit-src";
+      const a = document.createElement("a");
+      a.href = src.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = src.name;
+      row.append(a, document.createElement("br"));
+      const small = document.createElement("span");
+      small.style.fontSize = "9px"; small.style.opacity = ".7";
+      small.textContent = src.url;
+      row.appendChild(small); frag.appendChild(row);
+    });
+  }
+  body.appendChild(frag);
+}
 
 /* ===================== 侧栏整体收起（扩大地图主区域） ===================== */
 const RAIL_KEY = "lw-rail-collapsed";
@@ -4155,7 +4314,10 @@ document.addEventListener("click", (e) => {
   if (!railInfo.contains(e.target)) setRailInfoOpen(false);
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") setRailInfoOpen(false);
+  if (e.key !== "Escape") return;
+  setRailInfoOpen(false);
+  setLegendOpen(false, true);
+  setUnitsOpen(false, true);
 });
 
 /* ===================== 底部播放区的收起 / 展开 ===================== */
@@ -4177,7 +4339,7 @@ function refreshUiBlocks() {
   const base = MAP_CANVAS.getBoundingClientRect();
   const out = [];
   // 聚焦条与推进字幕已移入底部播放区，不再占用地图内的标注避让区
-  [["mapFloat", false], ["legendDock", false], ["mapScale", false]].forEach(([id, needVisible]) => {
+  [["mapFloat", false], ["mapScale", false]].forEach(([id, needVisible]) => {
     const el = document.getElementById(id);
     if (!el || el.hidden) return;
     if (needVisible && !el.classList.contains("show")) return;
@@ -4219,10 +4381,14 @@ async function boot() {
     buildStageNav();
     buildRuler();
     readHash();
-    // 图例默认收起为地图右上角单个 pill（低占用），用户偏好优先
+    // 侧栏折叠区默认收起，用户上次的选择优先
+    buildUnitsPanel();
     let legendPref = null;
     try { legendPref = localStorage.getItem(LEGEND_KEY); } catch (err) { /* ignore */ }
     setLegendOpen(legendPref === "1", false);
+    let unitsPref = null;
+    try { unitsPref = localStorage.getItem(UNITS_KEY); } catch (err) { /* ignore */ }
+    setUnitsOpen(unitsPref === "1" && legendPref !== "1", false);
     // 侧栏折叠偏好：默认展开，收起后地图占满主区域
     let railPref = null;
     try { railPref = localStorage.getItem(RAIL_KEY); } catch (err) { /* ignore */ }
