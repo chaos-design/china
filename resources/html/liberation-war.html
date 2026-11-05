@@ -150,7 +150,8 @@
   body.rail-collapsed .rail-open { display: block; }
 
   /* 章节时间轴 */
-  .stage-timeline { position: relative; padding: 6px 0; margin-right: -12px; flex: 1 1 auto; min-height: 120px; overflow-y: auto; }
+  /* 章节时间轴始终保有足够高度：图例/沿革为 absolute 浮层，不再挤压这里 */
+  .stage-timeline { position: relative; padding: 6px 0; margin-right: -12px; flex: 1 1 auto; min-height: 300px; overflow-y: auto; }
   .stage-timeline { scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent; overscroll-behavior: contain; }
   .stage-timeline::-webkit-scrollbar { width: 8px; }
   .stage-timeline::-webkit-scrollbar-track { background: transparent; }
@@ -264,8 +265,9 @@
   .pl-battle b { color: var(--text-main); font-weight: 700; display: block; font-size: 12.5px; }
 
   /* ===================== 侧栏折叠区：军事图例 / 番号沿革 ===================== */
-  /* 符号图示与图例整体收进左侧菜单，手动展开收起，绝不浮在地图内容区域 */
-  .rail-section { flex: 0 0 auto; }
+  /* 与「标图口径」同一套浮层：absolute 弹出、不占布局高度、只在侧栏内展开；
+     章节时间轴因此始终保有完整高度，也不会浮到地图内容区域。 */
+  .rail-section { position: relative; flex: 0 0 auto; }
   .legend-link {
     flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
     width: 100%; margin-top: 6px; padding: 6px 10px;
@@ -281,17 +283,29 @@
   .legend-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   .legend-link i { font-style: normal; font-size: 11px; opacity: .7; transition: transform .2s ease; }
   .legend-link[aria-expanded="true"] i { transform: rotate(180deg); }
-  /* 展开区在侧栏内独立滚动，不挤压章节时间轴之外的任何地图区域 */
   .rail-body {
-    display: none; margin-top: 6px; padding: 8px 10px 10px;
-    border: 1px dashed var(--border); border-radius: 8px;
-    background: var(--card-bg);
-    animation: panelIn .22s ease both;
+    position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 62;
+    width: 100%; max-height: min(48vh, 360px); overflow-y: auto;
     overscroll-behavior: contain; touch-action: pan-y;
+    padding: 10px 12px 12px;
+    /* 不透明底：浮层压在章节列表上时不能透出底下的阶段文字 */
+    background: var(--card-solid); backdrop-filter: blur(8px);
+    border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(96,70,40,.22);
+    opacity: 0; visibility: hidden; transform: translateY(6px); pointer-events: none;
     scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent;
+    /* visibility 立即切换，只过渡透明度与位移 */
+    transition: opacity .18s ease, transform .18s ease;
   }
-  .rail-section.open .rail-body { display: block; }
-  .lg-body { max-height: min(38vh, 300px); overflow-y: auto; }
+  .rail-section.open .rail-body { opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
+  .rail-body::-webkit-scrollbar { width: 7px; }
+  .rail-body::-webkit-scrollbar-track { background: transparent; }
+  .rail-body::-webkit-scrollbar-thumb {
+    background: rgba(156,66,33,.34); border-radius: 4px;
+    border: 2px solid transparent; background-clip: padding-box;
+  }
+  /* 注意：不要给 .lg-body / .units-body 再设 max-height/overflow，
+     否则会覆盖同元素上的 .rail-body 浮层限高，导致浮层撑满整个侧栏。 */
   .lg-close {
     width: 100%; margin-top: 8px; padding: 4px 8px; border-radius: 6px;
     border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
@@ -299,21 +313,38 @@
   }
   .lg-close:hover { border-color: var(--gold); color: var(--gold); }
   .lg-close:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-  /* 番号沿革：日期 + 沿革 + 出处 */
-  .units-body { max-height: min(38vh, 300px); overflow-y: auto; }
-  .unit-row { padding: 5px 0 6px; border-bottom: 1px dashed var(--border); }
-  .unit-row:last-of-type { border-bottom: none; }
-  .unit-row b { display: block; font-size: 10.5px; color: var(--value-text); font-variant-numeric: tabular-nums; }
-  .unit-row p { font-size: 11px; line-height: 1.6; color: var(--text-sub); margin: 2px 0 0; }
-  .unit-row em { display: block; font-style: normal; font-size: 9.5px; color: var(--text-sub); opacity: .78; margin-top: 2px; }
+  /* 番号沿革：分区清晰，出处独立成卡片列表，不再与正文混排 */
+  .units-intro { font-size: 10.5px; line-height: 1.6; color: var(--text-sub); margin: 0 0 8px; }
   .units-body h4 {
     font-size: 10.5px; font-weight: 700; letter-spacing: 1px; color: var(--gold);
-    margin: 9px 0 5px; display: flex; align-items: center; gap: 6px;
+    margin: 10px 0 6px; display: flex; align-items: center; gap: 6px;
   }
   .units-body h4::after { content: ""; flex: 1; height: 1px; background: rgba(156,66,33,.18); }
-  .unit-src { font-size: 10px; line-height: 1.55; color: var(--text-sub); margin-bottom: 3px; }
-  .unit-src a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--border); }
-  .unit-src a:hover { border-bottom-color: var(--gold); }
+  .unit-row {
+    display: grid; grid-template-columns: 58px minmax(0,1fr); gap: 8px;
+    padding: 6px 0; border-bottom: 1px dashed var(--border);
+  }
+  .unit-row:last-child { border-bottom: none; }
+  .u-date { font-size: 10px; font-weight: 700; color: var(--value-text); font-variant-numeric: tabular-nums; line-height: 1.55; }
+  .u-main { min-width: 0; }
+  .u-text { font-size: 11px; line-height: 1.62; color: var(--text-sub); }
+  .u-ref { display: block; margin-top: 3px; font-size: 9.5px; line-height: 1.45; color: var(--text-sub); opacity: .72; }
+  .u-corrections { list-style: none; margin: 0; padding: 0; }
+  .u-corrections li { position: relative; padding-left: 12px; margin-bottom: 5px; font-size: 10.5px; line-height: 1.65; color: var(--text-sub); }
+  .u-corrections li::before { content: "·"; position: absolute; left: 2px; color: var(--gold); font-weight: 800; }
+  .src-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .src-list a {
+    display: flex; align-items: center; gap: 8px; padding: 5px 7px;
+    border: 1px solid var(--border); border-radius: 7px;
+    background: var(--surface); color: var(--text-main);
+    font-size: 10.5px; font-weight: 600; text-decoration: none;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .src-list a:hover, .src-list a:focus-visible { border-color: var(--gold); color: var(--gold); background: rgba(156,66,33,.08); outline: none; }
+  .src-idx { flex: 0 0 auto; font-size: 9px; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .src-name { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .src-host { flex: 0 0 auto; font-size: 9px; font-weight: 400; color: var(--text-sub); opacity: .72; }
+  .src-ext { flex: 0 0 auto; color: var(--gold); font-size: 10px; }
   .lg-body::-webkit-scrollbar { width: 7px; }
   .lg-body::-webkit-scrollbar-track { background: transparent; }
   .lg-body::-webkit-scrollbar-thumb {
@@ -374,23 +405,10 @@
     position: relative; z-index: 2;
     margin-left: calc(var(--rail-w) + var(--rail-gap)); min-width: 0;
     /* 预留底部悬浮播放功能区的高度，避免遮挡信息卡 */
-    padding: 20px 16px 190px 0;
+    padding: 14px 16px 190px 0;
     transition: margin-left .28s cubic-bezier(.2,.7,.3,1), padding-left .28s ease;
   }
   body.rail-collapsed .right-panel { padding-left: 12px; }
-
-  /* 阶段标题：阶段名已在左侧菜单常驻，内容区不再重复 STAGE n */
-  .content-head {
-    background: var(--card-bg); backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--border); border-radius: 8px;
-    padding: 11px 18px; margin-bottom: 14px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
-  }
-  .content-head h1 { font-size: 20px; font-weight: 800; margin: 0 0 4px; color: var(--text-main); }
-  .content-head .head-intent { font-size: 13.5px; color: var(--text-sub); max-width: 880px; }
-  .content-head > * { animation: fadeUp .38s cubic-bezier(.2,.7,.3,1) both; }
-  .content-head > *:nth-child(2) { animation-delay: .04s; }
 
   /* 地图与战役详情同屏：详情为正常文档流中的右列，不覆盖地图、不中断播放 */
   .viewer-row { display: flex; align-items: flex-start; gap: 14px; }
@@ -536,7 +554,7 @@
   .map-tools .hint { font-size: 10.5px; color: var(--text-sub); font-weight: 400; margin-right: 2px; opacity: .8; }
   .zoom-readout {
     font-size: 11px; color: var(--text-sub); font-variant-numeric: tabular-nums;
-    min-width: 34px; text-align: right; margin-right: 2px;
+    min-width: 44px; text-align: right; margin-right: 2px;
   }
   .zoom-btn {
     width: 26px; height: 24px; line-height: 1;
@@ -637,7 +655,7 @@
 
   /* 比例尺 / 指北针 */
   .map-scale {
-    position: absolute; left: 12px; bottom: 10px; z-index: 4;
+    position: absolute; left: 12px; bottom: 10px; z-index: 4; width: 176px;
     background: rgba(251,246,234,.86); backdrop-filter: blur(4px);
     border: 1px solid var(--border); border-radius: 6px;
     padding: 5px 9px 4px; pointer-events: none;
@@ -964,9 +982,16 @@
   }
   @keyframes dockIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
   .player-dock.minimized .pd-body { display: none; }
-  .pd-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .player-dock .tl-head { margin-bottom: 0; gap: 8px; }
-  .player-dock .tl-hint { font-size: 10px; }
+  /* 状态区全部固定槽位：日期/阶段/聚焦/字幕都用定宽 + 省略号，
+     播放时文字再怎么变也不会换行、不会改变功能区高度，避免逐帧抖动。 */
+  .pd-top { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0; }
+  .player-dock .tl-head { margin-bottom: 0; gap: 8px; flex: 0 0 auto; min-width: 0; }
+  .player-dock .tl-date { flex: 0 0 130px; font-size: 15px; }
+  .player-dock .tl-chap { flex: 0 0 146px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player-dock .tl-hint {
+    flex: 0 1 auto; min-width: 0; max-width: 220px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px;
+  }
   .pd-min {
     margin-left: auto; flex: 0 0 auto; width: 26px; height: 22px; padding: 0;
     border: 1px solid var(--border); border-radius: 11px;
@@ -1011,21 +1036,27 @@
   .mt-hint { font-size: 10.5px; color: var(--text-sub); opacity: .8; }
   /* 聚焦状态与推进字幕不再浮在地图上，收进播放功能区 */
   .player-dock .focus-bar {
-    position: static; transform: none; display: none; opacity: 1; pointer-events: auto;
-    max-width: none; padding: 2px 6px; gap: 5px;
+    position: static; transform: none; display: inline-flex; visibility: hidden;
+    opacity: 1; pointer-events: auto; flex: 0 0 auto; width: 216px; max-width: 216px;
+    padding: 2px 6px; gap: 5px;
     border: none; border-radius: 10px; background: transparent; box-shadow: none; backdrop-filter: none;
   }
-  .player-dock .focus-bar.show { display: inline-flex; }
+  .player-dock .focus-bar.show { visibility: visible; }
   .player-dock .fb-dot { width: 6px; height: 6px; }
-  .player-dock .fb-text { font-size: 10.5px; white-space: nowrap; }
+  .player-dock .fb-text {
+    flex: 1 1 auto; min-width: 0; font-size: 10.5px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums;
+  }
   .player-dock .fb-restore { height: 20px; padding: 0 8px; font-size: 10px; }
   .player-dock .map-caption {
-    position: static; display: none; width: auto; max-width: 320px;
+    position: static; display: flex; visibility: hidden; flex: 1 1 auto;
+    width: auto; min-width: 0; max-width: 320px;
     flex-direction: row; align-items: center; gap: 6px;
     opacity: 1; transform: none; pointer-events: none;
   }
-  .player-dock .map-caption.show { display: flex; }
-  .player-dock .cap-main { padding: 2px 8px; border-left-width: 2px; box-shadow: none; }
+  .player-dock .map-caption.show { visibility: visible; }
+  .player-dock .cap-main { min-width: 0; padding: 2px 8px; border-left-width: 2px; box-shadow: none; }
+  .player-dock .cap-main .cap-title { min-width: 0; }
   .player-dock .cap-main .cap-title { font-size: 11px; gap: 6px; }
   .player-dock .cap-main .cap-text {
     font-size: 10.5px; margin-top: 0; max-width: 190px;
@@ -1087,7 +1118,7 @@
   .al-card.error .al-retry { display: inline-block; }
 
   @media (prefers-reduced-motion: reduce) {
-    .content-head > *, .battle-detail, .stage-nav.active .stage-intent, .map-caption, .player-dock,
+    .battle-detail, .stage-nav.active .stage-intent, .map-caption, .player-dock,
     .rail-body, .mf-panel, .map-ripple, .tick-flash, .mf-tab.pressed, .mf-panel li.flash { animation: none !important; transition: none !important; }
     .pl-track i, .stage-progress, .focus-bar, .legend-link i, .mf-ink, .rail-info-pop { transition: none !important; }
   }
@@ -1102,7 +1133,7 @@
     }
     .rail-toggle, .rail-open { display: none !important; }
     body.rail-collapsed .right-panel { padding-left: 0; }
-    .stage-timeline { overflow-y: visible; overflow-x: auto; padding: 0 0 0 24px; }
+    .stage-timeline { overflow-y: visible; overflow-x: auto; padding: 0 0 0 24px; min-height: 0; }
     .stage-timeline-inner::before, .stage-progress { display: none; }
     .stage-timeline-inner { display: flex; gap: 8px; }
     .stage-nav { position: static; padding: 8px 12px; margin: 0; flex: 0 0 auto; border-bottom: 4px solid transparent; }
@@ -1117,8 +1148,7 @@
     .pl-track { flex: 1 1 120px; margin: 0; }
     .legend-link { margin-top: 8px; }
     .rail-info-pop { width: min(320px, 88vw); }
-    .lg-body { max-height: 40vh; }
-    .units-body { max-height: 40vh; }
+    .rail-body { width: min(320px, 88vw); max-height: 52vh; }
     .right-panel { width: 100%; margin-left: 0; padding: 12px 0 210px; }
     .viewer-row { flex-direction: column; }
     .viewer-row .info-card {
@@ -1135,7 +1165,6 @@
     .pd-view { gap: 4px; }
   }
   @media (max-width: 560px) {
-    .content-head h1 { font-size: 19px; }
     .map-title { padding: 8px 10px; }
     .mt-left .mt-name { font-size: 13px; }
     .map-chip { display: none; }
@@ -1282,8 +1311,6 @@
   <button class="rail-open" id="railOpen" type="button" aria-label="展开侧栏" title="展开侧栏（快捷键 R）">› 展开侧栏</button>
 
   <section class="right-panel">
-    <div class="content-head" id="contentHead"></div>
-
     <div class="viewer-row" id="viewerRow">
     <div class="map-box" id="mapBox">
       <div class="map-title">
@@ -1886,6 +1913,9 @@ let focusBattleName = "";
 let lastAutoFocusKey = "";       // 上一次自动聚焦对应的战役，避免同役反复 tween
 let focusHideTimer = 0;
 let focusLockUntil = 0;          // 时间缓动 / 点击定位期间暂缓自动聚焦
+let lastAutoFocusAt = 0;
+let pendingAutoFocus = null;
+const AUTO_FOCUS_MIN_GAP = 900; // 播放中两次自动聚焦的最小间隔，避免镜头来回抖动
 let uiBlocks = [];               // 地图内 DOM 控件占位，供军事标注避让
 
 let labelCache = null;     // 标签布局缓存
@@ -3183,8 +3213,9 @@ tlRange.addEventListener("input", () => {
   onCameraChanged();
   ensureLoop();
   syncHash();
+  autoShowLegend(2600);   // 拖动时间轴时同样浮出图例，停下后延时收起
 });
-tlRange.addEventListener("pointerdown", () => { if (playing) stopPlay(); });
+tlRange.addEventListener("pointerdown", () => { if (playing) stopPlay(); autoShowLegend(2600); });
 
 function buildRuler() {
   STAGE_SPANS.forEach((sp, i) => {
@@ -3230,23 +3261,32 @@ function buildRuler() {
     tlYears.appendChild(el);
   }
 }
+/* 只在文本真的变化时才写 DOM；播放中日期每秒变多次，反复重启动画/强制回流
+   会让底部功能区抖动，因此仅在手动定位（非播放）时闪一下。 */
+function setText(el, text) {
+  if (el && el.textContent !== text) el.textContent = text;
+}
 function updateScrubUi() {
   tlRange.value = String(Math.round(t));
   const ds = fmtCN(t);
   if (tlDate.textContent !== ds) {
     tlDate.textContent = ds;
-    if (!REDUCED) {
+    if (!REDUCED && !playing) {
       tlDate.classList.remove("tick-flash");
       void tlDate.offsetWidth;
       tlDate.classList.add("tick-flash");
     }
   }
   const si = stageIndexAt(t);
-  tlChap.textContent = STAGES[si].name;
+  setText(tlChap, STAGES[si].name);
   $$(".tl-band").forEach((b, i) => b.classList.toggle("done", i < si));
-  // 指北针随 yaw 旋转
+  // 指北针随 yaw 旋转：同值不重复写
   const north = document.getElementById("northSvg");
-  north.style.transform = "rotate(" + (-cam.yaw * 57.3).toFixed(1) + "deg)";
+  const rot = "rotate(" + (-cam.yaw * 57.3).toFixed(1) + "deg)";
+  if (north.dataset.rot !== rot) {
+    north.style.transform = rot;
+    north.dataset.rot = rot;
+  }
 }
 let lastUiBucket = -1;
 function updateHud() {
@@ -3287,10 +3327,10 @@ function renderCaption() {
   let nowD = dnumLocal(t);
   if (ab) {
     const concurrent = concurrentBattles(t).length;
-    capTitle.textContent = ab.name;
-    capTime.textContent = ab.time + " · " + ab.kindLabel() + (concurrent > 1 ? " · 主视角（同期 " + concurrent + " 役）" : "");
+    setText(capTitle, ab.name);
+    setText(capTime, ab.time + " · " + ab.kindLabel() + (concurrent > 1 ? " · 主视角（同期 " + concurrent + " 役）" : ""));
     const phases = ab.phases.filter((p) => dnum(p.d) <= nowD + 3);
-    capText.textContent = phases.length ? phases[phases.length - 1].text : "推进中…";
+    setText(capText, phases.length ? phases[phases.length - 1].text : "推进中…");
     const total = ab.phases.length;
     const idx = ab.phases.findIndex((p) => dnum(p.d) > nowD + 3);
     const cur = idx < 0 ? total : idx + 1;
@@ -3312,9 +3352,9 @@ function renderCaption() {
   } else {
     const past = EVENTS.filter((e) => e.d <= t && t - e.d <= 45).pop();
     if (past) {
-      capTitle.textContent = past.t;
-      capTime.textContent = fmtCN(past.d, false);
-      capText.textContent = "历史节点：" + past.t;
+      setText(capTitle, past.t);
+      setText(capTime, fmtCN(past.d, false));
+      setText(capText, "历史节点：" + past.t);
       capPhase.style.display = "none";
       capEl.classList.add("show");
     } else capEl.classList.remove("show");
@@ -3369,11 +3409,7 @@ function renderStageContent(i) {
   lastStage = i;
   syncStageNav();
   const s = STAGES[i];
-  const head = document.getElementById("contentHead");
-  // 阶段名/时间在左侧章节菜单常驻，内容区只保留一条标题与导语，不再重复 STAGE n
-  head.innerHTML =
-    "<h1>" + s.name + " · " + s.time + "</h1>" +
-    '<p class="head-intent">' + s.intent + "</p>";
+  // 阶段名、时间与导语已在左侧章节菜单常驻，内容区不再重复任何阶段标题
   const list = document.getElementById("mfBattles");
   list.innerHTML = "";
   const stageBattles = battlesInStage(i);
@@ -3524,17 +3560,25 @@ function focusBattle(b, source) {
 function maybeAutoFocus(force) {
   const ab = activeNow(t);
   const key = ab ? ab.name : "";
-  if (!force && performance.now() < focusLockUntil) { lastAutoFocusKey = key; return; }
-  if (key === lastAutoFocusKey) return;
-  lastAutoFocusKey = key;
-  syncBattleList();          // 战役切换时即时刷新「进行中」徽标
-  if (!autoFocusOn) return;
-  // 用户点选战役后视图已锁定，不被播放过程中的自动聚焦覆盖
-  if (selectedBattle && focusMode === "battle") return;
-  if (ab) focusBattle(ab, "time");
+  const now = performance.now();
+  if (!force && now < focusLockUntil) { lastAutoFocusKey = key; return; }
+  if (key !== lastAutoFocusKey) {
+    lastAutoFocusKey = key;
+    syncBattleList();        // 战役切换时即时刷新「进行中」徽标
+    if (!autoFocusOn || (selectedBattle && focusMode === "battle")) { pendingAutoFocus = null; return; }
+    pendingAutoFocus = ab;   // 记下待聚焦目标，等冷却/缓动结束后统一落地
+  }
+  if (!pendingAutoFocus) return;
+  // 上一镜头缓动未结束、或间隔不足时不启动新 tween，防止连续抖动
+  if (!force && (camTween || now - lastAutoFocusAt < AUTO_FOCUS_MIN_GAP)) return;
+  const b = pendingAutoFocus;
+  pendingAutoFocus = null;
+  lastAutoFocusAt = now;
+  focusBattle(b, "time");
 }
 /* 手动缩放 / 平移时暂停自动聚焦，避免与用户操作抢镜头 */
 function pauseAutoFocus() {
+  pendingAutoFocus = null;   // 用户接管视图后丢弃待处理的自动聚焦
   if (autoFocusOn) { autoFocusOn = false; syncAutoBtn(); }
   if (focusMode !== "manual") { focusMode = "manual"; showFocusBar("manual"); }
 }
@@ -3548,20 +3592,21 @@ function syncAutoBtn() {
 }
 function setFocusText(state) {
   const txt = document.getElementById("fbText");
+  const concurrent = state === "battle" ? concurrentBattles(t).length : 0;
+  const label = state === "battle"
+    ? "已聚焦 " + focusBattleName + " · 局部放大 " + cam.zoom.toFixed(1) + "×" +
+      (concurrent > 1 ? " · 主视角（同期 " + concurrent + " 役）" : "")
+    : state === "manual" ? "手动视图 · 自动聚焦已暂停"
+    : state === "restored" ? "✓ 已恢复全局视图与原始缩放" : "";
+  if (txt.textContent === label) return;   // 避免逐帧重建文本节点
   txt.textContent = "";
   if (state === "battle") {
     txt.appendChild(document.createTextNode("已聚焦 "));
     const strong = document.createElement("b");
     strong.textContent = focusBattleName;
     txt.appendChild(strong);
-    const concurrent = concurrentBattles(t).length;
-    txt.appendChild(document.createTextNode(" · 局部放大 " + cam.zoom.toFixed(2) + "×" +
-      (concurrent > 1 ? " · 主视角（同期 " + concurrent + " 役）" : "")));
-  } else if (state === "manual") {
-    txt.appendChild(document.createTextNode("手动视图 · 自动聚焦已暂停"));
-  } else if (state === "restored") {
-    txt.appendChild(document.createTextNode("✓ 已恢复全局视图与原始缩放"));
-  }
+    txt.appendChild(document.createTextNode(label.slice(("已聚焦 " + focusBattleName).length)));
+  } else txt.textContent = label;
 }
 function showFocusBar(state) {
   const bar = document.getElementById("focusBar");
@@ -3583,9 +3628,14 @@ function showFocusBar(state) {
   document.getElementById("btnZoomReset").classList.toggle("armed", state === "battle" || state === "manual");
   refreshUiBlocks();
 }
+let lastFocusZoomAt = 0;
 function syncFocusZoom() {
   const bar = document.getElementById("focusBar");
-  if (focusMode === "battle" && bar.classList.contains("show") && !bar.classList.contains("restored")) setFocusText("battle");
+  if (focusMode !== "battle" || !bar.classList.contains("show") || bar.classList.contains("restored")) return;
+  const now = performance.now();
+  if (now - lastFocusZoomAt < 120) return;   // 镜头缓动期间最多 8 次/秒刷新读数
+  lastFocusZoomAt = now;
+  setFocusText("battle");
 }
 /* 明确的恢复操作：回到原始缩放尺寸、中心与视角，并重新启用自动聚焦 */
 function resetView(announce) {
@@ -3593,6 +3643,7 @@ function resetView(announce) {
   tweenCam({ cx: VIEW_W / 2, cy: VIEW_H / 2, zoom: d.zoom, yaw: d.yaw, pitch: d.pitch }, 460);
   focusMode = "global";
   focusBattleName = "";
+  pendingAutoFocus = null;   // 恢复全局视图后不再把镜头拉回战役
   autoFocusOn = true;
   syncAutoBtn();
   const ab = activeNow(t);
@@ -3610,13 +3661,17 @@ function setPlayLabel() {
   document.getElementById("mapChip").classList.toggle("live", playing);
 }
 function stopPlay() {
-  if (playing) playing = false;
+  if (playing) { playing = false; autoHideLegend(1200); }
   setPlayLabel();
 }
 function startPlay() {
   if (t >= DTOTAL - 1) { t = 0; snapUi(); }
   playing = true;
   setPlayLabel();
+  // 演进期间默认浮出军事图例（浮层不占布局空间），暂停后延时收起
+  legendUserOverride = false;
+  clearTimeout(legendAutoTimer);
+  autoShowLegend(0);
   ensureLoop();
 }
 btnPlay.addEventListener("click", () => {
@@ -3722,7 +3777,7 @@ function checkTerrainDirty() {
 /* 地图内浮层是独立交互区：画布上的 pointer/wheel/dblclick 一律不接管它们。
    旧实现在 pointerdown 上无条件 setPointerCapture，会把后续 click 劫持到画布，
    导致图例、战役面板、聚焦条「点不动」；双击与滚轮又会冒泡触发地图放大。 */
-const UI_OVERLAY_SEL = ".map-float, .legend-dock, .focus-bar, .map-caption, .map-tip, .rail-open";
+const UI_OVERLAY_SEL = ".map-float, .focus-bar, .map-caption, .map-tip, .rail-open";
 function isOverlayEvent(e) {
   const el = e.target;
   return el instanceof Element && !!el.closest(UI_OVERLAY_SEL);
@@ -3750,13 +3805,15 @@ MAP_CANVAS.addEventListener("pointermove", (e) => {
   if (orbit.panning) {
     const S = camScale();
     const shF = cam.threeD ? Math.max(0.35, Math.cos(cam.pitch)) : 1;
+    // project(): screen_y = Hc/2 + (y - cam.cy) * Cp * S，cam.cy 变大会让内容上移。
+    // 因此向下拖（dy>0）应减小 cam.cy，内容才跟着手往下走；两个方向都用「负号」。
     cam.cx = orbit.cx - dx / S;
-    cam.cy = orbit.cy + dy / (S * shF);
+    cam.cy = orbit.cy - dy / (S * shF);
     clampCam();
   } else {
-    // 视角仅允许小幅环视，不会转到地图背面
+    // 环视同样取反：下拉视角变低（俯角减小），上推更俯视
     cam.yaw = clamp(orbit.yaw + dx * 0.004, -YAW_LIMIT, YAW_LIMIT);
-    cam.pitch = clamp(orbit.pitch + dy * 0.005, PITCH_MIN, PITCH_MAX);
+    cam.pitch = clamp(orbit.pitch - dy * 0.005, PITCH_MIN, PITCH_MAX);
   }
   onCameraChanged();
   ensureLoop();
@@ -4054,9 +4111,9 @@ function updateScaleBar() {
   }
   const px = km / kmPerPx;
   document.getElementById("msTrack").style.width = Math.max(34, Math.round(px)) + "px";
-  document.getElementById("msLabel").textContent = km + " 公里";
-  document.getElementById("msMax").textContent = String(km);
-  document.getElementById("zoomReadout").textContent = cam.zoom.toFixed(2) + "×";
+  setText(document.getElementById("msLabel"), km + " 公里");
+  setText(document.getElementById("msMax"), String(km));
+  setText(document.getElementById("zoomReadout"), cam.zoom.toFixed(2) + "×");
   const zs = document.getElementById("zoomSlider");
   if (zs && document.activeElement !== zs) zs.value = cam.zoom.toFixed(2);
   document.getElementById("btnZoomOut").disabled = cam.zoom <= ZOOM_MIN + 0.01;
@@ -4189,8 +4246,12 @@ mfFold.addEventListener("click", () => {
 });
 
 /* ===================== 侧栏折叠区：军事图例 / 番号沿革 ===================== */
-/* 图例已从地图内容区移入左侧菜单，只有点击开关才会展开或收起 */
+/* 图例/沿革是侧栏内的浮层，只有点击开关才会展开或收起；播放/拖动时间轴时
+   默认浮出图例，浮层不占布局高度，也不覆盖地图内容区域。 */
 const LEGEND_KEY = "lw-legend-open";
+let legendAutoOpen = false;
+let legendUserOverride = false;
+let legendAutoTimer = 0;
 const UNITS_KEY = "lw-units-open";
 const railLegend = document.getElementById("railLegend");
 const railUnits = document.getElementById("railUnits");
@@ -4212,17 +4273,42 @@ function setUnitsOpen(open, persist) {
   }
   refreshUiBlocks();
 }
-/* 手风琴：两个长面板不同时展开，避免短屏上侧栏被挤到需要长距离滚动 */
+/* 演进时自动浮出图例；用户手动开合后，本次播放不再自动覆盖其选择 */
+function autoShowLegend(holdMs) {
+  if (legendUserOverride) return;
+  if (railLegend.classList.contains("open") && !legendAutoOpen) return; // 用户手动展开
+  legendAutoOpen = true;
+  setLegendOpen(true, false);
+  clearTimeout(legendAutoTimer);
+  if (holdMs > 0 && !playing) legendAutoTimer = setTimeout(() => { if (!playing) autoHideLegend(); }, holdMs);
+}
+function autoHideLegend(delay) {
+  clearTimeout(legendAutoTimer);
+  if (delay > 0) { legendAutoTimer = setTimeout(() => autoHideLegend(), delay); return; }
+  if (!legendAutoOpen) return;
+  legendAutoOpen = false;
+  setLegendOpen(false, false);
+}
+/* 手风琴：两个浮层不同时展开 */
 legendOpenBtn.addEventListener("click", () => {
+  legendUserOverride = true;
+  clearTimeout(legendAutoTimer);
+  legendAutoOpen = false;
   const open = !railLegend.classList.contains("open");
   setLegendOpen(open, true);
   if (open) setUnitsOpen(false, true);
 });
 document.getElementById("legendCloseBtn").addEventListener("click", () => {
+  legendUserOverride = true;
+  clearTimeout(legendAutoTimer);
+  legendAutoOpen = false;
   setLegendOpen(false, true);
   legendOpenBtn.focus();
 });
 unitsOpenBtn.addEventListener("click", () => {
+  legendUserOverride = true;
+  clearTimeout(legendAutoTimer);
+  legendAutoOpen = false;
   const open = !railUnits.classList.contains("open");
   setUnitsOpen(open, true);
   if (open) setLegendOpen(false, true);
@@ -4235,37 +4321,60 @@ function buildUnitsPanel() {
   const sources = DATA.META?.sources || [];
   const corrections = DATA.META?.corrections || [];
   const frag = document.createDocumentFragment();
+  const heading = (text) => {
+    const h = document.createElement("h4");
+    h.textContent = text;
+    return h;
+  };
+  const intro = document.createElement("p");
+  intro.className = "units-intro";
+  intro.textContent = "番号按中央军委 1948.11.1 与 1949.1.15 两次整编令整理；「决定日」与「实际启用日」分列，出处统一列在文末。";
+  frag.appendChild(intro);
+
+  // 一 · 沿革：日期独立成列，正文与依据分层
+  frag.appendChild(heading("一 · 番号沿革"));
+  const rows = document.createElement("div");
   units.forEach((u) => {
-    const row = document.createElement("div");
-    row.className = "unit-row";
-    const d = document.createElement("b"); d.textContent = u.d;
-    const p = document.createElement("p"); p.textContent = u.text;
-    const em = document.createElement("em"); em.textContent = "依据：" + u.ref;
-    row.append(d, p, em); frag.appendChild(row);
+    const row = document.createElement("div"); row.className = "unit-row";
+    const date = document.createElement("span"); date.className = "u-date"; date.textContent = u.d;
+    const main = document.createElement("div"); main.className = "u-main";
+    const text = document.createElement("div"); text.className = "u-text"; text.textContent = u.text;
+    const ref = document.createElement("span"); ref.className = "u-ref"; ref.textContent = "依据 · " + u.ref;
+    main.append(text, ref); row.append(date, main); rows.appendChild(row);
   });
+  frag.appendChild(rows);
+
+  // 二 · 考订：无链接的纯说明列表
   if (corrections.length) {
-    const h = document.createElement("h4"); h.textContent = "本图已考订";
-    frag.appendChild(h);
+    frag.appendChild(heading("二 · 本图已考订"));
+    const ul = document.createElement("ul"); ul.className = "u-corrections";
     corrections.forEach((c) => {
-      const p = document.createElement("p"); p.className = "unit-row";
-      p.style.fontSize = "10.5px"; p.style.lineHeight = "1.6";
-      p.textContent = "· " + c; frag.appendChild(p);
+      const li = document.createElement("li"); li.textContent = c; ul.appendChild(li);
     });
+    frag.appendChild(ul);
   }
+
+  // 三 · 出处：独立卡片链接，序号 + 名称 + 域名 + 外链箭头，全文 URL 只放 title
   if (sources.length) {
-    const h = document.createElement("h4"); h.textContent = "史料出处";
-    frag.appendChild(h);
-    sources.forEach((src) => {
-      const row = document.createElement("div"); row.className = "unit-src";
+    frag.appendChild(heading("三 · 史料出处"));
+    const list = document.createElement("ul"); list.className = "src-list";
+    sources.forEach((src, i) => {
+      const li = document.createElement("li");
       const a = document.createElement("a");
       a.href = src.url; a.target = "_blank"; a.rel = "noopener noreferrer";
-      a.textContent = src.name;
-      row.append(a, document.createElement("br"));
-      const small = document.createElement("span");
-      small.style.fontSize = "9px"; small.style.opacity = ".7";
-      small.textContent = src.url;
-      row.appendChild(small); frag.appendChild(row);
+      a.title = src.url;
+      a.setAttribute("aria-label", src.name + "（新窗口打开）");
+      const idx = document.createElement("span"); idx.className = "src-idx";
+      idx.textContent = String(i + 1).padStart(2, "0");
+      const name = document.createElement("span"); name.className = "src-name"; name.textContent = src.name;
+      let host = "";
+      try { host = new URL(src.url).hostname.replace(/^www\./, ""); } catch (err) { host = ""; }
+      const hostEl = document.createElement("span"); hostEl.className = "src-host"; hostEl.textContent = host;
+      const ext = document.createElement("span"); ext.className = "src-ext"; ext.textContent = "↗";
+      a.append(idx, name, hostEl, ext);
+      li.appendChild(a); list.appendChild(li);
     });
+    frag.appendChild(list);
   }
   body.appendChild(frag);
 }
@@ -4315,6 +4424,9 @@ document.addEventListener("click", (e) => {
 });
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
+  legendUserOverride = true;
+  clearTimeout(legendAutoTimer);
+  legendAutoOpen = false;
   setRailInfoOpen(false);
   setLegendOpen(false, true);
   setUnitsOpen(false, true);
