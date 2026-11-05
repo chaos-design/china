@@ -372,9 +372,37 @@
   .lg-row span:last-child { min-width: 0; }
   .lg-note {
     margin-top: 8px; padding-top: 7px; border-top: 1px dashed var(--border);
-    font-size: 10px; line-height: 1.6; color: var(--text-sub);
+    font-size: 10px; line-height: 1.55; color: var(--text-sub);
   }
   .lg-note b { color: var(--text-main); font-weight: 700; }
+  .ln-head {
+    display: inline-flex; align-items: center; gap: 4px; margin-bottom: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--gold);
+  }
+  .ln-head::before {
+    content: ""; width: 10px; height: 10px; border-radius: 2px;
+    background: var(--ccp-color); flex: 0 0 auto;
+  }
+  .ln-row { display: grid; grid-template-columns: 34px minmax(0,1fr); column-gap: 8px; align-items: baseline; margin-top: 3px; }
+  .ln-k {
+    font-size: 9.5px; font-weight: 700; color: var(--accent);
+    border: 1px solid rgba(156,66,33,.3); border-radius: 3px;
+    padding: 0 3px; text-align: center; white-space: nowrap;
+    align-self: start; margin-top: 1px;
+  }
+  /* 标图口径改为「点开才展开」的另一种形式，默认收起不占图例空间 */
+  .ln-toggle {
+    display: flex; align-items: center; gap: 6px; width: 100%;
+    padding: 4px 7px; border: 1px solid var(--border); border-radius: 7px;
+    background: var(--surface); color: var(--text-sub);
+    font-size: 10px; font-weight: 700; letter-spacing: .5px; cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .ln-toggle:hover, .lg-note.open .ln-toggle { color: var(--gold); border-color: var(--gold); background: rgba(156,66,33,.09); }
+  .ln-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .ln-pop { display: none; margin-top: 6px; }
+  .lg-note.open .ln-pop { display: block; }
+  .lg-note.open .ri-arrow { transform: rotate(180deg); }
   /* 图例样本：交叉步枪 / 铁路 / 番号牌 / 行动注记 */
   .sym-gun { width: 20px; height: 14px; position: relative; flex: 0 0 auto; }
   .sym-gun::before, .sym-gun::after {
@@ -411,11 +439,12 @@
   body.rail-collapsed .right-panel { padding-left: 12px; }
 
   /* 地图与战役详情同屏：详情为正常文档流中的右列，不覆盖地图、不中断播放 */
-  .viewer-row { display: flex; align-items: flex-start; gap: 14px; }
-  .viewer-row .map-box { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
+  .viewer-row { display: flex; align-items: stretch; gap: 14px; }
+  .viewer-row .map-box { flex: 1 1 auto; min-width: 0; margin-bottom: 0; align-self: stretch; }
   .viewer-row .info-card {
     flex: 0 0 330px; width: 330px; max-width: 34%;
     position: sticky; top: 14px;
+    height: 100%;
     max-height: calc(100vh - 210px); min-height: 180px;
     overflow-y: auto; overscroll-behavior: contain;
     scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent;
@@ -588,6 +617,14 @@
   .reset-btn { color: var(--accent); border-color: rgba(156,66,33,.38); }
   .reset-btn.armed { box-shadow: 0 0 0 2px rgba(156,66,33,.16); }
   .auto-btn:focus-visible, .reset-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  /* 按钮内图标 / 箭头与文字等距对齐：统一尺寸 + 垂直居中 */
+  .tool-btn, .mode-btn, .auto-btn, .reset-btn, .zoom-btn, .pd-step,
+  .mf-tab, .fb-restore, .ic-focus, .pd-min, .rail-toggle, .rail-open,
+  .rail-info-btn, .mf-fold, .speed-chip {
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    line-height: 1;
+  }
+  .gi { font-size: 1em; line-height: 1; display: inline-block; flex: 0 0 auto; transform: translateY(0.5px); }
   .tick-flash { animation: tickFlash .42s ease; }
   @keyframes tickFlash {
     0% { color: var(--gold); text-shadow: 0 0 8px rgba(156,66,33,.35); }
@@ -712,15 +749,12 @@
   .map-tip .tip-force .sw.cc { background: var(--ccp-color); }
   .map-tip .tip-force .sw.kmt { background: var(--kmt-color); }
 
-  /* 地图内悬浮面板（战役 / 态势 快速切换） */
+  /* 战役 / 态势：移入左侧功能区（侧栏），不再浮在地图上遮挡底图 */
   .map-float {
-    position: absolute; top: 10px; left: 10px; z-index: 6;
-    width: 246px; max-width: calc(100% - 116px);
-    background: rgba(251,246,234,.93); backdrop-filter: blur(5px);
-    border: 1px solid var(--border); border-radius: 9px;
-    box-shadow: 0 4px 16px rgba(120,90,50,.18);
+    position: relative; flex: 0 0 auto; width: 100%; margin: 0 0 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 9px; box-shadow: 0 2px 8px rgba(120,90,50,.08);
     overflow: hidden;
-    transition: top .28s ease;
   }
   .mf-head {
     position: relative; display: flex; align-items: center; gap: 6px;
@@ -974,7 +1008,7 @@
   }
   .player-dock {
     pointer-events: auto; width: min(1080px, 100%);
-    padding: 8px 12px 10px;
+    padding: 5px 10px 7px;
     background: rgba(251,246,234,.94); backdrop-filter: blur(10px);
     border: 1px solid var(--border); border-radius: 14px;
     box-shadow: 0 12px 34px rgba(96,70,40,.22), 0 2px 6px rgba(96,70,40,.10);
@@ -984,14 +1018,31 @@
   .player-dock.minimized .pd-body { display: none; }
   /* 状态区全部固定槽位：日期/阶段/聚焦/字幕都用定宽 + 省略号，
      播放时文字再怎么变也不会换行、不会改变功能区高度，避免逐帧抖动。 */
-  .pd-top { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0; }
-  .player-dock .tl-head { margin-bottom: 0; gap: 8px; flex: 0 0 auto; min-width: 0; }
-  .player-dock .tl-date { flex: 0 0 130px; font-size: 15px; }
-  .player-dock .tl-chap { flex: 0 0 146px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pd-top { display: flex; align-items: center; gap: 7px; flex-wrap: nowrap; min-width: 0; overflow: hidden; }
+  .player-dock .tl-head { margin-bottom: 0; gap: 7px; flex: 0 1 auto; min-width: 0; }
+  .player-dock .tl-date { flex: 0 0 auto; font-size: 14px; white-space: nowrap; }
+  .player-dock .tl-chap { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .player-dock .tl-hint {
-    flex: 0 1 auto; min-width: 0; max-width: 220px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px;
+    flex: 0 0 auto; margin-left: 0; width: 22px; height: 22px; padding: 0;
+    border: 1px solid var(--border); border-radius: 50%;
+    background: var(--surface); color: var(--gold); opacity: 1;
+    font-size: 12px; font-weight: 700; cursor: help;
+    display: inline-flex; align-items: center; justify-content: center;
+    position: relative;
   }
+  .player-dock .tl-hint:hover, .player-dock .tl-hint:focus-visible { border-color: var(--gold); background: rgba(156,66,33,.08); outline: none; }
+  .player-dock .tl-hint::after {
+    content: attr(data-tip);
+    position: absolute; bottom: 134%; left: 0; z-index: 80;
+    width: max-content; max-width: 320px;
+    background: var(--text-main); color: #fbf6ea;
+    font-size: 11px; font-weight: 400; line-height: 1.5; letter-spacing: 0;
+    padding: 7px 10px; border-radius: 8px; box-shadow: 0 8px 24px rgba(96,70,40,.28);
+    opacity: 0; visibility: hidden; transform: translateY(4px);
+    transition: opacity .16s ease, transform .16s ease; pointer-events: none;
+    text-align: left; white-space: normal;
+  }
+  .player-dock .tl-hint:hover::after, .player-dock .tl-hint:focus-visible::after { opacity: 1; visibility: visible; transform: none; }
   .pd-min {
     margin-left: auto; flex: 0 0 auto; width: 26px; height: 22px; padding: 0;
     border: 1px solid var(--border); border-radius: 11px;
@@ -1004,11 +1055,12 @@
   .player-dock.minimized .pd-min i { display: block; transform: rotate(180deg); }
   .pd-min i { display: block; font-style: normal; transition: transform .2s ease; }
   .player-dock .tl-scrub { background: transparent; border: none; padding: 2px 0 0; }
-  .pd-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 5px; }
-  .pd-transport, .pd-view { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .player-dock .tool-btn { flex: 0 0 auto; min-width: 86px; padding: 4px 12px; font-size: 12px; }
+  .pd-controls { display: flex; align-items: center; justify-content: flex-start; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+  /* 两组控件合并到同一行：子元素作为 .pd-controls 的直接 flex 子项参与布局 */
+  .pd-transport, .pd-view { display: contents; }
+  .player-dock .tool-btn { flex: 0 0 auto; min-width: 74px; padding: 4px 10px; font-size: 11.5px; }
   .player-dock .speed-row { flex: 0 0 auto; width: auto; gap: 4px; }
-  .player-dock .speed-chip { flex: 0 0 auto; min-width: 36px; padding: 3px 7px; font-size: 11px; }
+  .player-dock .speed-chip { flex: 0 0 auto; min-width: 34px; padding: 3px 6px; font-size: 11px; }
   .pd-step {
     flex: 0 0 auto; width: 26px; height: 24px; padding: 0;
     border: 1px solid var(--border); border-radius: 12px;
@@ -1020,7 +1072,7 @@
   .pd-step:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   .pd-sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; flex: 0 0 auto; }
   .zoom-slider {
-    width: 104px; height: 18px; margin: 0; cursor: pointer;
+    width: 90px; height: 18px; margin: 0; cursor: pointer;
     -webkit-appearance: none; appearance: none; background: transparent;
     accent-color: var(--gold);
   }
@@ -1055,11 +1107,13 @@
     opacity: 1; transform: none; pointer-events: none;
   }
   .player-dock .map-caption.show { visibility: visible; }
-  .player-dock .cap-main { min-width: 0; padding: 2px 8px; border-left-width: 2px; box-shadow: none; }
-  .player-dock .cap-main .cap-title { min-width: 0; }
-  .player-dock .cap-main .cap-title { font-size: 11px; gap: 6px; }
+  .player-dock .cap-main {
+    min-width: 0; padding: 4px 10px; border-left-width: 3px;
+    background: var(--surface-2); box-shadow: none;
+  }
+  .player-dock .cap-main .cap-title { min-width: 0; font-size: 11.5px; gap: 6px; color: var(--gold); }
   .player-dock .cap-main .cap-text {
-    font-size: 10.5px; margin-top: 0; max-width: 190px;
+    font-size: 10.5px; margin-top: 1px; max-width: 220px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .player-dock .cap-phase { display: none !important; }
@@ -1152,9 +1206,13 @@
     .right-panel { width: 100%; margin-left: 0; padding: 12px 0 210px; }
     .viewer-row { flex-direction: column; }
     .viewer-row .info-card {
-      position: static; flex-basis: auto; width: 100%; max-width: 100%; max-height: none;
+      position: static; flex-basis: auto; width: 100%; max-width: 100%; max-height: none; height: auto;
     }
-    .map-float { width: 200px; top: 8px; left: 8px; max-width: calc(100% - 110px); }
+    .map-float {
+      position: fixed; top: 46px; left: 8px; width: 200px;
+      max-width: calc(100% - 96px); z-index: 40; margin: 0;
+    }
+    .left-panel { backdrop-filter: none; }
     .mf-body { max-height: 34vh; }
     .mt-hint { display: none; }
     .map-canvas { aspect-ratio: auto; height: 62vh; min-height: 340px; }
@@ -1198,7 +1256,7 @@
   <nav class="left-panel" id="leftPanel" aria-label="章节与模拟控制">
     <div class="nav-title">
       <span>解放战争 · 五阶段</span>
-      <button class="rail-toggle" id="railToggle" type="button" aria-expanded="true" aria-label="收起侧栏，扩大地图" title="收起侧栏，扩大地图">‹ 收起</button>
+      <button class="rail-toggle" id="railToggle" type="button" aria-expanded="true" aria-label="收起侧栏，扩大地图" title="收起侧栏，扩大地图"><span class="gi">‹</span>收起</button>
     </div>
     <div class="stage-timeline">
       <div class="stage-timeline-inner" id="stageTimelineInner">
@@ -1223,6 +1281,22 @@
       <div class="pl-battle" id="plBattle" hidden>
         <span style="font-size:10.5px;letter-spacing:1px;color:var(--text-sub)">进行中战役</span>
         <b id="plBattleName">—</b>
+      </div>
+    </div>
+
+    <!-- 战役 / 态势：移入左侧功能区，不再浮在地图上遮挡底图 -->
+    <div class="map-float" id="mapFloat" role="group" aria-label="战役与态势快速切换面板">
+      <div class="mf-head">
+        <div class="mf-tabs" role="tablist" aria-label="切换战役或态势列表">
+          <button class="mf-tab on" id="mfTabBattles" type="button" role="tab" aria-selected="true" aria-controls="mfBattles">战役</button>
+          <button class="mf-tab" id="mfTabFacts" type="button" role="tab" aria-selected="false" aria-controls="mfFacts">态势</button>
+          <i class="mf-ink" id="mfInk" aria-hidden="true"></i>
+        </div>
+        <button class="mf-fold" id="mfFold" type="button" aria-expanded="true" aria-label="折叠 / 展开面板"><i class="gi">‹</i></button>
+      </div>
+      <div class="mf-body" id="mfBody">
+        <ul class="mf-panel" id="mfBattles" role="tabpanel" aria-label="本阶段战役列表"></ul>
+        <ul class="mf-panel mf-facts" id="mfFacts" role="tabpanel" aria-label="关键态势" hidden></ul>
       </div>
     </div>
 
@@ -1272,11 +1346,16 @@
               <div class="lg-row"><span class="lg-sym"><i class="river-sample"></i></span><span>主要河流（渐变水面＋岸线）</span></div>
               <div class="lg-row"><span class="lg-sym"><i class="rail-sample"></i></span><span>历史铁路（1946—1950）</span></div>
             </div>
-            <p class="lg-note">
-              底图为真实国界与省界（<b>Albers 等积投影</b>，25°N / 47°N），3D 高程由山脉与高原数据叠加生成；
-              箭头为<b>示意性战略方向</b>而非精确行军路线，番号与兵力按军史通行数字整理、存疑处标「约」。
-              时间推进会<b>自动局部放大</b>当前战役；同一时段多场战役并进时，镜头按解放进程重要性交给<b>主视角战役</b>。手动缩放或拖拽后自动聚焦暂停，点「⟲ 恢复全局视图」即可回到原始缩放与视角并重新启用。
-            </p>
+            <div class="lg-note" id="lgNote">
+              <button class="ln-toggle" id="lnToggle" type="button" aria-expanded="false" aria-controls="lnPop">
+                <i class="ri-icon" aria-hidden="true">ⓘ</i><span>标图口径</span><i class="ri-arrow" aria-hidden="true">▴</i>
+              </button>
+              <div class="ln-pop" id="lnPop" role="note" aria-label="标图口径">
+                <div class="ln-row"><span class="ln-k">投影</span>真实国界与省界，<b>Albers 等积投影</b>（25°N / 47°N），3D 高程由山脉与高原数据叠加生成。</div>
+                <div class="ln-row"><span class="ln-k">箭头</span><b>示意性战略方向</b>，非精确行军路线；番号与兵力按军史通行数字整理，存疑处标「约」。</div>
+                <div class="ln-row"><span class="ln-k">镜头</span>推进时<b>自动局部放大</b>当前战役；手动缩放或拖拽后自动聚焦暂停，点「⟲ 恢复全局视图」复位。</div>
+              </div>
+            </div>
         <button class="lg-close" id="legendCloseBtn" type="button">收起图例 ▲</button>
       </div>
     </div>
@@ -1308,7 +1387,7 @@
   </nav>
 
   <!-- 收起侧栏后的常驻展开把手，独立于地图画布 -->
-  <button class="rail-open" id="railOpen" type="button" aria-label="展开侧栏" title="展开侧栏（快捷键 R）">› 展开侧栏</button>
+  <button class="rail-open" id="railOpen" type="button" aria-label="展开侧栏" title="展开侧栏（快捷键 R）"><span class="gi">›</span>展开侧栏</button>
 
   <section class="right-panel">
     <div class="viewer-row" id="viewerRow">
@@ -1339,21 +1418,6 @@
           <span>N</span>
         </div>
 
-        <div class="map-float" id="mapFloat" role="group" aria-label="战役与态势快速切换面板">
-          <div class="mf-head">
-            <div class="mf-tabs" role="tablist" aria-label="切换战役或态势列表">
-              <button class="mf-tab on" id="mfTabBattles" type="button" role="tab" aria-selected="true" aria-controls="mfBattles">战役</button>
-              <button class="mf-tab" id="mfTabFacts" type="button" role="tab" aria-selected="false" aria-controls="mfFacts">态势</button>
-              <i class="mf-ink" id="mfInk" aria-hidden="true"></i>
-            </div>
-            <button class="mf-fold" id="mfFold" type="button" aria-expanded="true" aria-label="折叠 / 展开面板"><i>‹</i></button>
-          </div>
-          <div class="mf-body" id="mfBody">
-            <ul class="mf-panel" id="mfBattles" role="tabpanel" aria-label="本阶段战役列表"></ul>
-            <ul class="mf-panel mf-facts" id="mfFacts" role="tabpanel" aria-label="关键态势" hidden></ul>
-          </div>
-        </div>
-
         <div class="map-tip" id="mapTip" role="tooltip" aria-hidden="true"></div>
       </div>
 
@@ -1365,7 +1429,7 @@
     <div class="info-card" id="infoCard" hidden>
       <div class="ic-head">
         <span>战役详情 · 与地图同屏</span>
-        <button class="ic-focus" id="icFocus" type="button" title="只在需要时定位地图，不改变播放进度">⌖ 定位到地图</button>
+        <button class="ic-focus" id="icFocus" type="button" title="只在需要时定位地图，不改变播放进度"><span class="gi">⌖</span>定位到地图</button>
       </div>
       <div class="battle-detail" id="battleDetail" hidden></div>
       <p class="ic-note">详情常驻右侧，播放与时间轴演进不受影响；播放中点选战役只更新本栏，不回拨时间、不抢镜头。</p>
@@ -1382,12 +1446,12 @@
         <div class="tl-head">
           <span class="tl-date" id="tlDate">1946年6月26日</span>
           <span class="tl-chap" id="tlChap">第一阶段 · 战略防御</span>
-          <span class="tl-hint">拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏</span>
+          <button class="tl-hint" id="tlHint" type="button" aria-label="操作说明（悬停查看）" title="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图" data-tip="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图">ⓘ</button>
         </div>
         <div class="focus-bar" id="focusBar" role="status" aria-live="polite">
           <span class="fb-dot" aria-hidden="true"></span>
           <span class="fb-text" id="fbText">已聚焦</span>
-          <button class="fb-restore" id="fbRestore" type="button">⟲ 恢复全局视图</button>
+          <button class="fb-restore" id="fbRestore" type="button"><span class="gi">⟲</span>恢复全局视图</button>
         </div>
         <div class="map-caption" id="mapCaption" aria-hidden="true">
           <div class="cap-main">
@@ -1397,7 +1461,7 @@
           <div class="cap-phase" id="capPhase" aria-hidden="true"></div>
         </div>
         <button class="pd-min" id="pdMini" type="button" aria-expanded="true" aria-controls="pdBody"
-                aria-label="收起播放控制区" title="收起 / 展开播放控制区"><i>⌄</i></button>
+                aria-label="收起播放控制区" title="收起 / 展开播放控制区"><i class="gi">⌄</i></button>
       </div>
 
       <div class="pd-body" id="pdBody">
@@ -1411,10 +1475,10 @@
 
         <div class="pd-controls">
           <div class="pd-transport">
-            <button class="pd-step" id="btnStepBack" type="button" aria-label="后退 3 天" title="后退 3 天">⏴</button>
+            <button class="pd-step" id="btnStepBack" type="button" aria-label="后退 3 天" title="后退 3 天"><span class="gi">⏴</span></button>
             <button class="tool-btn" id="btnPlay" type="button" aria-pressed="false">▶ 播放演进</button>
-            <button class="pd-step" id="btnStepFwd" type="button" aria-label="前进 3 天" title="前进 3 天">⏵</button>
-            <button class="tool-btn" id="btnReset" type="button">↺ 回到起点</button>
+            <button class="pd-step" id="btnStepFwd" type="button" aria-label="前进 3 天" title="前进 3 天"><span class="gi">⏵</span></button>
+            <button class="tool-btn" id="btnReset" type="button"><span class="gi">↺</span>回到起点</button>
             <div class="speed-row" role="group" aria-label="播放速度">
               <button class="speed-chip" data-speed="0.25" type="button">0.25×</button>
               <button class="speed-chip" data-speed="0.5" type="button">0.5×</button>
@@ -1427,15 +1491,15 @@
             <button class="mode-btn on" id="btn3d" type="button" aria-pressed="true">3D 沙盘</button>
             <button class="mode-btn" id="btn2d" type="button" aria-pressed="false">2D 平面图</button>
             <span class="pd-sep" aria-hidden="true"></span>
-            <button class="zoom-btn" id="btnZoomOut" type="button" aria-label="缩小地图">−</button>
+            <button class="zoom-btn" id="btnZoomOut" type="button" aria-label="缩小地图"><span class="gi">−</span></button>
             <input type="range" class="zoom-slider" id="zoomSlider" min="0.65" max="8" step="0.01" value="1"
                    aria-label="地图缩放：拖动精细调节倍率">
-            <button class="zoom-btn" id="btnZoomIn" type="button" aria-label="放大地图">＋</button>
+            <button class="zoom-btn" id="btnZoomIn" type="button" aria-label="放大地图"><span class="gi">＋</span></button>
             <span class="zoom-readout" id="zoomReadout">1.00×</span>
             <button class="auto-btn on" id="btnAutoFocus" type="button" aria-pressed="true"
                     title="时间推进时自动局部放大当前战役位置；手动缩放后自动关闭">◎ 自动聚焦</button>
             <button class="reset-btn" id="btnZoomReset" type="button"
-                    title="恢复原始缩放尺寸与视图（快捷键 0）">⟲ 恢复全局视图</button>
+                    title="恢复原始缩放尺寸与视图（快捷键 0）"><span class="gi">⟲</span>恢复全局视图</button>
           </div>
         </div>
       </div>
@@ -2692,7 +2756,10 @@ function drawMarker(c, b, t) {
   const peace = b.kind === "peace";
   const isSel = selectedBattle === b;
   const zK = clamp((cam.zoom - 0.75) / 3.75, 0, 1);
-  const r = (b.rank === 1 ? 6.6 : 5.4) * (0.92 + 0.38 * zK);
+  // 战役密集时放大战斗地点，避免箭头/标注互相遮挡而不显示
+  const activeNow = ALL_BATTLES.reduce((n, x) => n + (t >= x._d0 && t <= x._d1 ? 1 : 0), 0);
+  const crowdK = clamp((activeNow - 4) / 10, 0, 1);
+  const r = ((b.rank === 1 ? 6.6 : 5.4) + 1.4 * crowdK) * (0.92 + 0.38 * zK);
   const sideCol = b.side === "kmt" ? "rgba(63,110,168,0.95)" : "rgba(181,52,42,0.95)";
   c.save();
   c.globalAlpha = planned ? 0.85 : 1;
@@ -2941,13 +3008,18 @@ function layoutAndDrawLabels(c) {
       layer.globalAlpha = job.type === "neighbor" || job.type === "sea" ? 0.75 : 0.96;
       layer.fillText(job.text, cd.x, ty);
       layer.globalAlpha = 1;
-      if (Math.abs(cd.x - ax) > 10 || Math.abs(cd.y - ay) > 12) {
+      if (Math.abs(cd.x - ax) > 8 || Math.abs(cd.y - ay) > 10) {
         layer.beginPath();
         layer.moveTo(ax, ay);
         layer.lineTo(cd.a === "left" ? rx + 2 : cd.a === "right" ? rx + w - 2 : rx + w / 2, ty);
-        layer.strokeStyle = "rgba(138,122,96,0.4)";
-        layer.lineWidth = 0.8;
+        layer.strokeStyle = "rgba(138,106,68,0.72)";
+        layer.lineWidth = 1.2;
         layer.stroke();
+        // 锚点小圆，明确标注指向的战斗地点
+        layer.beginPath();
+        layer.arc(ax, ay, 1.6, 0, 2 * Math.PI);
+        layer.fillStyle = "rgba(138,106,68,0.85)";
+        layer.fill();
       }
       placed.push({ x: rx, y: ry, w, h });
       done = true;
@@ -3059,7 +3131,7 @@ function drawMilitaryAnnotations(c) {
     occupied.push({ x: m.x - rr, y: m.y - rr, w: rr * 2, h: rr * 2 });
   });
   const fs = 9.5 * (0.92 + 0.16 * clamp((cam.zoom - 0.75) / 3.75, 0, 1));
-  const maxTags = cam.zoom >= 1.8 ? 22 : 13;
+  const maxTags = cam.zoom >= 1.8 ? 26 : 16;
   let drawn = 0;
   c.save();
   c.font = "700 " + fs.toFixed(1) + "px 'PingFang SC','Microsoft YaHei',sans-serif";
@@ -3088,12 +3160,12 @@ function drawMilitaryAnnotations(c) {
       if (overlapsAny(rect, occupied)) continue;
       const line = job.side === "kmt" ? "rgba(63,110,168,0.92)" : "rgba(181,52,42,0.92)";
       const ink = job.side === "kmt" ? "#33567f" : "#8d2015";
-      // 引线先画，避免压在牌面上
+      // 引线先画，避免压在牌面上（更清晰的连线，明确标注指向）
       c.beginPath();
       c.moveTo(job.x, job.y);
       c.lineTo(cd.x > job.x ? cd.x + 1 : cd.x + w - 1, cd.y + h / 2);
-      c.strokeStyle = "rgba(138,106,68,0.38)";
-      c.lineWidth = 0.7;
+      c.strokeStyle = "rgba(138,106,68,0.66)";
+      c.lineWidth = 1;
       c.stroke();
       if (isUnit) {
         c.beginPath();
@@ -4422,6 +4494,20 @@ railInfoBtn.addEventListener("click", (e) => {
 document.addEventListener("click", (e) => {
   if (!railInfo.contains(e.target)) setRailInfoOpen(false);
 });
+/* ===================== 图例「标图口径」点开展开（另一种形式） ===================== */
+const lgNote = document.getElementById("lgNote");
+const lnToggle = document.getElementById("lnToggle");
+function setLnOpen(open) {
+  lgNote.classList.toggle("open", open);
+  lnToggle.setAttribute("aria-expanded", String(open));
+}
+lnToggle.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setLnOpen(!lgNote.classList.contains("open"));
+});
+document.addEventListener("click", (e) => {
+  if (!lgNote.contains(e.target)) setLnOpen(false);
+});
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   legendUserOverride = true;
@@ -4459,6 +4545,9 @@ function refreshUiBlocks() {
     if (cs.display === "none" || cs.visibility === "hidden" || parseFloat(cs.opacity || "1") < 0.05) return;
     const r = el.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) return;
+    // 仅当控件确实压在地图画布上时才避让；移入侧栏的面板不再占地图内避让区
+    const overlap = !(r.right < base.left || r.left > base.right || r.bottom < base.top || r.top > base.bottom);
+    if (!overlap) return;
     out.push({ x: r.left - base.left - 4, y: r.top - base.top - 4, w: r.width + 8, h: r.height + 8 });
   });
   uiBlocks = out;
