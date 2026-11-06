@@ -928,6 +928,14 @@
     animation: fadeUp .25s ease both;
   }
   .battle-detail .bd-title { font-weight: 700; color: var(--gold); margin-bottom: 4px; }
+  /* 演进到时间轴终点的收尾卡片：独立于战役详情，详情栏为空时也能显示 */
+  .sp-finish {
+    margin-bottom: 8px; padding: 8px 10px; border-radius: 6px;
+    border: 1px solid rgba(74,124,89,.42); background: rgba(74,124,89,.10);
+    font-size: 11.5px; line-height: 1.6; color: var(--text-sub);
+    animation: fadeUp .25s ease both;
+  }
+  .sp-finish b { display: block; color: #3f6b4d; font-weight: 700; letter-spacing: .5px; margin-bottom: 3px; }
   .battle-detail .bd-outcome {
     margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border);
     font-size: 12.5px; color: var(--text-sub);
@@ -1477,6 +1485,7 @@
           <span>战役详情 · 与地图同屏</span>
           <button class="ic-focus" id="icFocus" type="button" title="只在需要时定位地图，不改变播放进度"><span class="gi">⌖</span>定位到地图</button>
         </div>
+        <div class="sp-finish" id="spFinish" role="status" hidden></div>
         <div class="battle-detail" id="battleDetail" hidden></div>
       </div>
     </aside>
@@ -3484,6 +3493,8 @@ function buildRuler() {
 function setText(el, text) {
   if (el && el.textContent !== text) el.textContent = text;
 }
+/* 终点收尾状态：声明前置，避免下方函数在初始化早期读到未初始化的变量 */
+let evolutionEnded = null;
 function updateScrubUi() {
   tlRange.value = String(Math.round(t));
   const ds = fmtCN(t);
@@ -3500,6 +3511,8 @@ function updateScrubUi() {
   $$(".tl-band").forEach((b, i) => b.classList.toggle("done", i < si));
   // 状态灯与态势摘要随每一帧时间推进即时刷新（内部按状态变化跳过重复 DOM 写入）
   syncBattleList();
+  // 所有改时间的路径都经过这里：播放推进 / 拖动时间轴 / 章节与按钮缓动 / 深链
+  checkEvolutionEnd();
 }
 let lastUiBucket = -1;
 function updateHud() {
@@ -3750,6 +3763,8 @@ function focusBattle(b, source) {
 }
 /* 时间进度变化 → 对当前时间点涉及的战斗位置自动局部放大（同一战役只触发一次） */
 function maybeAutoFocus(force) {
+  // 演进已到终点：镜头保持完整地图全貌，不再被任何自动聚焦拉回局部
+  if (t >= DTOTAL - 0.5) { pendingAutoFocus = null; return; }
   const ab = activeNow(t);
   const key = ab ? ab.name : "";
   const now = performance.now();
@@ -3788,7 +3803,8 @@ function setFocusText(state) {
     ? "已聚焦 " + focusBattleName + " · 局部放大 " + cam.zoom.toFixed(1) + "×" +
       (concurrent > 1 ? " · 主视角（同期 " + concurrent + " 役）" : "")
     : state === "manual" ? "手动视图 · 自动聚焦已暂停"
-    : state === "restored" ? "✓ 已恢复全局视图与原始缩放" : "";
+    : state === "restored" ? "✓ 已恢复全局视图与原始缩放"
+    : state === "finished" ? "✓ 全部战役演进完毕 · 已回到完整地图全貌" : "";
   if (txt.textContent === label) return;   // 避免逐帧重建文本节点
   txt.textContent = "";
   if (state === "battle") {
@@ -3806,10 +3822,13 @@ function showFocusBar(state) {
   if (state === "battle" || state === "manual") {
     setFocusText(state);
     bar.classList.add("show");
-  } else if (state === "restored") {
-    setFocusText("restored");
+  } else if (state === "restored" || state === "finished") {
+    setFocusText(state);
     bar.classList.add("show", "restored");
-    focusHideTimer = setTimeout(() => bar.classList.remove("show", "restored"), 2400);
+    focusHideTimer = setTimeout(
+      () => bar.classList.remove("show", "restored"),
+      state === "finished" ? 4200 : 2400
+    );
   } else {
     bar.classList.remove("show");
   }
@@ -3839,6 +3858,60 @@ function resetView(announce) {
   focusLockUntil = performance.now() + 520;
   showFocusBar(announce === false ? "hidden" : "restored");
   if (announce !== false) document.getElementById("liveStatus").textContent = "已恢复全局视图：原始缩放、中心与视角，自动聚焦已重新启用。";
+}
+
+/* 全部战役讲完（时间轴推进到终点）：自动收回镜头，回到完整地图全貌。
+   用「终点状态翻转」触发，播放到终点 / 拖到终点 / 缓动到终点都只触发一次；
+   离开终点后复位标志，重新播放再讲一遍仍会收尾。
+   首次调用只记录初始状态：深链 #t=1951-10-31 直接停在终点时，
+   不抢掉用户分享的相机视角（此时页面本来就是初始全图）。 */
+function checkEvolutionEnd() {
+  const atEnd = t >= DTOTAL - 0.5;
+  const prev = evolutionEnded;
+  evolutionEnded = atEnd;
+  if (prev === null) return;
+  if (!atEnd) {
+    // 只在「确实从终点离开」时清理：播放中每帧都会走到这里，不能反复写 DOM
+    if (prev) {
+      document.getElementById("spFinish").hidden = true;
+      const bar = document.getElementById("focusBar");
+      if (bar && bar.classList.contains("restored")) {
+        clearTimeout(focusHideTimer);
+        bar.classList.remove("show", "restored");
+      }
+    }
+    return;
+  }
+  if (prev) return;
+  finishEvolution();
+}
+function finishEvolution() {
+  // 复用手动「恢复全局视图」的相机复位：原始中心 / 缩放 / 视角，清掉局部聚焦与待聚焦目标
+  resetView(false);
+  focusLockUntil = performance.now() + 1200;  // 收尾拉镜头期间不被自动聚焦抢回去
+  showFocusBar("finished");
+  setPlayLabel();                            // 拖动到终点时也要变成「↻ 重新播放」
+  // 同一轮同步链里 updateHud 的章节切换还会写播报，延后一拍再给收尾交代
+  setTimeout(() => {
+    document.getElementById("liveStatus").textContent =
+      "全部战役演进完毕，已回到完整地图全貌；点击「重新播放」可从头观看。";
+  }, 0);
+  // 详情栏给出收尾交代：独立卡片，最后一场战役详情仍保留在下方（有则显示）
+  const fin = document.getElementById("spFinish");
+  fin.innerHTML = "<b>✓ 演进完毕 · " + fmtCN(t, false) + "</b>" +
+    "全部战役已讲解完成，地图已恢复完整全貌；按「↻ 重新播放」可从头观看。";
+  fin.hidden = false;
+  // 直接拖到终点时详情可能还停在很久以前的一役：收尾统一落到最后一役的完整结局；
+  // 用户手动点选或主动关闭详情（detailPinned）时尊重其选择，不覆盖。
+  if (!detailPinned && ALL_BATTLES.length) {
+    const last = ALL_BATTLES.reduce((a, b) => (b._d1 > a._d1 ? b : a), ALL_BATTLES[0]);
+    lastAutoDetailIdx = ALL_BATTLES.indexOf(last);
+    autoBattleDetail = last;
+    renderBattleDetail(last);
+    // 不预设滚动游标：阶段列表随后会由 renderStageContent 重建，
+    // 交给 syncBattleList 在 li 真正存在时把最后一役滚入可视区。
+  }
+  syncDetailLayout();
 }
 
 /* ===================== 播放控制 ===================== */
