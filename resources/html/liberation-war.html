@@ -898,6 +898,17 @@
   .mf-block.is-collapsed .mf-panel { display: none; }
   .mf-block.is-collapsed .mf-label { border-bottom: none; }
   .mf-block.is-collapsed .mf-toggle .mf-caret { transform: rotate(180deg); }
+  /* 态势收起后上半区收敛成紧凑的「战役列表 + 态势标题行」并靠上，
+     列表仍内部滚动；余下高度全给战役详情，正文一次能看更多内容。
+     仅桌面固定视口生效，窄屏流式布局沿用上面的基础折叠规则。 */
+  @media (min-width: 901px) {
+    .side-panel.facts-collapsed .map-float {
+      flex: 0 0 auto; height: clamp(150px, 21vh, 210px);
+    }
+    .side-panel.facts-collapsed .sp-detail {
+      flex: 1 1 auto; max-height: none;
+    }
+  }
   .mf-empty { padding: 10px 6px; font-size: 11.5px; color: var(--text-sub); text-align: center; }
 
   /* ===================== 状态反馈：聚焦条 / 点击涟漪 ===================== */
@@ -3763,11 +3774,14 @@ document.getElementById("icFocus").addEventListener("click", () => {
   focusBattle(b, "click");
   document.getElementById("liveStatus").textContent = "已定位至「" + b.name + "」，播放进度保持不变。";
 });
-/* 态势折叠：只切换展示形态，随时间刷新的态势数据照常更新 */
+/* 态势折叠：只切换展示形态，随时间刷新的态势数据照常更新；
+   同步切换右栏状态，让收起后腾出的高度落到战役详情上 */
 const mfFactBlock = document.getElementById("mfFactBlock");
 const mfFactToggle = document.getElementById("mfFactToggle");
+const spFactsPanel = document.getElementById("sidePanel");
 mfFactToggle.addEventListener("click", () => {
   const collapsed = mfFactBlock.classList.toggle("is-collapsed");
+  spFactsPanel.classList.toggle("facts-collapsed", collapsed);
   mfFactToggle.setAttribute("aria-expanded", String(!collapsed));
   mfFactToggle.querySelector(".mf-toggle-text").textContent = collapsed ? "展开" : "收起";
   const tip = collapsed ? "展开态势列表" : "收起态势列表";
