@@ -88,21 +88,24 @@
     background: linear-gradient(90deg, #6897b0 0%, #407c9e 58%, #2d668e 100%);
     box-shadow: 0 -1px 0 rgba(251,246,234,.9), 0 1px 0 rgba(251,246,234,.9), inset 0 1px 0 rgba(226,242,247,.7); }
 
-  /* ===================== 上下布局：地图主区在上，控制坞在下 ===================== */
-  .layout { display: flex; flex-direction: column; width: 100%; height: 100vh; overflow: hidden; }
+  /* ===================== 左右布局 ===================== */
+  .layout { display: block; width: 100%; }
 
-  /* 原左侧菜单改为底部控制坞：脱离固定定位，纳入正常文档流，
-     置于内容区底部（order:2），宽度撑满内容区，整体高度大幅压低。 */
   .left-panel {
-    position: static; order: 2; flex: 0 0 auto; width: 100%;
-    display: flex; flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 14px 22px;
+    position: fixed; top: 0; left: 0;
+    width: var(--rail-w); height: 100vh;
+    z-index: 30;
+    display: flex; flex-direction: column;
     background: var(--card-bg);
     backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--border); border-bottom: none; border-radius: 14px 14px 0 0;
+    border: 1px solid var(--border); border-left: none;
     box-shadow: var(--shadow);
-    padding: 10px 16px 12px;
+    padding: 8px 14px;
+    /* 图例/沿革展开后整栏可滚动，短屏也不会把底部说明裁掉 */
+    overflow-x: hidden; overflow-y: auto;
+    overscroll-behavior: contain;
     scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent;
-    transition: transform .28s cubic-bezier(.2,.7,.3,1);
+    transition: transform .28s cubic-bezier(.2,.7,.3,1), width .28s ease;
   }
   .left-panel::-webkit-scrollbar { width: 7px; }
   .left-panel::-webkit-scrollbar-track { background: transparent; }
@@ -111,12 +114,12 @@
     border: 2px solid transparent; background-clip: padding-box;
   }
   .left-panel .nav-title {
-    flex: 1 1 100%;
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
     font-size: 13px; font-weight: 700; color: var(--gold);
     letter-spacing: 3px; text-align: left;
     border-bottom: 1px dashed var(--border);
-    margin-bottom: 4px; padding: 0 0 6px 0;
+    margin-bottom: 10px; padding: 4px 0 10px 0;
+    flex: 0 0 auto;
   }
   .rail-toggle {
     flex: 0 0 auto; height: 24px; padding: 0 9px;
@@ -129,38 +132,28 @@
   .rail-toggle:active { transform: scale(.92); }
   .rail-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   body.rail-collapsed { --rail-w: 0px; --rail-gap: 0px; }
-  body.rail-collapsed .left-panel { display: none; box-shadow: none; }
-  /* 收起后的常驻展开把手：固定在视口左下角，不属于地图画布，不会被画布手势拦截 */
+  body.rail-collapsed .left-panel { transform: translateX(-100%); box-shadow: none; }
+  /* 收起后的常驻展开把手：固定在视口左缘，不属于地图画布，不会被画布手势拦截 */
   .rail-open {
-    position: fixed; left: 14px; bottom: 14px; top: auto; z-index: 42; display: none;
-    transform: none;
-    padding: 8px 14px; border-radius: 16px;
-    border: 1px solid var(--border);
+    position: fixed; top: 50%; left: 0; z-index: 42; display: none;
+    transform: translateY(-50%);
+    padding: 12px 7px; border-radius: 0 12px 12px 0;
+    border: 1px solid var(--border); border-left: none;
     background: rgba(251,246,234,.96);
     color: var(--text-main); font-size: 11.5px; font-weight: 700; cursor: pointer;
-    letter-spacing: 1px;
+    letter-spacing: 2px; writing-mode: vertical-rl;
     box-shadow: 3px 2px 12px rgba(120,90,50,.20);
   }
   .rail-open:hover { color: var(--gold); border-color: var(--gold); background: #fdf8ec; }
-  .rail-open:active { transform: scale(.96); }
+  .rail-open:active { transform: translateY(-50%) scale(.95); }
   .rail-open:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   body.rail-collapsed .rail-open { display: block; }
 
-  /* 章节时间轴：在底部控制坞内改为横向阶段胶囊条，压低整体高度 */
-  .stage-timeline { position: relative; flex: 0 1 auto; display: flex; gap: 6px; align-items: stretch; padding: 0; overflow-x: auto; overflow-y: hidden; }
-  .stage-timeline-inner { display: flex; gap: 6px; position: relative; padding: 2px 0; }
-  .stage-timeline-inner::before { display: none; }
-  .stage-progress { display: none; }
-  .stage-nav {
-    position: static; flex: 0 0 auto; margin: 0; padding: 6px 11px;
-    border: 1px solid var(--border); border-radius: 16px;
-  }
-  .stage-nav::before { display: none; }
-  .stage-nav .stage-index { display: none; }
-  .stage-nav .stage-intent { display: none; }
-  .stage-nav.active { background: rgba(156,66,33,.13); border-color: var(--gold); }
-  .stage-nav .stage-name { font-size: 12.5px; }
-  .stage-nav .stage-time { font-size: 10px; margin-top: 1px; }
+  /* 章节时间轴：菜单内部不滚动，五个阶段全部直接展开；
+     只有短屏时才由侧栏整体兜底滚动（.left-panel 保留 overflow-y:auto）。
+     flex-shrink 必须为 0，否则内容超高时会被压缩、与下方区块重叠。 */
+  .stage-timeline { position: relative; padding: 3px 0; flex: 1 0 auto; overflow: visible; }
+  .stage-timeline-inner { position: relative; }
   .stage-timeline-inner::before {
     content: ""; position: absolute; left: 18.75px; top: 12px; bottom: 12px;
     border-left: 2.5px dashed rgba(156,66,33,0.50);
@@ -416,16 +409,16 @@
   }
 
   .right-panel {
-    position: relative; z-index: 2; order: 1;
-    flex: 1 1 auto; min-height: 0; display: flex; min-width: 0;
-    margin-left: 0;
-    padding: 14px 16px 0;
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; min-height: 100vh;
+    margin-left: calc(var(--rail-w) + var(--rail-gap)); min-width: 0;
+    padding: 14px 16px 14px 0;
     transition: margin-left .28s cubic-bezier(.2,.7,.3,1), padding-left .28s ease;
   }
-  body.rail-collapsed .right-panel { padding-left: 16px; }
+  body.rail-collapsed .right-panel { padding-left: 12px; }
 
-  /* 地图与右侧同屏面板并排：时间轴 + 播放控制 + 战役/态势 + 详情都在右栏，
-     面板高度随行拉伸，与地图容器严格一致（行高撑满视口剩余空间）。
+  /* 地图与右侧同屏面板并排：战役/态势 + 详情都在右栏，行高吃掉视口剩余空间，
+     抽离出来的时间轴 / 播放控制条（.sp-time-dock）排在本行之下、内容区最底部。
      画布在 .map-box 内 flex 拉伸补齐，避免地图下方留白。 */
   .viewer-row { display: flex; align-items: stretch; gap: 14px; min-height: 0; flex: 1 1 auto; }
   .viewer-row .map-box { flex: 1 1 auto; min-width: 0; margin-bottom: 0; align-self: stretch; }
@@ -1059,16 +1052,32 @@
   .sp-time .fb-text { font-size: 9px; }
   .sp-time .fb-restore { height: 16px; padding: 0 5px; font-size: 9px; }
 
-  /* 底部控制坞：三块横向并排（阶段条 / 时间轴+播放 / 当前态势+图例），整体高度压低 */
-  .left-panel .stage-timeline { flex: 1 1 300px; align-self: center; }
-  .left-panel .sp-time { flex: 2 1 480px; border-bottom: none; }
-  .left-panel .panel-live { flex: 1 1 320px; border-top: none; padding-top: 0; }
-  .left-panel .rail-actions { flex: 0 0 auto; align-self: flex-end; margin-top: 0; }
-  .left-panel .pl-legend-body { max-height: 132px; }
-  .left-panel .sp-time .pd-controls .speed-chip { min-width: 25px; padding: 1px 3px; }
-  .left-panel .sp-time .tool-btn { min-width: 56px; padding: 2px 6px; }
-  .left-panel .sp-time .zoom-slider { width: 48px; }
-  .left-panel .sp-time .auto-btn, .left-panel .sp-time .reset-btn { padding: 0 5px; }
+  /* ===================== 抽离出来的底部时间轴 / 播放控制条 =====================
+     从左侧菜单移到中间内容区底部：宽度撑满内容区，改用左右两栏栅格
+     （左：日期 / 阶段 + 时间轴刻度；右：播放 / 视图控件），整体压到约两行高度。
+     左侧菜单其余区块（阶段列表、当前态势、军事图例、番号沿革、标图口径）保持原样。 */
+  .sp-time-dock {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-areas: "top ctrl" "scrub ctrl";
+    align-items: center; column-gap: 22px; row-gap: 2px;
+    margin-top: 12px;
+    padding: 9px 14px 11px;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--card-bg);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow);
+  }
+  .sp-time-dock .pd-top { grid-area: top; }
+  .sp-time-dock .tl-scrub { grid-area: scrub; }
+  .sp-time-dock .pd-controls { grid-area: ctrl; margin-top: 0; align-content: center; }
+  .sp-time-dock .pd-controls .tool-btn { min-width: 66px; }
+  .sp-time-dock .pd-controls .speed-chip { min-width: 30px; }
+  .sp-time-dock .zoom-slider { width: 68px; }
+  @media (max-width: 1240px) {
+    .sp-time-dock { column-gap: 14px; }
+  }
 
   @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
@@ -1132,16 +1141,13 @@
   /* ===================== 移动端 ===================== */
   @media (max-width: 900px) {
     body { --rail-w: 0px; --rail-gap: 0px; }
-    .layout { height: auto; min-height: 100vh; overflow: visible; }
     .left-panel {
       position: static; top: auto; left: auto;
-      width: auto; height: auto; z-index: auto; overflow: visible;
-      display: block; border: 1px solid var(--border); border-radius: 12px;
-      margin: 0 8px 8px; transform: none !important;
+      width: 100%; height: auto; z-index: auto; overflow: visible;
+      display: block; border-left: 1px solid var(--border); transform: none !important;
     }
     .rail-toggle, .rail-open { display: none !important; }
     body.rail-collapsed .right-panel { padding-left: 0; }
-    body.rail-collapsed .left-panel { display: block; }
     .stage-timeline { overflow-y: visible; overflow-x: auto; padding: 0 0 0 24px; min-height: 0; }
     .stage-timeline-inner::before, .stage-progress { display: none; }
     .stage-timeline-inner { display: flex; gap: 8px; }
@@ -1158,8 +1164,15 @@
     .legend-link, .rail-info-btn { font-size: 11.5px; }
     .rail-info-pop { width: min(320px, 88vw); }
     .rail-body { width: min(320px, 88vw); max-height: 52vh; }
-    .right-panel { width: 100%; margin-left: 0; padding: 12px 8px 8px; }
+    .right-panel { width: 100%; margin-left: 0; padding: 12px 12px 14px; }
     .viewer-row { flex-direction: column; min-height: 0; }
+    /* 窄屏下抽离的控制条改为单列纵向排布，仍在内容区最底部 */
+    .sp-time-dock {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: "top" "scrub" "ctrl";
+      column-gap: 0; row-gap: 6px;
+      margin-top: 10px;
+    }
     .side-panel {
       position: static; flex: 1 1 auto; width: 100%; max-width: 100%; max-height: none; height: auto;
     }
@@ -1212,59 +1225,6 @@
         <div class="stage-progress" id="stageProgress"></div>
       </div>
     </div>
-
-    <!-- 时间轴 + 播放控制：按反馈从右栏顶部移入左侧菜单，置于「当前态势」上方；右栏留给战役/态势与详情 -->
-    <div class="sp-time">
-      <div class="pd-top">
-        <div class="tl-head">
-          <span class="tl-date" id="tlDate">1946年6月26日</span>
-          <span class="tl-chap" id="tlChap">第一阶段 · 战略防御</span>
-          <button class="tl-hint" id="tlHint" type="button" aria-label="操作说明（悬停查看）" title="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图" data-tip="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图">ⓘ</button>
-        </div>
-        <div class="focus-bar" id="focusBar" role="status" aria-live="polite">
-          <span class="fb-dot" aria-hidden="true"></span>
-          <span class="fb-text" id="fbText">已聚焦</span>
-          <button class="fb-restore" id="fbRestore" type="button"><span class="gi">⟲</span>恢复全局视图</button>
-        </div>
-      </div>
-      <div class="tl-scrub" id="tlScrub">
-        <div class="tl-ruler" id="tlRuler">
-          <input type="range" class="tl-range" id="tlRange" min="0" max="1989" step="1" value="0"
-                 aria-label="时间轴：拖动查看 1946—1951 年态势">
-        </div>
-        <div class="tl-years" id="tlYears"></div>
-      </div>
-      <div class="pd-controls">
-        <div class="pd-transport">
-          <button class="pd-step" id="btnStepBack" type="button" aria-label="后退 3 天" title="后退 3 天"><span class="gi">⏴</span></button>
-          <button class="tool-btn" id="btnPlay" type="button" aria-pressed="false">▶ 播放演进</button>
-          <button class="pd-step" id="btnStepFwd" type="button" aria-label="前进 3 天" title="前进 3 天"><span class="gi">⏵</span></button>
-          <button class="tool-btn" id="btnReset" type="button"><span class="gi">↺</span>回到起点</button>
-          <div class="speed-row" role="group" aria-label="播放速度">
-            <button class="speed-chip" data-speed="0.25" type="button">0.25×</button>
-            <button class="speed-chip" data-speed="0.5" type="button">0.5×</button>
-            <button class="speed-chip on" data-speed="1" type="button">1×</button>
-            <button class="speed-chip" data-speed="2" type="button">2×</button>
-          </div>
-        </div>
-
-        <div class="pd-view">
-          <button class="mode-btn on" id="btn3d" type="button" aria-pressed="true">3D 沙盘</button>
-          <button class="mode-btn" id="btn2d" type="button" aria-pressed="false">2D 平面图</button>
-          <span class="pd-sep" aria-hidden="true"></span>
-          <button class="zoom-btn" id="btnZoomOut" type="button" aria-label="缩小地图"><span class="gi">−</span></button>
-          <input type="range" class="zoom-slider" id="zoomSlider" min="0.65" max="8" step="0.01" value="1"
-                 aria-label="地图缩放：拖动精细调节倍率">
-          <button class="zoom-btn" id="btnZoomIn" type="button" aria-label="放大地图"><span class="gi">＋</span></button>
-          <span class="zoom-readout" id="zoomReadout">1.00×</span>
-          <button class="auto-btn on" id="btnAutoFocus" type="button" aria-pressed="true"
-                  title="时间推进时自动局部放大当前战役位置；手动缩放后自动关闭">◎ 自动聚焦</button>
-          <button class="reset-btn" id="btnZoomReset" type="button"
-                  title="恢复原始缩放尺寸与视图（快捷键 0）"><span class="gi">⟲</span>恢复全局视图</button>
-        </div>
-      </div>
-    </div>
-
 
     <div class="panel-live" aria-live="polite">
       <div class="pl-head"><span>当前态势</span><b id="plDate">1946.6</b></div>
@@ -1350,7 +1310,7 @@
       </button>
       <div class="rail-info-pop" id="railInfoBody" role="note" aria-label="阅读说明与标图口径">
         <h4>如何使用这张图</h4>
-        <div class="detail-hint" id="detailHint">在<b>右侧「战役 / 态势」列表</b>中切换本阶段各役（进行中的战役会自动滚入可视区），或直接点击图中的战役标记：<b>右栏与地图同屏</b>展开<b>完整经过、编制番号、兵力与阶段推进</b>。暂停时点选会定位镜头，播放中只更新详情；需要定位可点详情栏的<b>「⌖ 定位到地图」</b>。时间轴与播放控制在<b>左侧菜单</b>，军事图例在左侧「当前态势」下方直接展示；番号沿革与标图口径在左侧菜单底部，点击展开／收起。</div>
+        <div class="detail-hint" id="detailHint">在<b>右侧「战役 / 态势」列表</b>中切换本阶段各役（进行中的战役会自动滚入可视区），或直接点击图中的战役标记：<b>右栏与地图同屏</b>展开<b>完整经过、编制番号、兵力与阶段推进</b>。暂停时点选会定位镜头，播放中只更新详情；需要定位可点详情栏的<b>「⌖ 定位到地图」</b>。时间轴与播放控制在<b>内容区底部</b>独立成条，军事图例在左侧「当前态势」下方直接展示；番号沿革与标图口径在左侧菜单底部，点击展开／收起。</div>
         <h4>底图 · 投影 · 标图口径</h4>
         <p>底图：阿里云 DataV / 高德行政区划边界（民政部标准）；地形：Natural Earth 1:50m 陆地轮廓 + 山脉高原高程数据（3D 夸张渲染）。Albers 等积投影（标准纬线 25°N / 47°N，中央经线 105°E），比例尺为图上量算近似值。</p>
         <p>战役地点按史实位置标注，箭头为<b>示意性战略方向</b>而非精确行军路线，按军事标图规范区分进攻、防御、合围、突破与撤退；部队番号牌与行动注记沿箭杆避让排布，放大后可查看更细粒度信息。</p>
@@ -1402,9 +1362,9 @@
       </div>
     </div>
 
-    <!-- 右侧同屏面板：战役/态势 + 战役详情（时间轴已移入左侧菜单），高度与地图容器一致 -->
+    <!-- 右侧同屏面板：战役/态势 + 战役详情（时间轴已抽到内容区底部），高度与地图容器一致 -->
     <aside class="side-panel" id="sidePanel" aria-label="战役列表与详情">
-            <!-- 战役 / 态势：现在位于右栏顶部（时间轴已移入左侧菜单），进行中战役自动滚入可视区 -->
+            <!-- 战役 / 态势：现在位于右栏顶部（时间轴已抽到内容区底部），进行中战役自动滚入可视区 -->
       <div class="map-float" id="mapFloat" role="group" aria-label="战役与态势列表">
         <div class="mf-head">
           <div class="mf-tabs" role="tablist" aria-label="切换战役或态势列表">
@@ -1428,6 +1388,59 @@
         <p class="ic-note" id="spHint">点击地图上的战役标记，或在上方「战役 / 态势」列表中选择：详情在此展开完整经过、编制番号、兵力与阶段推进。播放与时间轴演进不受影响；播放中点选只更新本栏，不回拨时间、不抢镜头。</p>
       </div>
     </aside>
+    </div>
+
+    <!-- 时间轴 + 播放控制：按反馈从左侧菜单单独抽离，放在中间内容区底部；
+         宽度撑满内容区，横向分栏压低高度。左侧菜单其余部分保持原样。 -->
+    <div class="sp-time sp-time-dock" role="group" aria-label="时间轴与播放控制">
+      <div class="pd-top">
+        <div class="tl-head">
+          <span class="tl-date" id="tlDate">1946年6月26日</span>
+          <span class="tl-chap" id="tlChap">第一阶段 · 战略防御</span>
+          <button class="tl-hint" id="tlHint" type="button" aria-label="操作说明（悬停查看）" title="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图" data-tip="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图">ⓘ</button>
+        </div>
+        <div class="focus-bar" id="focusBar" role="status" aria-live="polite">
+          <span class="fb-dot" aria-hidden="true"></span>
+          <span class="fb-text" id="fbText">已聚焦</span>
+          <button class="fb-restore" id="fbRestore" type="button"><span class="gi">⟲</span>恢复全局视图</button>
+        </div>
+      </div>
+      <div class="tl-scrub" id="tlScrub">
+        <div class="tl-ruler" id="tlRuler">
+          <input type="range" class="tl-range" id="tlRange" min="0" max="1989" step="1" value="0"
+                 aria-label="时间轴：拖动查看 1946—1951 年态势">
+        </div>
+        <div class="tl-years" id="tlYears"></div>
+      </div>
+      <div class="pd-controls">
+        <div class="pd-transport">
+          <button class="pd-step" id="btnStepBack" type="button" aria-label="后退 3 天" title="后退 3 天"><span class="gi">⏴</span></button>
+          <button class="tool-btn" id="btnPlay" type="button" aria-pressed="false">▶ 播放演进</button>
+          <button class="pd-step" id="btnStepFwd" type="button" aria-label="前进 3 天" title="前进 3 天"><span class="gi">⏵</span></button>
+          <button class="tool-btn" id="btnReset" type="button"><span class="gi">↺</span>回到起点</button>
+          <div class="speed-row" role="group" aria-label="播放速度">
+            <button class="speed-chip" data-speed="0.25" type="button">0.25×</button>
+            <button class="speed-chip" data-speed="0.5" type="button">0.5×</button>
+            <button class="speed-chip on" data-speed="1" type="button">1×</button>
+            <button class="speed-chip" data-speed="2" type="button">2×</button>
+          </div>
+        </div>
+
+        <div class="pd-view">
+          <button class="mode-btn on" id="btn3d" type="button" aria-pressed="true">3D 沙盘</button>
+          <button class="mode-btn" id="btn2d" type="button" aria-pressed="false">2D 平面图</button>
+          <span class="pd-sep" aria-hidden="true"></span>
+          <button class="zoom-btn" id="btnZoomOut" type="button" aria-label="缩小地图"><span class="gi">−</span></button>
+          <input type="range" class="zoom-slider" id="zoomSlider" min="0.65" max="8" step="0.01" value="1"
+                 aria-label="地图缩放：拖动精细调节倍率">
+          <button class="zoom-btn" id="btnZoomIn" type="button" aria-label="放大地图"><span class="gi">＋</span></button>
+          <span class="zoom-readout" id="zoomReadout">1.00×</span>
+          <button class="auto-btn on" id="btnAutoFocus" type="button" aria-pressed="true"
+                  title="时间推进时自动局部放大当前战役位置；手动缩放后自动关闭">◎ 自动聚焦</button>
+          <button class="reset-btn" id="btnZoomReset" type="button"
+                  title="恢复原始缩放尺寸与视图（快捷键 0）"><span class="gi">⟲</span>恢复全局视图</button>
+        </div>
+      </div>
     </div>
 
     <div class="sr-only" id="liveStatus" role="status" aria-live="polite"></div>
