@@ -88,24 +88,21 @@
     background: linear-gradient(90deg, #6897b0 0%, #407c9e 58%, #2d668e 100%);
     box-shadow: 0 -1px 0 rgba(251,246,234,.9), 0 1px 0 rgba(251,246,234,.9), inset 0 1px 0 rgba(226,242,247,.7); }
 
-  /* ===================== 左右布局 ===================== */
-  .layout { display: block; width: 100%; }
+  /* ===================== 上下布局：地图主区在上，控制坞在下 ===================== */
+  .layout { display: flex; flex-direction: column; width: 100%; height: 100vh; overflow: hidden; }
 
+  /* 原左侧菜单改为底部控制坞：脱离固定定位，纳入正常文档流，
+     置于内容区底部（order:2），宽度撑满内容区，整体高度大幅压低。 */
   .left-panel {
-    position: fixed; top: 0; left: 0;
-    width: var(--rail-w); height: 100vh;
-    z-index: 30;
-    display: flex; flex-direction: column;
+    position: static; order: 2; flex: 0 0 auto; width: 100%;
+    display: flex; flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 14px 22px;
     background: var(--card-bg);
     backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--border); border-left: none;
+    border: 1px solid var(--border); border-bottom: none; border-radius: 14px 14px 0 0;
     box-shadow: var(--shadow);
-    padding: 8px 14px;
-    /* 图例/沿革展开后整栏可滚动，短屏也不会把底部说明裁掉 */
-    overflow-x: hidden; overflow-y: auto;
-    overscroll-behavior: contain;
+    padding: 10px 16px 12px;
     scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent;
-    transition: transform .28s cubic-bezier(.2,.7,.3,1), width .28s ease;
+    transition: transform .28s cubic-bezier(.2,.7,.3,1);
   }
   .left-panel::-webkit-scrollbar { width: 7px; }
   .left-panel::-webkit-scrollbar-track { background: transparent; }
@@ -114,12 +111,12 @@
     border: 2px solid transparent; background-clip: padding-box;
   }
   .left-panel .nav-title {
+    flex: 1 1 100%;
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
     font-size: 13px; font-weight: 700; color: var(--gold);
     letter-spacing: 3px; text-align: left;
     border-bottom: 1px dashed var(--border);
-    margin-bottom: 10px; padding: 4px 0 10px 0;
-    flex: 0 0 auto;
+    margin-bottom: 4px; padding: 0 0 6px 0;
   }
   .rail-toggle {
     flex: 0 0 auto; height: 24px; padding: 0 9px;
@@ -132,28 +129,38 @@
   .rail-toggle:active { transform: scale(.92); }
   .rail-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   body.rail-collapsed { --rail-w: 0px; --rail-gap: 0px; }
-  body.rail-collapsed .left-panel { transform: translateX(-100%); box-shadow: none; }
-  /* 收起后的常驻展开把手：固定在视口左缘，不属于地图画布，不会被画布手势拦截 */
+  body.rail-collapsed .left-panel { display: none; box-shadow: none; }
+  /* 收起后的常驻展开把手：固定在视口左下角，不属于地图画布，不会被画布手势拦截 */
   .rail-open {
-    position: fixed; top: 50%; left: 0; z-index: 42; display: none;
-    transform: translateY(-50%);
-    padding: 12px 7px; border-radius: 0 12px 12px 0;
-    border: 1px solid var(--border); border-left: none;
+    position: fixed; left: 14px; bottom: 14px; top: auto; z-index: 42; display: none;
+    transform: none;
+    padding: 8px 14px; border-radius: 16px;
+    border: 1px solid var(--border);
     background: rgba(251,246,234,.96);
     color: var(--text-main); font-size: 11.5px; font-weight: 700; cursor: pointer;
-    letter-spacing: 2px; writing-mode: vertical-rl;
+    letter-spacing: 1px;
     box-shadow: 3px 2px 12px rgba(120,90,50,.20);
   }
   .rail-open:hover { color: var(--gold); border-color: var(--gold); background: #fdf8ec; }
-  .rail-open:active { transform: translateY(-50%) scale(.95); }
+  .rail-open:active { transform: scale(.96); }
   .rail-open:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   body.rail-collapsed .rail-open { display: block; }
 
-  /* 章节时间轴：菜单内部不滚动，五个阶段全部直接展开；
-     只有短屏时才由侧栏整体兜底滚动（.left-panel 保留 overflow-y:auto）。
-     flex-shrink 必须为 0，否则内容超高时会被压缩、与下方区块重叠。 */
-  .stage-timeline { position: relative; padding: 3px 0; flex: 1 0 auto; overflow: visible; }
-  .stage-timeline-inner { position: relative; }
+  /* 章节时间轴：在底部控制坞内改为横向阶段胶囊条，压低整体高度 */
+  .stage-timeline { position: relative; flex: 0 1 auto; display: flex; gap: 6px; align-items: stretch; padding: 0; overflow-x: auto; overflow-y: hidden; }
+  .stage-timeline-inner { display: flex; gap: 6px; position: relative; padding: 2px 0; }
+  .stage-timeline-inner::before { display: none; }
+  .stage-progress { display: none; }
+  .stage-nav {
+    position: static; flex: 0 0 auto; margin: 0; padding: 6px 11px;
+    border: 1px solid var(--border); border-radius: 16px;
+  }
+  .stage-nav::before { display: none; }
+  .stage-nav .stage-index { display: none; }
+  .stage-nav .stage-intent { display: none; }
+  .stage-nav.active { background: rgba(156,66,33,.13); border-color: var(--gold); }
+  .stage-nav .stage-name { font-size: 12.5px; }
+  .stage-nav .stage-time { font-size: 10px; margin-top: 1px; }
   .stage-timeline-inner::before {
     content: ""; position: absolute; left: 18.75px; top: 12px; bottom: 12px;
     border-left: 2.5px dashed rgba(156,66,33,0.50);
@@ -409,17 +416,18 @@
   }
 
   .right-panel {
-    position: relative; z-index: 2;
-    margin-left: calc(var(--rail-w) + var(--rail-gap)); min-width: 0;
-    padding: 14px 16px 14px 0;
+    position: relative; z-index: 2; order: 1;
+    flex: 1 1 auto; min-height: 0; display: flex; min-width: 0;
+    margin-left: 0;
+    padding: 14px 16px 0;
     transition: margin-left .28s cubic-bezier(.2,.7,.3,1), padding-left .28s ease;
   }
-  body.rail-collapsed .right-panel { padding-left: 12px; }
+  body.rail-collapsed .right-panel { padding-left: 16px; }
 
   /* 地图与右侧同屏面板并排：时间轴 + 播放控制 + 战役/态势 + 详情都在右栏，
      面板高度随行拉伸，与地图容器严格一致（行高撑满视口剩余空间）。
      画布在 .map-box 内 flex 拉伸补齐，避免地图下方留白。 */
-  .viewer-row { display: flex; align-items: stretch; gap: 14px; min-height: calc(100vh - 28px); }
+  .viewer-row { display: flex; align-items: stretch; gap: 14px; min-height: 0; flex: 1 1 auto; }
   .viewer-row .map-box { flex: 1 1 auto; min-width: 0; margin-bottom: 0; align-self: stretch; }
   .side-panel {
     flex: 0 0 342px; width: 342px; max-width: 36%;
@@ -1051,10 +1059,12 @@
   .sp-time .fb-text { font-size: 9px; }
   .sp-time .fb-restore { height: 16px; padding: 0 5px; font-size: 9px; }
 
-  /* 时间轴移入左侧菜单后：内容宽 256px，控件组自然换行为 4–5 行；
-     去掉实心下边框（否则与「当前态势」的虚线上边线叠成双框），
-     并再收紧一档 chip/按钮宽度，让窄栏内排布不松散。 */
-  .left-panel .sp-time { border-bottom: none; }
+  /* 底部控制坞：三块横向并排（阶段条 / 时间轴+播放 / 当前态势+图例），整体高度压低 */
+  .left-panel .stage-timeline { flex: 1 1 300px; align-self: center; }
+  .left-panel .sp-time { flex: 2 1 480px; border-bottom: none; }
+  .left-panel .panel-live { flex: 1 1 320px; border-top: none; padding-top: 0; }
+  .left-panel .rail-actions { flex: 0 0 auto; align-self: flex-end; margin-top: 0; }
+  .left-panel .pl-legend-body { max-height: 132px; }
   .left-panel .sp-time .pd-controls .speed-chip { min-width: 25px; padding: 1px 3px; }
   .left-panel .sp-time .tool-btn { min-width: 56px; padding: 2px 6px; }
   .left-panel .sp-time .zoom-slider { width: 48px; }
@@ -1122,13 +1132,16 @@
   /* ===================== 移动端 ===================== */
   @media (max-width: 900px) {
     body { --rail-w: 0px; --rail-gap: 0px; }
+    .layout { height: auto; min-height: 100vh; overflow: visible; }
     .left-panel {
       position: static; top: auto; left: auto;
-      width: 100%; height: auto; z-index: auto; overflow: visible;
-      display: block; border-left: 1px solid var(--border); transform: none !important;
+      width: auto; height: auto; z-index: auto; overflow: visible;
+      display: block; border: 1px solid var(--border); border-radius: 12px;
+      margin: 0 8px 8px; transform: none !important;
     }
     .rail-toggle, .rail-open { display: none !important; }
     body.rail-collapsed .right-panel { padding-left: 0; }
+    body.rail-collapsed .left-panel { display: block; }
     .stage-timeline { overflow-y: visible; overflow-x: auto; padding: 0 0 0 24px; min-height: 0; }
     .stage-timeline-inner::before, .stage-progress { display: none; }
     .stage-timeline-inner { display: flex; gap: 8px; }
@@ -1145,7 +1158,7 @@
     .legend-link, .rail-info-btn { font-size: 11.5px; }
     .rail-info-pop { width: min(320px, 88vw); }
     .rail-body { width: min(320px, 88vw); max-height: 52vh; }
-    .right-panel { width: 100%; margin-left: 0; padding: 12px 0 210px; }
+    .right-panel { width: 100%; margin-left: 0; padding: 12px 8px 8px; }
     .viewer-row { flex-direction: column; min-height: 0; }
     .side-panel {
       position: static; flex: 1 1 auto; width: 100%; max-width: 100%; max-height: none; height: auto;
