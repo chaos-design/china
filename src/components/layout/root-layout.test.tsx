@@ -131,6 +131,7 @@ describe("<SiteMenu /> columns and content", () => {
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],
+      ["/liberation-war", /解放战争交互图/],
     ];
 
     let visited = 0;

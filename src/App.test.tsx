@@ -76,6 +76,10 @@ describe("<App /> routing", () => {
       "href",
       "/silk-road",
     );
+    expect(screen.getByRole("link", { name: /解放战争历史地理交互图/ })).toHaveAttribute(
+      "href",
+      "/liberation-war",
+    );
     expect(screen.getByText("疆域与民族图谱")).toBeInTheDocument();
     expect(screen.getByText("典章制度索引")).toBeInTheDocument();
     expect(screen.queryByText("丝路与海疆线索")).not.toBeInTheDocument();
@@ -150,6 +154,7 @@ describe("<App /> routing", () => {
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],
+      ["/liberation-war", /解放战争交互图/],
     ] as const;
     let visited = 0;
     for (const [path, name] of destinations) {
