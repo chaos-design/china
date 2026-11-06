@@ -418,7 +418,8 @@
   body.rail-collapsed .right-panel { padding-left: 12px; }
 
   /* 地图与右侧同屏面板并排：战役/态势 + 详情都在右栏，行高吃掉视口剩余空间，
-     抽离出来的时间轴 / 播放控制条（.sp-time-dock）排在本行之下、内容区最底部。
+     抽离出来的时间轴 / 播放控制条（.sp-time-dock）排在本行之下、内容区最底部，
+     条内时间轴与功能区上下分行、各自撑满宽度。
      画布在 .map-box 内 flex 拉伸补齐，避免地图下方留白。 */
   .viewer-row { display: flex; align-items: stretch; gap: 14px; min-height: 0; flex: 1 1 auto; }
   .viewer-row .map-box { flex: 1 1 auto; min-width: 0; margin-bottom: 0; align-self: stretch; }
@@ -1053,31 +1054,36 @@
   .sp-time .fb-restore { height: 16px; padding: 0 5px; font-size: 9px; }
 
   /* ===================== 抽离出来的底部时间轴 / 播放控制条 =====================
-     从左侧菜单移到中间内容区底部：宽度撑满内容区，改用左右两栏栅格
-     （左：日期 / 阶段 + 时间轴刻度；右：播放 / 视图控件），整体压到约两行高度。
+     从左侧菜单移到中间内容区底部：宽度撑满内容区，改为上下分行而不再左右并排——
+     时间轴（日期 / 阶段 + 阶段条 / 事件刻度 / 年份刻度）占满最上面整行，
+     功能区（播放 / 速度 / 2D·3D / 缩放 / 自动聚焦 / 恢复全局）另起一整行。
      左侧菜单其余区块（阶段列表、当前态势、军事图例、番号沿革、标图口径）保持原样。 */
   .sp-time-dock {
     flex: 0 0 auto;
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-    grid-template-areas: "top ctrl" "scrub ctrl";
-    align-items: center; column-gap: 22px; row-gap: 2px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "top" "scrub" "ctrl";
+    align-items: center; row-gap: 3px;
     margin-top: 12px;
-    padding: 9px 14px 11px;
+    padding: 8px 14px 9px;
     border: 1px solid var(--border); border-radius: 12px;
     background: var(--card-bg);
     backdrop-filter: var(--glass-blur);
     box-shadow: var(--shadow);
   }
-  .sp-time-dock .pd-top { grid-area: top; }
+  .sp-time-dock .pd-top { grid-area: top; flex-wrap: nowrap; }
+  /* 聚焦条与日期 / 阶段同行右对齐：隐藏时不再空占一整行，时间轴区高度稳定 */
+  .sp-time-dock .focus-bar { flex: 0 0 auto; margin-left: auto; }
   .sp-time-dock .tl-scrub { grid-area: scrub; }
-  .sp-time-dock .pd-controls { grid-area: ctrl; margin-top: 0; align-content: center; }
+  /* 功能区独占一整行，从左到右排满内容区宽度；窄到放不下时才整体换行 */
+  .sp-time-dock .pd-controls {
+    grid-area: ctrl; margin-top: 4px; padding-top: 7px;
+    border-top: 1px dashed var(--border);
+    align-content: center; gap: 6px; flex-wrap: wrap;
+  }
   .sp-time-dock .pd-controls .tool-btn { min-width: 66px; }
   .sp-time-dock .pd-controls .speed-chip { min-width: 30px; }
   .sp-time-dock .zoom-slider { width: 68px; }
-  @media (max-width: 1240px) {
-    .sp-time-dock { column-gap: 14px; }
-  }
 
   @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
@@ -1166,13 +1172,8 @@
     .rail-body { width: min(320px, 88vw); max-height: 52vh; }
     .right-panel { width: 100%; margin-left: 0; padding: 12px 12px 14px; }
     .viewer-row { flex-direction: column; min-height: 0; }
-    /* 窄屏下抽离的控制条改为单列纵向排布，仍在内容区最底部 */
-    .sp-time-dock {
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-areas: "top" "scrub" "ctrl";
-      column-gap: 0; row-gap: 6px;
-      margin-top: 10px;
-    }
+    /* 窄屏沿用「时间轴一行 + 功能区一行」的上下分行，只放宽行距与内边距 */
+    .sp-time-dock { row-gap: 6px; margin-top: 10px; padding: 8px 10px 10px; }
     .side-panel {
       position: static; flex: 1 1 auto; width: 100%; max-width: 100%; max-height: none; height: auto;
     }
@@ -1391,7 +1392,7 @@
     </div>
 
     <!-- 时间轴 + 播放控制：按反馈从左侧菜单单独抽离，放在中间内容区底部；
-         宽度撑满内容区，横向分栏压低高度。左侧菜单其余部分保持原样。 -->
+         宽度撑满内容区，时间轴独占一行、功能区独占一行，不左右并排。左侧菜单其余部分保持原样。 -->
     <div class="sp-time sp-time-dock" role="group" aria-label="时间轴与播放控制">
       <div class="pd-top">
         <div class="tl-head">
