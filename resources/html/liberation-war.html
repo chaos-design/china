@@ -1036,6 +1036,15 @@
   .sp-time .fb-text { font-size: 9px; }
   .sp-time .fb-restore { height: 16px; padding: 0 5px; font-size: 9px; }
 
+  /* 时间轴移入左侧菜单后：内容宽 256px，控件组自然换行为 4–5 行；
+     去掉实心下边框（否则与「当前态势」的虚线上边线叠成双框），
+     并再收紧一档 chip/按钮宽度，让窄栏内排布不松散。 */
+  .left-panel .sp-time { border-bottom: none; }
+  .left-panel .sp-time .pd-controls .speed-chip { min-width: 25px; padding: 1px 3px; }
+  .left-panel .sp-time .tool-btn { min-width: 56px; padding: 2px 6px; }
+  .left-panel .sp-time .zoom-slider { width: 48px; }
+  .left-panel .sp-time .auto-btn, .left-panel .sp-time .reset-btn { padding: 0 5px; }
+
   @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
   /* 全局加载层 */
@@ -1175,6 +1184,59 @@
         <div class="stage-progress" id="stageProgress"></div>
       </div>
     </div>
+
+    <!-- 时间轴 + 播放控制：按反馈从右栏顶部移入左侧菜单，置于「当前态势」上方；右栏留给战役/态势与详情 -->
+    <div class="sp-time">
+      <div class="pd-top">
+        <div class="tl-head">
+          <span class="tl-date" id="tlDate">1946年6月26日</span>
+          <span class="tl-chap" id="tlChap">第一阶段 · 战略防御</span>
+          <button class="tl-hint" id="tlHint" type="button" aria-label="操作说明（悬停查看）" title="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图" data-tip="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图">ⓘ</button>
+        </div>
+        <div class="focus-bar" id="focusBar" role="status" aria-live="polite">
+          <span class="fb-dot" aria-hidden="true"></span>
+          <span class="fb-text" id="fbText">已聚焦</span>
+          <button class="fb-restore" id="fbRestore" type="button"><span class="gi">⟲</span>恢复全局视图</button>
+        </div>
+      </div>
+      <div class="tl-scrub" id="tlScrub">
+        <div class="tl-ruler" id="tlRuler">
+          <input type="range" class="tl-range" id="tlRange" min="0" max="1989" step="1" value="0"
+                 aria-label="时间轴：拖动查看 1946—1951 年态势">
+        </div>
+        <div class="tl-years" id="tlYears"></div>
+      </div>
+      <div class="pd-controls">
+        <div class="pd-transport">
+          <button class="pd-step" id="btnStepBack" type="button" aria-label="后退 3 天" title="后退 3 天"><span class="gi">⏴</span></button>
+          <button class="tool-btn" id="btnPlay" type="button" aria-pressed="false">▶ 播放演进</button>
+          <button class="pd-step" id="btnStepFwd" type="button" aria-label="前进 3 天" title="前进 3 天"><span class="gi">⏵</span></button>
+          <button class="tool-btn" id="btnReset" type="button"><span class="gi">↺</span>回到起点</button>
+          <div class="speed-row" role="group" aria-label="播放速度">
+            <button class="speed-chip" data-speed="0.25" type="button">0.25×</button>
+            <button class="speed-chip" data-speed="0.5" type="button">0.5×</button>
+            <button class="speed-chip on" data-speed="1" type="button">1×</button>
+            <button class="speed-chip" data-speed="2" type="button">2×</button>
+          </div>
+        </div>
+
+        <div class="pd-view">
+          <button class="mode-btn on" id="btn3d" type="button" aria-pressed="true">3D 沙盘</button>
+          <button class="mode-btn" id="btn2d" type="button" aria-pressed="false">2D 平面图</button>
+          <span class="pd-sep" aria-hidden="true"></span>
+          <button class="zoom-btn" id="btnZoomOut" type="button" aria-label="缩小地图"><span class="gi">−</span></button>
+          <input type="range" class="zoom-slider" id="zoomSlider" min="0.65" max="8" step="0.01" value="1"
+                 aria-label="地图缩放：拖动精细调节倍率">
+          <button class="zoom-btn" id="btnZoomIn" type="button" aria-label="放大地图"><span class="gi">＋</span></button>
+          <span class="zoom-readout" id="zoomReadout">1.00×</span>
+          <button class="auto-btn on" id="btnAutoFocus" type="button" aria-pressed="true"
+                  title="时间推进时自动局部放大当前战役位置；手动缩放后自动关闭">◎ 自动聚焦</button>
+          <button class="reset-btn" id="btnZoomReset" type="button"
+                  title="恢复原始缩放尺寸与视图（快捷键 0）"><span class="gi">⟲</span>恢复全局视图</button>
+        </div>
+      </div>
+    </div>
+
 
     <div class="panel-live" aria-live="polite">
       <div class="pl-head"><span>当前态势</span><b id="plDate">1946.6</b></div>
@@ -1318,60 +1380,9 @@
       </div>
     </div>
 
-    <!-- 右侧同屏面板：时间轴 + 播放控制 + 战役/态势 + 战役详情，高度与地图容器一致 -->
-    <aside class="side-panel" id="sidePanel" aria-label="时间轴、战役列表与详情">
-      <div class="sp-time">
-        <div class="pd-top">
-          <div class="tl-head">
-            <span class="tl-date" id="tlDate">1946年6月26日</span>
-            <span class="tl-chap" id="tlChap">第一阶段 · 战略防御</span>
-            <button class="tl-hint" id="tlHint" type="button" aria-label="操作说明（悬停查看）" title="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图" data-tip="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图">ⓘ</button>
-          </div>
-          <div class="focus-bar" id="focusBar" role="status" aria-live="polite">
-            <span class="fb-dot" aria-hidden="true"></span>
-            <span class="fb-text" id="fbText">已聚焦</span>
-            <button class="fb-restore" id="fbRestore" type="button"><span class="gi">⟲</span>恢复全局视图</button>
-          </div>
-        </div>
-        <div class="tl-scrub" id="tlScrub">
-          <div class="tl-ruler" id="tlRuler">
-            <input type="range" class="tl-range" id="tlRange" min="0" max="1989" step="1" value="0"
-                   aria-label="时间轴：拖动查看 1946—1951 年态势">
-          </div>
-          <div class="tl-years" id="tlYears"></div>
-        </div>
-        <div class="pd-controls">
-          <div class="pd-transport">
-            <button class="pd-step" id="btnStepBack" type="button" aria-label="后退 3 天" title="后退 3 天"><span class="gi">⏴</span></button>
-            <button class="tool-btn" id="btnPlay" type="button" aria-pressed="false">▶ 播放演进</button>
-            <button class="pd-step" id="btnStepFwd" type="button" aria-label="前进 3 天" title="前进 3 天"><span class="gi">⏵</span></button>
-            <button class="tool-btn" id="btnReset" type="button"><span class="gi">↺</span>回到起点</button>
-            <div class="speed-row" role="group" aria-label="播放速度">
-              <button class="speed-chip" data-speed="0.25" type="button">0.25×</button>
-              <button class="speed-chip" data-speed="0.5" type="button">0.5×</button>
-              <button class="speed-chip on" data-speed="1" type="button">1×</button>
-              <button class="speed-chip" data-speed="2" type="button">2×</button>
-            </div>
-          </div>
-
-          <div class="pd-view">
-            <button class="mode-btn on" id="btn3d" type="button" aria-pressed="true">3D 沙盘</button>
-            <button class="mode-btn" id="btn2d" type="button" aria-pressed="false">2D 平面图</button>
-            <span class="pd-sep" aria-hidden="true"></span>
-            <button class="zoom-btn" id="btnZoomOut" type="button" aria-label="缩小地图"><span class="gi">−</span></button>
-            <input type="range" class="zoom-slider" id="zoomSlider" min="0.65" max="8" step="0.01" value="1"
-                   aria-label="地图缩放：拖动精细调节倍率">
-            <button class="zoom-btn" id="btnZoomIn" type="button" aria-label="放大地图"><span class="gi">＋</span></button>
-            <span class="zoom-readout" id="zoomReadout">1.00×</span>
-            <button class="auto-btn on" id="btnAutoFocus" type="button" aria-pressed="true"
-                    title="时间推进时自动局部放大当前战役位置；手动缩放后自动关闭">◎ 自动聚焦</button>
-            <button class="reset-btn" id="btnZoomReset" type="button"
-                    title="恢复原始缩放尺寸与视图（快捷键 0）"><span class="gi">⟲</span>恢复全局视图</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 战役 / 态势：与时间轴同列，进行中战役自动滚入可视区 -->
+    <!-- 右侧同屏面板：战役/态势 + 战役详情（时间轴已移入左侧菜单），高度与地图容器一致 -->
+    <aside class="side-panel" id="sidePanel" aria-label="战役列表与详情">
+            <!-- 战役 / 态势：现在位于右栏顶部（时间轴已移入左侧菜单），进行中战役自动滚入可视区 -->
       <div class="map-float" id="mapFloat" role="group" aria-label="战役与态势列表">
         <div class="mf-head">
           <div class="mf-tabs" role="tablist" aria-label="切换战役或态势列表">
