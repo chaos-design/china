@@ -48,6 +48,9 @@
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
   }
+  /* 桌面端整页固定不滚动：上部内容（左地图 + 右战役信息）、下部时间轴各自在视口内消化，
+     滚动只发生在左菜单、右栏各分区等内部容器，页面本身不出现滚动条。 */
+  html, body { height: 100%; overflow: hidden; }
 
   /* ===================== 图例样本（军事符号） ===================== */
   .sym { display: inline-block; vertical-align: middle; flex: 0 0 auto; }
@@ -251,8 +254,8 @@
   .pl-arms .pl-vs { font-size: 10px; color: var(--text-sub); opacity: .75; margin: 0 4px; }
   .pl-arms .pl-track { margin: 4px 0 3px; }
   .pl-arms-note { font-size: 9.5px; color: var(--text-sub); opacity: .78; line-height: 1.4; }
-  /* 军事图例：直接展示（原「进行中战役」槽位），替换底部浮层入口。
-     撑满左侧菜单内容宽，双列排布压低高度，短屏兜底内部滚动。 */
+  /* 军事图例：直接展示（原「进行中战役」槽位）。单列分组卡片——
+     每组独立留白 + 细边框，组内每条图例加内边距与虚线分隔，条目一眼可辨且不挤成竖排短句。 */
   .pl-legend { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
   .pl-legend-title {
     display: flex; align-items: center; gap: 5px; margin: 0 0 6px;
@@ -260,17 +263,32 @@
   }
   .pl-legend-title .gi { font-size: 12px; }
   .pl-legend-body {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px;
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px;
+    /* 与左侧菜单原有高度预算一致：图例内部滚动，底部两个入口始终留在视口内 */
     max-height: 168px; overflow-y: auto;
-    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.34) transparent;
-    padding-right: 2px;
+    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.42) transparent;
+    padding: 1px 3px 3px 1px;
   }
-  .pl-legend-body .lg-group { min-width: 0; }
-  .pl-legend-body .lg-group + .lg-group { margin-top: 0; padding-top: 0; border-top: none; }
-  .pl-legend-body .lg-group:nth-child(n+3) { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border); }
-  .pl-legend .lg-row { min-height: 18px; font-size: 10px; column-gap: 6px; }
-  .pl-legend .lg-sym { width: 30px; height: 16px; }
-  .pl-legend .lg-note { grid-column: 1 / -1; }
+  .pl-legend-body::-webkit-scrollbar { width: 6px; }
+  .pl-legend-body::-webkit-scrollbar-track { background: transparent; }
+  .pl-legend-body::-webkit-scrollbar-thumb { background: rgba(156,66,33,.34); border-radius: 3px; }
+  .pl-legend-body .lg-group {
+    min-width: 0; padding: 6px 7px 7px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface);
+  }
+  .pl-legend-body .lg-group + .lg-group { margin-top: 0; padding-top: 6px; border-top: 1px solid var(--border); }
+  .pl-legend-body .lg-group:nth-child(n+3) { margin-top: 0; border-top: 1px solid var(--border); }
+  .pl-legend .lg-group h4 { margin: 0 0 5px; font-size: 10px; }
+  .pl-legend .lg-row {
+    grid-template-columns: 34px minmax(0, 1fr); column-gap: 8px;
+    min-height: 20px; font-size: 10px;
+    padding: 2px 5px; border-radius: 4px;
+  }
+  .pl-legend .lg-row + .lg-row {
+    margin-top: 1px; padding-top: 4px; border-top: 1px dashed rgba(156,107,58,.20);
+  }
+  .pl-legend .lg-sym { width: 34px; height: 18px; }
 
   /* ===================== 侧栏底部三入口：军事图例 / 番号沿革 / 标图口径 ===================== */
   /* 三个入口合并为一行、行为完全一致：点击开合、同一时间只展开一个、Escape 收起。
@@ -415,7 +433,8 @@
 
   .right-panel {
     position: relative; z-index: 2;
-    display: flex; flex-direction: column; min-height: 100vh;
+    display: flex; flex-direction: column;
+    height: 100vh; min-height: 0; overflow: hidden;
     margin-left: calc(var(--rail-w) + var(--rail-gap)); min-width: 0;
     padding: 14px 16px 14px 0;
     transition: margin-left .28s cubic-bezier(.2,.7,.3,1), padding-left .28s ease;
@@ -434,14 +453,16 @@
     background: var(--card-bg); backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border); border-radius: 10px;
     box-shadow: var(--shadow);
-    overflow: hidden;
+    overflow: hidden; overscroll-behavior: contain;
   }
   /* 时间轴模块整体收敛一档：尺寸/字号在「右侧同屏面板」段统一缩小，形态保持不变 */
   .sp-time { flex: 0 0 auto; padding: 4px 10px 3px; border-bottom: 1px solid var(--border); }
+  /* 详情区只占自己需要的高度，最高不超过面板 38%，内部独立滚动；
+     剩下的空间全部留给上方「战役 / 态势」两块，避免内容被裁掉看不到。 */
   .sp-detail {
-    flex: 1 1 auto; min-height: 120px;
-    overflow-y: auto; overscroll-behavior: contain;
-    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent;
+    flex: 0 1 auto; min-height: 104px; max-height: 38%;
+    overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.45) transparent;
     padding: 9px 12px 12px;
   }
   .sp-detail::-webkit-scrollbar { width: 7px; }
@@ -464,6 +485,13 @@
   .ic-focus:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   @media (max-width: 1240px) {
     .side-panel { flex-basis: 302px; width: 302px; }
+  }
+  /* 矮屏兜底：整页不滚动时，先压缩地图最小高度与控制条间距，
+     保证「上内容 / 下时间轴」始终完整落在视口内，不会被裁掉。 */
+  @media (min-width: 901px) and (max-height: 760px) {
+    .map-canvas { min-height: 200px; }
+    .sp-time-dock { margin-top: 8px; }
+    .sp-detail { min-height: 84px; }
   }
 
   /* 时间轴模拟条 */
@@ -733,11 +761,17 @@
 
   /* 战役 / 态势：两块同时直出、各自随时间刷新，不再做 tab 切换 */
   .side-panel .map-float {
-    flex: 0 0 auto; min-height: 0;
+    /* 吃掉详情区以外的全部剩余高度，战役 / 态势按 1:1.25 分摊，各自内部滚动 */
+    flex: 1 1 auto; min-height: 0;
+    display: flex; flex-direction: column;
     width: 100%; margin: 0;
     background: transparent; border: none; border-bottom: 1px dashed var(--border);
     border-radius: 0; box-shadow: none;
     overflow: hidden;
+  }
+  .mf-block {
+    flex: 1 1 0; min-height: 0;
+    display: flex; flex-direction: column;
   }
   .mf-block + .mf-block { border-top: 1px dashed var(--border); }
   .mf-label {
@@ -755,20 +789,20 @@
   .mf-key .k-win { background: var(--ccp-color); }
   .mf-key .k-loss { background: var(--kmt-color); }
   .mf-key .k-live { background: #d9a441; box-shadow: 0 0 0 2px rgba(217,164,65,.25); }
-  /* 两块各自独立滚动：总高度受控，详情栏始终常驻可见 */
+  /* 两块各自独立滚动并撑满分到的高度：任何条目都能滚到，滚动条常驻可见 */
   .mf-panel {
     list-style: none; padding: 6px; margin: 0;
-    max-height: min(26vh, 220px); overflow-y: auto;
-    overscroll-behavior: contain; touch-action: pan-y;
-    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent;
+    flex: 1 1 auto; min-height: 0; max-height: none;
+    overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.45) transparent;
   }
   .mf-panel::-webkit-scrollbar { width: 8px; }
   .mf-panel::-webkit-scrollbar-track { background: transparent; }
   .mf-panel::-webkit-scrollbar-thumb {
-    background: transparent; border-radius: 4px;
+    background: rgba(156,66,33,.30); border-radius: 4px;
     border: 2px solid transparent; background-clip: padding-box;
   }
-  .mf-panel:hover::-webkit-scrollbar-thumb, .mf-panel:focus-within::-webkit-scrollbar-thumb { background-color: rgba(156,66,33,.45); }
+  .mf-panel:hover::-webkit-scrollbar-thumb, .mf-panel:focus-within::-webkit-scrollbar-thumb { background-color: rgba(156,66,33,.55); }
   /* 统一栅格：序号 / 类型点 / 名称+日期 / 状态徽标，四列严格对齐，长名称不再挤压日期 */
   .mf-panel li {
     display: grid; grid-template-columns: 18px 9px minmax(0,1fr) auto;
@@ -831,7 +865,9 @@
   .b-badge.st-loss { background: var(--kmt-color); }
   .b-badge.st-pending { background: transparent; color: var(--text-sub); border: 1px solid var(--border); }
   .b-badge[hidden] { display: none; }
-  .mf-panel.mf-facts { max-height: min(16vh, 140px); }
+  /* 态势条目少，多分一点高度，让本阶段几条态势尽量同屏可见 */
+  .mf-block:last-child { flex: 1.25 1 0; }
+  .mf-panel.mf-facts { max-height: none; }
   .mf-panel.mf-facts li { cursor: default; display: block; background: var(--surface); border-left-width: 1px; padding: 7px 9px; }
   .mf-panel.mf-facts li:hover { transform: none; border-color: transparent; background: var(--surface); }
   .mf-panel.mf-facts li b { display: block; color: var(--value-text); font-weight: 700; margin-bottom: 2px; font-size: 12.5px; }
@@ -1196,6 +1232,8 @@
 
   /* ===================== 移动端 ===================== */
   @media (max-width: 900px) {
+    /* 窄屏回到正常的页面流式滚动：左菜单在上、内容在中、时间轴在下 */
+    html, body { height: auto; overflow: visible; }
     body { --rail-w: 0px; --rail-gap: 0px; }
     .left-panel {
       position: static; top: auto; left: auto;
@@ -1220,16 +1258,18 @@
     .legend-link, .rail-info-btn { font-size: 11.5px; }
     .rail-info-pop { width: min(320px, 88vw); }
     .rail-body { width: min(320px, 88vw); max-height: 52vh; }
-    .right-panel { width: 100%; margin-left: 0; padding: 12px 12px 14px; }
+    .right-panel { width: 100%; height: auto; min-height: 100vh; overflow: visible; margin-left: 0; padding: 12px 12px 14px; }
     .viewer-row { flex-direction: column; min-height: 0; }
     /* 窄屏沿用「时间轴一行 + 功能区一行」的上下分行，只放宽行距与内边距 */
     .sp-time-dock { row-gap: 6px; margin-top: 10px; padding: 8px 10px 10px; }
     .side-panel {
       position: static; flex: 1 1 auto; width: 100%; max-width: 100%; max-height: none; height: auto;
     }
-    .sp-detail { max-height: 46vh; }
+    .side-panel .map-float { flex: 0 0 auto; display: block; }
+    .mf-block { flex: 0 0 auto; display: block; }
+    .sp-detail { flex: 0 0 auto; max-height: 46vh; }
     .left-panel { backdrop-filter: none; }
-    .mf-panel { max-height: 24vh; }
+    .mf-panel { flex: 0 0 auto; max-height: 24vh; }
     .mt-hint { display: none; }
     .map-canvas { flex: 0 0 auto; height: 62vh; min-height: 340px; }
     .tl-head .tl-hint { display: none; }
@@ -1334,9 +1374,6 @@
             <div class="lg-row"><span class="lg-sym"><i class="terrain-sample"></i></span><span>高程晕渲＋山脊晕线（山丘 / 高原）</span></div>
             <div class="lg-row"><span class="lg-sym"><i class="river-sample"></i></span><span>主要河流（渐变水面＋岸线）</span></div>
             <div class="lg-row"><span class="lg-sym"><i class="rail-sample"></i></span><span>历史铁路（1946—1950）</span></div>
-          </div>
-          <div class="lg-note">
-            「标图口径」（投影 / 箭头 / 镜头）已并入底部<b>「标图口径」</b>入口，点开即可查看。
           </div>
         </div>
       </div>
@@ -1962,6 +1999,10 @@ let playing = false;
 let playSpeed = 1;         // 0.25 / 0.5 / 1 / 2（1× = 8 天/秒）
 const PLAY_DAYS_PER_SEC = 8;   // 放慢：1× 由 15 天/秒降到 8 天/秒，0.25× 可再慢四倍
 let selectedBattle = null;
+/* 演进时自动展开的详情（与用户手动点选分开，避免影响自动聚焦 / 镜头逻辑） */
+let autoBattleDetail = null;
+let detailPinned = false;      // 用户手动点选或关闭详情后，本次演进不再自动接管
+let lastAutoDetailIdx = -2;
 let lastProvKey = "";
 let lastStage = -1;
 let lastFlipBucket = -1;
@@ -3385,6 +3426,7 @@ tlRange.addEventListener("input", () => {
   if (playing) stopPlay();
   tTween = null;
   t = clamp(parseFloat(tlRange.value) || 0, 0, DTOTAL);
+  resetAutoDetail();   // 手动拖动时间轴后，详情重新随时间自动跟进
   snapUi();
   onCameraChanged();
   ensureLoop();
@@ -3499,7 +3541,7 @@ function buildStageNav() {
       '<div class="stage-name">' + stage.name + "</div>" +
       '<div class="stage-time">' + stage.time + "</div>" +
       '<div class="stage-intent">' + stage.intent + "</div>";
-    const go = () => { stopPlay(); tweenT(STAGE_SPANS[i].d0 + 0.5, 420); };
+    const go = () => { stopPlay(); resetAutoDetail(); tweenT(STAGE_SPANS[i].d0 + 0.5, 420); };
     div.addEventListener("click", go);
     div.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
     inner.appendChild(div);
@@ -3571,8 +3613,57 @@ function syncDetailLayout() {
   refreshUiBlocks();
   ensureLoop();
 }
+/* 纯渲染详情栏：只写详情 DOM 与列表选中态，不改时间、不动镜头、不暂停播放。
+   用户手动点选与演进自动展开共用，避免两套渲染走样。 */
+function renderBattleDetail(b) {
+  const detail = document.getElementById("battleDetail");
+  detail.hidden = false;
+  const phaseItems = b.phases.map((p) => {
+    const done = dnum(p.d) <= dnumLocal(t) + 3;
+    return '<li data-d="' + p.d + '" class="' + (done ? "done" : "") + '"><b>' + p.d.replace(/^\d{4}-/, "").replace("-", ".") + "</b>" + p.text + "</li>";
+  }).join("");
+  const forcesRows = (b.forces || []).map((f) =>
+    '<div class="bf-row"><span class="bf-side ' + (f.side === "kmt" ? "kmt" : "cc") + '">' + (f.side === "kmt" ? "敌" : "我") + "</span>" +
+    '<div class="bf-body"><b>' + f.org + "</b>" + (f.cmd ? "<i>" + f.cmd + "</i>" : "") + "<span>" + f.troops + "</span></div></div>"
+  ).join("");
+  detail.innerHTML =
+    '<button class="bd-close" type="button" aria-label="关闭战役详情">×</button>' +
+    '<div class="bd-title">' + b.name + " · " + b.time + " · " + (function (k) { return { attack: "进攻", defense: "防御", planned: "未竟", peace: "和平" }[k] || ""; })(b.kind) + "</div>" +
+    (b.note || "") +
+    (forcesRows ? '<div class="bd-forces"><h4>编制与兵力</h4>' + forcesRows + (b.balance ? '<div class="bf-balance">兵力对比：<b>' + b.balance + "</b></div>" : "") + "</div>" : "") +
+    '<div class="bd-outcome"><b>走向：</b>' + (b.outcome || "") + "</div>" +
+    (b.phases.length ? '<ul class="bd-phases">' + phaseItems + "</ul>" : "");
+  detail.querySelector(".bd-close").addEventListener("click", clearSelection);
+  const idx = ALL_BATTLES.indexOf(b);
+  $$("#mfBattles li").forEach((li) => li.classList.toggle("selected", +li.dataset.idx === idx));
+}
+/* 阶段推进：只切 done 类，不重建详情 DOM，播放时不会丢滚动位置或抖动 */
+function updateDetailPhases() {
+  const now = dnumLocal(t) + 3;
+  $$("#battleDetail .bd-phases li").forEach((li) => {
+    li.classList.toggle("done", dnum(li.dataset.d) <= now);
+  });
+}
+/* 演进（播放 / 拖动时间轴）中自动展开当前进行中战役的详情。
+   只在战役切换时重建详情；用户手动点选或关闭后本次演进不再自动接管。 */
+function maybeAutoDetail(ab) {
+  // 手动点选的详情同样随时间点亮阶段条目
+  updateDetailPhases();
+  if (detailPinned || !ab) return;
+  const idx = ALL_BATTLES.indexOf(ab);
+  if (idx < 0 || idx === lastAutoDetailIdx) return;
+  lastAutoDetailIdx = idx;
+  autoBattleDetail = ab;
+  renderBattleDetail(ab);
+}
+function resetAutoDetail() {
+  detailPinned = false;
+  lastAutoDetailIdx = -2;
+}
 function selectBattle(b, focus) {
   selectedBattle = b;
+  autoBattleDetail = b;
+  detailPinned = true;          // 手动点选优先，演进期间不再自动换详情
   if (!playing) {
     tweenT(b._d0 + 1, 520);
     if (focus) focusBattle(b, "click");
@@ -3589,40 +3680,24 @@ function selectBattle(b, focus) {
       li.classList.add("flash");
     }
   });
-  const detail = document.getElementById("battleDetail");
-  detail.hidden = false;
-  const phaseItems = b.phases.map((p) => {
-    const done = dnum(p.d) <= dnumLocal(t) + 3;
-    return '<li class="' + (done ? "done" : "") + '"><b>' + p.d.replace(/^\d{4}-/, "").replace("-", ".") + "</b>" + p.text + "</li>";
-  }).join("");
-  const forcesRows = (b.forces || []).map((f) =>
-    '<div class="bf-row"><span class="bf-side ' + (f.side === "kmt" ? "kmt" : "cc") + '">' + (f.side === "kmt" ? "敌" : "我") + "</span>" +
-    '<div class="bf-body"><b>' + f.org + "</b>" + (f.cmd ? "<i>" + f.cmd + "</i>" : "") + "<span>" + f.troops + "</span></div></div>"
-  ).join("");
-  detail.innerHTML =
-    '<button class="bd-close" type="button" aria-label="关闭战役详情">×</button>' +
-    '<div class="bd-title">' + b.name + " · " + b.time + " · " + (function (k) { return { attack: "进攻", defense: "防御", planned: "未竟", peace: "和平" }[k] || ""; })(b.kind) + "</div>" +
-    (b.note || "") +
-    (forcesRows ? '<div class="bd-forces"><h4>编制与兵力</h4>' + forcesRows + (b.balance ? '<div class="bf-balance">兵力对比：<b>' + b.balance + "</b></div>" : "") + "</div>" : "") +
-    '<div class="bd-outcome"><b>走向：</b>' + (b.outcome || "") + "</div>" +
-    (b.phases.length ? '<ul class="bd-phases">' + phaseItems + "</ul>" : "");
-  detail.querySelector(".bd-close").addEventListener("click", clearSelection);
-  $$("#mfBattles li").forEach((li) => li.classList.toggle("selected", +li.dataset.idx === ALL_BATTLES.indexOf(b)));
-  // 悬浮面板列表滚动（即时滚动，smooth 在嵌入环境的动画时钟冻结时不生效）
-  const li = document.querySelector('#mfBattles li[data-idx="' + ALL_BATTLES.indexOf(b) + '"]');
-  if (li && li.scrollIntoView) li.scrollIntoView({ block: "nearest", behavior: "auto" });
+  renderBattleDetail(b);
+  const ul = document.getElementById("mfBattles");
+  revealListItem(ul, ul.querySelector('li[data-idx="' + selIdx + '"]'));
   syncDetailLayout();
 }
 function clearSelection() {
   selectedBattle = null;
+  autoBattleDetail = null;
+  detailPinned = true;
   document.getElementById("battleDetail").hidden = true;
   $$("#mfBattles li").forEach((li) => li.classList.remove("selected"));
   syncDetailLayout();
 }
 document.getElementById("icFocus").addEventListener("click", () => {
-  if (!selectedBattle) return;
-  focusBattle(selectedBattle, "click");
-  document.getElementById("liveStatus").textContent = "已定位至「" + selectedBattle.name + "」，播放进度保持不变。";
+  const b = selectedBattle || autoBattleDetail;
+  if (!b) return;
+  focusBattle(b, "click");
+  document.getElementById("liveStatus").textContent = "已定位至「" + b.name + "」，播放进度保持不变。";
 });
 /* ===================== 战役视图 / 自动聚焦 / 恢复全局 ===================== */
 /* 战役包围盒：战役点 + 全部军事要素（进攻、增援、防御、合围、突破、撤退） */
@@ -3781,6 +3856,9 @@ function startPlay() {
   if (t >= DTOTAL - 1) { t = 0; snapUi(); }
   playing = true;
   setPlayLabel();
+  // 新一次演进重新接管详情：随时间自动展开当前战役，阶段条目同步推进
+  resetAutoDetail();
+  maybeAutoDetail(activeNow(t));
   // 演进期间默认浮出军事图例（浮层不占布局空间），暂停后延时收起
   legendUserOverride = false;
   clearTimeout(legendAutoTimer);
@@ -3805,10 +3883,10 @@ document.getElementById("btnReset").addEventListener("click", () => {
 });
 /* 逐日微调：与 ←→ 快捷键等价，方便在悬浮区里精确停在某个时点 */
 document.getElementById("btnStepBack").addEventListener("click", (e) => {
-  stopPlay(); tweenT(t - (e.shiftKey ? 60 : 3), 0);
+  stopPlay(); resetAutoDetail(); tweenT(t - (e.shiftKey ? 60 : 3), 0);
 });
 document.getElementById("btnStepFwd").addEventListener("click", (e) => {
-  stopPlay(); tweenT(t + (e.shiftKey ? 60 : 3), 0);
+  stopPlay(); resetAutoDetail(); tweenT(t + (e.shiftKey ? 60 : 3), 0);
 });
 document.getElementById("alRetry").addEventListener("click", () => window.location.reload());
 
@@ -3841,10 +3919,21 @@ function battleResult(b) {
    用户有选中态时以选中战役为准，不与用户的选择抢滚动位置。 */
 let lastAutoScrollIdx = -2;
 const BATTLE_STATE_TEXT = { live: "进行中", win: "胜利", loss: "未竟", pending: "未开始" };
+/* 只滚动列表容器自身：scrollIntoView 会连带滚动 overflow:hidden 的祖先
+   （.map-float / .side-panel）乃至整页，把另一块内容推出可视区且无法滚回。 */
+function revealListItem(ul, li) {
+  if (!ul || !li) return false;
+  const lr = li.getBoundingClientRect(), ur = ul.getBoundingClientRect();
+  const above = lr.top - ur.top, below = lr.bottom - ur.bottom;
+  if (above < 0) ul.scrollTop += above - 4;
+  else if (below > 0) ul.scrollTop += below + 4;
+  return true;
+}
 function syncBattleList() {
   const ab = activeNow(t);
   const abIdx = ab ? ALL_BATTLES.indexOf(ab) : -1;
-  const selIdx = selectedBattle ? ALL_BATTLES.indexOf(selectedBattle) : -1;
+  const shown = selectedBattle || autoBattleDetail;
+  const selIdx = shown ? ALL_BATTLES.indexOf(shown) : -1;
   const lis = $$("#mfBattles li");
   let liveCount = 0;
   lis.forEach((li) => {
@@ -3891,15 +3980,14 @@ function syncBattleList() {
   }
   const targetIdx = selIdx >= 0 ? selIdx : abIdx;
   if (targetIdx >= 0 && targetIdx !== lastAutoScrollIdx) {
-    const li = document.querySelector('#mfBattles li[data-idx="' + targetIdx + '"]');
-    // 列表尚未重建时 li 不存在：此时不标记已滚动，等渲染完成后再滚，
+    const ul = document.getElementById("mfBattles");
+    const li = ul.querySelector('li[data-idx="' + targetIdx + '"]');
+    // 列表尚未重建时 li 不存在：不标记已滚动，等渲染完成后再滚，
     // 否则每帧同步会把滚动目标吃掉，进行中战役永远停在列表可视区外。
-    // 用即时滚动：smooth 在部分嵌入环境（如应用内浏览器）被动画时钟暂停时完全不滚动
-    if (li && li.scrollIntoView) {
-      li.scrollIntoView({ block: "nearest", behavior: "auto" });
-      lastAutoScrollIdx = targetIdx;
-    }
+    if (revealListItem(ul, li)) lastAutoScrollIdx = targetIdx;
   }
+  // 随时间演进自动展开当前进行中战役的详情（不回拨时间、不抢镜头）
+  maybeAutoDetail(ab);
 }
 function snapUi() {
   updateScrubUi();
@@ -4131,10 +4219,10 @@ document.getElementById("btnAutoFocus").addEventListener("change", (e) => {
 MAP_CANVAS.addEventListener("keydown", (e) => {
   const k = e.key;
   if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " ", "0", "+", "-", "v", "V", "Escape", "[" , "]"].includes(k)) e.preventDefault();
-  if (k === "ArrowRight") { stopPlay(); tweenT(t + (e.shiftKey ? 60 : 3), e.shiftKey ? 0 : 180); }
-  else if (k === "ArrowLeft") { stopPlay(); tweenT(t - (e.shiftKey ? 60 : 3), e.shiftKey ? 0 : 180); }
-  else if (k === "ArrowUp") { stopPlay(); const si = Math.min(STAGES.length - 1, stageIndexAt(t) + 1); tweenT(STAGE_SPANS[si].d0, 420); }
-  else if (k === "ArrowDown") { stopPlay(); const si = Math.max(0, stageIndexAt(t) - 1); tweenT(STAGE_SPANS[si].d0, 420); }
+  if (k === "ArrowRight") { stopPlay(); resetAutoDetail(); tweenT(t + (e.shiftKey ? 60 : 3), e.shiftKey ? 0 : 180); }
+  else if (k === "ArrowLeft") { stopPlay(); resetAutoDetail(); tweenT(t - (e.shiftKey ? 60 : 3), e.shiftKey ? 0 : 180); }
+  else if (k === "ArrowUp") { stopPlay(); resetAutoDetail(); const si = Math.min(STAGES.length - 1, stageIndexAt(t) + 1); tweenT(STAGE_SPANS[si].d0, 420); }
+  else if (k === "ArrowDown") { stopPlay(); resetAutoDetail(); const si = Math.max(0, stageIndexAt(t) - 1); tweenT(STAGE_SPANS[si].d0, 420); }
   else if (k === " ") { playing ? stopPlay() : startPlay(); }
   else if (k === "+" || k === "=") zoomStep(1.14);
   else if (k === "-" || k === "_") zoomStep(1 / 1.14);
