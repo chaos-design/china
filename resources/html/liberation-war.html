@@ -457,23 +457,29 @@
   }
   /* 时间轴模块整体收敛一档：尺寸/字号在「右侧同屏面板」段统一缩小，形态保持不变 */
   .sp-time { flex: 0 0 auto; padding: 4px 10px 3px; border-bottom: 1px solid var(--border); }
-  /* 详情区只占自己需要的高度，最高不超过面板 38%，内部独立滚动；
-     剩下的空间全部留给上方「战役 / 态势」两块，避免内容被裁掉看不到。 */
+  /* 详情区只占自己需要的高度，最高不超过面板 38%；标题栏与战役名固定在滚动容器之外，
+     只有正文独立滚动，标题不受滚动影响。剩下空间留给上方「战役 / 态势」两块。 */
   .sp-detail {
-    flex: 0 1 auto; min-height: 104px; max-height: 38%;
-    overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
-    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.45) transparent;
+    flex: 0 1 auto; min-height: 128px; max-height: 38%;
+    display: flex; flex-direction: column;
+    overflow: hidden; overscroll-behavior: contain;
     padding: 9px 12px 12px;
   }
-  .sp-detail::-webkit-scrollbar { width: 7px; }
-  .sp-detail::-webkit-scrollbar-track { background: transparent; }
-  .sp-detail::-webkit-scrollbar-thumb {
+  .sp-detail-body {
+    flex: 1 1 auto; min-height: 0;
+    overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.45) transparent;
+  }
+  .sp-detail-body::-webkit-scrollbar { width: 7px; }
+  .sp-detail-body::-webkit-scrollbar-track { background: transparent; }
+  .sp-detail-body::-webkit-scrollbar-thumb {
     background: rgba(156,66,33,.34); border-radius: 4px;
     border: 2px solid transparent; background-clip: padding-box;
   }
   .ic-head {
+    flex: 0 0 auto;
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px dashed var(--border);
+    padding-bottom: 7px; margin-bottom: 8px; border-bottom: 1px dashed var(--border);
     font-size: 11px; font-weight: 700; letter-spacing: .5px; color: var(--gold);
   }
   .ic-focus {
@@ -491,7 +497,7 @@
   @media (min-width: 901px) and (max-height: 760px) {
     .map-canvas { min-height: 200px; }
     .sp-time-dock { margin-top: 8px; }
-    .sp-detail { min-height: 84px; }
+    .sp-detail { min-height: 108px; }
   }
 
   /* 时间轴模拟条 */
@@ -875,6 +881,23 @@
     background: rgba(156,66,33,.08); border-left: 3px solid var(--gold);
     color: var(--text-main); font-size: 11px; line-height: 1.5;
   }
+  /* 态势块可折叠：折叠后只留标题行，腾出的高度全部让给战役列表 */
+  .mf-toggle {
+    margin-left: auto; flex: 0 0 auto;
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 7px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-sub); font-size: 10px; font-weight: 700; letter-spacing: 0;
+    cursor: pointer; white-space: nowrap;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .mf-toggle:hover { color: var(--gold); border-color: var(--gold); background: rgba(156,66,33,.09); }
+  .mf-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .mf-toggle .mf-caret { display: inline-block; font-size: 11px; line-height: 1; transition: transform .2s ease; }
+  .side-panel .mf-block.is-collapsed { flex: 0 0 auto; }
+  .mf-block.is-collapsed .mf-panel { display: none; }
+  .mf-block.is-collapsed .mf-label { border-bottom: none; }
+  .mf-block.is-collapsed .mf-toggle .mf-caret { transform: rotate(180deg); }
   .mf-empty { padding: 10px 6px; font-size: 11.5px; color: var(--text-sub); text-align: center; }
 
   /* ===================== 状态反馈：聚焦条 / 点击涟漪 ===================== */
@@ -920,14 +943,27 @@
     padding: 2px 2px;
   }
   .detail-hint b { color: var(--text-main); }
+  /* 战役名标题栏固定在滚动区之外：切换战役只换文字，正文滚动时始终可见 */
+  .bd-titlebar {
+    flex: 0 0 auto; display: flex; align-items: flex-start; gap: 6px;
+    padding: 0 0 6px; margin-bottom: 6px; border-bottom: 1px dashed var(--border);
+  }
+  .bd-titlebar[hidden] { display: none; }
+  .bd-titlebar .bd-title {
+    flex: 1 1 auto; min-width: 0;
+    font-size: 12.5px; font-weight: 700; line-height: 1.4; color: var(--gold);
+  }
+  .bd-titlebar .bd-close {
+    position: static; flex: 0 0 auto;
+    width: 22px; height: 22px; margin: -3px -4px 0 0;
+  }
   .battle-detail {
     position: relative;
-    padding: 10px 34px 10px 12px;
+    padding: 8px 12px 10px;
     background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px;
     font-size: 13px; color: var(--text-main); line-height: 1.65;
     animation: fadeUp .25s ease both;
   }
-  .battle-detail .bd-title { font-weight: 700; color: var(--gold); margin-bottom: 4px; }
   /* 演进到时间轴终点的收尾卡片：独立于战役详情，详情栏为空时也能显示 */
   .sp-finish {
     margin-bottom: 8px; padding: 8px 10px; border-radius: 6px;
@@ -1471,10 +1507,13 @@
           </div>
           <ul class="mf-panel" id="mfBattles" aria-label="本阶段战役列表"></ul>
         </section>
-        <section class="mf-block" aria-label="本阶段态势">
+        <section class="mf-block" id="mfFactBlock" aria-label="本阶段态势">
           <div class="mf-label">
             <span class="mf-label-name">态势</span>
             <span class="mf-meta" id="mfFactMeta"></span>
+            <button class="mf-toggle" id="mfFactToggle" type="button" aria-expanded="true" aria-controls="mfFacts" aria-label="收起态势列表" title="收起态势列表">
+              <span class="mf-toggle-text">收起</span><span class="mf-caret" aria-hidden="true">⌃</span>
+            </button>
           </div>
           <ul class="mf-panel mf-facts" id="mfFacts" aria-label="本阶段关键态势"></ul>
         </section>
@@ -1485,8 +1524,14 @@
           <span>战役详情 · 与地图同屏</span>
           <button class="ic-focus" id="icFocus" type="button" title="只在需要时定位地图，不改变播放进度"><span class="gi">⌖</span>定位到地图</button>
         </div>
-        <div class="sp-finish" id="spFinish" role="status" hidden></div>
-        <div class="battle-detail" id="battleDetail" hidden></div>
+        <div class="bd-titlebar" id="bdTitleBar" hidden>
+          <div class="bd-title" id="bdTitle"></div>
+          <button class="bd-close" id="bdClose" type="button" aria-label="关闭战役详情">×</button>
+        </div>
+        <div class="sp-detail-body" id="spDetailBody">
+          <div class="sp-finish" id="spFinish" role="status" hidden></div>
+          <div class="battle-detail" id="battleDetail" hidden></div>
+        </div>
       </div>
     </aside>
     </div>
@@ -3631,6 +3676,10 @@ function syncDetailLayout() {
 function renderBattleDetail(b) {
   const detail = document.getElementById("battleDetail");
   detail.hidden = false;
+  const titleBar = document.getElementById("bdTitleBar");
+  document.getElementById("bdTitle").textContent =
+    b.name + " · " + b.time + " · " + (function (k) { return { attack: "进攻", defense: "防御", planned: "未竟", peace: "和平" }[k] || ""; })(b.kind);
+  titleBar.hidden = false;
   const phaseItems = b.phases.map((p) => {
     const done = dnum(p.d) <= dnumLocal(t) + 3;
     return '<li data-d="' + p.d + '" class="' + (done ? "done" : "") + '"><b>' + p.d.replace(/^\d{4}-/, "").replace("-", ".") + "</b>" + p.text + "</li>";
@@ -3640,13 +3689,12 @@ function renderBattleDetail(b) {
     '<div class="bf-body"><b>' + f.org + "</b>" + (f.cmd ? "<i>" + f.cmd + "</i>" : "") + "<span>" + f.troops + "</span></div></div>"
   ).join("");
   detail.innerHTML =
-    '<button class="bd-close" type="button" aria-label="关闭战役详情">×</button>' +
-    '<div class="bd-title">' + b.name + " · " + b.time + " · " + (function (k) { return { attack: "进攻", defense: "防御", planned: "未竟", peace: "和平" }[k] || ""; })(b.kind) + "</div>" +
     (b.note || "") +
     (forcesRows ? '<div class="bd-forces"><h4>编制与兵力</h4>' + forcesRows + (b.balance ? '<div class="bf-balance">兵力对比：<b>' + b.balance + "</b></div>" : "") + "</div>" : "") +
     '<div class="bd-outcome"><b>走向：</b>' + (b.outcome || "") + "</div>" +
     (b.phases.length ? '<ul class="bd-phases">' + phaseItems + "</ul>" : "");
-  detail.querySelector(".bd-close").addEventListener("click", clearSelection);
+  // 标题栏固定在滚动区之外，切换战役时正文回到顶部，标题始终可见
+  document.getElementById("spDetailBody").scrollTop = 0;
   const idx = ALL_BATTLES.indexOf(b);
   $$("#mfBattles li").forEach((li) => li.classList.toggle("selected", +li.dataset.idx === idx));
 }
@@ -3703,14 +3751,29 @@ function clearSelection() {
   autoBattleDetail = null;
   detailPinned = true;
   document.getElementById("battleDetail").hidden = true;
+  document.getElementById("bdTitleBar").hidden = true;
+  document.getElementById("spDetailBody").scrollTop = 0;
   $$("#mfBattles li").forEach((li) => li.classList.remove("selected"));
   syncDetailLayout();
 }
+document.getElementById("bdClose").addEventListener("click", clearSelection);
 document.getElementById("icFocus").addEventListener("click", () => {
   const b = selectedBattle || autoBattleDetail;
   if (!b) return;
   focusBattle(b, "click");
   document.getElementById("liveStatus").textContent = "已定位至「" + b.name + "」，播放进度保持不变。";
+});
+/* 态势折叠：只切换展示形态，随时间刷新的态势数据照常更新 */
+const mfFactBlock = document.getElementById("mfFactBlock");
+const mfFactToggle = document.getElementById("mfFactToggle");
+mfFactToggle.addEventListener("click", () => {
+  const collapsed = mfFactBlock.classList.toggle("is-collapsed");
+  mfFactToggle.setAttribute("aria-expanded", String(!collapsed));
+  mfFactToggle.querySelector(".mf-toggle-text").textContent = collapsed ? "展开" : "收起";
+  const tip = collapsed ? "展开态势列表" : "收起态势列表";
+  mfFactToggle.title = tip;
+  mfFactToggle.setAttribute("aria-label", tip);
+  refreshUiBlocks();
 });
 /* ===================== 战役视图 / 自动聚焦 / 恢复全局 ===================== */
 /* 战役包围盒：战役点 + 全部军事要素（进攻、增援、防御、合围、突破、撤退） */
