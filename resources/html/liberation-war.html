@@ -698,13 +698,15 @@
   .map-canvas.drag-orbit { cursor: grab; }
   .map-canvas.drag-orbit:active { cursor: grabbing; }
 
-  /* 南海等区域说明（底部注记条，替代南海插图） */
+  /* 南海等区域说明（底部注记条，替代南海插图）：文案精简到桌面恰好一行，
+     完整史料 / 主权口径放在 title；极窄屏放不下才折行，绝不截断主权表述。 */
   .map-footnote {
     border-top: 1px solid var(--border);
     background: var(--card-solid);
     color: var(--text-sub);
-    font-size: 10.5px; line-height: 1.5;
-    padding: 5px 14px;
+    font-size: 10px; line-height: 1.4;
+    padding: 3px 12px;
+    white-space: normal; overflow: visible;
   }
 
   /* 比例尺 / 指北针 */
@@ -1376,7 +1378,7 @@
     .map-chip { display: none; }
     .sp-time .zoom-slider { width: 52px; }
     .map-scale { left: 8px; bottom: 8px; padding: 4px 7px; }
-    .map-footnote { padding: 4px 10px; font-size: 10px; }
+    .map-footnote { padding: 3px 10px; font-size: 9.5px; }
     .sp-time .fb-text { font-size: 9px; }
     .lg-row { font-size: 10.5px; }
   }
@@ -1545,9 +1547,7 @@
         <div class="map-tip" id="mapTip" role="tooltip" aria-hidden="true"></div>
       </div>
 
-      <div class="map-footnote" id="mapFootnote">
-        注：本图为战争态势局部示意，因图幅所限未绘出南海诸岛及南海海域；台湾、南海诸岛等均为中国领土，留白不表示任何边界主张。地形高程为示意性夸张渲染。
-      </div>
+      <div class="map-footnote" id="mapFootnote" title="史料与主权声明：本图为战争态势局部示意，箭头为示意性战略方向而非精确行军路线，地形高程为示意性夸张渲染；因图幅所限未绘出南海诸岛及南海海域，台湾及其附属岛屿、南海诸岛、香港、澳门均为中国领土，留白与省略不表示任何主权或边界主张。">注：本图为态势示意；因图幅所限未绘南海诸岛，台湾、南海诸岛等均为中国领土，留白不表示任何边界主张。</div>
     </div>
 
     <!-- 右侧同屏面板：战役 / 态势两块同时直出、随时间刷新（不再 tab 切换）+ 战役详情，
@@ -1869,10 +1869,10 @@ function hAt(x, y) {
 const CAM_DEFAULT_3D = { yaw: -0.3, pitch: 0.55, zoom: 1.0 };
 const CAM_DEFAULT_2D = { yaw: 0, pitch: 0, zoom: 1.0 };
 // 视角边界：沙盘只允许在地图上方小幅环视，不允许 360° 旋转；
-// 8× 上限 + 0.01 步进滑杆，支持对战役细节做精细放大。
+// 10× 上限 + 0.01 步进滑杆，支持对战役细节做精细放大。
 const YAW_LIMIT = 0.45;
 const PITCH_MIN = 0.28, PITCH_MAX = 1.0;
-const ZOOM_MIN = 0.65, ZOOM_MAX = 8;
+const ZOOM_MIN = 0.65, ZOOM_MAX = 10;
 const cam = {
   yaw: CAM_DEFAULT_3D.yaw, pitch: CAM_DEFAULT_3D.pitch, zoom: CAM_DEFAULT_3D.zoom,
   cx: VIEW_W / 2, cy: VIEW_H / 2,
@@ -2132,6 +2132,7 @@ let lastAutoFocusAt = 0;
 let pendingAutoFocus = null;
 const AUTO_FOCUS_MIN_GAP = 900; // 播放中两次自动聚焦的最小间隔，避免镜头来回抖动
 let uiBlocks = [];               // 地图内 DOM 控件占位，供军事标注避让
+let badgeBlocks = [];            // 军标识别牌（计划/攻/防）占位，每帧重建，供标签避让
 
 let labelCache = null;     // 标签布局缓存
 let labelTimer = 0;
@@ -2598,6 +2599,9 @@ function roundRectPath(c, x, y, w, h, r) {
 function symbolBadge(c, x, y, text, color) {
   const s = 13;
   const w = text.length > 1 ? text.length * 9 + 8 : s;
+  // 高倍放大后贴边/出界的识别牌不绘制，避免被裁掉半截；同时登记占位给标签层避让
+  if (x - w / 2 < 4 || x + w / 2 > W - 4 || y - s / 2 < 4 || y + s / 2 > Hc - 4) return;
+  badgeBlocks.push({ x: x - w / 2 - 2, y: y - s / 2 - 2, w: w + 4, h: s + 4 });
   c.save();
   roundRectPath(c, x - w / 2, y - s / 2, w, s, 4);
   c.fillStyle = "rgba(251,246,234,0.97)";
@@ -2923,10 +2927,14 @@ function drawEncircle(c, it, t) {
     const label = it.style === "peace" ? "围城·和谈" : it.style === "double" ? "内外两层包围圈" : "合围闭合";
     c.font = "700 10px 'PingFang SC','Microsoft YaHei',sans-serif";
     const tw = c.measureText(label).width;
-    c.fillStyle = "rgba(251,246,234,0.9)";
-    c.fillRect(s[0] - 3, s[1] - 11, tw + 7, 14);
-    c.fillStyle = "rgba(141,32,21,0.92)";
-    c.fillText(label, s[0] + 1, s[1]);
+    // 高倍放大后贴边/出界的闭合注记不绘制，避免被裁掉半截；登记占位给标签层避让
+    if (s[0] - 3 >= 4 && s[0] + tw + 4 <= W - 4 && s[1] - 11 >= 4 && s[1] + 3 <= Hc - 4) {
+      c.fillStyle = "rgba(251,246,234,0.9)";
+      c.fillRect(s[0] - 3, s[1] - 11, tw + 7, 14);
+      c.fillStyle = "rgba(141,32,21,0.92)";
+      c.fillText(label, s[0] + 1, s[1]);
+      badgeBlocks.push({ x: s[0] - 5, y: s[1] - 13, w: tw + 11, h: 18 });
+    }
   }
   c.restore();
 }
@@ -3242,6 +3250,7 @@ function layoutAndDrawLabels(c) {
   blocked.push({ x: 8, y: Hc - 62, w: 120, h: 54 });      // 比例尺
   markerScreen.forEach((m) => blocked.push({ x: m.x - m.r, y: m.y - m.r, w: m.r * 2, h: m.r * 2 }));
   uiBlocks.forEach((b) => blocked.push(b));               // 地图内浮层 / 状态条
+  badgeBlocks.forEach((b) => blocked.push(b));             // 军标识别牌（计划/攻/防）
   const placed = [];
   const fsBase = 11 * zf;
   jobs.forEach((job) => {
@@ -3262,9 +3271,9 @@ function layoutAndDrawLabels(c) {
     }
     // 引导线候选圈（两圈八向）：近处被占时向远处让位，内容绝不因拥挤而被丢弃，
     // 让位后由下方统一绘制引导线连回锚点。
-    for (const dist of [26, 44]) {
-      for (let k = 0; k < 8; k += 1) {
-        const ang = (k / 8) * Math.PI * 2 + (dist > 30 ? 0.393 : 0);
+    for (const dist of [26, 44, 64, 88]) {
+      for (let k = 0; k < 12; k += 1) {
+        const ang = (k / 12) * Math.PI * 2 + (dist > 30 ? 0.262 : 0);
         const dx = Math.cos(ang), dy = Math.sin(ang);
         cands.push({
           x: ax + (dx >= 0 ? 6 + dx * dist : -6 + dx * dist),
@@ -3322,8 +3331,8 @@ function layoutAndDrawLabels(c) {
       if (score === 0) { commit(cd, rx, ry); done = true; break; }
       if (score < fallbackScore) { fallbackScore = score; fallback = { cd, rx, ry }; }
     }
-    // 全部候选位被占：放到重叠面积最小的位置，保证战役/地名不消失
-    if (!done && fallback) commit(fallback.cd, fallback.rx, fallback.ry);
+    // 全部候选位被占：仅当重叠极轻微才落笔，避免放大后标签互相压住
+    if (!done && fallback && fallbackScore <= w * h * 0.04) commit(fallback.cd, fallback.rx, fallback.ry);
   });
   placedLabels = placed;
 }
@@ -3379,18 +3388,31 @@ function battleUnits(b) {
   });
   return out.slice(0, 2);
 }
-/* 收集番号牌与行动注记：放大后覆盖全部可见战役，未放大时只标注当前/选中战役 */
+/* 收集番号牌与行动注记：放大后只标注视野内战役，避免高倍下把画外战役的
+   方案文字用引导线拉回画布内造成拥挤；未放大时只标注当前/选中战役。 */
 function annotationJobs() {
   const focusB = selectedBattle || activeNow(t);
   const detailed = cam.zoom >= 1.45 || focusMode === "battle";
   const visible = ALL_BATTLES.filter((b) => t >= b._d0 - 3 && t <= b._d1 + 30);
   const battles = detailed ? visible : (focusB ? visible.filter((b) => b === focusB) : []);
   const jobs = [];
+  // 只收画布内（含少量余量）的锚点：高倍聚焦时画外战役的注记不再参与排布
+  const inView = (p) => p[0] >= -24 && p[0] <= W + 24 && p[1] >= -24 && p[1] <= Hc + 24;
+  // 章节级战略箭头文字（如「千里跃进大别山」）同样纳入统一避让，
+  // 不再直接压在箭头中点，避免放大后盖住战役名 / 地名 / 番号牌。
+  CHAPTER_ARROWS.forEach((a) => {
+    if (!a.label || t < a._d0 || t > a._d1) return;
+    const mx = (a.from[0] + a.to[0]) / 2, my = (a.from[1] + a.to[1]) / 2;
+    const s = project(mx, my, hAt(mx, my) + 0.4);
+    if (!inView(s)) return;
+    jobs.push({ type: "action", text: a.label, side: a.kind === "kmt" ? "kmt" : "ccp",
+      x: s[0], y: s[1], priority: 86 });
+  });
   battles.forEach((b) => {
     const isFocus = b === focusB;
     const pri = (isFocus ? 100 : 42) + (b.rank === 1 ? 8 : 0);
     const bs = project(b.x, b.y, hAt(b.x, b.y) * 0.8 + 0.7);
-    battleUnits(b).forEach((u, i) => {
+    if (inView(bs)) battleUnits(b).forEach((u, i) => {
       jobs.push({ type: "unit", text: u.text, side: u.side, x: bs[0], y: bs[1], priority: pri + 6 - i });
     });
     const ops = b.ops || {};
@@ -3402,6 +3424,7 @@ function annotationJobs() {
         else if (it.at) { mx = it.at[0]; my = it.at[1]; }
         else return;
         const s = project(mx, my, hAt(mx, my) * 0.8 + 0.55);
+        if (!inView(s)) return;
         jobs.push({
           type: "action", text: it.label, side: k === "kmt" || k === "ret" ? "kmt" : "ccp",
           x: s[0], y: s[1], priority: pri - 4,
@@ -3416,6 +3439,7 @@ function drawMilitaryAnnotations(c) {
   const jobs = annotationJobs();
   if (!jobs.length) return;
   const occupied = uiBlocks.slice();
+  badgeBlocks.forEach((b) => occupied.push(b));          // 军标识别牌不与其他注记叠压
   placedLabels.forEach((p) => occupied.push(p));
   // 只用标记图形本身的半径做避让（markerScreen.r 是点击命中半径，偏大）
   markerScreen.forEach((m) => {
@@ -3423,7 +3447,7 @@ function drawMilitaryAnnotations(c) {
     occupied.push({ x: m.x - rr, y: m.y - rr, w: rr * 2, h: rr * 2 });
   });
   const fs = 9.5 * (0.92 + 0.16 * clamp((cam.zoom - 0.75) / 3.75, 0, 1));
-  const maxTags = cam.zoom >= 1.8 ? 26 : 16;
+  const maxTags = cam.zoom >= 4 ? 42 : cam.zoom >= 1.8 ? 28 : 16;
   let drawn = 0;
   c.save();
   c.font = "700 " + fs.toFixed(1) + "px 'PingFang SC','Microsoft YaHei',sans-serif";
@@ -3447,9 +3471,9 @@ function drawMilitaryAnnotations(c) {
     ];
     // 引导线候选圈（两圈八向）：近处被占时向远处让位，番号/意图注记绝不因拥挤被丢弃，
     // 让位后由下方统一画引导线连回锚点。
-    for (const dist of [34, 54]) {
-      for (let k = 0; k < 8; k += 1) {
-        const ang = (k / 8) * Math.PI * 2 + (dist > 40 ? 0.393 : 0);
+    for (const dist of [34, 54, 76, 100]) {
+      for (let k = 0; k < 12; k += 1) {
+        const ang = (k / 12) * Math.PI * 2 + (dist > 40 ? 0.262 : 0);
         const dx = Math.cos(ang), dy = Math.sin(ang);
         const px = job.x + dx * dist, py = job.y + dy * dist * 0.85 - h / 2;
         cands.push(dx >= 0 ? { x: px + 6, y: py } : { x: px - w - 6, y: py });
@@ -3497,8 +3521,8 @@ function drawMilitaryAnnotations(c) {
       if (score === 0) { drawTag(cd); done = true; break; }
       if (score < fallbackScore) { fallbackScore = score; fallback = cd; }
     }
-    // 全部候选位被占：放到重叠面积最小的位置，保证意图/番号注记不消失
-    if (!done && fallback) drawTag(fallback);
+    // 所有候选位都冲突时，只有重叠极轻微才落笔；宁可本帧不画也不压住别的标签
+    if (!done && fallback && fallbackScore <= w * h * 0.04) drawTag(fallback);
   }
   c.restore();
 }
@@ -3508,6 +3532,7 @@ let dynVersion = 0;
 function renderDynamic() {
   if (canvasSizeMismatch()) sizeCanvases();
   markerScreen = [];
+  badgeBlocks = [];
   const c = D_CTX;
   c.setTransform(DPR, 0, 0, DPR, 0, 0);
   c.clearRect(0, 0, W, Hc);
@@ -3518,18 +3543,7 @@ function renderDynamic() {
     if (!vis) return;
     const pts = [a.from, a.to];
     drawOps(c, { p: pts, w: 2.4, d0: dateISO(a._d0), d1: dateISO(a._d1), kind: a.kind === "kmt" ? "atk" : "atk", _kmt: a.kind === "kmt" }, t, a.kind === "kmt");
-    if (a.label) {
-      const mx = (a.from[0] + a.to[0]) / 2, my = (a.from[1] + a.to[1]) / 2;
-      const s = project(mx, my, hAt(mx, my) + 0.4);
-      c.font = "600 " + Math.round(10 * labelZoomFactor()) + "px 'PingFang SC','Microsoft YaHei',sans-serif";
-      c.textAlign = "center";
-      c.strokeStyle = "rgba(251,246,234,0.9)";
-      c.lineWidth = 2.5;
-      c.strokeText(a.label, s[0], s[1] - 6);
-      c.fillStyle = a.kind === "kmt" ? "#33567f" : "#9c4221";
-      c.fillText(a.label, s[0], s[1] - 6);
-      c.textAlign = "left";
-    }
+    // 章节箭头文字改由标注层统一避让排布，避免放大后压住战役名 / 地名 / 番号牌
   });
   // 各战役军事要素
   ALL_BATTLES.forEach((b) => {
@@ -3924,10 +3938,10 @@ function battleBounds(b) {
   (ops.brk || []).forEach((it) => add(it.at));
   return [x0, y0, x1, y1];
 }
-/* 聚焦倍数适度加大：以「战役全部军事要素仍完整落在画布内」为上限，
-   按聚焦后的标准环视角（含 yaw 旋转）估算外接框，收紧留白并把上限从 4.4× 提到 5.6×；
-   大范围战役按容纳值回退，宁可稍远也不裁掉箭头 / 标记。全局 8× 上限仍留足手动余量。 */
-const FOCUS_ZOOM_MIN = 1.6, FOCUS_ZOOM_MAX = 5.6;
+/* 聚焦倍数上限提到 10×：仍以「战役全部军事要素完整落在画布内」为硬约束，
+   按聚焦后的标准环视角（含 yaw 旋转）估算外接框，大范围战役按容纳值回退。
+   放大后只标注视野内战役，配合多层引导线候选位，方案 / 番号 / 地名标签互不遮挡。 */
+const FOCUS_ZOOM_MIN = 1.6, FOCUS_ZOOM_MAX = 10;
 function battleView(b) {
   const bb = battleBounds(b);
   const yaw = cam.threeD ? CAM_DEFAULT_3D.yaw : 0;
