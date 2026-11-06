@@ -1033,7 +1033,9 @@
   }
   .bd-phases li b {
     font-variant-numeric: tabular-nums; font-weight: 700; color: var(--value-text);
-    flex: 0 0 82px; font-size: 11px;
+    /* 中文日期固定单行：不折行、不被右侧说明挤压；宽度不足时由内容撑开，避免文字重叠 */
+    flex: 0 0 auto; min-width: 88px; font-size: 11px;
+    white-space: nowrap;
   }
   .bd-phases li.done { color: var(--text-main); }
   .bd-close {
