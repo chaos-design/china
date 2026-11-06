@@ -414,7 +414,8 @@
     box-shadow: var(--shadow);
     overflow: hidden;
   }
-  .sp-time { flex: 0 0 auto; padding: 8px 12px 7px; border-bottom: 1px solid var(--border); }
+  /* 时间轴模块整体收敛一档：尺寸/字号在「右侧同屏面板」段统一缩小，形态保持不变 */
+  .sp-time { flex: 0 0 auto; padding: 6px 10px 5px; border-bottom: 1px solid var(--border); }
   .sp-detail {
     flex: 1 1 auto; min-height: 120px;
     overflow-y: auto; overscroll-behavior: contain;
@@ -993,6 +994,48 @@
   }
   .sp-time .fb-restore { height: 20px; padding: 0 8px; font-size: 10px; }
 
+  /* 时间轴整体小一档（约 15%）：只收紧尺寸、字号与间距，不删减任何元素。
+     日期/阶段/ⓘ、阶段条、事件刻度、年份、播放与速度档、2D/3D、缩放组、
+     自动聚焦、恢复全局、聚焦状态条全部保留原配色/圆角/交互形态；
+     战役 / 态势 / 详情三块的样式一律不动，只是多分到一点纵向空间。 */
+  .sp-time .pd-top { gap: 5px; row-gap: 3px; }
+  .sp-time .tl-head { gap: 5px; }
+  .sp-time .tl-date { font-size: 12.5px; }
+  .sp-time .tl-chap { font-size: 10.5px; }
+  .sp-time .tl-hint { width: 19px; height: 19px; font-size: 11px; }
+  .sp-time .tl-hint::after { font-size: 10px; }
+  .sp-time .tl-scrub { padding: 2px 0 0; }
+  .sp-time .tl-ruler { height: 26px; margin-top: 2px; }
+  .sp-time .tl-band { top: 9px; height: 11px; }
+  .sp-time .tl-band.edge-start { border-radius: 6px 0 0 6px; }
+  .sp-time .tl-band.edge-end { border-radius: 0 6px 6px 0; }
+  .sp-time .tl-band b { font-size: 8.5px; }
+  .sp-time .tl-evt { top: 3px; height: 5px; }
+  .sp-time .tl-evt::before { top: -2px; height: 10px; }
+  .sp-time .tl-evt::after { bottom: 8px; font-size: 8.5px; padding: 1px 5px; }
+  .sp-time .tl-years { height: 10px; margin-top: 2px; }
+  .sp-time .tl-year { font-size: 8.5px; }
+  .sp-time .tl-range { top: 7px; height: 16px; }
+  .sp-time .tl-range::-webkit-slider-thumb { width: 10px; height: 15px; margin-top: -6px; }
+  .sp-time .tl-range::-moz-range-thumb { width: 10px; height: 15px; }
+  .sp-time .pd-controls { gap: 4px; margin-top: 3px; }
+  .sp-time .pd-controls .tool-btn { min-width: 66px; padding: 3px 8px; font-size: 10.5px; }
+  .sp-time .pd-controls .speed-row { gap: 3px; }
+  .sp-time .pd-controls .speed-chip { min-width: 29px; padding: 2px 5px; font-size: 10px; }
+  .sp-time .pd-step { width: 22px; height: 20px; font-size: 11px; }
+  .sp-time .pd-sep { height: 16px; margin: 0 1px; }
+  .sp-time .zoom-btn { width: 22px; height: 20px; font-size: 11px; }
+  .sp-time .mode-btn { height: 20px; padding: 0 8px; font-size: 11px; }
+  .sp-time .auto-btn, .sp-time .reset-btn { height: 20px; padding: 0 7px; font-size: 10px; }
+  .sp-time .zoom-slider { width: 64px; height: 16px; }
+  .sp-time .zoom-slider::-webkit-slider-thumb { width: 10px; height: 10px; margin-top: -3px; }
+  .sp-time .zoom-slider::-moz-range-thumb { width: 10px; height: 10px; }
+  .sp-time .zoom-readout { min-width: 38px; font-size: 10px; }
+  .sp-time .focus-bar { padding: 1px 5px; gap: 4px; }
+  .sp-time .fb-dot { width: 5px; height: 5px; }
+  .sp-time .fb-text { font-size: 9.5px; }
+  .sp-time .fb-restore { height: 18px; padding: 0 6px; font-size: 9.5px; }
+
   @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
   /* 全局加载层 */
@@ -1096,11 +1139,11 @@
     .map-title { padding: 8px 10px; }
     .mt-left .mt-name { font-size: 13px; }
     .map-chip { display: none; }
-    .zoom-slider { width: 64px; }
+    .sp-time .zoom-slider { width: 56px; }
     .map-scale { left: 8px; bottom: 8px; padding: 4px 7px; }
     .map-footnote { padding: 4px 10px; font-size: 10px; }
-    .sp-time .fb-text { font-size: 10px; }
-    .sp-time .fb-restore { font-size: 10px; padding: 0 8px; }
+    .sp-time .fb-text { font-size: 9.5px; }
+    .sp-time .fb-restore { font-size: 9.5px; padding: 0 7px; height: 19px; }
     .lg-row { font-size: 10.5px; }
   }
 </style>
