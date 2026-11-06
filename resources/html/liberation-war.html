@@ -281,6 +281,11 @@
     display: flex; gap: 6px; margin-top: 6px;
   }
   .rail-section, .rail-info { position: static; flex: 1 1 0; min-width: 0; }
+  /* 底部两个入口严格平分整行宽度、高度一致 */
+  .rail-actions { align-items: stretch; }
+  .rail-actions .legend-link, .rail-actions .rail-info-btn {
+    height: 30px; padding: 0 4px; box-sizing: border-box; font-size: 11px;
+  }
   .legend-link {
     display: flex; align-items: center; justify-content: center; gap: 4px;
     width: 100%; min-width: 0; padding: 6px 4px;
@@ -457,7 +462,6 @@
   }
   .ic-focus:hover { border-color: var(--gold); color: var(--gold); }
   .ic-focus:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-  .ic-note { margin-top: 9px; font-size: 10.5px; line-height: 1.6; color: var(--text-sub); opacity: .86; }
   @media (max-width: 1240px) {
     .side-panel { flex-basis: 302px; width: 302px; }
   }
@@ -582,7 +586,7 @@
   }
   .zoom-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
   .zoom-btn:disabled { opacity: .35; cursor: default; }
-  .zoom-btn:not(:disabled):active, .mode-btn:active, .auto-btn:active, .reset-btn:active { transform: scale(.92); }
+  .zoom-btn:not(:disabled):active, .mode-btn:active, .reset-btn:active { transform: scale(.92); }
   .zoom-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   .mode-btn {
     height: 24px; padding: 0 10px; border-radius: 12px;
@@ -593,24 +597,47 @@
   .mode-btn:hover { border-color: var(--gold); color: var(--gold); }
   .mode-btn.on { background: var(--gold); border-color: var(--gold); color: #fff; }
   .mode-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-  /* 低占用状态控件：自动聚焦开关 + 明确的恢复操作 */
-  .auto-btn, .reset-btn {
+  /* 恢复全局视图：功能行里唯一的恢复入口 */
+  .reset-btn {
     height: 24px; padding: 0 9px; border-radius: 12px; cursor: pointer;
-    border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
+    border: 1px solid rgba(156,66,33,.38); background: var(--surface); color: var(--accent);
     font-size: 11px; font-weight: 700; white-space: nowrap;
     transition: background .15s ease, border-color .15s ease, color .15s ease, transform .12s ease, box-shadow .15s ease;
   }
-  .auto-btn:hover, .reset-btn:hover { border-color: var(--gold); color: var(--gold); }
-  .auto-btn.on { background: rgba(156,66,33,.12); border-color: rgba(156,66,33,.42); color: var(--accent); }
-  .auto-btn.off { opacity: .72; }
-  .reset-btn { color: var(--accent); border-color: rgba(156,66,33,.38); }
+  .reset-btn:hover { border-color: var(--gold); color: var(--gold); }
   .reset-btn.armed { box-shadow: 0 0 0 2px rgba(156,66,33,.16); }
-  .auto-btn:focus-visible, .reset-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .reset-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  /* 自动聚焦改为开关：窄控件里长文案放不下，改用滑动开关 + 短标签表达开 / 关 */
+  .af-switch {
+    position: relative;
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+    height: 22px; padding: 0 7px; box-sizing: border-box;
+    border: 1px solid var(--border); border-radius: 11px;
+    background: var(--surface); color: var(--text-sub);
+    font-size: 10.5px; font-weight: 700; white-space: nowrap;
+    cursor: pointer; user-select: none;
+  }
+  .af-switch:hover { border-color: var(--gold); }
+  .af-switch input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
+  .af-track {
+    position: relative; flex: 0 0 auto; width: 26px; height: 14px;
+    border-radius: 7px; background: rgba(122,106,82,.32);
+    transition: background .18s ease;
+  }
+  .af-knob {
+    position: absolute; top: 2px; left: 2px; width: 10px; height: 10px;
+    border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(96,70,40,.35);
+    transition: transform .18s ease;
+  }
+  .af-switch input:checked + .af-track { background: var(--gold); }
+  .af-switch input:checked + .af-track .af-knob { transform: translateX(12px); }
+  .af-switch input:focus-visible + .af-track { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .af-switch.off .af-text { opacity: .62; }
   /* 按钮内图标 / 箭头与文字等距对齐：统一尺寸 + 垂直居中。
      不要把 .rail-open 加进这组：它默认 display:none（只在侧栏收起时显示），
      这条规则同优先级且靠后，会把 none 覆盖成 inline-flex，让展开把手常驻可见。 */
-  .tool-btn, .mode-btn, .auto-btn, .reset-btn, .zoom-btn, .pd-step,
-  .mf-tab, .fb-restore, .ic-focus, .rail-toggle,
+  .tool-btn, .mode-btn, .reset-btn, .zoom-btn, .pd-step,
+  .ic-focus, .rail-toggle,
   .rail-info-btn, .mf-fold, .speed-chip {
     display: inline-flex; align-items: center; justify-content: center; gap: 4px;
     line-height: 1;
@@ -630,7 +657,7 @@
   .map-canvas #terrainCv { z-index: 1; pointer-events: none; }
   .map-canvas #dynCv { z-index: 2; touch-action: none; }
   /* 地图内浮层是独立交互区：恢复原生触摸滚动，不参与画布的 pointer/wheel 手势 */
-  .map-float, .mf-body { touch-action: pan-y; }
+  .map-float, .mf-panel { touch-action: pan-y; }
   .map-float { pointer-events: auto; }
   .map-canvas:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
   .map-canvas.drag-orbit { cursor: grab; }
@@ -704,49 +731,44 @@
   .map-tip .tip-force .sw.cc { background: var(--ccp-color); }
   .map-tip .tip-force .sw.kmt { background: var(--kmt-color); }
 
-  /* 战役 / 态势：移入右侧同屏面板（时间轴下方、详情上方），与地图等高 */
+  /* 战役 / 态势：两块同时直出、各自随时间刷新，不再做 tab 切换 */
   .side-panel .map-float {
-    flex: 0 0 auto; width: 100%; margin: 0;
+    flex: 0 0 auto; min-height: 0;
+    width: 100%; margin: 0;
     background: transparent; border: none; border-bottom: 1px dashed var(--border);
     border-radius: 0; box-shadow: none;
     overflow: hidden;
   }
-  .mf-head {
-    position: relative; display: flex; align-items: center; gap: 6px;
+  .mf-block + .mf-block { border-top: 1px dashed var(--border); }
+  .mf-label {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
     padding: 5px 8px; border-bottom: 1px dashed var(--border);
+    font-size: 10.5px; letter-spacing: .5px;
   }
-  .mf-tabs { position: relative; display: flex; gap: 4px; flex: 1 1 auto; min-width: 0; }
-  .mf-tab {
-    border: 1px solid transparent; background: transparent; color: var(--text-sub);
-    font-size: 12px; font-weight: 700; padding: 2px 10px 4px; border-radius: 12px; cursor: pointer;
-    letter-spacing: 1px; white-space: nowrap;
-    transition: background .18s ease, color .18s ease, border-color .18s ease, transform .12s ease;
+  .mf-label-name { font-size: 12px; font-weight: 700; color: var(--gold); letter-spacing: 1px; }
+  .mf-meta { color: var(--text-sub); font-variant-numeric: tabular-nums; }
+  .mf-key {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 3px;
+    color: var(--text-sub); font-size: 9px; white-space: nowrap;
   }
-  .mf-tab:hover { color: var(--gold); }
-  .mf-tab.on { background: rgba(156,66,33,.12); color: var(--accent); }
-  .mf-tab:active { transform: scale(.9); }
-  .mf-tab.pressed { animation: btnPulse .34s ease; }
-  .mf-tab:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
-  .mf-ink {
-    position: absolute; left: 0; bottom: 0; height: 2px; width: 40px;
-    background: var(--gold); border-radius: 2px; pointer-events: none;
-    transition: transform .26s cubic-bezier(.2,.8,.2,1), width .26s cubic-bezier(.2,.8,.2,1);
-  }
-  .mf-body {
-    /* 列表过长时内部滚动：时间块与详情区都常驻可见，面板整体高度不动 */
-    max-height: min(32vh, 280px); overflow-y: auto; padding: 6px;
-    overscroll-behavior: contain;
+  .mf-key i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-left: 4px; }
+  .mf-key .k-win { background: var(--ccp-color); }
+  .mf-key .k-loss { background: var(--kmt-color); }
+  .mf-key .k-live { background: #d9a441; box-shadow: 0 0 0 2px rgba(217,164,65,.25); }
+  /* 两块各自独立滚动：总高度受控，详情栏始终常驻可见 */
+  .mf-panel {
+    list-style: none; padding: 6px; margin: 0;
+    max-height: min(26vh, 220px); overflow-y: auto;
+    overscroll-behavior: contain; touch-action: pan-y;
     scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.38) transparent;
   }
-  .mf-body::-webkit-scrollbar { width: 8px; }
-  .mf-body::-webkit-scrollbar-track { background: transparent; }
-  .mf-body::-webkit-scrollbar-thumb {
+  .mf-panel::-webkit-scrollbar { width: 8px; }
+  .mf-panel::-webkit-scrollbar-track { background: transparent; }
+  .mf-panel::-webkit-scrollbar-thumb {
     background: transparent; border-radius: 4px;
     border: 2px solid transparent; background-clip: padding-box;
   }
-  .mf-body:hover::-webkit-scrollbar-thumb, .mf-body:focus-within::-webkit-scrollbar-thumb { background-color: rgba(156,66,33,.45); }
-  .mf-panel { list-style: none; padding: 0; }
-  .mf-panel:not([hidden]) { animation: panelIn .24s cubic-bezier(.2,.7,.3,1) both; }
+  .mf-panel:hover::-webkit-scrollbar-thumb, .mf-panel:focus-within::-webkit-scrollbar-thumb { background-color: rgba(156,66,33,.45); }
   /* 统一栅格：序号 / 类型点 / 名称+日期 / 状态徽标，四列严格对齐，长名称不再挤压日期 */
   .mf-panel li {
     display: grid; grid-template-columns: 18px 9px minmax(0,1fr) auto;
@@ -768,10 +790,32 @@
     font-size: 10px; color: rgba(122,106,82,.6); font-variant-numeric: tabular-nums;
     letter-spacing: .5px; text-align: right;
   }
-  .mf-panel .b-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ccp-color); justify-self: center; }
+  /* 列表圆点＝状态灯：未开始为暗点，进行中为金色呼吸灯，结束后按胜 / 未竟着色 */
+  .mf-panel .b-dot {
+    width: 9px; height: 9px; border-radius: 50%; justify-self: center;
+    background: rgba(122,106,82,.28); box-shadow: none;
+    transition: background .2s ease, box-shadow .2s ease;
+  }
   .mf-panel .b-dot.kind-defense { border-radius: 2px; }
-  .mf-panel .b-dot.kind-planned { background: transparent; border: 2px dashed var(--ccp-color); }
-  .mf-panel .b-dot.kind-peace { background: var(--card-solid); border: 2px solid var(--ccp-color); position: relative; }
+  .mf-panel .b-dot.kind-planned { background: transparent; border: 2px dashed rgba(122,106,82,.5); }
+  .mf-panel .b-dot.kind-peace { background: var(--card-solid); border: 2px solid rgba(122,106,82,.5); }
+  .mf-panel .b-dot.state-pending { opacity: .72; }
+  .mf-panel .b-dot.state-live {
+    background: #d9a441; border: 0; border-radius: 50%; opacity: 1;
+    animation: dotBreathe 1.7s ease-in-out infinite;
+  }
+  .mf-panel .b-dot.state-win {
+    background: var(--ccp-color); border: 0; border-radius: 50%; opacity: 1;
+    box-shadow: 0 0 0 2px rgba(181,52,42,.14);
+  }
+  .mf-panel .b-dot.state-loss {
+    background: var(--kmt-color); border: 0; border-radius: 50%; opacity: 1;
+    box-shadow: 0 0 0 2px rgba(51,86,127,.16);
+  }
+  @keyframes dotBreathe {
+    0%, 100% { opacity: .72; box-shadow: 0 0 0 0 rgba(217,164,65,.55), 0 0 3px rgba(217,164,65,.5); }
+    50%      { opacity: 1;   box-shadow: 0 0 0 4px rgba(217,164,65,0), 0 0 9px rgba(217,164,65,.95); }
+  }
   .mf-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .mf-panel .b-name {
     font-weight: 700; color: var(--text-main); line-height: 1.25;
@@ -780,12 +824,21 @@
   .mf-panel .b-time { font-size: 10.5px; color: var(--text-sub); font-variant-numeric: tabular-nums; line-height: 1.25; }
   .b-badge {
     font-size: 9px; font-weight: 700; letter-spacing: .3px; color: #fff;
-    background: var(--ccp-color); border-radius: 8px; padding: 1px 5px; white-space: nowrap;
+    background: rgba(122,106,82,.5); border-radius: 8px; padding: 1px 5px; white-space: nowrap;
   }
+  .b-badge.st-live { background: #b8862c; }
+  .b-badge.st-win { background: var(--ccp-color); }
+  .b-badge.st-loss { background: var(--kmt-color); }
+  .b-badge.st-pending { background: transparent; color: var(--text-sub); border: 1px solid var(--border); }
   .b-badge[hidden] { display: none; }
+  .mf-panel.mf-facts { max-height: min(16vh, 140px); }
   .mf-panel.mf-facts li { cursor: default; display: block; background: var(--surface); border-left-width: 1px; padding: 7px 9px; }
   .mf-panel.mf-facts li:hover { transform: none; border-color: transparent; background: var(--surface); }
   .mf-panel.mf-facts li b { display: block; color: var(--value-text); font-weight: 700; margin-bottom: 2px; font-size: 12.5px; }
+  .mf-panel.mf-facts li.mf-live-note {
+    background: rgba(156,66,33,.08); border-left: 3px solid var(--gold);
+    color: var(--text-main); font-size: 11px; line-height: 1.5;
+  }
   .mf-empty { padding: 10px 6px; font-size: 11.5px; color: var(--text-sub); text-align: center; }
 
   /* ===================== 状态反馈：聚焦条 / 点击涟漪 ===================== */
@@ -805,16 +858,7 @@
   .focus-bar.restored .fb-dot { background: #4a7c59; box-shadow: 0 0 0 3px rgba(74,124,89,.14); }
   .fb-text { font-size: 11px; color: var(--text-main); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .fb-text b { color: var(--accent); }
-  .fb-restore {
-    flex: 0 0 auto; height: 24px; padding: 0 10px; border-radius: 12px;
-    border: 1px solid var(--gold); background: var(--gold); color: #fff;
-    font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;
-    transition: background .15s ease, transform .12s ease, box-shadow .15s ease;
-  }
-  .fb-restore:hover { background: #833518; box-shadow: 0 2px 8px rgba(156,66,33,.3); }
-  .fb-restore:active { transform: scale(.93); }
-  .fb-restore:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-  .focus-bar.restored .fb-restore { display: none; }
+  /* 聚焦条只做状态提示：恢复全局视图统一由底部控制条的按钮承担，不再重复入口 */
   .map-ripple {
     position: absolute; z-index: 5; width: 14px; height: 14px; margin: -7px 0 0 -7px;
     border: 2px solid var(--ccp-color); border-radius: 50%; pointer-events: none;
@@ -824,8 +868,6 @@
     from { opacity: .85; transform: scale(.5); }
     to { opacity: 0; transform: scale(4.6); }
   }
-  @keyframes panelIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
-  @keyframes btnPulse { 0% { box-shadow: 0 0 0 0 rgba(156,66,33,.42); } 100% { box-shadow: 0 0 0 7px rgba(156,66,33,0); } }
   @keyframes liFlash {
     0% { background: rgba(156,66,33,.30); }
     100% { background: rgba(156,66,33,.13); }
@@ -1009,7 +1051,6 @@
     flex: 1 1 auto; min-width: 0; font-size: 10.5px; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums;
   }
-  .sp-time .fb-restore { height: 20px; padding: 0 8px; font-size: 10px; }
 
   /* 时间轴再小一档（第二收敛档，约再 -10%）：形态不变——
      日期/阶段/ⓘ、阶段条、事件刻度、年份、播放与速度档、2D/3D、缩放组、
@@ -1043,7 +1084,7 @@
   .sp-time .pd-sep { height: 14px; margin: 0 1px; }
   .sp-time .zoom-btn { width: 20px; height: 18px; font-size: 10.5px; }
   .sp-time .mode-btn { height: 18px; padding: 0 7px; font-size: 10.5px; }
-  .sp-time .auto-btn, .sp-time .reset-btn { height: 18px; padding: 0 6px; font-size: 9.5px; }
+  .sp-time .reset-btn { height: 18px; padding: 0 6px; font-size: 9.5px; }
   .sp-time .zoom-slider { width: 58px; height: 14px; }
   .sp-time .zoom-slider::-webkit-slider-thumb { width: 9px; height: 9px; margin-top: -3px; }
   .sp-time .zoom-slider::-moz-range-thumb { width: 9px; height: 9px; }
@@ -1051,7 +1092,6 @@
   .sp-time .focus-bar { padding: 0 4px; gap: 3px; }
   .sp-time .fb-dot { width: 4px; height: 4px; }
   .sp-time .fb-text { font-size: 9px; }
-  .sp-time .fb-restore { height: 16px; padding: 0 5px; font-size: 9px; }
 
   /* ===================== 抽离出来的底部时间轴 / 播放控制条 =====================
      从左侧菜单移到中间内容区底部：宽度撑满内容区，改为上下分行而不再左右并排——
@@ -1084,6 +1124,13 @@
   .sp-time-dock .pd-controls .tool-btn { min-width: 66px; }
   .sp-time-dock .pd-controls .speed-chip { min-width: 30px; }
   .sp-time-dock .zoom-slider { width: 68px; }
+  /* 同一行控件统一高度：按钮 / 速度档 / 缩放条 / 开关 / 读数都对齐 */
+  .sp-time-dock .pd-controls :is(button, .speed-row, .zoom-slider, .zoom-readout, .af-switch) {
+    height: 22px; box-sizing: border-box;
+  }
+  .sp-time-dock .pd-controls .speed-row { display: inline-flex; align-items: center; }
+  .sp-time-dock .pd-controls .zoom-readout { display: inline-flex; align-items: center; justify-content: flex-end; }
+  .sp-time-dock .tl-hint, .sp-time-dock .focus-bar { height: 20px; box-sizing: border-box; }
 
   @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
@@ -1140,8 +1187,11 @@
 
   @media (prefers-reduced-motion: reduce) {
     .battle-detail, .stage-nav.active .stage-intent, .player-dock,
-    .rail-body, .mf-panel, .map-ripple, .tick-flash, .mf-tab.pressed, .mf-panel li.flash { animation: none !important; transition: none !important; }
-    .pl-track i, .stage-progress, .focus-bar, .mf-ink, .rail-info-pop { transition: none !important; }
+    .rail-body, .mf-panel, .map-ripple, .tick-flash, .mf-panel li.flash,
+    .mf-panel .b-dot.state-live { animation: none !important; transition: none !important; }
+    .pl-track i, .stage-progress, .focus-bar, .rail-info-pop { transition: none !important; }
+    /* 减少动效时呼吸灯保持常亮，仍以颜色区分进行中 */
+    .mf-panel .b-dot.state-live { box-shadow: 0 0 0 3px rgba(217,164,65,.4) !important; }
   }
 
   /* ===================== 移动端 ===================== */
@@ -1179,7 +1229,7 @@
     }
     .sp-detail { max-height: 46vh; }
     .left-panel { backdrop-filter: none; }
-    .mf-body { max-height: 28vh; }
+    .mf-panel { max-height: 24vh; }
     .mt-hint { display: none; }
     .map-canvas { flex: 0 0 auto; height: 62vh; min-height: 340px; }
     .tl-head .tl-hint { display: none; }
@@ -1194,7 +1244,6 @@
     .map-scale { left: 8px; bottom: 8px; padding: 4px 7px; }
     .map-footnote { padding: 4px 10px; font-size: 10px; }
     .sp-time .fb-text { font-size: 9px; }
-    .sp-time .fb-restore { font-size: 9px; padding: 0 6px; height: 17px; }
     .lg-row { font-size: 10.5px; }
   }
 </style>
@@ -1311,7 +1360,7 @@
       </button>
       <div class="rail-info-pop" id="railInfoBody" role="note" aria-label="阅读说明与标图口径">
         <h4>如何使用这张图</h4>
-        <div class="detail-hint" id="detailHint">在<b>右侧「战役 / 态势」列表</b>中切换本阶段各役（进行中的战役会自动滚入可视区），或直接点击图中的战役标记：<b>右栏与地图同屏</b>展开<b>完整经过、编制番号、兵力与阶段推进</b>。暂停时点选会定位镜头，播放中只更新详情；需要定位可点详情栏的<b>「⌖ 定位到地图」</b>。时间轴与播放控制在<b>内容区底部</b>独立成条，军事图例在左侧「当前态势」下方直接展示；番号沿革与标图口径在左侧菜单底部，点击展开／收起。</div>
+        <div class="detail-hint" id="detailHint">右侧<b>战役</b>与<b>态势</b>两块同时展示、随时间刷新；战役前的圆点中，金色呼吸为进行中，红色为胜利，蓝色为未竟。点击战役或地图标记，<b>右栏详情</b>展开完整经过、编制番号、兵力与阶段推进。时间轴与播放控制在<b>内容区底部</b>独立成条，军事图例在左侧「当前态势」下方直接展示；番号沿革与标图口径在左侧菜单底部，点击展开／收起。</div>
         <h4>底图 · 投影 · 标图口径</h4>
         <p>底图：阿里云 DataV / 高德行政区划边界（民政部标准）；地形：Natural Earth 1:50m 陆地轮廓 + 山脉高原高程数据（3D 夸张渲染）。Albers 等积投影（标准纬线 25°N / 47°N，中央经线 105°E），比例尺为图上量算近似值。</p>
         <p>战役地点按史实位置标注，箭头为<b>示意性战略方向</b>而非精确行军路线，按军事标图规范区分进攻、防御、合围、突破与撤退；部队番号牌与行动注记沿箭杆避让排布，放大后可查看更细粒度信息。</p>
@@ -1363,21 +1412,27 @@
       </div>
     </div>
 
-    <!-- 右侧同屏面板：战役/态势 + 战役详情（时间轴已抽到内容区底部），高度与地图容器一致 -->
-    <aside class="side-panel" id="sidePanel" aria-label="战役列表与详情">
-            <!-- 战役 / 态势：现在位于右栏顶部（时间轴已抽到内容区底部），进行中战役自动滚入可视区 -->
-      <div class="map-float" id="mapFloat" role="group" aria-label="战役与态势列表">
-        <div class="mf-head">
-          <div class="mf-tabs" role="tablist" aria-label="切换战役或态势列表">
-            <button class="mf-tab on" id="mfTabBattles" type="button" role="tab" aria-selected="true" aria-controls="mfBattles">战役</button>
-            <button class="mf-tab" id="mfTabFacts" type="button" role="tab" aria-selected="false" aria-controls="mfFacts">态势</button>
-            <i class="mf-ink" id="mfInk" aria-hidden="true"></i>
+    <!-- 右侧同屏面板：战役 / 态势两块同时直出、随时间刷新（不再 tab 切换）+ 战役详情，
+         高度与地图容器一致。时间轴已抽到内容区底部。 -->
+    <aside class="side-panel" id="sidePanel" aria-label="战役、态势与详情">
+      <div class="map-float" id="mapFloat" role="group" aria-label="战役与态势">
+        <section class="mf-block" aria-label="本阶段战役">
+          <div class="mf-label">
+            <span class="mf-label-name">战役</span>
+            <span class="mf-meta" id="mfBattleMeta"></span>
+            <span class="mf-key" aria-label="圆点图例：红为胜利、蓝为未竟或失利、金色呼吸为进行中">
+              <i class="k-win"></i>胜 <i class="k-loss"></i>未竟 <i class="k-live"></i>进行中
+            </span>
           </div>
-        </div>
-        <div class="mf-body" id="mfBody">
-          <ul class="mf-panel" id="mfBattles" role="tabpanel" aria-label="本阶段战役列表"></ul>
-          <ul class="mf-panel mf-facts" id="mfFacts" role="tabpanel" aria-label="关键态势" hidden></ul>
-        </div>
+          <ul class="mf-panel" id="mfBattles" aria-label="本阶段战役列表"></ul>
+        </section>
+        <section class="mf-block" aria-label="本阶段态势">
+          <div class="mf-label">
+            <span class="mf-label-name">态势</span>
+            <span class="mf-meta" id="mfFactMeta"></span>
+          </div>
+          <ul class="mf-panel mf-facts" id="mfFacts" aria-label="本阶段关键态势"></ul>
+        </section>
       </div>
 
       <div class="sp-detail">
@@ -1386,7 +1441,6 @@
           <button class="ic-focus" id="icFocus" type="button" title="只在需要时定位地图，不改变播放进度"><span class="gi">⌖</span>定位到地图</button>
         </div>
         <div class="battle-detail" id="battleDetail" hidden></div>
-        <p class="ic-note" id="spHint">点击地图上的战役标记，或在上方「战役 / 态势」列表中选择：详情在此展开完整经过、编制番号、兵力与阶段推进。播放与时间轴演进不受影响；播放中点选只更新本栏，不回拨时间、不抢镜头。</p>
       </div>
     </aside>
     </div>
@@ -1403,7 +1457,6 @@
         <div class="focus-bar" id="focusBar" role="status" aria-live="polite">
           <span class="fb-dot" aria-hidden="true"></span>
           <span class="fb-text" id="fbText">已聚焦</span>
-          <button class="fb-restore" id="fbRestore" type="button"><span class="gi">⟲</span>恢复全局视图</button>
         </div>
       </div>
       <div class="tl-scrub" id="tlScrub">
@@ -1436,8 +1489,11 @@
                  aria-label="地图缩放：拖动精细调节倍率">
           <button class="zoom-btn" id="btnZoomIn" type="button" aria-label="放大地图"><span class="gi">＋</span></button>
           <span class="zoom-readout" id="zoomReadout">1.00×</span>
-          <button class="auto-btn on" id="btnAutoFocus" type="button" aria-pressed="true"
-                  title="时间推进时自动局部放大当前战役位置；手动缩放后自动关闭">◎ 自动聚焦</button>
+          <label class="af-switch" title="时间推进时自动局部放大当前战役位置；手动缩放后自动关闭">
+            <input type="checkbox" id="btnAutoFocus" checked aria-label="自动聚焦">
+            <span class="af-track" aria-hidden="true"><i class="af-knob"></i></span>
+            <span class="af-text">自动聚焦</span>
+          </label>
           <button class="reset-btn" id="btnZoomReset" type="button"
                   title="恢复原始缩放尺寸与视图（快捷键 0）"><span class="gi">⟲</span>恢复全局视图</button>
         </div>
@@ -3400,6 +3456,8 @@ function updateScrubUi() {
   const si = stageIndexAt(t);
   setText(tlChap, STAGES[si].name);
   $$(".tl-band").forEach((b, i) => b.classList.toggle("done", i < si));
+  // 状态灯与态势摘要随每一帧时间推进即时刷新（内部按状态变化跳过重复 DOM 写入）
+  syncBattleList();
 }
 let lastUiBucket = -1;
 function updateHud() {
@@ -3483,9 +3541,9 @@ function renderStageContent(i) {
     // 四列栅格：序号 / 类型点 / 名称+日期 / 进行中徽标，长名称不再把日期挤到下一行
     li.innerHTML =
       '<span class="b-idx">' + String(idx + 1).padStart(2, "0") + "</span>" +
-      '<span class="b-dot kind-' + (b.kind || "attack") + '"></span>' +
+      '<span class="b-dot state-pending kind-' + (b.kind || "attack") + '"></span>' +
       '<span class="mf-main"><span class="b-name">' + b.name + '</span><span class="b-time">' + b.time + "</span></span>" +
-      '<span class="b-badge" hidden>进行中</span>';
+      '<span class="b-badge st-pending">未开始</span>';
     li.addEventListener("click", () => selectBattle(b, true));
     li.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectBattle(b, true); }
@@ -3493,7 +3551,8 @@ function renderStageContent(i) {
     list.appendChild(li);
   });
   const factList = document.getElementById("mfFacts");
-  factList.innerHTML = "";
+  // 首条是随时间刷新的实时摘要，其后为本阶段固定态势条目
+  factList.innerHTML = '<li class="mf-live-note" id="mfLiveNote"></li>';
   (s.facts || []).forEach((f) => {
     const li = document.createElement("li");
     li.innerHTML = "<b>" + f.title + "</b>" + f.text;
@@ -3532,7 +3591,6 @@ function selectBattle(b, focus) {
   });
   const detail = document.getElementById("battleDetail");
   detail.hidden = false;
-  document.getElementById("spHint").hidden = true;
   const phaseItems = b.phases.map((p) => {
     const done = dnum(p.d) <= dnumLocal(t) + 3;
     return '<li class="' + (done ? "done" : "") + '"><b>' + p.d.replace(/^\d{4}-/, "").replace("-", ".") + "</b>" + p.text + "</li>";
@@ -3558,7 +3616,6 @@ function selectBattle(b, focus) {
 function clearSelection() {
   selectedBattle = null;
   document.getElementById("battleDetail").hidden = true;
-  document.getElementById("spHint").hidden = false;
   $$("#mfBattles li").forEach((li) => li.classList.remove("selected"));
   syncDetailLayout();
 }
@@ -3643,12 +3700,11 @@ function pauseAutoFocus() {
   if (focusMode !== "manual") { focusMode = "manual"; showFocusBar("manual"); }
 }
 function syncAutoBtn() {
-  const btn = document.getElementById("btnAutoFocus");
-  if (!btn) return;
-  btn.classList.toggle("on", autoFocusOn);
-  btn.classList.toggle("off", !autoFocusOn);
-  btn.setAttribute("aria-pressed", String(autoFocusOn));
-  btn.textContent = autoFocusOn ? "◎ 自动聚焦" : "◎ 自动聚焦 · 关";
+  const input = document.getElementById("btnAutoFocus");
+  if (!input) return;
+  input.checked = autoFocusOn;
+  const wrap = input.closest(".af-switch");
+  if (wrap) wrap.classList.toggle("off", !autoFocusOn);
 }
 function setFocusText(state) {
   const txt = document.getElementById("fbText");
@@ -3670,15 +3726,12 @@ function setFocusText(state) {
 }
 function showFocusBar(state) {
   const bar = document.getElementById("focusBar");
-  const restore = document.getElementById("fbRestore");
   clearTimeout(focusHideTimer);
   bar.classList.remove("restored");
   if (state === "battle" || state === "manual") {
-    restore.hidden = false;
     setFocusText(state);
     bar.classList.add("show");
   } else if (state === "restored") {
-    restore.hidden = true;
     setFocusText("restored");
     bar.classList.add("show", "restored");
     focusHideTimer = setTimeout(() => bar.classList.remove("show", "restored"), 2400);
@@ -3777,28 +3830,75 @@ function stepTweenT(now) {
   if (k >= 1) { tTween = null; maybeAutoFocus(true); }
   return true;
 }
-/* 战役列表状态：进行中徽标 + 选中态，播放与拖动两条更新链共用。
-   进行中（或用户选中的）战役变化时自动滚入可视区；用户有选中态时
-   以选中战役为准，不与用户的选择抢滚动位置。 */
+/* 结局口径：数据里没有显式胜负字段。kind=planned（金门未竟、台湾计划未渡）与
+   结局明确写有「未下 / 未渡 / 失利」的战役计为未竟，其余（含和平解放、起义改编）计为胜。 */
+function battleResult(b) {
+  if (!b) return "win";
+  return b.kind === "planned" || /(未下|未渡|失利|未果|未克)/.test(b.outcome || "") ? "loss" : "win";
+}
+/* 战役列表状态：状态灯（未开始 / 进行中呼吸 / 结束后胜或负着色）+ 状态徽标 + 选中态，
+   播放与拖动两条更新链共用。进行中（或用户选中的）战役变化时自动滚入可视区；
+   用户有选中态时以选中战役为准，不与用户的选择抢滚动位置。 */
 let lastAutoScrollIdx = -2;
+const BATTLE_STATE_TEXT = { live: "进行中", win: "胜利", loss: "未竟", pending: "未开始" };
 function syncBattleList() {
   const ab = activeNow(t);
   const abIdx = ab ? ALL_BATTLES.indexOf(ab) : -1;
   const selIdx = selectedBattle ? ALL_BATTLES.indexOf(selectedBattle) : -1;
-  $$("#mfBattles li").forEach((li) => {
+  const lis = $$("#mfBattles li");
+  let liveCount = 0;
+  lis.forEach((li) => {
     const idx = +li.dataset.idx;
+    const b = ALL_BATTLES[idx];
     const on = abIdx >= 0 && idx === abIdx;
     li.classList.toggle("active-now", on);
     li.classList.toggle("selected", selIdx >= 0 && idx === selIdx);
-    const badge = li.querySelector(".b-badge");
-    if (badge) badge.hidden = !on;
+    const isLive = !!b && t >= b._d0 && t <= b._d1;
+    if (isLive) liveCount++;
+    const state = isLive ? "live" : b && t > b._d1 ? battleResult(b) : "pending";
+    // 仅状态真正变化时才写 DOM：播放时每帧都会调用本函数
+    if (li.dataset.state !== state) {
+      li.dataset.state = state;
+      const dot = li.querySelector(".b-dot");
+      if (dot) ["live", "win", "loss", "pending"].forEach((s) => dot.classList.toggle("state-" + s, s === state));
+      const badge = li.querySelector(".b-badge");
+      if (badge) {
+        badge.className = "b-badge st-" + state;
+        badge.textContent = BATTLE_STATE_TEXT[state];
+      }
+    }
   });
+  const battleMeta = document.getElementById("mfBattleMeta");
+  if (battleMeta) {
+    const txt = "共 " + lis.length + " 役 · 进行中 " + liveCount;
+    if (battleMeta.textContent !== txt) battleMeta.textContent = txt;
+  }
+  // 态势区同样随时间刷新：标题日期 + 首条实时摘要（同期进行中战役）
+  const si = stageIndexAt(t);
+  const factMeta = document.getElementById("mfFactMeta");
+  if (factMeta) {
+    const txt = fmtCN(t, false) + " · 本阶段 " + ((STAGES[si] && STAGES[si].facts || []).length) + " 条";
+    if (factMeta.textContent !== txt) factMeta.textContent = txt;
+  }
+  const liveNote = document.getElementById("mfLiveNote");
+  if (liveNote) {
+    const live = concurrentBattles(t);
+    const head = "此刻 " + fmtCN(t, false);
+    const txt = live.length
+      ? head + " · 同期 " + live.length + " 役：" + live.slice(0, 3).map((b) => b.name).join("、") + (live.length > 3 ? " 等" : "")
+      : head + " · 当前无进行中战役";
+    if (liveNote.textContent !== txt) liveNote.textContent = txt;
+  }
   const targetIdx = selIdx >= 0 ? selIdx : abIdx;
   if (targetIdx >= 0 && targetIdx !== lastAutoScrollIdx) {
-    lastAutoScrollIdx = targetIdx;
     const li = document.querySelector('#mfBattles li[data-idx="' + targetIdx + '"]');
+    // 列表尚未重建时 li 不存在：此时不标记已滚动，等渲染完成后再滚，
+    // 否则每帧同步会把滚动目标吃掉，进行中战役永远停在列表可视区外。
     // 用即时滚动：smooth 在部分嵌入环境（如应用内浏览器）被动画时钟暂停时完全不滚动
-    if (li && li.scrollIntoView) li.scrollIntoView({ block: "nearest", behavior: "auto" });
+    if (li && li.scrollIntoView) {
+      li.scrollIntoView({ block: "nearest", behavior: "auto" });
+      lastAutoScrollIdx = targetIdx;
+    }
   }
 }
 function snapUi() {
@@ -4010,11 +4110,10 @@ zoomSlider.addEventListener("input", () => {
   syncHash();
   ensureLoop();
 });
-// 明确的恢复操作：播放区按钮 + 聚焦状态条按钮，行为完全一致
+// 恢复全局视图只保留控制条一个入口；聚焦状态条改为纯状态提示
 document.getElementById("btnZoomReset").addEventListener("click", () => resetView(true));
-document.getElementById("fbRestore").addEventListener("click", () => resetView(true));
-document.getElementById("btnAutoFocus").addEventListener("click", () => {
-  autoFocusOn = !autoFocusOn;
+document.getElementById("btnAutoFocus").addEventListener("change", (e) => {
+  autoFocusOn = e.currentTarget.checked;
   syncAutoBtn();
   if (autoFocusOn) {
     lastAutoFocusKey = "";
@@ -4222,7 +4321,7 @@ if (window.ResizeObserver) {
   ro.observe(MAP_CANVAS);
 }
 window.addEventListener("resize", () => {
-  sizeCanvases(); updateScaleBar(); ensureLoop(); moveTabInk(); refreshUiBlocks();
+  sizeCanvases(); updateScaleBar(); ensureLoop(); refreshUiBlocks();
 });
 // 兜底：本页以 iframe srcDoc 方式嵌入，boot 可能在父页布局展开前运行，画布按很小的
 // rect 取尺寸；实测 sandboxed srcDoc iframe 里 ResizeObserver 可能一次都不触发，
@@ -4273,45 +4372,9 @@ function readHash() {
 window.addEventListener("hashchange", () => { readHash(); snapUi(); onCameraChanged(); ensureLoop(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden && playing) stopPlay(); });
 
-/* ===================== 右栏战役 / 态势列表（时间轴下方） ===================== */
-const mfTabBattles = document.getElementById("mfTabBattles");
-const mfTabFacts = document.getElementById("mfTabFacts");
-const mfInk = document.getElementById("mfInk");
-function moveTabInk() {
-  const active = mfTabBattles.classList.contains("on") ? mfTabBattles : mfTabFacts;
-  if (!active || !mfInk) return;
-  mfInk.style.width = active.offsetWidth + "px";
-  mfInk.style.transform = "translateX(" + (active.offsetLeft - mfTabBattles.offsetLeft) + "px)";
-}
-function setFloatTab(tab, userInitiated) {
-  const battles = tab === "battles";
-  mfTabBattles.classList.toggle("on", battles);
-  mfTabFacts.classList.toggle("on", !battles);
-  mfTabBattles.setAttribute("aria-selected", String(battles));
-  mfTabFacts.setAttribute("aria-selected", String(!battles));
-  const shown = document.getElementById(battles ? "mfBattles" : "mfFacts");
-  const hidden = document.getElementById(battles ? "mfFacts" : "mfBattles");
-  hidden.hidden = true;
-  shown.hidden = false;
-  if (!REDUCED) {
-    shown.style.animation = "none";
-    void shown.offsetWidth;
-    shown.style.animation = "";
-  }
-  moveTabInk();
-  if (userInitiated) {
-    const btn = battles ? mfTabBattles : mfTabFacts;
-    btn.classList.remove("pressed");
-    void btn.offsetWidth;
-    btn.classList.add("pressed");
-    document.getElementById("liveStatus").textContent = battles
-      ? "已切换到战役列表，可点选本阶段各役。"
-      : "已切换到态势面板，查看本阶段关键态势。";
-  }
-  refreshUiBlocks();
-}
-mfTabBattles.addEventListener("click", () => setFloatTab("battles", true));
-mfTabFacts.addEventListener("click", () => setFloatTab("facts", true));
+/* ===================== 右栏战役 / 态势 =====================
+   两块同时在面板里直出，不再有 tab 切换：战役列表由 renderStageContent 按阶段重建，
+   状态灯 / 徽标 / 实时摘要由 syncBattleList 随时间刷新。 */
 
 /* ===================== 侧栏折叠区：军事图例 / 番号沿革 ===================== */
 /* 图例/沿革是侧栏内的浮层，只有点击开关才会展开或收起；播放/拖动时间轴时
@@ -4551,7 +4614,6 @@ async function boot() {
     let railPref = null;
     try { railPref = localStorage.getItem(RAIL_KEY); } catch (err) { /* ignore */ }
     if (railPref === "1" && window.innerWidth > 900) setRailCollapsed(true, false);
-    setFloatTab("battles", false);
     syncAutoBtn();
     setPlayLabel();
     cam.threeD = cam.pitch > 0.05;
@@ -4587,8 +4649,8 @@ async function boot() {
     const load = document.getElementById("appLoading");
     load.classList.add("hidden");
     setTimeout(() => { load.style.display = "none"; }, 520);
-    // 布局稳定后校准 tab 指示条与标注避让区
-    setTimeout(() => { moveTabInk(); refreshUiBlocks(); }, 560);
+    // 布局稳定后校准标注避让区
+    setTimeout(() => { refreshUiBlocks(); }, 560);
   } catch (err) {
     document.getElementById("alCard").classList.add("error");
     document.getElementById("alErr").textContent = "无法完成地图绘制：" + (err && err.message ? err.message : String(err)) + "。请检查网络后重试。";
