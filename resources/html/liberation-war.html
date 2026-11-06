@@ -251,11 +251,26 @@
   .pl-arms .pl-vs { font-size: 10px; color: var(--text-sub); opacity: .75; margin: 0 4px; }
   .pl-arms .pl-track { margin: 4px 0 3px; }
   .pl-arms-note { font-size: 9.5px; color: var(--text-sub); opacity: .78; line-height: 1.4; }
-  .pl-battle {
-    margin-top: 6px; padding: 6px 8px; border-radius: 6px;
-    background: var(--surface); font-size: 12px; color: var(--text-sub);
+  /* 军事图例：直接展示（原「进行中战役」槽位），替换底部浮层入口。
+     撑满左侧菜单内容宽，双列排布压低高度，短屏兜底内部滚动。 */
+  .pl-legend { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+  .pl-legend-title {
+    display: flex; align-items: center; gap: 5px; margin: 0 0 6px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--gold);
   }
-  .pl-battle b { color: var(--text-main); font-weight: 700; display: block; font-size: 12.5px; }
+  .pl-legend-title .gi { font-size: 12px; }
+  .pl-legend-body {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px;
+    max-height: 168px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: rgba(156,66,33,.34) transparent;
+    padding-right: 2px;
+  }
+  .pl-legend-body .lg-group { min-width: 0; }
+  .pl-legend-body .lg-group + .lg-group { margin-top: 0; padding-top: 0; border-top: none; }
+  .pl-legend-body .lg-group:nth-child(n+3) { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border); }
+  .pl-legend .lg-row { min-height: 18px; font-size: 10px; column-gap: 6px; }
+  .pl-legend .lg-sym { width: 30px; height: 16px; }
+  .pl-legend .lg-note { grid-column: 1 / -1; }
 
   /* ===================== 侧栏底部三入口：军事图例 / 番号沿革 / 标图口径 ===================== */
   /* 三个入口合并为一行、行为完全一致：点击开合、同一时间只展开一个、Escape 收起。
@@ -1252,66 +1267,60 @@
         <div class="pl-track"><i class="cc" id="plArmCBar" style="width:23%"></i><i class="kmt" id="plArmKBar" style="width:77%"></i></div>
         <div class="pl-arms-note">全军总兵力（万人）· 军史通行数字内插</div>
       </div>
-      <div class="pl-battle" id="plBattle" hidden>
-        <span style="font-size:10.5px;letter-spacing:1px;color:var(--text-sub)">进行中战役</span>
-        <b id="plBattleName">—</b>
+      <div class="pl-legend" id="plLegend" role="group" aria-label="军事图例（直接展示）">
+        <h4 class="pl-legend-title"><span class="gi">⚑</span>军事图例</h4>
+        <div class="pl-legend-body">
+
+          <div class="lg-group">
+            <h4>一 · 作战行动</h4>
+            <div class="lg-row"><span class="lg-sym">
+              <svg viewBox="0 0 34 16" width="34" height="16" aria-hidden="true">
+                <path d="M2 8 C10 3, 17 13, 24 8" fill="none" stroke="#fbf6ea" stroke-width="6" stroke-linecap="round"/>
+                <path d="M2 8 C10 3, 17 13, 24 8" fill="none" stroke="#b5342a" stroke-width="3.2" stroke-linecap="round"/>
+                <path d="M21 3.2 C27 4.6, 30 6.4, 32.5 8 C30 9.6, 27 11.4, 21 12.8 C24 10.6, 25 9.3, 25 8 C25 6.7, 24 5.4, 21 3.2 Z" fill="#b5342a" stroke="#fbf6ea" stroke-width="1"/>
+                <path d="M2 4.6 L2 11.4" stroke="#b5342a" stroke-width="1.6"/>
+              </svg>
+            </span><span>解放军进攻（弧形实心箭头 · 出发线 · 「攻」标）</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="sym sym-kmt"></i></span><span>国军进攻 / 增援（蓝色弧形箭头）</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="sym sym-ret"></i></span><span>撤退 / 突围（虚线开放箭头）</span></div>
+            <div class="lg-row"><span class="lg-sym">
+              <svg viewBox="0 0 34 16" width="34" height="16" aria-hidden="true">
+                <path d="M2 11 L32 11" fill="none" stroke="#fbf6ea" stroke-width="5"/>
+                <path d="M2 11 L32 11" fill="none" stroke="#b5342a" stroke-width="2.4"/>
+                <path d="M4 11 L4 4 L8 4 L8 11 M12 11 L12 4 L16 4 L16 11 M20 11 L20 4 L24 4 L24 11" fill="none" stroke="#b5342a" stroke-width="1.5" stroke-linejoin="round"/>
+                <rect x="25" y="1" width="9" height="9" rx="2" fill="#fbf6ea" stroke="#b5342a" stroke-width="1"/>
+                <text x="29.5" y="8" font-size="7" text-anchor="middle" fill="#b5342a">防</text>
+              </svg>
+            </span><span>防御 / 阻击阵地（垛口线 · 「防」标）</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="sym sym-enc"></i></span><span>合围圈（虚线环＋方向箭头）</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="sym sym-brk"></i></span><span>突破 / 渡河点（楔形标）</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="sym sym-plan"></i></span><span>未竟 / 计划行动（虚线框）</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="sym sym-peace"></i></span><span>和平解放 / 起义投诚（★）</span></div>
+          </div>
+          <div class="lg-group">
+            <h4>二 · 部队与注记</h4>
+            <div class="lg-row"><span class="lg-sym"><i class="sym-unit">整74师</i></span><span>军队番号牌（按战役编制标注）</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="sym-anno">北路西进</i></span><span>行动方向注记（沿箭杆避让排布）</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="sym-gun"></i></span><span>战役标记（交叉步枪）</span></div>
+          </div>
+          <div class="lg-group">
+            <h4>三 · 底图与控制区</h4>
+            <div class="lg-row"><span class="lg-sym"><i class="sq-sample sq-ccp"></i></span><span>解放军控制区</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="sq-sample sq-kmt"></i></span><span>国军控制区</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="sq-sample sq-fringe"></i></span><span>尚未纳入（西藏 1951.5 前）</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="terrain-sample"></i></span><span>高程晕渲＋山脊晕线（山丘 / 高原）</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="river-sample"></i></span><span>主要河流（渐变水面＋岸线）</span></div>
+            <div class="lg-row"><span class="lg-sym"><i class="rail-sample"></i></span><span>历史铁路（1946—1950）</span></div>
+          </div>
+          <div class="lg-note">
+            「标图口径」（投影 / 箭头 / 镜头）已并入底部<b>「标图口径」</b>入口，点开即可查看。
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- 底部三入口合并为一行：军事图例 / 番号沿革 / 标图口径，行为一致（点击开合、互斥展开） -->
     <div class="rail-actions">
-    <div class="rail-section" id="railLegend">
-      <button class="legend-link" id="legendOpenBtn" type="button" aria-expanded="false" aria-controls="legendBody">
-        <span class="gi">⚑</span>军事图例
-      </button>
-      <div class="lg-body rail-body" id="legendBody" role="group" aria-label="军事图例">
-            <div class="lg-group">
-              <h4>一 · 作战行动</h4>
-              <div class="lg-row"><span class="lg-sym">
-                <svg viewBox="0 0 34 16" width="34" height="16" aria-hidden="true">
-                  <path d="M2 8 C10 3, 17 13, 24 8" fill="none" stroke="#fbf6ea" stroke-width="6" stroke-linecap="round"/>
-                  <path d="M2 8 C10 3, 17 13, 24 8" fill="none" stroke="#b5342a" stroke-width="3.2" stroke-linecap="round"/>
-                  <path d="M21 3.2 C27 4.6, 30 6.4, 32.5 8 C30 9.6, 27 11.4, 21 12.8 C24 10.6, 25 9.3, 25 8 C25 6.7, 24 5.4, 21 3.2 Z" fill="#b5342a" stroke="#fbf6ea" stroke-width="1"/>
-                  <path d="M2 4.6 L2 11.4" stroke="#b5342a" stroke-width="1.6"/>
-                </svg>
-              </span><span>解放军进攻（弧形实心箭头 · 出发线 · 「攻」标）</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="sym sym-kmt"></i></span><span>国军进攻 / 增援（蓝色弧形箭头）</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="sym sym-ret"></i></span><span>撤退 / 突围（虚线开放箭头）</span></div>
-              <div class="lg-row"><span class="lg-sym">
-                <svg viewBox="0 0 34 16" width="34" height="16" aria-hidden="true">
-                  <path d="M2 11 L32 11" fill="none" stroke="#fbf6ea" stroke-width="5"/>
-                  <path d="M2 11 L32 11" fill="none" stroke="#b5342a" stroke-width="2.4"/>
-                  <path d="M4 11 L4 4 L8 4 L8 11 M12 11 L12 4 L16 4 L16 11 M20 11 L20 4 L24 4 L24 11" fill="none" stroke="#b5342a" stroke-width="1.5" stroke-linejoin="round"/>
-                  <rect x="25" y="1" width="9" height="9" rx="2" fill="#fbf6ea" stroke="#b5342a" stroke-width="1"/>
-                  <text x="29.5" y="8" font-size="7" text-anchor="middle" fill="#b5342a">防</text>
-                </svg>
-              </span><span>防御 / 阻击阵地（垛口线 · 「防」标）</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="sym sym-enc"></i></span><span>合围圈（虚线环＋方向箭头）</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="sym sym-brk"></i></span><span>突破 / 渡河点（楔形标）</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="sym sym-plan"></i></span><span>未竟 / 计划行动（虚线框）</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="sym sym-peace"></i></span><span>和平解放 / 起义投诚（★）</span></div>
-            </div>
-            <div class="lg-group">
-              <h4>二 · 部队与注记</h4>
-              <div class="lg-row"><span class="lg-sym"><i class="sym-unit">整74师</i></span><span>军队番号牌（按战役编制标注）</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="sym-anno">北路西进</i></span><span>行动方向注记（沿箭杆避让排布）</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="sym-gun"></i></span><span>战役标记（交叉步枪）</span></div>
-            </div>
-            <div class="lg-group">
-              <h4>三 · 底图与控制区</h4>
-              <div class="lg-row"><span class="lg-sym"><i class="sq-sample sq-ccp"></i></span><span>解放军控制区</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="sq-sample sq-kmt"></i></span><span>国军控制区</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="sq-sample sq-fringe"></i></span><span>尚未纳入（西藏 1951.5 前）</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="terrain-sample"></i></span><span>高程晕渲＋山脊晕线（山丘 / 高原）</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="river-sample"></i></span><span>主要河流（渐变水面＋岸线）</span></div>
-              <div class="lg-row"><span class="lg-sym"><i class="rail-sample"></i></span><span>历史铁路（1946—1950）</span></div>
-            </div>
-            <div class="lg-note">
-              「标图口径」（投影 / 箭头 / 镜头）已并入底部<b>「标图口径」</b>入口，点开即可查看。
-            </div>
-        <button class="lg-close" id="legendCloseBtn" type="button">收起图例 ▲</button>
-      </div>
-    </div>
     <!-- 番号沿革：手动展开，列出改称时间与史料出处 -->
     <div class="rail-section" id="railUnits">
       <button class="legend-link" id="unitsOpenBtn" type="button" aria-expanded="false" aria-controls="unitsBody">
@@ -1328,7 +1337,7 @@
       </button>
       <div class="rail-info-pop" id="railInfoBody" role="note" aria-label="阅读说明与标图口径">
         <h4>如何使用这张图</h4>
-        <div class="detail-hint" id="detailHint">在<b>右侧「战役 / 态势」列表</b>中切换本阶段各役（进行中的战役会自动滚入可视区），或直接点击图中的战役标记：<b>右栏与地图同屏</b>展开<b>完整经过、编制番号、兵力与阶段推进</b>，时间轴与播放控制也在右栏顶部。暂停时点选会定位镜头，播放中只更新详情；需要定位可点详情栏的<b>「⌖ 定位到地图」</b>。军事图例、番号沿革与标图口径都在左侧菜单底部，点击展开／收起。</div>
+        <div class="detail-hint" id="detailHint">在<b>右侧「战役 / 态势」列表</b>中切换本阶段各役（进行中的战役会自动滚入可视区），或直接点击图中的战役标记：<b>右栏与地图同屏</b>展开<b>完整经过、编制番号、兵力与阶段推进</b>。暂停时点选会定位镜头，播放中只更新详情；需要定位可点详情栏的<b>「⌖ 定位到地图」</b>。时间轴与播放控制在<b>左侧菜单</b>，军事图例在左侧「当前态势」下方直接展示；番号沿革与标图口径在左侧菜单底部，点击展开／收起。</div>
         <h4>底图 · 投影 · 标图口径</h4>
         <p>底图：阿里云 DataV / 高德行政区划边界（民政部标准）；地形：Natural Earth 1:50m 陆地轮廓 + 山脉高原高程数据（3D 夸张渲染）。Albers 等积投影（标准纬线 25°N / 47°N，中央经线 105°E），比例尺为图上量算近似值。</p>
         <p>战役地点按史实位置标注，箭头为<b>示意性战略方向</b>而非精确行军路线，按军事标图规范区分进攻、防御、合围、突破与撤退；部队番号牌与行动注记沿箭杆避让排布，放大后可查看更细粒度信息。</p>
@@ -3384,12 +3393,7 @@ function updateHud() {
       document.getElementById("plArmCBar").style.width = (mp.ccp / sum * 100).toFixed(1) + "%";
       document.getElementById("plArmKBar").style.width = (mp.kmt / sum * 100).toFixed(1) + "%";
     }
-    const ab = activeNow(t);
-    const box = document.getElementById("plBattle");
-    if (ab) {
-      box.hidden = false;
-      document.getElementById("plBattleName").textContent = ab.name + "（" + ab.time + "）";
-    } else { box.hidden = true; }
+    // 「进行中战役」槽位已改为直接展示的军事图例（.pl-legend），不再写 DOM
     // 章节切换
     const si = stageIndexAt(t);
     if (si !== lastStage) renderStageContent(si);
@@ -4295,6 +4299,9 @@ const railUnits = document.getElementById("railUnits");
 const legendOpenBtn = document.getElementById("legendOpenBtn");
 const unitsOpenBtn = document.getElementById("unitsOpenBtn");
 function setLegendOpen(open, persist) {
+  /* 军事图例已改为菜单内直接展示（.pl-legend），旧底部浮层机制整体降级为 no-op 守卫，
+     各处既有调用（startPlay / 时间轴拖动 / Escape / 互斥展开）保持原样即可 */
+  if (!railLegend || !legendOpenBtn) return;
   railLegend.classList.toggle("open", open);
   legendOpenBtn.setAttribute("aria-expanded", String(open));
   if (persist) {
@@ -4312,6 +4319,7 @@ function setUnitsOpen(open, persist) {
 }
 /* 演进时自动浮出图例；用户手动开合后，本次播放不再自动覆盖其选择 */
 function autoShowLegend(holdMs) {
+  if (!railLegend) return; // 图例已内联展示，浮层机制不再适用
   if (legendUserOverride) return;
   if (railLegend.classList.contains("open") && !legendAutoOpen) return; // 用户手动展开
   legendAutoOpen = true;
@@ -4327,21 +4335,7 @@ function autoHideLegend(delay) {
   setLegendOpen(false, false);
 }
 /* 手风琴：三个浮层（图例 / 番号 / 口径）不同时展开 */
-legendOpenBtn.addEventListener("click", () => {
-  legendUserOverride = true;
-  clearTimeout(legendAutoTimer);
-  legendAutoOpen = false;
-  const open = !railLegend.classList.contains("open");
-  setLegendOpen(open, true);
-  if (open) { setUnitsOpen(false, true); setRailInfoOpen(false); }
-});
-document.getElementById("legendCloseBtn").addEventListener("click", () => {
-  legendUserOverride = true;
-  clearTimeout(legendAutoTimer);
-  legendAutoOpen = false;
-  setLegendOpen(false, true);
-  legendOpenBtn.focus();
-});
+/* 军事图例按钮 / 收起按钮已随浮层机制一并移除（图例现为菜单内常驻展示） */
 unitsOpenBtn.addEventListener("click", () => {
   legendUserOverride = true;
   clearTimeout(legendAutoTimer);
