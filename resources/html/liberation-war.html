@@ -449,7 +449,7 @@
   .viewer-row { display: flex; align-items: stretch; gap: 14px; min-height: 0; flex: 1 1 auto; }
   .viewer-row .map-box { flex: 1 1 auto; min-width: 0; margin-bottom: 0; align-self: stretch; }
   .side-panel {
-    flex: 0 0 380px; width: 380px; max-width: 40%;
+    flex: 0 0 400px; width: 400px; max-width: 42%;
     display: flex; flex-direction: column; min-height: 0;
     background: var(--card-bg); backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border); border-radius: 10px;
@@ -974,7 +974,7 @@
   .bd-sub {
     margin-top: 2px; font-size: 10.5px; color: var(--text-sub);
     font-variant-numeric: tabular-nums; letter-spacing: .2px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    white-space: normal; overflow-wrap: anywhere;
   }
   .bd-titlebar .bd-title {
     flex: 1 1 auto; min-width: 0;
@@ -1090,11 +1090,11 @@
      播放时文字再怎么变也不会换行、不会改变面板高度，避免逐帧抖动。 */
   .pd-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; row-gap: 4px; min-width: 0; }
   .sp-time .tl-head { margin-bottom: 0; gap: 7px; flex: 1 1 auto; min-width: 0; }
-  /* 日期固定 10 字符宽 + 等宽数字，播放时文字变化不会挤动右侧阶段 / 提示 */
+  /* 日期固定「YYYY年MM月DD日」：月日恒补零、数字等宽，再给一个定宽槽位；
+     播放时文字再怎么变，右侧阶段 / 操作提示都不会左右抖动。 */
   .sp-time .tl-date {
     flex: 0 0 auto; font-size: 14px; white-space: nowrap;
-    min-width: 10ch; letter-spacing: .2px; font-variant-numeric: tabular-nums;
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    min-width: 8.8em; letter-spacing: .2px; font-variant-numeric: tabular-nums;
   }
   .sp-time .tl-chap { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sp-time .tl-hint {
@@ -1244,12 +1244,14 @@
   .sp-time-dock .pd-controls .speed-row { display: inline-flex; align-items: center; }
   .sp-time-dock .pd-controls .zoom-readout { display: inline-flex; align-items: center; justify-content: flex-end; }
   .sp-time-dock .tl-hint, .sp-time-dock .focus-bar { height: 20px; box-sizing: border-box; }
-  /* 声明停靠在内容区最底部，不参与右栏 / 左栏任何内部滚动 */
+  /* 声明：一行小字紧贴内容区最底，绝对定位脱离文档流，
+     不再占据高度，上方地图 / 战役 / 时间轴都能吃到原本被挤掉的空间。 */
   .sp-disclaimer {
-    flex: 0 0 auto; margin: 5px 0 0; padding: 5px 10px;
-    border: 1px solid var(--border); border-radius: 8px;
-    background: var(--card-bg);
-    font-size: 10px; line-height: 1.55; color: var(--text-sub); text-align: center;
+    position: absolute; left: 12px; right: 16px; bottom: 0; z-index: 4;
+    margin: 0; padding: 0 4px; height: 14px; line-height: 14px;
+    border: 0; border-radius: 0; background: transparent;
+    font-size: 9.5px; color: var(--text-sub); text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .sp-disclaimer b { color: var(--text-main); font-weight: 700; }
 
@@ -1343,12 +1345,15 @@
     .legend-link, .rail-info-btn { font-size: 11.5px; }
     .rail-info-pop { width: min(320px, 88vw); }
     .rail-body { width: min(320px, 88vw); max-height: 52vh; }
-    .right-panel { width: 100%; height: auto; min-height: 100vh; overflow: visible; margin-left: 0; padding: 12px 12px 14px; }
+    .right-panel { width: 100%; height: auto; min-height: 100vh; overflow: visible; margin-left: 0; padding: 12px 12px 20px; }
     .viewer-row { flex-direction: column; min-height: 0; }
     /* 窄屏沿用「时间轴一行 + 功能区一行」的上下分行，只放宽行距与内边距 */
     .sp-time-dock { row-gap: 6px; margin-top: 10px; padding: 8px 10px 10px; }
+    /* 窄屏是流式长页：固定贴视口底，同样不占内容高度 */
     .sp-disclaimer {
-      position: sticky; bottom: 0; z-index: 20;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+      height: 16px; line-height: 16px; padding: 0 8px;
+      background: var(--card-solid); border-top: 1px solid var(--border);
       box-shadow: 0 -4px 14px rgba(96,70,40,.10);
     }
     .side-panel {
@@ -1406,7 +1411,7 @@
     </div>
 
     <div class="panel-live" aria-live="polite">
-      <div class="pl-head"><span>当前态势</span><b id="plDate">1946-06-26</b></div>
+      <div class="pl-head"><span>当前态势</span><b id="plDate">1946年06月26日</b></div>
       <div class="pl-row"><span class="pl-swatch cc"></span><span>解放区</span><span class="pl-unit">省</span><b id="plCc">6</b></div>
       <div class="pl-track"><i class="cc" id="plCcBar" style="width:19%"></i><i class="kmt" id="plKmtBar" style="width:81%"></i></div>
       <div class="pl-row kmt"><span class="pl-swatch kmt"></span><span>国统区</span><span class="pl-unit">省</span><b id="plKmt">24</b></div>
@@ -1497,7 +1502,7 @@
         <h4>底图 · 投影 · 标图口径</h4>
         <p>底图：阿里云 DataV / 高德行政区划边界（民政部标准）；地形：Natural Earth 1:50m 陆地轮廓 + 山脉高原高程数据（3D 夸张渲染）。Albers 等积投影（标准纬线 25°N / 47°N，中央经线 105°E），比例尺为图上量算近似值。</p>
         <p>战役地点按史实位置标注，箭头为<b>示意性战略方向</b>而非精确行军路线，按军事标图规范区分进攻、防御、合围、突破与撤退；部队番号牌与行动注记沿箭杆避让排布，放大后可查看更细粒度信息。</p>
-        <p>新疆 1949-09-25 通电起义、1950 年 3 月完成进驻；西藏 1951-05-23 签订《十七条协议》、1951-10-26 第 18 军进驻拉萨，实现和平解放（此前为灰色「未纳入控制区统计」）。1950 年 6 月攻台作战计划因朝鲜战争爆发、美国第七舰队侵入台湾海峡而推迟，未实施，图中以虚线箭头标注。台湾及其附属岛屿、南海诸岛、香港、澳门均为中国领土；1946—1951 年间香港、澳门分别处于英国、葡萄牙占据之下，未计入省级行政区。本图为历史态势局部示意，因投影与图幅所限的留白、省略不代表任何主权或边界主张。</p>
+        <p>新疆 1949年09月25日 通电起义、1950 年 3 月完成进驻；西藏 1951年05月23日 签订《十七条协议》、1951年10月26日 第 18 军进驻拉萨，实现和平解放（此前为灰色「未纳入控制区统计」）。1950 年 6 月攻台作战计划因朝鲜战争爆发、美国第七舰队侵入台湾海峡而推迟，未实施，图中以虚线箭头标注。台湾及其附属岛屿、南海诸岛、香港、澳门均为中国领土；1946—1951 年间香港、澳门分别处于英国、葡萄牙占据之下，未计入省级行政区。本图为历史态势局部示意，因投影与图幅所限的留白、省略不代表任何主权或边界主张。</p>
         <h4>操作速记</h4>
         <p>滚轮精细缩放 · 拖拽平移 / 环视 · 双击放大 · 空格播放暂停 · ←→ 快进快退 · 0 恢复全局 · V 切换 2D / 3D · R 展开收起侧栏。</p>
       </div>
@@ -1596,7 +1601,7 @@
     <div class="sp-time sp-time-dock" role="group" aria-label="时间轴与播放控制">
       <div class="pd-top">
         <div class="tl-head">
-          <span class="tl-date" id="tlDate">1946-06-26</span>
+          <span class="tl-date" id="tlDate">1946年06月26日</span>
           <span class="tl-chap" id="tlChap">第一阶段 · 战略防御</span>
           <button class="tl-hint" id="tlHint" type="button" aria-label="操作说明（悬停查看）" title="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图" data-tip="拖动 / 点击刻度 · 空格播放暂停 · ←→ 快进快退 · R 展开侧栏 · V 切换 2D/3D · 0 恢复全局视图">ⓘ</button>
         </div>
@@ -1646,7 +1651,7 @@
       </div>
     </div>
 
-    <p class="sp-disclaimer" role="note"><b>史料与主权声明</b> · 本图为 1946—1951 年解放战争历史教学示意：战役起止、兵力与箭头方向依据公开军史资料整理，箭头为示意性战略方向，非精确行军路线或国界依据；虚线箭头表示未实施的作战计划。台湾及其附属岛屿、南海诸岛、香港、澳门均为中国领土，图中因投影与图幅所限的留白、省略不代表任何主权或边界主张。</p>
+    <p class="sp-disclaimer" role="note" title="史料与主权声明：本图为 1946—1951 年解放战争历史教学示意，战役起止、兵力与箭头方向依据公开军史资料整理；箭头为示意性战略方向，非精确行军路线或国界依据，虚线箭头表示未实施的作战计划。台湾及其附属岛屿、南海诸岛、香港、澳门均为中国领土，图中因投影与图幅所限的留白、省略不代表任何主权或边界主张。"><b>声明</b> · 本图为战争态势教学示意，箭头非精确路线或国界依据；台湾及其附属岛屿、南海诸岛、香港、澳门均为中国领土，留白与省略不代表任何主权或边界主张。</p>
     <div class="sr-only" id="liveStatus" role="status" aria-live="polite"></div>
   </section>
 </div>
@@ -1710,7 +1715,7 @@ function daysToDate(t) {
   if (m < 1) { m = 12; y -= 1; }
   return { y, mo: m, d: clamp(Math.round(d), 1, 31) };
 }
-/* 所有时间展示统一 YYYY-MM-DD（定宽 10 字符），实现见下方 dateISO / fmtISO，
+/* 所有时间展示统一 YYYY年MM月DD日（定宽），实现见下方 fmtDate / fmtRange，
    中文长日期与 "YYYY.MM" 短格式一律不再使用，避免歧义与文字长度抖动。 */
 function dnum(s) { // 'YYYY-MM-DD' -> 单调序
   const [y, m, d] = s.split("-").map(Number);
@@ -2031,7 +2036,7 @@ function cityFlipWithin(cityName, t, winDays) {
   return !!(fl && fl.some((d) => t - d <= winDays && t - d >= 0));
 }
 function countedProvinces(t) {
-  // fringe 省（西藏）在和平解放前不计入任何一方，1951-05-23 起才纳入统计
+  // fringe 省（西藏）在和平解放前不计入任何一方，1951年05月23日 起才纳入统计
   return DATA.PROVINCES.filter((p) => !p.kind ||
     (p.kind === "fringe" && (provFlips[p.n] || []).some((d) => d <= t)));
 }
@@ -3563,8 +3568,23 @@ function dateISO(dayIdx) {
   _isoCache[dayIdx] = s;
   return s;
 }
-/* 播放中 t 为浮点：取整后再查缓存，保证每帧都是同一个定宽日期串 */
-function fmtISO(dayIdx) { return dateISO(Math.round(dayIdx)); }
+/* 面向用户的日期统一「YYYY年MM月DD日」：4+2+2 位数字恒补零 + 3 个汉字，
+   宽度恒定，播放时不会挤动右侧内容。dateISO 仍供箭头进度等内部计算使用。 */
+const _cnCache = {};
+function fmtDateStr(iso) {
+  const key = String(iso == null ? "" : iso);
+  if (_cnCache[key]) return _cnCache[key];
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key);
+  const v = m ? m[1] + "年" + m[2] + "月" + m[3] + "日" : key;
+  _cnCache[key] = v;
+  return v;
+}
+function fmtDate(dayIdx) { return fmtDateStr(dateISO(Math.round(dayIdx))); }
+/* 数据里的日期区间 / 说明文字（如 1950-06-25 — 1950-06-30）逐段转成中文格式 */
+function fmtRange(text) {
+  return String(text == null ? "" : text)
+    .replace(/(\d{4})-(\d{2})-(\d{2})/g, (_a, y, m, d) => y + "年" + m + "月" + d + "日");
+}
 
 /* ===================== 时间轴与播放 ===================== */
 const tlRange = document.getElementById("tlRange");
@@ -3595,7 +3615,7 @@ function buildRuler() {
     band.style.left = (sp.d0 / DTOTAL * 100).toFixed(2) + "%";
     band.style.width = ((sp.d1 - sp.d0) / DTOTAL * 100 - 0.35).toFixed(2) + "%";
     band.innerHTML = "<b>" + STAGES[i].name.replace(/^第.阶段 · /, "") + "</b>";
-    band.title = STAGES[i].name + " · " + STAGES[i].time;
+    band.title = STAGES[i].name + " · " + fmtRange(STAGES[i].time);
     band.addEventListener("click", () => {
       stopPlay();
       tweenT(sp.d0, 420);
@@ -3613,7 +3633,7 @@ function buildRuler() {
     el.className = "tl-evt";
     el.style.left = (e.d / DTOTAL * 100).toFixed(2) + "%";
     el.dataset.t = e.t;
-    el.title = fmtISO(e.d) + " " + e.t;
+    el.title = fmtDate(e.d) + " " + e.t;
     el.addEventListener("click", (ev) => {
       ev.stopPropagation();
       stopPlay();
@@ -3641,9 +3661,10 @@ function setText(el, text) {
 let evolutionEnded = null;
 function updateScrubUi() {
   tlRange.value = String(Math.round(t));
-  const ds = fmtISO(t);
+  const ds = fmtDate(t);
   if (tlDate.textContent !== ds) {
     tlDate.textContent = ds;
+    hideTip();                 // 跨天时旧提示内容已过期，立即收起
     if (!REDUCED && !playing) {
       tlDate.classList.remove("tick-flash");
       void tlDate.offsetWidth;
@@ -3668,7 +3689,7 @@ function updateHud() {
     document.getElementById("plKmt").textContent = String(counts.kmt);
     document.getElementById("plCcBar").style.width = (counts.cc / counts.total * 100).toFixed(1) + "%";
     document.getElementById("plKmtBar").style.width = (counts.kmt / counts.total * 100).toFixed(1) + "%";
-    document.getElementById("plDate").textContent = fmtISO(t);
+    document.getElementById("plDate").textContent = fmtDate(t);
     const mp = manpowerAt(t);
     if (mp) {
       document.getElementById("plArmC").textContent = String(Math.round(mp.ccp));
@@ -3696,7 +3717,7 @@ function buildStageNav() {
     div.innerHTML =
       '<span class="stage-index">0' + (i + 1) + "</span>" +
       '<div class="stage-name">' + stage.name + "</div>" +
-      '<div class="stage-time">' + stage.time + "</div>" +
+      '<div class="stage-time">' + fmtRange(stage.time) + "</div>" +
       '<div class="stage-intent">' + stage.intent + "</div>";
     const go = () => { stopPlay(); resetAutoDetail(); tweenT(STAGE_SPANS[i].d0 + 0.5, 420); };
     div.addEventListener("click", go);
@@ -3736,12 +3757,12 @@ function renderStageContent(i) {
     li.dataset.idx = String(ALL_BATTLES.indexOf(b));
     li.tabIndex = 0;
     li.setAttribute("role", "button");
-    li.setAttribute("aria-label", b.name + "，" + b.time);
+    li.setAttribute("aria-label", b.name + "，" + fmtRange(b.time));
     // 四列栅格：序号 / 类型点 / 名称+日期 / 进行中徽标，长名称不再把日期挤到下一行
     li.innerHTML =
       '<span class="b-idx">' + String(idx + 1).padStart(2, "0") + "</span>" +
       '<span class="b-dot state-pending kind-' + (b.kind || "attack") + '"></span>' +
-      '<span class="mf-main"><span class="b-name">' + b.name + '</span><span class="b-time">' + b.time + "</span></span>" +
+      '<span class="mf-main"><span class="b-name">' + b.name + '</span><span class="b-time">' + fmtRange(b.time) + "</span></span>" +
       '<span class="b-badge st-pending">未开始</span>';
     li.addEventListener("click", () => selectBattle(b, true));
     li.addEventListener("keydown", (e) => {
@@ -3759,7 +3780,7 @@ function renderStageContent(i) {
   });
   // 阶段切换只重建列表：已打开的详情栏保持常驻，播放进度与镜头都不被打断
   syncBattleList();
-  document.getElementById("liveStatus").textContent = "已切换至" + s.name + "，" + s.time + "。";
+  document.getElementById("liveStatus").textContent = "已切换至" + s.name + "，" + fmtRange(s.time) + "。";
   syncStageNav();
 }
 /* 详情栏与地图/播放解耦：播放中点选只更新详情；暂停时才按旧行为定位。
@@ -3777,7 +3798,7 @@ function renderBattleDetail(b) {
   detail.hidden = false;
   const titleBar = document.getElementById("bdTitleBar");
   const kindLabel = (function (k) { return { attack: "进攻", defense: "防御", planned: "计划未实施", peace: "和平" }[k] || ""; })(b.kind);
-  const subText = b.time + (kindLabel ? " · " + kindLabel : "");
+  const subText = fmtRange(b.time) + (kindLabel ? " · " + kindLabel : "");
   document.getElementById("bdTitle").textContent = b.name;
   const subEl = document.getElementById("bdSub");
   subEl.textContent = subText;
@@ -3785,7 +3806,7 @@ function renderBattleDetail(b) {
   titleBar.hidden = false;
   const phaseItems = b.phases.map((p) => {
     const done = dnum(p.d) <= dnumLocal(t) + 3;
-    return '<li data-d="' + p.d + '" class="' + (done ? "done" : "") + '"><b>' + p.d + "</b>" + p.text + "</li>";
+    return '<li data-d="' + p.d + '" class="' + (done ? "done" : "") + '"><b>' + fmtRange(p.d) + "</b>" + p.text + "</li>";
   }).join("");
   const forcesRows = (b.forces || []).map((f) =>
     '<div class="bf-row"><span class="bf-side ' + (f.side === "kmt" ? "kmt" : "cc") + '">' + (f.side === "kmt" ? "敌" : "我") + "</span>" +
@@ -3903,19 +3924,24 @@ function battleBounds(b) {
   (ops.brk || []).forEach((it) => add(it.at));
   return [x0, y0, x1, y1];
 }
-/* 每场战役对应一个确定的视图状态：按包围盒自适应缩放 + 标准环视角 */
+/* 聚焦倍数适度加大：以「战役全部军事要素仍完整落在画布内」为上限，
+   按聚焦后的标准环视角（含 yaw 旋转）估算外接框，收紧留白并把上限从 4.4× 提到 5.6×；
+   大范围战役按容纳值回退，宁可稍远也不裁掉箭头 / 标记。全局 8× 上限仍留足手动余量。 */
+const FOCUS_ZOOM_MIN = 1.6, FOCUS_ZOOM_MAX = 5.6;
 function battleView(b) {
   const bb = battleBounds(b);
-  const base = camScale() / Math.max(0.01, cam.zoom);
-  const shF = cam.threeD ? Math.max(0.35, Math.cos(cam.pitch)) : 1;
-  // 局部放大加强：收紧包围盒留白并提高缩放上限，让单场战役的军事要素看得更清楚
-  const bw = Math.max(8.5, (bb[2] - bb[0]) * 1.28 + 4.5);
-  const bh = Math.max(6.5, (bb[3] - bb[1]) * 1.35 + 4);
-  const zoom = clamp(Math.min(W / (bw * base), Hc / (bh * base * shF)), 2.0, 4.4);
+  const yaw = cam.threeD ? CAM_DEFAULT_3D.yaw : 0;
+  const pitch = cam.threeD ? Math.min(CAM_DEFAULT_3D.pitch, 0.42) : 0;
+  const shF = cam.threeD ? Math.max(0.45, Math.cos(pitch) * 0.92 + 0.08) : 1;
+  const base = (W * 0.97) / (VIEW_W * shF);   // 聚焦后视角下的单位缩放，不依赖当前镜头
+  const cw = Math.abs(Math.cos(yaw)), sw = Math.abs(Math.sin(yaw));
+  const dx = bb[2] - bb[0], dy = bb[3] - bb[1];
+  const bw = Math.max(7.5, (dx * cw + dy * sw) * 1.16 + 3.2);
+  const bh = Math.max(5.8, (dx * sw + dy * cw) * 1.2 + 3.0);
+  const fit = Math.min(W / (bw * base), Hc / (bh * base * Math.max(0.35, Math.cos(pitch))));
+  const zoom = clamp(fit, FOCUS_ZOOM_MIN, FOCUS_ZOOM_MAX);
   return {
-    cx: (bb[0] + bb[2]) / 2, cy: (bb[1] + bb[3]) / 2, zoom,
-    yaw: cam.threeD ? CAM_DEFAULT_3D.yaw : 0,
-    pitch: cam.threeD ? Math.min(CAM_DEFAULT_3D.pitch, 0.42) : 0,
+    cx: (bb[0] + bb[2]) / 2, cy: (bb[1] + bb[3]) / 2, zoom, yaw, pitch,
   };
 }
 function focusBattle(b, source) {
@@ -4067,7 +4093,7 @@ function finishEvolution() {
   }, 0);
   // 详情栏给出收尾交代：独立卡片，最后一场战役详情仍保留在下方（有则显示）
   const fin = document.getElementById("spFinish");
-  fin.innerHTML = "<b>✓ 演进完毕 · " + fmtISO(t) + "</b>" +
+  fin.innerHTML = "<b>✓ 演进完毕 · " + fmtDate(t) + "</b>" +
     "全部战役已讲解完成，地图已恢复完整全貌；按「↻ 重新播放」可从头观看。";
   fin.hidden = false;
   // 直接拖到终点时详情可能还停在很久以前的一役：收尾统一落到最后一役的完整结局；
@@ -4212,13 +4238,13 @@ function syncBattleList() {
   const si = stageIndexAt(t);
   const factMeta = document.getElementById("mfFactMeta");
   if (factMeta) {
-    const txt = fmtISO(t) + " · 本阶段 " + ((STAGES[si] && STAGES[si].facts || []).length) + " 条";
+    const txt = fmtDate(t) + " · 本阶段 " + ((STAGES[si] && STAGES[si].facts || []).length) + " 条";
     if (factMeta.textContent !== txt) factMeta.textContent = txt;
   }
   const liveNote = document.getElementById("mfLiveNote");
   if (liveNote) {
     const live = concurrentBattles(t);
-    const head = "此刻 " + fmtISO(t);
+    const head = "此刻 " + fmtDate(t);
     const txt = live.length
       ? head + " · 同期 " + live.length + " 项：" + live.slice(0, 3).map((b) => b.name).join("、") + (live.length > 3 ? " 等" : "")
       : head + " · 当前无进行中战役";
@@ -4278,6 +4304,7 @@ function syncNorth() {
 }
 syncNorth();
 function onCameraChanged() {
+  hideTip();                 // 镜头一变，命中位置与省份状态都已过期
   terrainDirty = true;
   scheduleLabelRelayout();
   syncNorth();
@@ -4341,7 +4368,7 @@ function endOrbit(e) {
   else { orbit = null; handleClick(e); }
 }
 MAP_CANVAS.addEventListener("pointerup", endOrbit);
-MAP_CANVAS.addEventListener("pointercancel", () => { orbit = null; });
+MAP_CANVAS.addEventListener("pointercancel", () => { orbit = null; hideTip(); });
 /* 把页面坐标换算成地图画布内坐标（不依赖 offsetX 的 target 归属） */
 function mapLocal(e) {
   const r = MAP_CANVAS.getBoundingClientRect();
@@ -4351,6 +4378,7 @@ MAP_CANVAS.addEventListener("wheel", (e) => {
   // 浮层上滚轮属于面板自身（图例 / 战役列表可滚动），绝不触发地图放大
   if (isOverlayEvent(e)) return;
   e.preventDefault();
+  hideTip();
   pauseAutoFocus();
   const [mx, my] = mapLocal(e);
   const [wx, wy] = unprojectGround(mx, my);
@@ -4372,6 +4400,7 @@ MAP_CANVAS.addEventListener("wheel", (e) => {
 }, { passive: false });
 MAP_CANVAS.addEventListener("dblclick", (e) => {
   if (isOverlayEvent(e)) return;
+  hideTip();
   pauseAutoFocus();
   const [mx, my] = mapLocal(e);
   const [wx, wy] = unprojectGround(mx, my);
@@ -4480,8 +4509,28 @@ MAP_CANVAS.addEventListener("keydown", (e) => {
 });
 
 /* ===================== 悬停提示 ===================== */
-const tip = document.getElementById("mapTip");
-function hideTip() { tip.classList.remove("show"); }
+/* 每次都取当前节点：hideTip 会在初始化早期（相机回调）被调用，不依赖声明顺序 */
+function tipEl() { return document.getElementById("mapTip"); }
+function hideTip() {
+  const el = tipEl();
+  if (!el) return;
+  el.classList.remove("show");
+  el.setAttribute("aria-hidden", "true");
+  const cv = document.getElementById("mapCanvas");
+  if (cv) cv.style.cursor = "";
+}
+function showTip() {
+  const el = tipEl();
+  if (!el) return;
+  el.classList.add("show");
+  el.setAttribute("aria-hidden", "false");
+}
+/* 鼠标移出地图、指针被取消、页面失焦、镜头变化都立刻收起，
+   避免旧提示停留在画布上；提示本身 pointer-events:none，不会拦截指针。 */
+MAP_CANVAS.addEventListener("pointerleave", hideTip);
+MAP_BOX.addEventListener("pointerleave", hideTip);
+window.addEventListener("blur", hideTip);
+document.addEventListener("visibilitychange", () => { if (document.hidden) hideTip(); });
 function handleHover(e) {
   if (orbit) return;
   const rect = MAP_CANVAS.getBoundingClientRect();
@@ -4493,13 +4542,13 @@ function handleHover(e) {
     const kindLabel = { attack: "进攻", defense: "防御", planned: "计划（未实施）", peace: "和平" }[b.kind] || "";
     const fs = b.forces || [];
     const fLine = (side) => fs.filter((f) => f.side === side).map((f) => f.org + " " + f.troops).join("；");
-    tip.innerHTML =
+    tipEl().innerHTML =
       '<div class="tip-title">' + b.name + '<span class="tip-badge cc">' + kindLabel + "</span></div>" +
-      '<div class="tip-time">' + b.time + (b.balance ? " · 兵力对比 " + b.balance : "") + "</div>" +
+      '<div class="tip-time">' + fmtRange(b.time) + (b.balance ? " · 兵力对比 " + b.balance : "") + "</div>" +
       (fs.length ? '<div class="tip-force"><i class="sw cc"></i>' + fLine("ccp") + "</div>" : "") +
       (fs.length ? '<div class="tip-force"><i class="sw kmt"></i>' + fLine("kmt") + "</div>" : "") +
       "<div>" + (b.note || "") + "</div>";
-    tip.classList.add("show");
+    showTip();
     positionTip(mx, my);
     MAP_CANVAS.style.cursor = "pointer";
     return;
@@ -4511,22 +4560,23 @@ function handleHover(e) {
     const st = provStateAt(prov.n, t);
     const stName = st === "ccp" ? "解放区" : st === "kmt" ? "国军控制" : st === "neutral" ? "港澳地区（当时未回归）" : "未纳入控制区统计";
     const flips = provFlips[prov.n];
-    const flipNote = st === "ccp" && flips && flips.length ? "（" + fmtISO(flips[flips.length - 1]) + " 起）" : "";
-    tip.innerHTML = '<div class="tip-title">' + prov.n + "</div><div class='tip-time'>" + stName + flipNote + " · " + fmtISO(t) + "</div>";
-    tip.classList.add("show");
+    const flipNote = st === "ccp" && flips && flips.length ? "（" + fmtDate(flips[flips.length - 1]) + " 起）" : "";
+    tipEl().innerHTML = '<div class="tip-title">' + prov.n + "</div><div class='tip-time'>" + stName + flipNote + " · " + fmtDate(t) + "</div>";
+    showTip();
     positionTip(mx, my);
   } else hideTip();
 }
 function positionTip(mx, my) {
   const box = MAP_CANVAS.getBoundingClientRect();
-  const tw = tip.offsetWidth || 240, th = tip.offsetHeight || 100;
+  const cur = tipEl();
+  const tw = cur.offsetWidth || 240, th = cur.offsetHeight || 100;
   let x = mx + 16, y = my + 16;
   if (x + tw > box.width - 8) x = mx - tw - 16;
   if (y + th > box.height - 8) y = my - th - 16;
   x = clamp(x, 8, box.width - tw - 8);
   y = clamp(y, 8, box.height - th - 8);
-  tip.style.left = x + "px";
-  tip.style.top = y + "px";
+  cur.style.left = x + "px";
+  cur.style.top = y + "px";
 }
 function findProv(wx, wy) {
   for (const p of GEO.provs) {
@@ -4783,7 +4833,7 @@ function buildUnitsPanel() {
   };
   const intro = document.createElement("p");
   intro.className = "units-intro";
-  intro.textContent = "番号按中央军委 1948-11-01 与 1949-01-15 两次整编令整理；「决定日」与「实际启用日」分列，出处统一列在文末。";
+  intro.textContent = "番号按中央军委 1948年11月01日 与 1949年01月15日 两次整编令整理；「决定日」与「实际启用日」分列，出处统一列在文末。";
   frag.appendChild(intro);
 
   // 一 · 沿革：日期独立成列，正文与依据分层
