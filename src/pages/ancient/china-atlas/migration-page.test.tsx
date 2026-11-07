@@ -80,16 +80,18 @@ describe("<MigrationAtlasPage />", () => {
     expect(map.querySelectorAll('animate[attributeName="r"]').length).toBeGreaterThan(0);
   });
 
-  it("keeps all routes alive in the overview without particle motion", () => {
+  it("plays the same flow animation for every route in the overview", () => {
     renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: /全览 · 全部路线/ }));
 
     const map = screen.getByRole("img", { name: /民族迁徙路线图/ });
-    // 全览：八条淡墨路线都有缓慢流动刻痕，但没有沿路径运动的光点
-    expect(map.querySelectorAll("animateMotion")).toHaveLength(0);
+    // 全览：每条路线都以与单选相同的动画呈现——八条路线 × 每条五枚流动光点
+    expect(map.querySelectorAll("animateMotion").length).toBe(
+      MIGRATION_EVENTS.length * FLOW_DOTS.length,
+    );
     expect(map.querySelectorAll('animate[attributeName="stroke-dashoffset"]').length).toBe(
-      MIGRATION_EVENTS.length,
+      MIGRATION_EVENTS.length * 2,
     );
   });
 
@@ -120,8 +122,8 @@ describe("<MigrationAtlasPage />", () => {
     fireEvent.click(screen.getByRole("button", { name: /全览 · 全部路线/ }));
 
     expect(screen.queryByText(MIGRATION_EVENTS[0]?.description ?? "")).not.toBeInTheDocument();
-    expect(screen.getByText(/淡墨为全部八条路线的主流向/)).toBeInTheDocument();
-    // 路线仍在图上（八条淡墨细线），只是没有选中强调
+    expect(screen.getByText(/全览模式下八条路线同时播放流动动画/)).toBeInTheDocument();
+    // 路线仍在图上，全部以与单选相同的动画呈现
     expect(screen.getByRole("img", { name: /民族迁徙路线图/ })).toBeInTheDocument();
   });
 

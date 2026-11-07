@@ -261,7 +261,7 @@ export function TerritoryAtlasPage() {
           </div>
         ) : (
           <p className="shrink-0 rounded-2xl border border-ink/10 bg-paper/70 px-5 py-4 font-body text-sm text-muted-foreground">
-            淡墨为六幅快照的都城与控制节点。选择时间轴或左侧任一条目，查看该断面的都城、节点与估算。
+            全览模式下六幅快照同时标注都城与节点（重复地点只标一次）。选择时间轴或左侧任一条目，聚焦单个断面。
           </p>
         )}
       </div>

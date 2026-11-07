@@ -64,6 +64,6 @@ describe("<TerritoryAtlasPage />", () => {
     fireEvent.click(screen.getByRole("button", { name: /全览 · 全部快照/ }));
 
     expect(screen.queryByText(TERRITORY_SNAPSHOTS[0]?.description ?? "")).not.toBeInTheDocument();
-    expect(screen.getByText(/淡墨为六幅快照的都城与控制节点/)).toBeInTheDocument();
+    expect(screen.getByText(/全览模式下六幅快照同时标注都城与节点/)).toBeInTheDocument();
   });
 });

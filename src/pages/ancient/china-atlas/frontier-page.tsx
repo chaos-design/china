@@ -178,7 +178,7 @@ export function FrontierAtlasPage() {
           </div>
         ) : (
           <p className="shrink-0 rounded-2xl border border-ink/10 bg-paper/70 px-5 py-4 font-body text-sm text-muted-foreground">
-            淡墨方印为全部八项制度的治所。选择左侧任一条目，查看辖区、治所、时段与资料出处。
+            全览模式下全部治所同步脉冲强调。选择左侧任一条目，聚焦单项制度的辖区、治所与出处。
           </p>
         )}
       </div>

@@ -201,7 +201,7 @@ export function MigrationAtlasPage() {
           </div>
         ) : (
           <p className="shrink-0 rounded-2xl border border-ink/10 bg-paper/70 px-5 py-4 font-body text-sm text-muted-foreground">
-            淡墨为全部八条路线的主流向。选择左侧任一条目，查看具体路线、时段与资料出处。
+            全览模式下八条路线同时播放流动动画，按汉、唐、宋、元依次启程。选择左侧任一条目，聚焦单条路线的完整动画。
           </p>
         )}
       </div>

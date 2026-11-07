@@ -76,6 +76,6 @@ describe("<FrontierAtlasPage />", () => {
     fireEvent.click(screen.getByRole("button", { name: /全览 · 全部治所/ }));
 
     expect(screen.queryByText(FRONTIER_POLICIES[0]?.description ?? "")).not.toBeInTheDocument();
-    expect(screen.getByText(/淡墨方印为全部八项制度的治所/)).toBeInTheDocument();
+    expect(screen.getByText(/全览模式下全部治所同步脉冲强调/)).toBeInTheDocument();
   });
 });
