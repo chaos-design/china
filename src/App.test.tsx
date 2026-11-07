@@ -192,14 +192,14 @@ describe("<App /> routing", () => {
   });
 
   it.each([
-    ["/china/atlas/territory", "疆域变迁"],
-    ["/china/atlas/migration", "民族迁徙"],
-    ["/china/atlas/frontier", "边疆治理"],
-  ])("renders the atlas placeholder page at %s", async (path, label) => {
+    ["/china/atlas/territory", "疆域变迁", /建设中 · 骨架预留/],
+    ["/china/atlas/migration", "民族迁徙", /首批八条路线 · 汉唐宋元/],
+    ["/china/atlas/frontier", "边疆治理", /建设中 · 骨架预留/],
+  ])("renders the atlas page at %s", async (path, label, badge) => {
     renderAt(path);
 
     expect(await screen.findByRole("heading", { level: 1, name: label })).toBeInTheDocument();
-    expect(screen.getByText(/建设中 · 骨架预留/)).toBeInTheDocument();
+    expect(screen.getByText(badge)).toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 

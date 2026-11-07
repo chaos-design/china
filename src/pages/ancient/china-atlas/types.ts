@@ -33,14 +33,14 @@ export interface AtlasDynasty {
 }
 
 // ---------------------------------------------------------------------------
-// 以下为后续正式数据的数据契约（预留）。当前没有任何数据文件实现它们；
-// 各主题落地时在 china-atlas/ 下新增 data-*.ts 并按这里的形状填充。
+// 以下为图谱数据的数据契约。疆域与边疆治理尚未落地（预留）；
+// 民族迁徙已由 migration-events.ts 按契约填充。
 // ---------------------------------------------------------------------------
 
 /** 资料出处。所有涉及统计、疆界数字的条目都应携带，沿用站内「争议数字写区间」的约定。 */
 export type AtlasSource = readonly string[];
 
-/** 疆域变迁：一个朝代的一幅疆域快照。 */
+/** 疆域变迁：一个朝代的一幅疆域快照（预留）。 */
 export interface TerritorySnapshot {
   /** 疆域说明；变迁节点（迁都、割让、开拓）各自成条，不要把一整个朝代压成一条。 */
   description: string;
@@ -54,19 +54,29 @@ export interface TerritorySnapshot {
   sources?: AtlasSource;
 }
 
-/** 民族迁徙：一条迁徙路线。 */
+/** 民族迁徙：一条迁徙路线。经纬度路线由 migration-projection.ts 投到真实底图上。 */
 export interface MigrationRoute {
   description: string;
-  /** 迁徙主体，如「匈奴」「中原士族」。 */
-  group: string;
   dynastyId: AtlasDynastyId;
-  /** 起点；沿线与终点分别列出。 */
+  /** 起点地名。 */
   from: string;
-  /** 大致时段，如「永嘉之乱前后」。 */
+  id: string;
+  /** 路线途经点，按出发 → 抵达排序；至少两处（起点与终点）。 */
+  waypoints: readonly MigrationWaypoint[];
+  /** 迁徙主体，如「南匈奴」「粟特商旅」。 */
+  group: string;
+  /** 大致时段，如「东汉初年」「1127 年前后」。 */
   period: string;
-  sources?: AtlasSource;
-  /** 沿线或终点地名，按路线顺序。 */
-  stops: readonly string[];
+  sources: AtlasSource;
+  /** 终点地名。 */
+  to: string;
+}
+
+/** 迁徙路线的一个途经点。name 省略时地图上不渲染地名标注。 */
+export interface MigrationWaypoint {
+  /** [经度, 纬度]。 */
+  ll: readonly [number, number];
+  name?: string;
 }
 
 /** 边疆治理：一项边疆制度或治理机构。 */
