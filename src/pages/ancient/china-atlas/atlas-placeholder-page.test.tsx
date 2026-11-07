@@ -2,7 +2,6 @@ import { render, screen, within } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import { FrontierAtlasPage } from "./frontier-page";
 import { TerritoryAtlasPage } from "./territory-page";
 import { ATLAS_TOPICS } from "./topics";
 
@@ -13,7 +12,6 @@ function renderPage(page: ReactElement) {
 describe("atlas placeholder pages", () => {
   it.each([
     [TerritoryAtlasPage, "疆域变迁"],
-    [FrontierAtlasPage, "边疆治理"],
   ] as const)("%s renders the placeholder shell for %s", (Page, label) => {
     renderPage(<Page />);
 

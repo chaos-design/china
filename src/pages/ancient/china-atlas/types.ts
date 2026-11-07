@@ -79,13 +79,25 @@ export interface MigrationWaypoint {
   name?: string;
 }
 
-/** 边疆治理：一项边疆制度或治理机构。 */
+/** 边疆治理：一项边疆制度或治理机构。治所（或代表地）经纬度由投影投到真实底图上。 */
 export interface FrontierPolicyEntry {
   description: string;
   dynastyId: AtlasDynastyId;
+  id: string;
   /** 机构或制度名，如「西域都护府」「羁縻州」。 */
   institution: string;
+  /** 大致时段，如「前 60 年起」「澶渊之盟（1005）后」。 */
+  period: string;
   /** 施行区域，如「西域」「西南」。 */
   regions: readonly string[];
-  sources?: AtlasSource;
+  /** 治所或代表地点：地图上的定位锚点。 */
+  seat: FrontierSeat;
+  sources: AtlasSource;
+}
+
+/** 治所（或制度的代表地点）。 */
+export interface FrontierSeat {
+  /** [经度, 纬度]。 */
+  ll: readonly [number, number];
+  name: string;
 }
