@@ -1,0 +1,311 @@
+import { memo } from "react";
+
+import { cn } from "../../../lib/utils";
+import {
+  ATLAS_LABELS,
+  ATLAS_VIEW,
+  type AtlasItem,
+  type AtlasLayerId,
+  type AtlasPoint,
+  LABEL_FONT_SIZE,
+} from "./atlas-items";
+import { BasemapLayers } from "./basemap-layers";
+import type { AtlasTopicId } from "./types";
+
+export interface AtlasMapProps {
+  className?: string;
+  /** 是否播放画线、流动光点与脉冲。 */
+  animated: boolean;
+  /** 悬停中的条目 id（详情卡据此展开，地图只做强调）。 */
+  hoveredId: string | null;
+  /** 可见条目；切换「全部 / 单项」只换这个数组，SVG 与视野保持不动。 */
+  items: readonly AtlasItem[];
+  layer: AtlasLayerId;
+  onHover: (id: string | null) => void;
+  onSelect: (id: string) => void;
+  /** 选中的条目 id；null 表示全览。 */
+  selectedId: string | null;
+}
+
+/** 每名「迁徙者」的半径序列，大小相间读作人群而非单点。 */
+export const FLOW_DOTS = [0.5, 0.36, 0.44, 0.32, 0.4] as const;
+const FLOW_DUR_S = 3.6;
+
+const TOPIC_COLOR: Record<AtlasTopicId, string> = {
+  territory: "hsl(var(--vermillion))",
+  migration: "hsl(var(--blueprint))",
+  frontier: "hsl(var(--ochre))",
+};
+
+const MAP_ARIA_LABEL: Record<AtlasLayerId, string> = {
+  all: "疆域与民族图谱综合地图：真实省界底图上的三类标注",
+  territory: "疆域变迁地图：真实省界底图上的历代疆域快照节点",
+  migration: "民族迁徙路线图：真实省界底图上的历代迁徙路线",
+  frontier: "边疆治理地图：真实省界底图上的历代边疆机构治所",
+};
+
+function PointSymbol({ color, dim, point }: { color: string; dim: boolean; point: AtlasPoint }) {
+  const [x, y] = point.point;
+  if (point.kind === "seat") {
+    return (
+      <rect
+        fill={dim ? "hsl(var(--paper))" : color}
+        height={1}
+        stroke={dim ? "hsl(var(--ink) / 0.4)" : "hsl(var(--paper) / 0.8)"}
+        strokeWidth={0.14}
+        width={1}
+        x={x - 0.5}
+        y={y - 0.5}
+      />
+    );
+  }
+  if (point.kind === "waypoint") {
+    return (
+      <circle cx={x} cy={y} fill={color} r={0.34} stroke="hsl(var(--paper))" strokeWidth={0.1} />
+    );
+  }
+  if (point.kind === "anchor") {
+    return (
+      <circle cx={x} cy={y} fill="hsl(var(--paper))" r={0.42} stroke={color} strokeWidth={0.18} />
+    );
+  }
+  return (
+    <circle cx={x} cy={y} fill={color} r={0.6} stroke="hsl(var(--paper))" strokeWidth={0.14} />
+  );
+}
+
+/** 迁徙路线：画线 + 纸色刻痕 + 流动光点，全览与单选共用同一套动画。 */
+function RouteLayer({ animated, dim, item }: { animated: boolean; dim: boolean; item: AtlasItem }) {
+  const route = item.route;
+  if (!route) return null;
+  const color = TOPIC_COLOR.migration;
+  const stroke = dim ? "hsl(var(--ink) / 0.32)" : color;
+  return (
+    <g key={`route-${item.id}`} opacity={dim ? 0.5 : 1}>
+      <path d={route.d} fill="none" opacity={0.16} stroke={stroke} strokeWidth={1} />
+      <path
+        d={route.d}
+        fill="none"
+        pathLength={1}
+        stroke={stroke}
+        strokeDasharray={1}
+        strokeDashoffset={animated && !dim ? 1 : 0}
+        strokeLinecap="round"
+        strokeWidth={dim ? 0.22 : 0.42}
+      >
+        {animated && !dim ? (
+          <animate
+            attributeName="stroke-dashoffset"
+            calcMode="spline"
+            dur="1.4s"
+            fill="freeze"
+            from={1}
+            keySplines="0.4 0 0.2 1"
+            to={0}
+          />
+        ) : null}
+      </path>
+      {animated && !dim ? (
+        <>
+          <path
+            d={route.d}
+            fill="none"
+            opacity={0}
+            pathLength={1}
+            stroke="hsl(var(--paper) / 0.9)"
+            strokeDasharray="0.02 0.085"
+            strokeDashoffset={0.105}
+            strokeWidth={0.14}
+          >
+            <animate
+              attributeName="opacity"
+              begin="1.3s"
+              dur="0.6s"
+              fill="freeze"
+              from={0}
+              to={0.9}
+            />
+            <animate
+              attributeName="stroke-dashoffset"
+              dur="1.8s"
+              from={0.105}
+              repeatCount="indefinite"
+              to={0}
+            />
+          </path>
+          {FLOW_DOTS.map((radius, index) => (
+            <circle
+              begin={`${(-index * (FLOW_DUR_S / FLOW_DOTS.length)).toFixed(2)}s`}
+              fill="hsl(var(--paper))"
+              key={`flow-${item.id}-${index}`}
+              r={radius}
+              stroke={color}
+              strokeWidth={0.16}
+            >
+              <animateMotion dur={`${FLOW_DUR_S}s`} path={route.d} repeatCount="indefinite" />
+            </circle>
+          ))}
+        </>
+      ) : null}
+    </g>
+  );
+}
+
+/**
+ * 一张常驻 SVG：底图、三类标图点、路线与引导线标注全部画在同一个视野里。
+ *
+ * 稳定性约定（切换「全部 / 单项」时地图不跳动）：
+ * - viewBox 取模块级常量 ATLAS_VIEW，不随选中项重算；
+ * - 标注坐标取模块级常量 ATLAS_LABELS，不随过滤结果重排；
+ * - SVG 本身没有 key，页面切换只改变 children，DOM 节点与尺寸保持不变。
+ */
+export const AtlasMap = memo(function AtlasMap({
+  animated,
+  className,
+  hoveredId,
+  items,
+  layer,
+  onHover,
+  onSelect,
+  selectedId,
+}: AtlasMapProps) {
+  return (
+    <svg
+      aria-label={MAP_ARIA_LABEL[layer]}
+      className={cn("block h-full w-full", className)}
+      preserveAspectRatio="xMidYMid meet"
+      role="img"
+      viewBox={ATLAS_VIEW.box}
+    >
+      {/* 底图公共图层：省界 → 国界 → 岛屿 → 九段线 → 经纬网 → 河流 → 海名 */}
+      <BasemapLayers />
+
+      {/* 路线底层：先画线再画点，点不会被线压住 */}
+      {items.map((item) =>
+        item.route ? (
+          <RouteLayer
+            animated={animated}
+            dim={selectedId !== null && selectedId !== item.id}
+            item={item}
+            key={`route-layer-${item.id}`}
+          />
+        ) : null,
+      )}
+
+      {/* 标图点：都城、控制节点、途经地、治所 */}
+      {items.map((item) => {
+        const dim = selectedId !== null && selectedId !== item.id;
+        const color = dim ? "hsl(var(--ink) / 0.42)" : TOPIC_COLOR[item.topic];
+        return (
+          <g key={`points-${item.id}`} opacity={dim ? 0.55 : 1}>
+            {item.points.map((point, index) => (
+              <PointSymbol
+                color={color}
+                dim={dim}
+                key={`${item.id}-${point.kind}-${index}`}
+                point={point}
+              />
+            ))}
+          </g>
+        );
+      })}
+
+      {/* 选中 / 悬停的锚点脉冲：只加环形描边，不改变任何点的位置 */}
+      {items
+        .filter((item) => item.id === selectedId || item.id === hoveredId)
+        .map((item) => (
+          <circle
+            cx={item.primary[0]}
+            cy={item.primary[1]}
+            fill="none"
+            key={`halo-${item.id}`}
+            r={1.1}
+            stroke={TOPIC_COLOR[item.topic]}
+            strokeWidth={0.2}
+          >
+            {animated ? (
+              <>
+                <animate
+                  attributeName="r"
+                  dur="2.2s"
+                  from={1.1}
+                  repeatCount="indefinite"
+                  to={2.4}
+                />
+                <animate
+                  attributeName="stroke-opacity"
+                  dur="2.2s"
+                  from={0.7}
+                  repeatCount="indefinite"
+                  to={0}
+                />
+              </>
+            ) : null}
+          </circle>
+        ))}
+
+      {/* 引导线与标签画在最上层：纸色底 + 描边，保证标图信息不被图层遮挡 */}
+      {items.map((item) => {
+        const placement = ATLAS_LABELS.get(item.id);
+        if (!placement) return null;
+        const dim = selectedId !== null && selectedId !== item.id;
+        const active = item.id === selectedId || item.id === hoveredId;
+        const color = dim ? "hsl(var(--ink) / 0.38)" : TOPIC_COLOR[item.topic];
+        const { height, leader, width, x, y } = placement;
+        return (
+          // biome-ignore lint/a11y/useSemanticElements: SVG 的 <g> 不能换成 HTML <button>，热点只能靠 role + tabIndex 提供键盘可达性
+          <g
+            aria-label={`地图标注 · ${item.label}`}
+            className="cursor-pointer outline-none"
+            key={`label-${item.id}`}
+            onBlur={() => onHover(null)}
+            onClick={() => onSelect(item.id)}
+            onFocus={() => onHover(item.id)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onSelect(item.id);
+              }
+            }}
+            onMouseEnter={() => onHover(item.id)}
+            onMouseLeave={() => onHover(null)}
+            role="button"
+            tabIndex={0}
+          >
+            <path
+              className="atlas-leader"
+              d={`M ${leader.x1} ${leader.y1} L ${leader.x2} ${leader.y2}`}
+              fill="none"
+              opacity={dim ? 0.45 : 0.85}
+              stroke={color}
+              strokeWidth={active ? 0.2 : 0.12}
+            />
+            <circle cx={leader.x1} cy={leader.y1} fill={color} r={0.26} />
+            <rect
+              className="atlas-label-box"
+              fill="hsl(var(--paper) / 0.94)"
+              height={height}
+              rx={0.5}
+              stroke={color}
+              strokeWidth={active ? 0.28 : 0.14}
+              width={width}
+              x={x - width / 2}
+              y={y - height / 2}
+            />
+            <text
+              className="font-kai"
+              fill={dim ? "hsl(var(--ink) / 0.55)" : "hsl(var(--ink))"}
+              fontSize={LABEL_FONT_SIZE}
+              fontWeight={active ? 700 : 500}
+              textAnchor="middle"
+              x={x}
+              y={y + LABEL_FONT_SIZE * 0.35}
+            >
+              {item.label}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+});

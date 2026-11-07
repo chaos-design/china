@@ -1,6 +1,6 @@
 # 中国古代全览
 
-中国古代全览是一个以编年视角组织中国古代史材料的 React 单页应用。项目聚合朝代更替、民族关系、战争线索、治国政策、制度沿革与外部 HTML 资源，提供沉浸式首页、3D 时间长河、朝代政策全览和资源化专题阅读路径。
+中国古代全览是一个以编年视角组织中国古代史材料的 React 单页应用。项目聚合朝代更替、民族关系、战争线索、治国政策、制度沿革与外部 HTML 资源，提供沉浸式首页、3D 时间长河、朝代政策全览、疆域与民族图谱（疆域变迁 / 民族迁徙 / 边疆治理）和资源化专题阅读路径。
 
 ## 预览地址
 
@@ -14,11 +14,16 @@
 
 | 页面 | 预览地址 | 内容 | 截图 |
 | --- | --- | --- | --- |
-| 首页 | https://china.chaosmic.cn/ | 水墨风首页、画卷入场动画与全局换色入口。画卷动画每个浏览器窗口只展示一次，状态存储在 `sessionStorage`；主题色偏好存储在 `localStorage`。 | ![中国古代全览首页](./screenshots/home.webp) |
+| 首页 | https://china.chaosmic.cn/ | 水墨风首页、画卷入场动画与全局换色入口，卡片组织全部核心入口。画卷动画每个浏览器窗口只展示一次，状态存储在 `sessionStorage`；主题色偏好存储在 `localStorage`。 | ![中国古代全览首页](./screenshots/home.webp) |
 | 时间长河 | https://china.chaosmic.cn/china/timeline | 基于 Three.js 的 3D 朝代与少数民族关系漫游，包含主时间轴、战争连线、民族副线、吞并箭头、朝代筛选与时间范围筛选。`/china` 会重定向到此页面。 | ![3D 时间长河](./screenshots/china-timeline.webp) |
 | 政策全览 | https://china.chaosmic.cn/china/policies | 按朝代整理核心政策、制度机构、历史人物、疆域治理与文化科技内容。 | ![朝代政策全览](./screenshots/china-policies.webp) |
+| 疆域与民族图谱总览 | https://china.chaosmic.cn/china/atlas | 疆域变迁、民族迁徙、边疆治理三类材料整合到同一张真实省界底图上：页内切换「全部 / 单项」不重挂载地图，视野与标注位置恒定；近距离标注用引导线错开，悬停展开条目详情与史料出处。 | - |
+| 疆域变迁 | https://china.chaosmic.cn/china/atlas/territory | 总览页的疆域预设图层：可点击时间轴（前111—1330）切换六幅疆域快照，都城与代表性控制节点锚定在真实省界底图上，面积估算写明分歧口径。 | - |
+| 民族迁徙 | https://china.chaosmic.cn/china/atlas/migration | 总览页的迁徙预设图层：八条迁徙路线（汉唐宋元）以经纬度途经点绘制在真实底图上，流动光点与画线动画模拟去向，可整屏全览。 | - |
+| 边疆治理 | https://china.chaosmic.cn/china/atlas/frontier | 总览页的边疆预设图层：八项边疆制度（西域都护府、羁縻州县、榷场、行省、宣政院等）的治所方印地图，逐项标注辖区与资料出处。 | - |
 | HTML 专题资源 | https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片、阅读指南等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
 | 台湾专题 | https://china.chaosmic.cn/taiwan | 五卷分页：地形剖面与经纬度投影地图、岛屿编年、风土人情，以及 1895—1945 年日治与 1947 年之后的近代，逐节标注资料出处。内容存于 `resources/html-data/taiwan.json`，渲染逻辑在 `resources/html/taiwan.html`。 | - |
+| 解放战争交互图 | https://china.chaosmic.cn/liberation-war | 1946—1951 战局沙盘：真实省界地形上的攻防连线、包围圈与起义/和平解放部署，可拖动时间轴逐阶段推演。 | - |
 
 ## 技术栈
 
@@ -101,14 +106,18 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 | `/china` | 兼容旧入口，自动重定向到 `/china/timeline` |
 | `/china/timeline` | Three.js 3D 时间长河 |
 | `/china/policies` | 朝代政策全览 |
+| `/china/atlas` | 疆域与民族图谱总览：三类标注同图，页内切换「全部 / 单项」不换路由、不重挂载 SVG |
+| `/china/atlas/territory` | 总览页的疆域预设图层：时间轴 + 疆域快照节点（真实省界底图） |
+| `/china/atlas/migration` | 总览页的迁徙预设图层：迁徙路线动画（真实省界底图） |
+| `/china/atlas/frontier` | 总览页的边疆预设图层：边疆制度治所地图（真实省界底图） |
 | `/<html-resource-slug>` | 从 `resources/html/*.html` 自动生成，文件名会按 kebab-case 转为路由 |
 | `*` | 404 兜底页面 |
 
 `/ancient-china` 是唯一保留的旧版 HTML 页面（141 kB，`showInHome: false`），它同时是生成式路由的测试夹具。
 
-当前 HTML 资源路由：`/ancient-china`（旧版，首页不展示）、`/intangible-culture-heritage`、`/silk-road`、`/taiwan`。
+当前 HTML 资源路由：`/ancient-china`（旧版，首页不展示）、`/intangible-culture-heritage`、`/silk-road`、`/taiwan`、`/liberation-war`。
 
-> **关于站点定位**：本项目自称「中国古代全览」，但四个 HTML 资源并非都属于中国古代范畴。非遗、丝绸之路与旧版朝代页符合，`/taiwan` 是地理与近现代史主题，不符合。站点名与 `<title>` 保持不变——改动品牌文案的影响面（SEO、分享卡片、已部署 URL 语义）远大于收益，且此定位扩展尚需更多同类页面佐证。此处显式记录该例外，后续新增专题时应明确判断它是否落在「中国古代」框架内；框架之外的资源，要么同步放宽 README 与 `index.html` 的定位表述，要么像本条一样把例外写在文档里，不要让一个页面悄悄改变站点的含义。
+> **关于站点定位**：本项目自称「中国古代全览」，但 HTML 资源并非都属于中国古代范畴。非遗、丝绸之路与旧版朝代页符合；`/taiwan`（地理与 1895 年以来的近现代）、`/liberation-war`（1946—1951）是近现代主题，属于有意保留的例外。站点名与 `<title>` 保持不变——改动品牌文案的影响面（SEO、分享卡片、已部署 URL 语义）远大于收益。此处显式记录该例外，后续新增专题时应明确判断它是否落在「中国古代」框架内；框架之外的资源，要么同步放宽 README 与 `index.html` 的定位表述，要么像本条一样把例外写在文档里，不要让一个页面悄悄改变站点的含义。
 
 新增 HTML 专题资源时，应同时提供：
 
@@ -120,17 +129,18 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 
 ### 顶部菜单
 
-顶部导航是三组 hover 展开的下拉，不是扁平链接列表：
+顶部导航是单一触发器（「全览地图」）的悬停巨型下拉：面板锚在导航栏下方，分类列并排（四列），右缘是一条随悬停/当前路由高亮分区的手绘中国地图带。
 
 | 分组 | 叶子 |
 | --- | --- |
 | 编年与制度 | 朝代时间长河、朝代政策全览 |
+| 疆域与民族图谱 | 图谱总览、疆域变迁、民族迁徙、边疆治理 |
 | 文化与交通 | 中华非遗瑰宝、丝绸之路与海疆 |
-| 地域与近代 | 台湾专题 |
+| 地域与近代 | 台湾专题、解放战争交互图 |
 
-分组硬编码在 `src/components/layout/root-layout.tsx` 的 `NAV_GROUPS`，因为它表达的是编辑判断（哪些内容属于同一类），放进资源元数据会让数据层承担分类职责。新增资源时要在 `NAV_GROUPS` 里补一条叶子——代码里有一道校验，路径若没有对应的可用资源会在启动时抛错，避免留下死链。
+分组硬编码在 `src/components/layout/nav-groups.ts` 的 `NAV_GROUPS`，因为它表达的是编辑判断（哪些内容属于同一类、落在地图哪一块），放进资源元数据会让数据层承担分类职责。新增资源时要在 `NAV_GROUPS` 里补一条叶子——代码里有一道校验，路径若没有对应的可用资源会在启动时抛错，避免留下死链（`/china/*` 形式的路径因属 React 路由而跳过该校验）。
 
-展开状态放在 React 而非纯 CSS：`:hover` 在触屏上会粘住，`:focus-within` 在鼠标移开后不会收起。因此 hover 与 click 统一落到 state，键盘走原生 `button` + `role="menu"`，视觉过渡仍由 CSS 完成。收起有 120 ms 延迟，指针从按钮移到面板的路上不会闪。
+面板是「披露控件」而非模态框：悬停约 60ms 展开，移出后有 140ms 宽限期收起，Escape 关闭并把焦点还给触发器，焦点离开或点面板外即收起；没有焦点陷阱与 backdrop。所有分类列同时渲染，条目只显示名称。菜单的视觉细节（手绘地图带、方印分区）依赖真实浏览器渲染，jsdom 无法覆盖。
 
 ### `/taiwan` 的区块式内容
 
@@ -199,6 +209,7 @@ src/
 ├── pages/
 │   ├── ancient/china/          # 3D 时间长河
 │   ├── ancient/china-policies/ # 政策全览
+│   ├── ancient/china-atlas/    # 疆域与民族图谱（疆域变迁/民族迁徙/边疆治理）
 │   ├── html-resources/         # resources/html 动态路由与 iframe 渲染
 │   ├── upcoming/               # 筹备中专题资源
 │   ├── home.tsx
@@ -308,6 +319,7 @@ npx vercel dev
 | `/taiwan` | 33 kB | HTML 14 kB + JSON 19 kB，地图由经纬度投影生成，无外部图片 |
 | `/china/policies` | 341–377 kB | 页面 138 kB + 当前朝代的 1–2 张疆域图 |
 | `/china/timeline` | 287 kB | Three.js 场景 |
+| `/china/atlas/*` | ~30 kB | 各图谱页 5–6.5 kB + 共享 chunk；真实省界底图数据与解放战争页共用同一 chunk，不重复加载 |
 | `/intangible-culture-heritage` | ~1,381 kB | JS 122 kB + 视口内可见的手艺实拍图 |
 
 三处结构性优化已完成：

@@ -47,6 +47,35 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   },
   {
     blurb:
+      "疆域、民族与边疆三条图谱线索：边界怎么画、人群怎么走、边疆怎么管。骨架已立，内容按朝代逐批填充。",
+    id: "atlas",
+    items: [
+      {
+        highlights: ["三类图谱同图", "引导线标注", "悬停查看出处"],
+        label: "图谱总览",
+        to: "/china/atlas",
+      },
+      {
+        highlights: ["按朝代分章", "变迁节点", "疆域快照"],
+        label: "疆域变迁",
+        to: "/china/atlas/territory",
+      },
+      {
+        highlights: ["迁徙路线", "人群流动", "定居与融合"],
+        label: "民族迁徙",
+        to: "/china/atlas/migration",
+      },
+      {
+        highlights: ["都护府与羁縻", "行省与土司", "互市与和议"],
+        label: "边疆治理",
+        to: "/china/atlas/frontier",
+      },
+    ],
+    label: "疆域与民族图谱",
+    mapZone: "north",
+  },
+  {
+    blurb:
       "手艺与道路：二十项非遗是向内的传承，陆海丝路是向外的往来，两条线在唐宋交汇，也是这批内容最厚的一段。",
     id: "culture",
     items: [
