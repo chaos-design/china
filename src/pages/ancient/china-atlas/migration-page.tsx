@@ -150,20 +150,23 @@ export function MigrationAtlasPage() {
           </nav>
         </aside>
 
-        {/* 右侧：真实底图 + 选中路线详情；地图限高一屏，超出时区域内滚动 */}
+        {/* 右侧：真实底图 + 选中路线详情。弹性分栏：地图占剩余空间并随之缩放，
+            解释内容（详情卡）shrink-0 常驻同屏，不受滚动影响。 */}
         <section
           aria-label="迁徙路线图"
-          className="order-1 min-h-0 flex-1 lg:order-2 lg:overflow-y-auto"
+          className="order-1 flex min-h-0 flex-1 flex-col lg:order-2 lg:overflow-hidden"
         >
-          <div className="px-4 py-4 lg:px-6">
-            <div className="rounded-2xl border border-ink/10 bg-paper/70 p-3 sm:p-4">
-              <MigrationMap
-                animated={animated}
-                className="lg:max-h-[calc(100vh-16rem)]"
-                events={MIGRATION_EVENTS}
-                selectedId={selectedId}
-              />
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 py-4 lg:px-6">
+            <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-ink/10 bg-paper/70 p-2 sm:p-3">
+              <div className="min-h-0 flex-1">
+                <MigrationMap
+                  animated={animated}
+                  className="lg:h-full"
+                  events={MIGRATION_EVENTS}
+                  selectedId={selectedId}
+                />
+              </div>
+              <div className="mt-1.5 flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1">
                 <div
                   aria-hidden="true"
                   className="flex flex-wrap items-center gap-x-4 gap-y-1 font-body text-xs text-muted-foreground"
@@ -216,7 +219,7 @@ export function MigrationAtlasPage() {
 
             {selected ? (
               <div
-                className="mt-4 rounded-2xl border border-ink/10 bg-paper/70 px-5 py-4"
+                className="shrink-0 rounded-2xl border border-ink/10 bg-paper/70 px-5 py-3"
                 key={selected.id}
               >
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -227,10 +230,10 @@ export function MigrationAtlasPage() {
                     {selected.period}
                   </span>
                 </div>
-                <p className="mt-2.5 font-body text-sm leading-relaxed text-ink/85">
+                <p className="mt-2 font-body text-sm leading-relaxed text-ink/85">
                   {selected.description}
                 </p>
-                <ul className="mt-3 flex flex-col gap-1 border-ink/8 border-t pt-2.5">
+                <ul className="mt-2 flex flex-col gap-1 border-ink/8 border-t pt-2">
                   {selected.sources.map((source) => (
                     <li className="font-body text-xs text-muted-foreground" key={source}>
                       资料出处 · {source}
@@ -239,7 +242,7 @@ export function MigrationAtlasPage() {
                 </ul>
               </div>
             ) : (
-              <p className="mt-4 rounded-2xl border border-ink/10 bg-paper/70 px-5 py-4 font-body text-sm text-muted-foreground">
+              <p className="shrink-0 rounded-2xl border border-ink/10 bg-paper/70 px-5 py-4 font-body text-sm text-muted-foreground">
                 淡墨为全部八条路线的主流向。选择左侧任一条目，查看具体路线、时段与资料出处。
               </p>
             )}
