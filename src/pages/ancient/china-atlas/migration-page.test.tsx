@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import { MIGRATION_EVENTS } from "./migration-events";
+import { FLOW_DOTS } from "./migration-map";
 import { MigrationAtlasPage } from "./migration-page";
 
 function renderPage() {
@@ -53,6 +54,28 @@ describe("<MigrationAtlasPage />", () => {
     expect(
       screen.queryByText(MIGRATION_EVENTS[0]?.description ?? "\\u0000no-such-text"),
     ).not.toBeInTheDocument();
+  });
+
+  it("animates the selected route with a particle stream and origin ripples", () => {
+    renderPage();
+
+    const map = screen.getByRole("img", { name: /民族迁徙路线图/ });
+    // 选中态：流动光点沿路径运动（animateMotion），起点有出发涟漪
+    expect(map.querySelectorAll("animateMotion").length).toBe(FLOW_DOTS.length);
+    expect(map.querySelectorAll('animate[attributeName="r"]').length).toBeGreaterThan(0);
+  });
+
+  it("keeps all routes alive in the overview without particle motion", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: /全览 · 全部路线/ }));
+
+    const map = screen.getByRole("img", { name: /民族迁徙路线图/ });
+    // 全览：八条淡墨路线都有缓慢流动刻痕，但没有沿路径运动的光点
+    expect(map.querySelectorAll("animateMotion")).toHaveLength(0);
+    expect(map.querySelectorAll('animate[attributeName="stroke-dashoffset"]').length).toBe(
+      MIGRATION_EVENTS.length,
+    );
   });
 
   it("shows the overview hint when 全部路线 is selected", () => {

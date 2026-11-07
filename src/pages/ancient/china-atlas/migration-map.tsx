@@ -26,6 +26,11 @@ function buildProjectedRoutes(events: readonly MigrationRoute[]): readonly Proje
 
 const DEFAULT_PROJECTION_VIEW = [0, 0, 151.5, 115.36] as const;
 
+/** 流动光点队伍的半径序列：大小相间，读作人群而不是单点。 */
+export const FLOW_DOTS = [0.5, 0.36, 0.44, 0.32, 0.4] as const;
+/** 一名「迁徙者」走完全程的秒数；队伍按等间隔错峰出发。 */
+const FLOW_DUR_S = 3.6;
+
 function prefersReducedMotion(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -151,11 +156,30 @@ export const MigrationMap = memo(function MigrationMap({
         </text>
       ))}
 
-      {/* 未选中的路线：淡墨细线，保留全局「去向」的密度感 */}
+      {/* 未选中的路线：淡墨细线 + 缓慢流动的纸色刻痕，保留全局「去向」的密度感 */}
       {routes.map(({ d, points, route }) =>
         route.id === selectedId ? null : (
           <g key={route.id}>
             <path d={d} fill="none" stroke="hsl(var(--ink) / 0.25)" strokeWidth={0.22} />
+            {reducedMotion ? null : (
+              <path
+                d={d}
+                fill="none"
+                pathLength={1}
+                stroke="hsl(var(--paper) / 0.85)"
+                strokeDasharray="0.02 0.1"
+                strokeDashoffset={0.12}
+                strokeWidth={0.14}
+              >
+                <animate
+                  attributeName="stroke-dashoffset"
+                  dur="4.5s"
+                  from={0.12}
+                  repeatCount="indefinite"
+                  to={0}
+                />
+              </path>
+            )}
             {points.map(([x, y], index) => (
               <circle
                 cx={x}
@@ -202,6 +226,35 @@ export const MigrationMap = memo(function MigrationMap({
               />
             )}
           </path>
+          {/* 线内流动的纸色刻痕：画线完成后淡入，持续向终点行进 */}
+          {reducedMotion ? null : (
+            <path
+              d={selected.d}
+              fill="none"
+              opacity={0}
+              pathLength={1}
+              stroke="hsl(var(--paper) / 0.9)"
+              strokeDasharray="0.02 0.085"
+              strokeDashoffset={0.105}
+              strokeWidth={0.14}
+            >
+              <animate
+                attributeName="opacity"
+                begin="1.3s"
+                dur="0.6s"
+                fill="freeze"
+                from={0}
+                to={0.9}
+              />
+              <animate
+                attributeName="stroke-dashoffset"
+                dur="1.8s"
+                from={0.105}
+                repeatCount="indefinite"
+                to={0}
+              />
+            </path>
+          )}
           {selected.points.map(([x, y], index) => {
             const isFirst = index === 0;
             const isLast = index === selected.points.length - 1;
@@ -266,18 +319,57 @@ export const MigrationMap = memo(function MigrationMap({
               </g>
             );
           })}
+          {/* 起点的出发涟漪：人群源源不断离开原居地 */}
           {reducedMotion
             ? null
-            : [0, -1.7].map((begin) => (
+            : [0, -1.1].map((begin) => {
+                const [originX, originY] = selected.points[0] ?? [0, 0];
+                return (
+                  <circle
+                    cx={originX}
+                    cy={originY}
+                    fill="none"
+                    key={`ripple-${begin}`}
+                    r={0.5}
+                    stroke="hsl(var(--vermillion))"
+                    strokeWidth={0.18}
+                  >
+                    <animate
+                      attributeName="r"
+                      begin={`${begin}s`}
+                      dur="2.2s"
+                      from={0.5}
+                      repeatCount="indefinite"
+                      to={1.9}
+                    />
+                    <animate
+                      attributeName="stroke-opacity"
+                      begin={`${begin}s`}
+                      dur="2.2s"
+                      from={0.6}
+                      repeatCount="indefinite"
+                      to={0}
+                    />
+                  </circle>
+                );
+              })}
+          {/* 流动光点队伍：错峰出发、大小相间，读作人群的持续流动 */}
+          {reducedMotion
+            ? null
+            : FLOW_DOTS.map((radius, index) => (
                 <circle
-                  begin={`${begin}s`}
-                  fill="hsl(var(--vermillion))"
-                  key={begin}
-                  r={0.4}
-                  stroke="hsl(var(--paper) / 0.8)"
-                  strokeWidth={0.1}
+                  begin={`${(-index * (FLOW_DUR_S / FLOW_DOTS.length)).toFixed(2)}s`}
+                  fill="hsl(var(--paper))"
+                  key={`flow-${index}`}
+                  r={radius}
+                  stroke="hsl(var(--vermillion))"
+                  strokeWidth={0.16}
                 >
-                  <animateMotion dur="3.4s" path={selected.d} repeatCount="indefinite" />
+                  <animateMotion
+                    dur={`${FLOW_DUR_S}s`}
+                    path={selected.d}
+                    repeatCount="indefinite"
+                  />
                 </circle>
               ))}
         </g>
