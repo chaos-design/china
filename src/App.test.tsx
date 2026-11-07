@@ -139,7 +139,7 @@ describe("<App /> routing", () => {
     fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
     const panel = await screen.findByLabelText("全览目录");
 
-    for (const group of ["编年与制度", "文化与交通", "地域与近代"]) {
+    for (const group of ["编年与制度", "疆域与民族图谱", "文化与交通", "地域与近代"]) {
       expect(
         Array.from(panel.querySelectorAll(".mega-col .mega-col-title")).some(
           (node) => node.textContent === group,
@@ -147,10 +147,13 @@ describe("<App /> routing", () => {
       ).toBe(true);
     }
 
-    // 下拉三列同时可见：五个入口一次点齐，visited 计数防空转
+    // 下拉四列同时可见：九个入口一次点齐，visited 计数防空转
     const destinations = [
       ["/china/timeline", /朝代时间长河/],
       ["/china/policies", /朝代政策全览/],
+      ["/china/atlas/territory", /疆域变迁/],
+      ["/china/atlas/migration", /民族迁徙/],
+      ["/china/atlas/frontier", /边疆治理/],
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],
@@ -185,6 +188,18 @@ describe("<App /> routing", () => {
   it("hides the footer on the React policy route", async () => {
     renderAt("/china/policies");
     expect(await screen.findByRole("navigation")).toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["/china/atlas/territory", "疆域变迁"],
+    ["/china/atlas/migration", "民族迁徙"],
+    ["/china/atlas/frontier", "边疆治理"],
+  ])("renders the atlas placeholder page at %s", async (path, label) => {
+    renderAt(path);
+
+    expect(await screen.findByRole("heading", { level: 1, name: label })).toBeInTheDocument();
+    expect(screen.getByText(/建设中 · 骨架预留/)).toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
@@ -227,8 +242,8 @@ describe("<App /> routing", () => {
     fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
     const panel = await screen.findByLabelText("全览目录");
 
-    // 三列分类 + 右缘地图带，全部挂在顶栏 DOM 里
-    expect(panel.querySelectorAll(".mega-col")).toHaveLength(3);
+    // 四列分类 + 右缘地图带，全部挂在顶栏 DOM 里
+    expect(panel.querySelectorAll(".mega-col")).toHaveLength(4);
     expect(panel.querySelector(".mega-map")).toBeInTheDocument();
     // 装饰地图不进无障碍树
     expect(panel.querySelector(".hand-drawn-map")).toHaveAttribute("aria-hidden", "true");

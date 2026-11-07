@@ -9,6 +9,7 @@ This repository is **中国古代全览**, a React 19 + TypeScript single-page a
 - a water-ink styled home page with a one-per-window scroll entrance animation,
 - a Three.js-powered 3D chronology at `/china/timeline`,
 - a dynasty policy atlas at `/china/policies`,
+- placeholder atlas entries for territory / migration / frontier topics at `/china/atlas/*` (疆域与民族图谱, skeleton only),
 - resource-driven preview entries for future topics,
 - iframe-isolated HTML resource pages generated from `resources/html/*.html`,
 - a 404 fallback page for unknown routes.
@@ -98,6 +99,9 @@ Current public routes:
 | `/china` | Redirect to `/china/timeline` |
 | `/china/timeline` | 3D chronology / 时间长河 |
 | `/china/policies` | Dynasty policy atlas / 政策全览 |
+| `/china/atlas/territory` | Territory atlas placeholder / 疆域变迁（占位） |
+| `/china/atlas/migration` | Migration atlas placeholder / 民族迁徙（占位） |
+| `/china/atlas/frontier` | Frontier governance atlas placeholder / 边疆治理（占位） |
 | `/<html-resource-slug>` | Generated from `resources/html/*.html` with kebab-case slugs |
 | `*` | 404 fallback page |
 
@@ -146,7 +150,7 @@ The page is a canvas-rendered 3D "沙盘" (the old SVG engine was replaced): a h
 
 ### The header mega menu
 
-The header has a single trigger (「全览地图」) that opens a **hover mega dropdown** anchored under the navigation bar (modeled on the Claude.ai nav): three category columns side by side, each listing its entries by name only (no subtitle, no visible path; long names truncate to one line), plus a decorative hand-drawn China map strip on the right edge. Files:
+The header has a single trigger (「全览地图」) that opens a **hover mega dropdown** anchored under the navigation bar (modeled on the Claude.ai nav): category columns side by side (four at present), each listing its entries by name only (no subtitle, no visible path; long names truncate to one line), plus a decorative hand-drawn China map strip on the right edge. Files:
 
 | File | Role |
 | --- | --- |
@@ -161,7 +165,7 @@ Decisions worth keeping:
 - The dropdown is a **disclosure pattern, not a modal**. No `role="dialog"`, no backdrop, no focus trap: focus moves freely between trigger and panel, Escape closes and refocuses the trigger, `pointerdown` outside or focus leaving the wrapper closes it. Do not reintroduce a focus trap here — there is nothing to trap.
 - Hover opens after a short delay (`OPEN_DELAY_MS`); leaving the trigger/panel area closes after a grace period (`CLOSE_GRACE_MS`) so crossing the gap does not blink the panel shut. Both timers must be cleaned up on unmount — a late `setOpen` from a StrictMode double-mount reopens a closed panel.
 - Panel content is conditionally mounted (`{open ? <div id="site-mega-menu">…} : null}`), so "closed means absent" is a fact; there is no hidden tree needing `inert`.
-- All three columns are rendered at once (the old full-screen panel swapped one tabpanel). Tests can therefore assert all five destinations in a single pass.
+- All columns are rendered at once (the old full-screen panel swapped one tabpanel). Tests can therefore assert every destination in a single pass.
 - The map strip (`.mega-map`) is `pointer-events-none` and `hidden` below `lg`; the map's active zone follows the hovered column, falling back to the group that owns the current route.
 
 ### Editing the hand-drawn map

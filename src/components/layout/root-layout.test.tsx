@@ -29,7 +29,7 @@ describe("<RootLayout /> menu trigger", () => {
     renderLayout("/");
     const nav = await screen.findByRole("navigation");
 
-    // 旧版是三个分类各一个下拉按钮。现在只有一个入口，展开后三列并排。
+    // 旧版是三个分类各一个下拉按钮。现在只有一个入口，展开后所有分类并排成列。
     const triggers = within(nav).getAllByRole("button", { expanded: false });
     expect(triggers).toHaveLength(1);
     expect(triggers[0]).toHaveTextContent("全览地图");
@@ -97,13 +97,13 @@ describe("<RootLayout /> menu trigger", () => {
 });
 
 describe("<SiteMenu /> columns and content", () => {
-  it("shows all three categories as columns, in editorial order", async () => {
+  it("shows all categories as columns, in editorial order", async () => {
     const panel = await openMenu();
     const titles = Array.from(panel.querySelectorAll(".mega-col")).map(
       (col) => col.querySelector(".mega-col-title")?.textContent,
     );
 
-    expect(titles).toEqual(["编年与制度", "文化与交通", "地域与近代"]);
+    expect(titles).toEqual(["编年与制度", "疆域与民族图谱", "文化与交通", "地域与近代"]);
   });
 
   it("sets category titles in a different typeface from the entries, with no counters", async () => {
@@ -122,12 +122,15 @@ describe("<SiteMenu /> columns and content", () => {
   });
 
   it("lists every destination by name only, linking to its in-site path", async () => {
-    // 下拉与全屏面板不同：三列同时可见，五条入口都在 DOM 里，一次断言完
+    // 下拉与全屏面板不同：所有列同时可见，每条入口都在 DOM 里，一次断言完
     const panel = await openMenu("/");
 
     const expected: [string, RegExp][] = [
       ["/china/timeline", /朝代时间长河/],
       ["/china/policies", /朝代政策全览/],
+      ["/china/atlas/territory", /疆域变迁/],
+      ["/china/atlas/migration", /民族迁徙/],
+      ["/china/atlas/frontier", /边疆治理/],
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],
