@@ -78,6 +78,27 @@ describe("<MigrationAtlasPage />", () => {
     );
   });
 
+  it("stops and resumes the flow animation with the toggle", () => {
+    renderPage();
+
+    const map = screen.getByRole("img", { name: /民族迁徙路线图/ });
+    const toggle = screen.getByRole("button", { name: /流动动画/ });
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(map.querySelectorAll("animateMotion").length).toBe(FLOW_DOTS.length);
+
+    fireEvent.click(toggle);
+    expect(screen.getByRole("button", { name: /流动动画/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    // 光点、刻痕、涟漪与画线动画一并停驻，路线上不残留任何 SMIL 动画
+    expect(map.querySelectorAll("animateMotion")).toHaveLength(0);
+    expect(map.querySelectorAll("animate")).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole("button", { name: /流动动画/ }));
+    expect(map.querySelectorAll("animateMotion").length).toBe(FLOW_DOTS.length);
+  });
+
   it("shows the overview hint when 全部路线 is selected", () => {
     renderPage();
 

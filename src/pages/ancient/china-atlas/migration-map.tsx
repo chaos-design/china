@@ -5,6 +5,8 @@ import { MIGRATION_BASEMAP, projectMigration, routePathD } from "./migration-pro
 import type { MigrationRoute } from "./types";
 
 export interface MigrationMapProps {
+  /** 是否播放流动动画（画线、光点、刻痕、涟漪）。系统「减少动态效果」偏好仍会硬性关闭。 */
+  animated: boolean;
   className?: string;
   /** 当前选中的路线 id；null 表示展示全部路线（都不做动画强调）。 */
   selectedId: string | null;
@@ -31,7 +33,8 @@ export const FLOW_DOTS = [0.5, 0.36, 0.44, 0.32, 0.4] as const;
 /** 一名「迁徙者」走完全程的秒数；队伍按等间隔错峰出发。 */
 const FLOW_DUR_S = 3.6;
 
-function prefersReducedMotion(): boolean {
+/** 系统是否要求减少动态效果。动画的最终开关由调用方决定，这里只做硬性否决。 */
+export function prefersReducedMotion(): boolean {
   return (
     typeof window !== "undefined" &&
     typeof window.matchMedia === "function" &&
@@ -47,13 +50,14 @@ function prefersReducedMotion(): boolean {
  * 不需要为每条路线测量几何。选中态通过 key 重挂载重启动画。
  */
 export const MigrationMap = memo(function MigrationMap({
+  animated,
   className,
   events,
   selectedId,
 }: MigrationMapProps) {
   // 数据是静态的、投影是纯函数：useMemo 保证 StrictMode 双渲染下也稳定。
   const routes = useMemo(() => buildProjectedRoutes(events), [events]);
-  const reducedMotion = prefersReducedMotion();
+  const motion = animated && !prefersReducedMotion();
   const selected = routes.find((candidate) => candidate.route.id === selectedId) ?? null;
   const [baseX, baseY, baseW, baseH] = MIGRATION_BASEMAP.view ?? DEFAULT_PROJECTION_VIEW;
 
@@ -161,7 +165,7 @@ export const MigrationMap = memo(function MigrationMap({
         route.id === selectedId ? null : (
           <g key={route.id}>
             <path d={d} fill="none" stroke="hsl(var(--ink) / 0.25)" strokeWidth={0.22} />
-            {reducedMotion ? null : (
+            {!motion ? null : (
               <path
                 d={d}
                 fill="none"
@@ -210,11 +214,11 @@ export const MigrationMap = memo(function MigrationMap({
             pathLength={1}
             stroke="hsl(var(--vermillion))"
             strokeDasharray={1}
-            strokeDashoffset={reducedMotion ? 0 : 1}
+            strokeDashoffset={!motion ? 0 : 1}
             strokeLinecap="round"
             strokeWidth={0.42}
           >
-            {reducedMotion ? null : (
+            {!motion ? null : (
               <animate
                 attributeName="stroke-dashoffset"
                 calcMode="spline"
@@ -227,7 +231,7 @@ export const MigrationMap = memo(function MigrationMap({
             )}
           </path>
           {/* 线内流动的纸色刻痕：画线完成后淡入，持续向终点行进 */}
-          {reducedMotion ? null : (
+          {!motion ? null : (
             <path
               d={selected.d}
               fill="none"
@@ -281,7 +285,7 @@ export const MigrationMap = memo(function MigrationMap({
                     stroke="hsl(var(--vermillion))"
                     strokeWidth={0.18}
                   >
-                    {reducedMotion ? null : (
+                    {!motion ? null : (
                       <animate
                         attributeName="r"
                         dur="2.4s"
@@ -290,7 +294,7 @@ export const MigrationMap = memo(function MigrationMap({
                         to={1.3}
                       />
                     )}
-                    {reducedMotion ? null : (
+                    {!motion ? null : (
                       <animate
                         attributeName="stroke-opacity"
                         dur="2.4s"
@@ -320,7 +324,7 @@ export const MigrationMap = memo(function MigrationMap({
             );
           })}
           {/* 起点的出发涟漪：人群源源不断离开原居地 */}
-          {reducedMotion
+          {!motion
             ? null
             : [0, -1.1].map((begin) => {
                 const [originX, originY] = selected.points[0] ?? [0, 0];
@@ -354,7 +358,7 @@ export const MigrationMap = memo(function MigrationMap({
                 );
               })}
           {/* 流动光点队伍：错峰出发、大小相间，读作人群的持续流动 */}
-          {reducedMotion
+          {!motion
             ? null
             : FLOW_DOTS.map((radius, index) => (
                 <circle
