@@ -125,38 +125,50 @@ export function TerritoryAtlasPage() {
               <p className="font-body text-xs text-muted-foreground">全览六幅快照</p>
             )}
           </div>
-          <ol className="relative mt-1 h-12" aria-label="疆域快照时间轴">
-            <div className="absolute inset-x-0 top-4 border-ink/20 border-t" aria-hidden="true" />
-            {TERRITORY_SNAPSHOTS.map((snapshot) => {
+          <ol className="relative mx-6 mt-1 h-20" aria-label="疆域快照时间轴">
+            {/* 轴线：中段略深、两端淡出，与纸面质感一致 */}
+            <div
+              className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-ink/5 via-ink/30 to-ink/5"
+              aria-hidden="true"
+            />
+            {TERRITORY_SNAPSHOTS.map((snapshot, index) => {
               const isSelected = snapshot.id === selectedId;
+              // 年份标签上下交错：避免相邻快照（前111/前60、1141/1330）互相压字
+              const above = index % 2 === 1;
               return (
                 <li
-                  className="absolute top-0 -translate-x-1/2"
+                  className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
                   key={snapshot.id}
                   style={{ left: `${yearPercent(snapshot.year)}%` }}
                 >
                   <button
                     aria-pressed={isSelected}
                     className={cn(
-                      "flex flex-col items-center gap-0.5 rounded-md px-1.5 py-0.5 transition-colors",
+                      "group relative flex flex-col items-center rounded-md px-2 py-1 transition-colors",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                      above && "flex-col-reverse",
                     )}
                     onClick={() => setSelectedId(snapshot.id)}
                     title={`${snapshot.label}（${yearLabel(snapshot.year)}）`}
                     type="button"
                   >
+                    <span className="relative flex items-center justify-center" aria-hidden="true">
+                      {isSelected ? (
+                        <span className="absolute block h-5 w-5 animate-ping rounded-full bg-vermillion/30" />
+                      ) : null}
+                      <span
+                        className={cn(
+                          "block rounded-full border transition-all",
+                          isSelected
+                            ? "h-3.5 w-3.5 border-primary bg-vermillion shadow-[0_0_0_3px_hsl(var(--vermillion)/0.15)]"
+                            : "h-3 w-3 border-ink/40 bg-paper group-hover:scale-110 group-hover:border-primary/60",
+                        )}
+                      />
+                    </span>
                     <span
                       className={cn(
-                        "block rounded-full border transition-colors",
-                        isSelected
-                          ? "border-primary bg-vermillion"
-                          : "border-ink/40 bg-paper hover:border-primary/50",
-                      )}
-                      style={{ height: 12, width: 12 }}
-                    />
-                    <span
-                      className={cn(
-                        "block font-mono-tech text-xs",
+                        "block whitespace-nowrap font-mono-tech text-xs",
+                        above ? "mb-1.5" : "mt-1.5",
                         isSelected ? "font-bold text-vermillion" : "text-muted-foreground",
                       )}
                     >

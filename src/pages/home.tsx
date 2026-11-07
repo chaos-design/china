@@ -179,13 +179,13 @@ export function HomePage() {
                 <>
                   <span className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-vermillion/70 to-transparent opacity-70" />
                   <Icon className="h-8 w-8 text-vermillion transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110" />
-                  <div className="flex flex-col gap-2 relative z-10">
+                  <div className="flex flex-col gap-2">
                     <span className="font-brush text-3xl text-ink">{entry.title}</span>
                     <span className="text-muted-foreground text-sm leading-relaxed">
                       {entry.description}
                     </span>
                   </div>
-                  <span className="relative z-10 font-mono-tech text-xs tracking-[0.25em] text-vermillion uppercase sm:text-sm">
+                  <span className="relative z-10 mt-auto font-mono-tech text-xs tracking-[0.25em] text-vermillion uppercase sm:text-sm">
                     {entry.status === "available" ? "进入" : "筹备中"}
                   </span>
                 </>
@@ -195,7 +195,7 @@ export function HomePage() {
                 <Link
                   key={entry.title}
                   to={entry.path}
-                  className="group index-card relative flex min-h-52 overflow-hidden flex-col justify-between gap-6 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-paper"
+                  className="group index-card relative flex min-h-52 flex-col gap-4 overflow-hidden p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-paper"
                 >
                   {content}
                 </Link>
@@ -203,7 +203,7 @@ export function HomePage() {
                 <article
                   key={entry.title}
                   aria-disabled="true"
-                  className="group index-card index-card-preview relative flex min-h-52 cursor-default overflow-hidden flex-col justify-between gap-6 p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                  className="group index-card index-card-preview relative flex min-h-52 flex-col gap-4 cursor-default overflow-hidden p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                 >
                   {content}
                 </article>

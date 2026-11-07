@@ -4,22 +4,37 @@ const geographyResource = {
   homeEntries: [
     {
       icon: "map",
-      status: "preview",
-      title: "疆域与民族图谱",
-      description: "预留疆域变迁、民族迁徙与边疆治理的图谱入口，后续可按朝代展开。",
+      path: "/china/atlas/territory",
+      status: "available",
+      title: "疆域变迁",
+      description: "六幅疆域快照锚在真实省界上：都城与控制节点随时间轴切换，面积估算写明分歧。",
+    },
+    {
+      icon: "users",
+      path: "/china/atlas/migration",
+      status: "available",
+      title: "民族迁徙",
+      description: "八条迁徙路线在真实底图上流动：从漠北到江南，看人群如何改写疆域。",
+    },
+    {
+      icon: "shield",
+      path: "/china/atlas/frontier",
+      status: "available",
+      title: "边疆治理",
+      description: "八项边疆制度的治所地图：从西域都护府到宣政院，看边界怎么管。",
     },
   ],
   aboutItems: [
     {
       title: "民族与边疆",
-      text: "后续将补充民族关系、边疆治理与文化交流内容，让朝代叙事不只停留在中原王朝。",
+      text: "疆域变迁、民族迁徙与边疆治理三张图谱已开放：都城与治所锚在真实省界上，按朝代逐项填充，面积与数字一律写明估算口径。",
     },
   ],
   readingGuides: [
     {
       icon: "map",
       title: "追问疆域变化",
-      text: "遇到迁都、征伐与和亲节点时，可把边疆治理作为后续专题线索继续追踪。",
+      text: "遇到迁都、征伐与和亲节点时，可在疆域变迁图谱沿时间轴切换断面，再看边疆治理里对应的制度。",
     },
   ],
 } satisfies PageResourceConfig;

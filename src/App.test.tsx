@@ -80,17 +80,28 @@ describe("<App /> routing", () => {
       "href",
       "/liberation-war",
     );
-    expect(screen.getByText("疆域与民族图谱")).toBeInTheDocument();
+    // 「疆域与民族图谱」三条入口已从筹备中转为可用
+    expect(screen.getByRole("link", { name: /疆域变迁/ })).toHaveAttribute(
+      "href",
+      "/china/atlas/territory",
+    );
+    expect(screen.getByRole("link", { name: /民族迁徙/ })).toHaveAttribute(
+      "href",
+      "/china/atlas/migration",
+    );
+    expect(screen.getByRole("link", { name: /边疆治理/ })).toHaveAttribute(
+      "href",
+      "/china/atlas/frontier",
+    );
     expect(screen.getByText("典章制度索引")).toBeInTheDocument();
     expect(screen.queryByText("丝路与海疆线索")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /疆域与民族图谱/ })).not.toBeInTheDocument();
-    const previewEntry = screen.getByText("疆域与民族图谱").closest("article");
+    const previewEntry = screen.getByText("典章制度索引").closest("article");
     if (!previewEntry) {
       throw new Error("Expected preview entry to render as an article");
     }
     expect(previewEntry).toHaveClass("index-card", "index-card-preview");
     expect(previewEntry).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getAllByText("筹备中")).toHaveLength(2);
+    expect(screen.getAllByText("筹备中")).toHaveLength(1);
   });
 
   it("merges the about content into the home page", async () => {
