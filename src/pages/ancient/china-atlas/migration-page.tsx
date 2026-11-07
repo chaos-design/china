@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 import { cn } from "../../../lib/utils";
 import { ATLAS_DYNASTIES } from "./dynasties";
 import { MIGRATION_EVENTS } from "./migration-events";
-import { MigrationMap, prefersReducedMotion } from "./migration-map";
+import { MigrationMap } from "./migration-map";
 import { getAtlasTopic, getOtherAtlasTopics } from "./topics";
 
 /**
@@ -12,16 +12,17 @@ import { getAtlasTopic, getOtherAtlasTopics } from "./topics";
  * - 页头（标题区）钉在页头顶端，不随内容滚动；
  * - 左侧菜单贴住页面左缘、全高侧栏：条目列表独立滚动，
  *   「图谱入口」（疆域变迁 / 边疆治理）作为菜单项收在侧栏底部；
- * - 右侧地图 + 详情卡：地图限高以一屏呈现，超出时区域内滚动。
+ * - 右侧弹性分栏：地图占剩余空间，解释内容常驻同屏。
  * 窄屏退化为纵向文档流（地图在前、菜单在后）。
  * 选中任一条路线，地图即以画线 + 流动圆点模拟该次迁徙的去向；
- * 「全部路线」保留全局的迁徙密度感。流动动画可用开关手动停驻。
+ * 「全部路线」保留全局的迁徙密度感。所有动画默认开启，
+ * 「流动动画」开关是唯一的播放控制。
  */
 export function MigrationAtlasPage() {
   const topic = getAtlasTopic("migration");
   const [selectedId, setSelectedId] = useState<string | null>(MIGRATION_EVENTS[0]?.id ?? null);
-  // 初始值尊重系统「减少动态效果」偏好；用户仍可用开关手动开/停。
-  const [animated, setAnimated] = useState(() => !prefersReducedMotion());
+  // 动画默认全开；开关是唯一的播放控制。
+  const [animated, setAnimated] = useState(true);
   const selected = MIGRATION_EVENTS.find((event) => event.id === selectedId) ?? null;
   const otherTopics = getOtherAtlasTopics(topic.id);
 
@@ -201,6 +202,17 @@ export function MigrationAtlasPage() {
                     </svg>
                     迁徙去向（流动方向）
                   </span>
+                  <span className="flex items-center gap-1.5">
+                    <svg aria-hidden="true" height="6" viewBox="0 0 24 6" width="24">
+                      <path
+                        d="M0,3 C8,1 16,5 24,3"
+                        fill="none"
+                        stroke="hsl(var(--ink) / 0.35)"
+                        strokeWidth="1.4"
+                      />
+                    </svg>
+                    其他路线（淡墨）
+                  </span>
                 </div>
                 <button
                   aria-pressed={animated}
@@ -232,6 +244,13 @@ export function MigrationAtlasPage() {
                 </div>
                 <p className="mt-2 font-body text-sm leading-relaxed text-ink/85">
                   {selected.description}
+                </p>
+                <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
+                  途经 ·{" "}
+                  {selected.waypoints
+                    .map((waypoint) => waypoint.name)
+                    .filter(Boolean)
+                    .join(" → ")}
                 </p>
                 <ul className="mt-2 flex flex-col gap-1 border-ink/8 border-t pt-2">
                   {selected.sources.map((source) => (

@@ -33,21 +33,13 @@ export const FLOW_DOTS = [0.5, 0.36, 0.44, 0.32, 0.4] as const;
 /** 一名「迁徙者」走完全程的秒数；队伍按等间隔错峰出发。 */
 const FLOW_DUR_S = 3.6;
 
-/** 系统是否要求减少动态效果。动画的最终开关由调用方决定，这里只做硬性否决。 */
-export function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
-
 /**
  * 民族迁徙地图：真实省界底图 + 迁徙路线动画。
  *
  * 动画用 SVG SMIL 而不是 CSS keyframes：路线长度各不相同，
  * pathLength 归一后 dashoffset 画线、animateMotion 流动都直接沿路径运动，
  * 不需要为每条路线测量几何。选中态通过 key 重挂载重启动画。
+ * 动画默认开启，是否播放完全由 animated（页面的「流动动画」开关）决定。
  */
 export const MigrationMap = memo(function MigrationMap({
   animated,
@@ -57,7 +49,7 @@ export const MigrationMap = memo(function MigrationMap({
 }: MigrationMapProps) {
   // 数据是静态的、投影是纯函数：useMemo 保证 StrictMode 双渲染下也稳定。
   const routes = useMemo(() => buildProjectedRoutes(events), [events]);
-  const motion = animated && !prefersReducedMotion();
+  const motion = animated;
   const selected = routes.find((candidate) => candidate.route.id === selectedId) ?? null;
   const [baseX, baseY, baseW, baseH] = MIGRATION_BASEMAP.view ?? DEFAULT_PROJECTION_VIEW;
 
@@ -318,6 +310,23 @@ export const MigrationMap = memo(function MigrationMap({
                     y={y - 1.05}
                   >
                     {selected.route.waypoints[index]?.name}
+                  </text>
+                ) : null}
+                {/* 起点 / 终点角色标签：标在地名下方，一眼分清出发与抵达 */}
+                {isFirst || isLast ? (
+                  <text
+                    className="font-body"
+                    fill="hsl(var(--vermillion))"
+                    fontSize={1.55}
+                    fontWeight={600}
+                    paintOrder="stroke"
+                    stroke="hsl(var(--paper) / 0.9)"
+                    strokeWidth={0.55}
+                    textAnchor="middle"
+                    x={x}
+                    y={y + 1.75}
+                  >
+                    {isFirst ? "（起点）" : "（终点）"}
                   </text>
                 ) : null}
               </g>

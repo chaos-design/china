@@ -51,9 +51,24 @@ describe("<MigrationAtlasPage />", () => {
 
     expect(button).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText(second.description)).toBeInTheDocument();
+    // 信息补全：详情卡列出途经点序列
+    expect(screen.getByText(/途经 · /)).toHaveTextContent(
+      second.waypoints.map((waypoint) => waypoint.name).join(" → "),
+    );
     expect(
       screen.queryByText(MIGRATION_EVENTS[0]?.description ?? "\\u0000no-such-text"),
     ).not.toBeInTheDocument();
+  });
+
+  it("labels the map with origin/destination roles and a complete legend", () => {
+    renderPage();
+
+    const map = screen.getByRole("img", { name: /民族迁徙路线图/ });
+    // 图上直接标注起点与终点角色
+    expect(within(map).getByText("（起点）")).toBeInTheDocument();
+    expect(within(map).getByText("（终点）")).toBeInTheDocument();
+    // 图例覆盖四类符号：起点、终点、流向动画、未选中的其他路线
+    expect(screen.getByText("其他路线（淡墨）")).toBeInTheDocument();
   });
 
   it("animates the selected route with a particle stream and origin ripples", () => {
