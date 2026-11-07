@@ -51,6 +51,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "atlas",
     items: [
       {
+        highlights: ["三类图谱同图", "引导线标注", "悬停查看出处"],
+        label: "图谱总览",
+        to: "/china/atlas",
+      },
+      {
         highlights: ["按朝代分章", "变迁节点", "疆域快照"],
         label: "疆域变迁",
         to: "/china/atlas/territory",

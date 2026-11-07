@@ -202,6 +202,17 @@ describe("<App /> routing", () => {
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
+  it("renders the unified atlas at /china/atlas", async () => {
+    renderAt("/china/atlas");
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "疆域与民族图谱" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("三谱同图 · 汉唐宋元")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /疆域与民族图谱综合地图/ })).toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
   it.each([
     ["/china/atlas/territory", "疆域变迁", /首批六幅快照 · 汉唐宋元/],
     ["/china/atlas/migration", "民族迁徙", /首批八条路线 · 汉唐宋元/],

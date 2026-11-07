@@ -12,6 +12,11 @@ const AncientChinaPoliciesReactPage = lazy(() =>
     default: module.AncientChinaPoliciesReactPage,
   })),
 );
+const AtlasExplorerPage = lazy(() =>
+  import("./pages/ancient/china-atlas/atlas-explorer").then((module) => ({
+    default: module.AtlasExplorer,
+  })),
+);
 const FrontierAtlasPage = lazy(() =>
   import("./pages/ancient/china-atlas/frontier-page").then((module) => ({
     default: module.FrontierAtlasPage,
@@ -58,7 +63,9 @@ export const routes: RouteObject[] = [
       { path: "china", element: <Navigate to="/china/timeline" replace /> },
       { path: "china/timeline", element: withSuspense(<AncientChinaReactPage />) },
       { path: "china/policies", element: withSuspense(<AncientChinaPoliciesReactPage />) },
-      // 「疆域与民族图谱」三条预留入口：当前渲染占位页，正式图谱按主题逐个替换实现。
+      // 「疆域与民族图谱」已整合为一个功能页：/china/atlas 是「全部图谱」，
+      // 三条旧路径保留为预设图层的兼容入口，页内切换图层不换路由、不重挂载地图。
+      { path: "china/atlas", element: withSuspense(<AtlasExplorerPage />) },
       { path: "china/atlas/territory", element: withSuspense(<TerritoryAtlasPage />) },
       { path: "china/atlas/migration", element: withSuspense(<MigrationAtlasPage />) },
       { path: "china/atlas/frontier", element: withSuspense(<FrontierAtlasPage />) },

@@ -179,9 +179,15 @@ export function HomePage() {
                 <>
                   <span className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-vermillion/70 to-transparent opacity-70" />
                   <Icon className="h-8 w-8 text-vermillion transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110" />
+                  {/* 标题恒占两行、描述恒占三行：同一排卡片的描述起始线与「进入」位置严格对齐 */}
                   <div className="flex flex-col gap-2">
-                    <span className="font-brush text-3xl text-ink">{entry.title}</span>
-                    <span className="text-muted-foreground text-sm leading-relaxed">
+                    <span className="line-clamp-2 min-h-[2.5em] font-brush text-3xl leading-[1.25] text-ink">
+                      {entry.title}
+                    </span>
+                    <span
+                      className="line-clamp-3 min-h-[4.5em] text-muted-foreground text-sm leading-[1.5]"
+                      title={entry.description}
+                    >
                       {entry.description}
                     </span>
                   </div>

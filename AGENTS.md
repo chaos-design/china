@@ -9,7 +9,7 @@ This repository is **中国古代全览**, a React 19 + TypeScript single-page a
 - a water-ink styled home page with a one-per-window scroll entrance animation,
 - a Three.js-powered 3D chronology at `/china/timeline`,
 - a dynasty policy atlas at `/china/policies`,
-- atlas entries for territory / migration / frontier topics at `/china/atlas/*` (疆域与民族图谱: all three are real interactive map pages sharing the `AtlasShell` app layout),
+- one unified 疆域与民族图谱 explorer at `/china/atlas` (全部图谱) with `/china/atlas/*` as preset-layer entry points (all render the same `AtlasExplorer` with a persistent SVG),
 - resource-driven preview entries for future topics,
 - iframe-isolated HTML resource pages generated from `resources/html/*.html`,
 - a 404 fallback page for unknown routes.
@@ -99,9 +99,10 @@ Current public routes:
 | `/china` | Redirect to `/china/timeline` |
 | `/china/timeline` | 3D chronology / 时间长河 |
 | `/china/policies` | Dynasty policy atlas / 政策全览 |
-| `/china/atlas/territory` | Territory atlas / 疆域变迁（时间轴 + 真实底图快照节点） |
-| `/china/atlas/migration` | Migration atlas / 民族迁徙（真实底图迁徙路线图） |
-| `/china/atlas/frontier` | Frontier governance atlas / 边疆治理（真实底图治所地图） |
+| `/china/atlas` | Unified atlas / 全部图谱（一张常驻底图，页内切换全部 / 单项不重挂载地图） |
+| `/china/atlas/territory` | 疆域变迁预设图层（时间轴 + 真实底图快照节点） |
+| `/china/atlas/migration` | 民族迁徙预设图层（真实底图迁徙路线图） |
+| `/china/atlas/frontier` | 边疆治理预设图层（真实底图治所地图） |
 | `/<html-resource-slug>` | Generated from `resources/html/*.html` with kebab-case slugs |
 | `*` | 404 fallback page |
 
@@ -109,7 +110,7 @@ Route-level layout options live in `src/route-layout-config.ts`.
 
 The migration atlas page (`src/pages/ancient/china-atlas/migration-*.ts(x)`) renders its routes on the real-border basemap imported with `?raw` from `resources/html-data/liberation-war.json` — the same shared basemap the 丝绸之路 and 解放战争 pages use. Importing (not copying) keeps one source of truth; Vite dedupes the raw payload into the existing liberation-war chunk. The Lambert projection formula in `migration-projection.ts` is verified against the basemap's own city anchors (`CITIES.ll` → `x/y`) in `migration-projection.test.ts`; if the basemap projection ever changes, that test fails loudly.
 
-The atlas content pages share `atlas-shell.tsx` — pinned page header, a left sidebar hugging the viewport edge with the three-topic 图谱导航 on top (so the menu persists across atlas pages) and the page's own menu below — and `basemap-layers.tsx` for the shared geographic layers, so all three maps always render identical basemap styling. Menu entries are deliberately single-line and compact so the whole menu fits the viewport without internal scrolling; keep that property when adding entries. Layout-wise the shell is `lg:h-full` inside the `<main>` scroll container with an internally scrolling map column — `h-full` resolves because `<main>` is a definite-height flex item; jsdom cannot verify any of this, so check a real browser when touching it. Animations default on everywhere; the page-level toggle is the single playback control.
+The three atlas topics are consolidated into one `AtlasExplorer` page (`atlas-explorer.tsx`), sharing `atlas-shell.tsx` (pinned header, left sidebar with an in-page 图谱导航 switcher, page menu below) and `basemap-layers.tsx` (identical basemap styling). `atlas-items.ts` flattens the three datasets into 22 entries and computes a **fixed** `ATLAS_VIEW` plus a frozen `ATLAS_LABELS` layout; `placeLabels()` is a pure deterministic de-confliction pass that keeps label boxes off each other and off other markers, using leader lines to move crowded labels to open space. `atlas-map.tsx` is a single persistent SVG — switching 全部 / 单项 only changes its children, never the viewBox, label positions, SVG DOM node or surrounding fixed-height panels, so the map cannot jump. Hover / keyboard focus expands the item's verbatim description and sources in a fixed-height detail card (no floating overlay over the map); do not add unsourced historical claims. Menu entries are deliberately single-line and compact so the whole menu fits the viewport without internal scrolling; keep that property when adding entries. Layout-wise the shell is `lg:h-full` inside the `<main>` scroll container with an internally scrolling map column — `h-full` resolves because `<main>` is a definite-height flex item; jsdom cannot verify any of this, so check a real browser when touching it. Animations default on everywhere; the page-level toggle is the single playback control.
 
 Current HTML resource slugs: `/ancient-china` (legacy, hidden from home), `/intangible-culture-heritage`, `/silk-road`, `/taiwan`, `/liberation-war`.
 

@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
+
 import { TerritoryAtlasPage } from "./territory-page";
 import { TERRITORY_SNAPSHOTS } from "./territory-snapshots";
-import { ATLAS_TOPICS } from "./topics";
 
 function renderPage() {
   return render(
@@ -13,57 +13,59 @@ function renderPage() {
   );
 }
 
-describe("<TerritoryAtlasPage />", () => {
-  it("renders the timeline, snapshot map and dynasty-grouped menu", () => {
+describe("<TerritoryAtlasPage />（统一图谱的疆域图层）", () => {
+  it("渲染时间轴、快照地图与按朝代分组的菜单", () => {
     renderPage();
 
     expect(screen.getByRole("heading", { level: 1, name: "疆域变迁" })).toBeInTheDocument();
+    expect(screen.getByText("首批六幅快照 · 汉唐宋元")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /疆域变迁地图/ })).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "疆域快照时间轴" })).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "疆域快照目录" })).toBeInTheDocument();
 
     const aside = screen.getByRole("complementary", { name: "疆域快照目录" });
-    const nav = within(aside).getByRole("navigation", { name: "图谱导航" });
-    for (const topic of ATLAS_TOPICS) {
-      expect(within(nav).getByRole("link", { name: new RegExp(topic.label) })).toHaveAttribute(
-        "href",
-        topic.path,
-      );
+    for (const dynasty of ["汉", "唐", "宋", "元"]) {
+      expect(within(aside).getAllByText(dynasty).length).toBeGreaterThan(0);
     }
     for (const snapshot of TERRITORY_SNAPSHOTS) {
-      // 菜单条目以快照名可寻；时间轴节点以年份为可访问名
-      expect(screen.getAllByRole("button", { name: new RegExp(snapshot.label) }).length).toBe(1);
+      expect(
+        within(aside).getByRole("button", { name: new RegExp(snapshot.label) }),
+      ).toBeInTheDocument();
     }
   });
 
-  it("selects the first snapshot by default and shows its detail", () => {
+  it("选中快照后显示都城、节点与出处", () => {
     renderPage();
 
-    const first = TERRITORY_SNAPSHOTS[0];
-    expect(first).toBeDefined();
+    const first = TERRITORY_SNAPSHOTS[0]!;
+    fireEvent.click(
+      within(screen.getByRole("complementary", { name: "疆域快照目录" })).getByRole("button", {
+        name: new RegExp(first.label),
+      }),
+    );
     expect(screen.getByText(first.description)).toBeInTheDocument();
-    expect(screen.getAllByText(/都城 · 长安/).length).toBeGreaterThan(0);
-  });
-
-  it("switches the highlighted snapshot from the timeline", () => {
-    renderPage();
-
-    const last = TERRITORY_SNAPSHOTS[TERRITORY_SNAPSHOTS.length - 1];
-    if (!last) throw new Error("expected snapshots to exist");
-    const year = last.year < 0 ? `前${-last.year}` : `${last.year}`;
-    fireEvent.click(screen.getByRole("button", { name: year }));
-
-    expect(screen.getByText(last.description)).toBeInTheDocument();
+    expect(screen.getByText(`都城 · ${first.capital.name}`)).toBeInTheDocument();
     expect(
-      screen.queryByText(TERRITORY_SNAPSHOTS[0]?.description ?? "no-such-text"),
-    ).not.toBeInTheDocument();
+      screen.getByText(`节点 · ${first.anchors.map((place) => place.name).join("、")}`),
+    ).toBeInTheDocument();
+    expect(screen.getByText(`资料出处 · ${first.sources[0]}`)).toBeInTheDocument();
   });
 
-  it("shows the overview hint when 全部快照 is selected", () => {
-    renderPage();
+  it("全览提示与固定视野：切换选中项不重算 viewBox", () => {
+    const { container } = renderPage();
+    const map = container.querySelector('svg[role="img"]');
+    expect(map).not.toBeNull();
+    const viewBox = map?.getAttribute("viewBox");
 
-    fireEvent.click(screen.getByRole("button", { name: /全览 · 全部快照/ }));
+    fireEvent.click(screen.getByRole("button", { name: "全览 · 全部快照" }));
+    expect(screen.getByText(/全览模式：六幅快照的都城与控制节点同时呈现/)).toBeInTheDocument();
+    expect(map?.getAttribute("viewBox")).toBe(viewBox);
 
-    expect(screen.queryByText(TERRITORY_SNAPSHOTS[0]?.description ?? "")).not.toBeInTheDocument();
-    expect(screen.getByText(/全览模式下六幅快照同时标注都城与节点/)).toBeInTheDocument();
+    fireEvent.click(
+      within(screen.getByRole("complementary", { name: "疆域快照目录" })).getByRole("button", {
+        name: new RegExp(TERRITORY_SNAPSHOTS[1]!.label),
+      }),
+    );
+    expect(map?.getAttribute("viewBox")).toBe(viewBox);
   });
 });
