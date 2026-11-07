@@ -48,13 +48,13 @@ export function FrontierAtlasPage() {
               if (policies.length === 0) return null;
               return (
                 <section key={dynasty.id}>
-                  <h2 className="flex items-baseline justify-between border-ink/8 border-b pb-1.5">
-                    <span className="font-kai text-lg font-bold text-ink">{dynasty.label}</span>
+                  <h2 className="flex items-baseline justify-between border-ink/8 border-b pb-1">
+                    <span className="font-kai text-base font-bold text-ink">{dynasty.label}</span>
                     <span className="font-mono-tech text-xs text-muted-foreground">
                       {dynasty.period}
                     </span>
                   </h2>
-                  <ul className="mt-2 flex flex-col gap-1.5">
+                  <ul className="mt-1.5 flex flex-col gap-1">
                     {policies.map((policy) => {
                       const isSelected = policy.id === selectedId;
                       return (
@@ -62,7 +62,7 @@ export function FrontierAtlasPage() {
                           <button
                             aria-pressed={isSelected}
                             className={cn(
-                              "-mx-1 w-[calc(100%+0.5rem)] rounded-lg px-2.5 py-2 text-left transition-colors",
+                              "flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left transition-colors",
                               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                               isSelected
                                 ? "bg-vermillion/10 text-ink"
@@ -70,10 +70,11 @@ export function FrontierAtlasPage() {
                             )}
                             onClick={() => setSelectedId(policy.id)}
                             type="button"
+                            title={`${policy.institution}（${policy.regions.join("、")} · ${policy.period}）`}
                           >
-                            <span className="block font-kai text-base">{policy.institution}</span>
-                            <span className="mt-0.5 block font-body text-xs text-muted-foreground">
-                              {policy.regions.join("、")} · {policy.period}
+                            <span className="truncate font-kai text-sm">{policy.institution}</span>
+                            <span className="shrink-0 font-body text-xs text-muted-foreground">
+                              {policy.regions[0]}
                             </span>
                           </button>
                         </li>

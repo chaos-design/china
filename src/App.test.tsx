@@ -192,7 +192,7 @@ describe("<App /> routing", () => {
   });
 
   it.each([
-    ["/china/atlas/territory", "疆域变迁", /建设中 · 骨架预留/],
+    ["/china/atlas/territory", "疆域变迁", /首批六幅快照 · 汉唐宋元/],
     ["/china/atlas/migration", "民族迁徙", /首批八条路线 · 汉唐宋元/],
     ["/china/atlas/frontier", "边疆治理", /首批八项制度 · 汉唐宋元/],
   ])("renders the atlas page at %s", async (path, label, badge) => {

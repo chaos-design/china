@@ -40,18 +40,33 @@ export interface AtlasDynasty {
 /** 资料出处。所有涉及统计、疆界数字的条目都应携带，沿用站内「争议数字写区间」的约定。 */
 export type AtlasSource = readonly string[];
 
-/** 疆域变迁：一个朝代的一幅疆域快照（预留）。 */
+/** 疆域变迁：一个朝代的一幅疆域快照。都城与代表性控制节点投到真实底图上。 */
 export interface TerritorySnapshot {
+  /**
+   * 该疆界状态下的代表性控制节点（新拓疆域、界约地点、都护治所等）。
+   * 疆域是一片区域，节点只是它的锚点，不构成边界线。
+   */
+  anchors: readonly TerritoryPlace[];
+  /** 面积估算（万平方公里）。估算分歧大时写区间字符串或省略。 */
+  areaWanKm2?: string;
+  /** 都城（或政治中心）。 */
+  capital: TerritoryPlace;
   /** 疆域说明；变迁节点（迁都、割让、开拓）各自成条，不要把一整个朝代压成一条。 */
   description: string;
   dynastyId: AtlasDynastyId;
+  id: string;
+  /** 快照名称，如「绍兴和议」。 */
+  label: string;
+  sources: AtlasSource;
   /** 快照年份，负数表示公元前。 */
   year: number;
-  /** 快照名称，如「武帝极盛」「绍兴和议后」。 */
-  label: string;
-  /** 面积估算（万平方公里）。估算分歧大时写区间字符串或省略。 */
-  areaWanKm2?: string;
-  sources?: AtlasSource;
+}
+
+/** 疆域快照上的一个地点。 */
+export interface TerritoryPlace {
+  /** [经度, 纬度]。 */
+  ll: readonly [number, number];
+  name: string;
 }
 
 /** 民族迁徙：一条迁徙路线。经纬度路线由 migration-projection.ts 投到真实底图上。 */
