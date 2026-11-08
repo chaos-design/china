@@ -15,4 +15,5 @@ export const ROUTE_LAYOUT_CONFIGS: RouteLayoutConfig[] = [
   { path: "/china/atlas/migration" },
   { path: "/china/atlas/frontier" },
   { path: "/china/institutions" },
+  { path: "/china/institutions/:topicId" },
 ];

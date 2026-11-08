@@ -37,6 +37,11 @@ const ChinaInstitutionsPage = lazy(() =>
     default: module.ChinaInstitutionsPage,
   })),
 );
+const InstitutionTopicPage = lazy(() =>
+  import("./pages/ancient/china-institutions").then((module) => ({
+    default: module.InstitutionTopicPage,
+  })),
+);
 const AncientChinaReactPage = lazy(() =>
   import("./pages/ancient/china").then((module) => ({
     default: module.AncientChinaReactPage,
@@ -75,6 +80,10 @@ export const routes: RouteObject[] = [
       { path: "china/atlas/migration", element: withSuspense(<MigrationAtlasPage />) },
       { path: "china/atlas/frontier", element: withSuspense(<FrontierAtlasPage />) },
       { path: "china/institutions", element: withSuspense(<ChinaInstitutionsPage />) },
+      {
+        path: "china/institutions/official-system",
+        element: withSuspense(<InstitutionTopicPage topicId="official-system" />),
+      },
       ...htmlResourceRoutes,
       { path: "*", element: withSuspense(<NotFoundPage />) },
     ],

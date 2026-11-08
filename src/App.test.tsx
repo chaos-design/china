@@ -403,16 +403,32 @@ describe("<App /> routing", () => {
     expect(document.querySelector(".acp-lightbox-mask")).toBeInstanceOf(HTMLButtonElement);
   });
 
-  it("renders the institutions index route with its five reserved entries", async () => {
+  it("renders the institutions index route with its five topic entries", async () => {
     renderAt("/china/institutions");
 
     expect(
       await screen.findByRole("heading", { level: 1, name: "典章制度索引" }),
     ).toBeInTheDocument();
     for (const name of ["官制", "赋役", "律令", "科举", "礼制"]) {
-      expect(screen.getByText(name).closest("article")).toHaveAttribute("aria-disabled", "true");
+      expect(screen.getByText(name)).toBeInTheDocument();
     }
-    expect(screen.getAllByText("筹备中")).toHaveLength(5);
+    // 已落地的条目渲染为卡片链接（数量断言在 page.test.tsx 里随注册表走）
+    expect(screen.getByRole("link", { name: /官制/ })).toHaveAttribute(
+      "href",
+      "/china/institutions/official-system",
+    );
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it("renders the institutions topic route", async () => {
+    renderAt("/china/institutions/official-system");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "官制" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /秦到清：官制的演变/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /← 典章制度索引/ })).toHaveAttribute(
+      "href",
+      "/china/institutions",
+    );
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
