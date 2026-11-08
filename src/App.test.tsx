@@ -421,7 +421,8 @@ describe("<App /> routing", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "官制" })).toBeInTheDocument();
     // 编年时间轴 + 左侧目录（当前条目 aria-current）
     expect(screen.getByLabelText("编年沿革时间轴")).toBeInTheDocument();
-    expect(document.querySelectorAll("[data-era-dot]")).toHaveLength(7);
+    // 官制现为 8 个沿革节点（先秦世卿世禄 → 清军机处）
+    expect(document.querySelectorAll("[data-era-dot]")).toHaveLength(8);
     const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
     expect(menu.getByRole("link", { name: /^官制/ })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();

@@ -1,9 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-
-import { getInstitutionTopic, INSTITUTION_TOPICS } from "./topics";
 import { InstitutionTopicPage } from "./topic-page";
+import { getInstitutionTopic, INSTITUTION_TOPICS } from "./topics";
 
 function renderTopic(topicId: string) {
   return render(
