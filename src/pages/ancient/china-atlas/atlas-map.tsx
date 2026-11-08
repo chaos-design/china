@@ -20,8 +20,10 @@ export interface AtlasMapProps {
   animated: boolean;
   /** 当前朝代断面；null 表示只画现代疆域底图。 */
   dynasty: AtlasDynastyId | null;
-  /** 当前视野（全览或聚焦）。viewBox 与标注避让都由它决定。 */
-  view: AtlasFocus;
+  /** 当前渲染视野：viewBox、data-zoom 与字号补偿随它逐帧更新（补间 / 手势中会变）。 */
+  liveView: AtlasFocus;
+  /** 拖拽平移中：光标切换为抓住状态。 */
+  panning: boolean;
   /** 悬停中的条目 id（详情卡据此展开，地图只做强调）。 */
   hoveredId: string | null;
   /** 可见条目；切换「全部 / 单项」只换这个数组，SVG 与视野保持不动。 */
@@ -31,6 +33,8 @@ export interface AtlasMapProps {
   onSelect: (id: string) => void;
   /** 选中的条目 id；null 表示全览。 */
   selectedId: string | null;
+  /** 目标视野：标注避让与朝代标注布局都按它计算，不随手势逐帧变化。 */
+  view: AtlasFocus;
 }
 
 /** 每名「迁徙者」的半径序列，大小相间读作人群而非单点。 */
@@ -248,32 +252,41 @@ export const AtlasMap = memo(function AtlasMap({
   hoveredId,
   items,
   layer,
+  liveView,
   onHover,
   onSelect,
+  panning,
   selectedId,
   view,
 }: AtlasMapProps) {
+  // 标注避让按目标视野算：补间与手势期间布局不逐帧重排，标签跟着地图一起移动。
   const labels = useMemo(
     () => new Map(placeLabels(items, view).map((placement) => [placement.id, placement])),
     [items, view],
   );
-  // viewBox 收窄会让所有 SVG 文字等比变大；反向补偿字号与标签框，避免放大后糊成一团。
-  const unit = view.focused ? 1 / Math.sqrt(view.zoom) : 1;
+  // viewBox 收窄会让所有 SVG 文字等比变大；字号与标签框按当前 zoom 连续反向补偿，
+  // 缩放全程符号与文字的屏幕大小平滑过渡，放大后也不会糊成一团。
+  const unit = 1 / Math.sqrt(Math.max(1, liveView.zoom));
+  const subdued = liveView.zoom > 1.08;
   return (
     <svg
       aria-label={`${MAP_ARIA_LABEL[layer]}${dynasty ? ` · 叠加${getDynastyTerritory(dynasty).label}朝疆域示意` : ""}`}
-      className={cn("block h-full w-full", className)}
-      data-zoom={view.zoom}
+      className={cn(
+        "block h-full w-full touch-none select-none",
+        panning ? "cursor-grabbing" : "cursor-grab",
+        className,
+      )}
+      data-zoom={Math.round(liveView.zoom * 100) / 100}
       preserveAspectRatio="xMidYMid meet"
       role="img"
-      viewBox={view.box}
+      viewBox={liveView.box}
     >
       <g className="atlas-map-layer">
         {/* 底图公共图层：现代中国省界 → 国界 → 岛屿 → 九段线 → 经纬网 → 河流 → 海名 */}
-        <BasemapLayers subdued={view.focused} />
+        <BasemapLayers subdued={subdued} />
 
         {/* 朝代断面叠在现代底图之上：示意范围 + 都城 / 大城市符号与名称 */}
-        <DynastyTerritoryLayer dynasty={dynasty} items={items} view={view} />
+        <DynastyTerritoryLayer dynasty={dynasty} items={items} liveView={liveView} view={view} />
 
         {/* 防御范围示意环画在最底层，方印与标签随后覆盖，标注信息不被遮挡 */}
         {items

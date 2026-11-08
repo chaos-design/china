@@ -58,11 +58,11 @@ describe("dynasty-overlay 几何与标注", () => {
     expect(convexHull([])).toEqual([]);
   });
 
-  it("示意范围是圆角闭合路径，边界包住全部城市锚点", () => {
+  it("示意范围是平滑闭合的手绘曲线，边界包住全部城市锚点", () => {
     for (const territory of DYNASTY_TERRITORIES) {
       const outline = getDynastyOutline(territory);
       expect(outline.d.startsWith("M ")).toBe(true);
-      expect(outline.d).toContain(" Q ");
+      expect(outline.d).toContain(" C ");
       expect(outline.d.endsWith(" Z")).toBe(true);
       expect(outline.points.length).toBeGreaterThan(2);
       for (const city of projectDynastyCities(territory)) {
@@ -71,6 +71,15 @@ describe("dynasty-overlay 几何与标注", () => {
         expect(city.point[1]).toBeGreaterThanOrEqual(outline.bounds.y0 - 0.01);
         expect(city.point[1]).toBeLessThanOrEqual(outline.bounds.y1 + 0.01);
       }
+    }
+  });
+
+  it("同一朝代的示意边界完全确定：两次计算逐字节相同", () => {
+    for (const territory of DYNASTY_TERRITORIES) {
+      const first = getDynastyOutline(territory);
+      const second = getDynastyOutline(territory);
+      expect(second.d).toBe(first.d);
+      expect(second.bounds).toEqual(first.bounds);
     }
   });
 

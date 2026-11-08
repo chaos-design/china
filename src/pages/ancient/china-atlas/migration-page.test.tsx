@@ -3,8 +3,12 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import { FLOW_DOTS } from "./atlas-map";
+import { setViewTweenMs } from "./map-view";
 import { MIGRATION_EVENTS } from "./migration-events";
 import { MigrationAtlasPage } from "./migration-page";
+
+// 视野补间关掉后，点击立刻到达目标 viewBox，同步断言才是确定性的。
+setViewTweenMs(0);
 
 function renderPage() {
   return render(

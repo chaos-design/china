@@ -2,6 +2,11 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { AtlasExplorer } from "./atlas-explorer";
+import { setViewTweenMs } from "./map-view";
+
+// 视野补间关掉后，点击立刻到达目标 viewBox，同步断言才是确定性的。
+setViewTweenMs(0);
+
 import { getAtlasFocus, regionOfPoints } from "./atlas-focus";
 import { ATLAS_ITEMS, ATLAS_LAYER_OPTIONS, ATLAS_VIEW, type AtlasLayerId } from "./atlas-items";
 import { ATLAS_TOPIC_COLOR, FLOW_DOTS } from "./atlas-map";

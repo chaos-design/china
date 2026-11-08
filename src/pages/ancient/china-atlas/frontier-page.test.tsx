@@ -3,6 +3,11 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import { FrontierAtlasPage } from "./frontier-page";
+import { setViewTweenMs } from "./map-view";
+
+// 视野补间关掉后，点击立刻到达目标 viewBox，同步断言才是确定性的。
+setViewTweenMs(0);
+
 import { FRONTIER_POLICIES } from "./frontier-policies";
 
 function renderPage() {

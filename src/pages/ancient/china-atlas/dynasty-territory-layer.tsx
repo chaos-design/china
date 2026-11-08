@@ -11,19 +11,24 @@ import type { AtlasDynastyId } from "./types";
 
 /**
  * 叠加在现代疆域省界底图上的朝代断面：一片明确标注为「示意」的疆域范围，
- * 加上都城 / 当朝代表性城市的符号与名称。区域由锚点凸包生成，
+ * 加上都城 / 当朝代表性城市的符号与名称。区域由锚点凸包外扩生成，
  * 不宣称是实测边界；所有文案与出处都来自 dynasty-territories.ts。
  *
  * 聚焦时 viewBox 变窄，所有 SVG 文字会跟着等比放大；这里用 unit 反向补偿
  * 符号与文字尺寸，让「放大」只放大地理范围，不放大字号。
+ *
+ * 标注避让按目标视野（view）计算，符号尺寸与说明文字按当前渲染视野
+ * （liveView）逐帧更新——补间与手势期间布局不重排，只有大小平滑过渡。
  */
 export function DynastyTerritoryLayer({
   dynasty,
   items,
+  liveView,
   view,
 }: {
   dynasty: AtlasDynastyId | null;
   items: readonly AtlasItem[];
+  liveView: AtlasFocus;
   view: AtlasFocus;
 }) {
   if (!dynasty) return null;
@@ -36,20 +41,41 @@ export function DynastyTerritoryLayer({
     items.map((item) => item.id),
     view,
   );
-  const unit = view.focused ? 1 / Math.sqrt(view.zoom) : 1;
+  const unit = 1 / Math.sqrt(Math.max(1, liveView.zoom));
   // 说明文字钉在当前视野西北角，聚焦后仍在可视区内。
-  const captionX = view.x + 1.5 * unit;
-  const captionY = view.y + 4 * unit;
+  const captionX = liveView.x + 1.5 * unit;
+  const captionY = liveView.y + 4 * unit;
 
   return (
-    <g aria-label={`${territory.label}疆域示意与都城城市`} className="atlas-dynasty-layer">
+    // key 换朝代时重挂载本层，入场淡入重放一次；SVG 本体与其余图层不受影响。
+    <g
+      aria-label={`${territory.label}疆域示意与都城城市`}
+      className="atlas-dynasty-enter atlas-dynasty-layer"
+      key={dynasty}
+    >
+      <defs>
+        <filter id="atlas-area-bleed" x="-15%" y="-15%" width="130%" height="130%">
+          <feGaussianBlur stdDeviation={1.1} />
+        </filter>
+      </defs>
+      {/* 墨晕底层：同形路径加模糊淡朱，先把「示意面」衬出来 */}
+      <path
+        d={outline.d}
+        fill="none"
+        filter="url(#atlas-area-bleed)"
+        opacity={0.4}
+        stroke="hsl(var(--vermillion) / 0.5)"
+        strokeLinecap="round"
+        strokeWidth={1.5 * unit}
+      />
       <path
         className="atlas-dynasty-area"
         d={outline.d}
-        fill="hsl(var(--vermillion) / 0.1)"
-        stroke="hsl(var(--vermillion) / 0.62)"
-        strokeDasharray="1.3 0.9"
-        strokeWidth={0.34 * unit}
+        fill="hsl(var(--vermillion) / 0.09)"
+        stroke="hsl(var(--vermillion) / 0.66)"
+        strokeDasharray={`${2.6 * unit} ${1.7 * unit}`}
+        strokeLinecap="round"
+        strokeWidth={0.4 * unit}
       />
       <text
         className="font-body"

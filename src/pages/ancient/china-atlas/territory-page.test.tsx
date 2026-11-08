@@ -1,9 +1,12 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-
+import { setViewTweenMs } from "./map-view";
 import { TerritoryAtlasPage } from "./territory-page";
 import { TERRITORY_SNAPSHOTS } from "./territory-snapshots";
+
+// 视野补间关掉后，点击立刻到达目标 viewBox，下面的同步断言才是确定性的。
+setViewTweenMs(0);
 
 function renderPage() {
   return render(

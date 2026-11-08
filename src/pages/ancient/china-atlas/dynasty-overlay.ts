@@ -38,8 +38,13 @@ export interface DynastyCityLabel extends LabelPlacement {
 
 export const CITY_FONT_SIZE = 2.2;
 export const CITY_LABEL_HEIGHT = 3.2;
-/** 示意范围从锚点凸包向外轻微扩张，避免边界正好压在城市符号上。 */
-const HULL_EXPAND = 1.07;
+/** 示意范围从锚点凸包向外扩张的留白：边界不再贴着城市符号，也更像一片墨晕。 */
+const HULL_MARGIN = 1.9;
+/** 法向采样数：凸包按 support function 外扩后，每 5° 取一点再连成闭合曲线。 */
+const OUTLINE_SAMPLES = 72;
+/** 确定性「手抖」幅度：一低一高两个谐波让边界读作手绘墨迹而非几何圆。 */
+const WOBBLE_PRIMARY = 0.42;
+const WOBBLE_SECONDARY = 0.22;
 const round = (value: number) => Math.round(value * 100) / 100;
 
 export function projectDynastyCities(territory: DynastyTerritory): readonly ProjectedCity[] {
@@ -88,31 +93,80 @@ export function convexHull(points: readonly MapPoint[]): readonly MapPoint[] {
   return [...lower.slice(0, -1), ...upper.slice(0, -1)];
 }
 
+/** FNV-1a：由朝代 id 派生相位，同一个朝代永远得到同一条边界。 */
+function hashSeed(text: string): number {
+  let hash = 2166136261;
+  for (const char of text) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+const TAU = Math.PI * 2;
+
+/** 闭合同构 Catmull-Rom → 三次贝塞尔：相邻点互相带一阶导，边界读作曲线而非折线。 */
+export function smoothClosedPath(points: readonly MapPoint[]): string {
+  const count = points.length;
+  if (count < 3) return "";
+  const at = (index: number): MapPoint => points[((index % count) + count) % count]!;
+  const first = at(0);
+  let d = `M ${round(first[0])} ${round(first[1])}`;
+  for (let index = 0; index < count; index += 1) {
+    const previous = at(index - 1);
+    const current = at(index);
+    const next = at(index + 1);
+    const after = at(index + 2);
+    const control1: MapPoint = [
+      current[0] + (next[0] - previous[0]) / 6,
+      current[1] + (next[1] - previous[1]) / 6,
+    ];
+    const control2: MapPoint = [
+      next[0] - (after[0] - current[0]) / 6,
+      next[1] - (after[1] - current[1]) / 6,
+    ];
+    d += ` C ${round(control1[0])} ${round(control1[1])} ${round(control2[0])} ${round(control2[1])} ${round(next[0])} ${round(next[1])}`;
+  }
+  return `${d} Z`;
+}
+
 /**
- * 凸包 + 圆角闭合路径： Quadratic 控制点取每个锚点，端点取相邻锚点的中点，
- * 画出来是一片手绘感的示意区域，而不是带实测含义的折线边界。
+ * 凸包 + support function 外扩 + 手绘微抖：
+ *
+ * 先取锚点凸包，再沿 72 个法向取「最远顶点 + 留白」外推——数学上等价于凸包与
+ * 圆盘的 Minkowski 和，尖角被自然磨圆；叠加由朝代 id 决定相位的两个谐波微抖，
+ * 边界才像手绘本墨晕而不是 GIS 缓冲区。最后 Catmull-Rom 连成闭合曲线。
  */
 export function getDynastyOutline(territory: DynastyTerritory): DynastyOutline {
   const hull = convexHull(projectDynastyCities(territory).map((entry) => entry.point));
-  const centroid: MapPoint = [
-    hull.reduce((sum, point) => sum + point[0], 0) / hull.length,
-    hull.reduce((sum, point) => sum + point[1], 0) / hull.length,
-  ];
-  const points: MapPoint[] = hull.map(
-    ([x, y]): MapPoint => [
-      round(centroid[0] + (x - centroid[0]) * HULL_EXPAND),
-      round(centroid[1] + (y - centroid[1]) * HULL_EXPAND),
-    ],
-  );
-  const mid = (a: MapPoint, b: MapPoint): MapPoint => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-  const start = mid(points[points.length - 1]!, points[0]!);
-  let d = `M ${round(start[0])} ${round(start[1])}`;
-  for (let index = 0; index < points.length; index += 1) {
-    const control = points[index]!;
-    const end = mid(control, points[(index + 1) % points.length]!);
-    d += ` Q ${control[0]} ${control[1]} ${round(end[0])} ${round(end[1])}`;
+  if (hull.length === 0) {
+    return { bounds: { x0: 0, x1: 0, y0: 0, y1: 0 }, d: "", points: [] };
   }
-  d += " Z";
+  const seed = hashSeed(territory.id);
+  const phase1 = ((seed % 360) / 360) * TAU;
+  const phase2 = (((seed >>> 9) % 360) / 360) * TAU;
+  const points: MapPoint[] = [];
+  for (let index = 0; index < OUTLINE_SAMPLES; index += 1) {
+    const theta = (index / OUTLINE_SAMPLES) * TAU;
+    const dirX = Math.cos(theta);
+    const dirY = Math.sin(theta);
+    let best = -Infinity;
+    let vertex = hull[0]!;
+    for (const candidate of hull) {
+      const dot = candidate[0] * dirX + candidate[1] * dirY;
+      if (dot > best) {
+        best = dot;
+        vertex = candidate;
+      }
+    }
+    const wobble =
+      WOBBLE_PRIMARY * Math.sin(3 * theta + phase1) +
+      WOBBLE_SECONDARY * Math.sin(5 * theta + phase2);
+    points.push([
+      round(vertex[0] + dirX * (HULL_MARGIN + wobble)),
+      round(vertex[1] + dirY * (HULL_MARGIN + wobble)),
+    ]);
+  }
   return {
     bounds: {
       x0: Math.min(...points.map((point) => point[0])),
@@ -120,7 +174,7 @@ export function getDynastyOutline(territory: DynastyTerritory): DynastyOutline {
       y0: Math.min(...points.map((point) => point[1])),
       y1: Math.max(...points.map((point) => point[1])),
     },
-    d,
+    d: smoothClosedPath(points),
     points,
   };
 }

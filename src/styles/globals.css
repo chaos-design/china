@@ -737,9 +737,30 @@
   transition: fill 320ms ease;
 }
 
+/* 朝代断面入场：换朝代时整层轻淡入一次，疆域示意不再硬切出现 */
+.atlas-dynasty-enter {
+  animation: atlas-fade-in 480ms ease-out both;
+}
+
+@keyframes atlas-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 缩放越过全览后，经纬网 / 河名 / 海名淡出（见 basemap-layers 的 .atlas-notes） */
+.atlas-notes {
+  transition: opacity 480ms ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .atlas-map-layer,
-  .atlas-dynasty-area {
+  .atlas-dynasty-area,
+  .atlas-dynasty-enter,
+  .atlas-notes {
     animation: none;
     transition: none;
   }
