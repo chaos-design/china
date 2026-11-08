@@ -18,6 +18,11 @@ export interface NavLeaf {
 }
 
 export interface NavGroup {
+  /**
+   * 只用于判定「当前分组」的路径，不在菜单里渲染链接。
+   * 兼容入口（如图谱的三个预设图层）收敛成一个菜单条目后仍要高亮所属分组。
+   */
+  activePaths?: readonly string[];
   blurb: string;
   id: string;
   items: readonly NavLeaf[];
@@ -48,6 +53,20 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       },
     ],
     label: "编年与制度",
+    mapZone: "north",
+  },
+  {
+    activePaths: ["/china/atlas/territory", "/china/atlas/migration", "/china/atlas/frontier"],
+    blurb: "疆域、民族与边疆三条线索合为一张图谱，页内按专题与朝代逐项展开。",
+    id: "atlas",
+    items: [
+      {
+        highlights: ["三类图谱同图", "按朝代切换疆域", "选中局部放大"],
+        label: "历史地理图谱",
+        to: "/china/atlas",
+      },
+    ],
+    label: "历史地理",
     mapZone: "north",
   },
   {
@@ -119,7 +138,10 @@ export function findNavGroupId(
   matches: (path: string, pathname: string) => boolean,
 ): string | undefined {
   for (const group of NAV_GROUPS) {
-    if (group.items.some((item) => matches(item.to, pathname))) {
+    if (
+      group.items.some((item) => matches(item.to, pathname)) ||
+      group.activePaths?.some((path) => matches(path, pathname))
+    ) {
       return group.id;
     }
   }

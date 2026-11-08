@@ -12,6 +12,26 @@ const AncientChinaPoliciesReactPage = lazy(() =>
     default: module.AncientChinaPoliciesReactPage,
   })),
 );
+const AtlasExplorerPage = lazy(() =>
+  import("./pages/ancient/china-atlas/atlas-explorer").then((module) => ({
+    default: module.AtlasExplorer,
+  })),
+);
+const FrontierAtlasPage = lazy(() =>
+  import("./pages/ancient/china-atlas/frontier-page").then((module) => ({
+    default: module.FrontierAtlasPage,
+  })),
+);
+const MigrationAtlasPage = lazy(() =>
+  import("./pages/ancient/china-atlas/migration-page").then((module) => ({
+    default: module.MigrationAtlasPage,
+  })),
+);
+const TerritoryAtlasPage = lazy(() =>
+  import("./pages/ancient/china-atlas/territory-page").then((module) => ({
+    default: module.TerritoryAtlasPage,
+  })),
+);
 const ChinaInstitutionsPage = lazy(() =>
   import("./pages/ancient/china-institutions").then((module) => ({
     default: module.ChinaInstitutionsPage,
@@ -48,6 +68,12 @@ export const routes: RouteObject[] = [
       { path: "china", element: <Navigate to="/china/timeline" replace /> },
       { path: "china/timeline", element: withSuspense(<AncientChinaReactPage />) },
       { path: "china/policies", element: withSuspense(<AncientChinaPoliciesReactPage />) },
+      // 「历史地理图谱」已整合为一个功能页：/china/atlas 是「全部图谱」，
+      // 三条旧路径保留为预设图层的兼容入口，页内切换图层不换路由、不重挂载地图。
+      { path: "china/atlas", element: withSuspense(<AtlasExplorerPage />) },
+      { path: "china/atlas/territory", element: withSuspense(<TerritoryAtlasPage />) },
+      { path: "china/atlas/migration", element: withSuspense(<MigrationAtlasPage />) },
+      { path: "china/atlas/frontier", element: withSuspense(<FrontierAtlasPage />) },
       { path: "china/institutions", element: withSuspense(<ChinaInstitutionsPage />) },
       ...htmlResourceRoutes,
       { path: "*", element: withSuspense(<NotFoundPage />) },
