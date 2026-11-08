@@ -21,7 +21,7 @@
 | 疆域变迁 | https://china.chaosmic.cn/china/atlas/territory | 总览页的疆域预设图层：可点击时间轴（前111—1330）切换六幅疆域快照，都城与代表性控制节点锚定在真实省界底图上，面积估算写明分歧口径。 | - |
 | 民族迁徙 | https://china.chaosmic.cn/china/atlas/migration | 总览页的迁徙预设图层：八条迁徙路线（汉唐宋元）以经纬度途经点绘制在真实底图上，流动光点与画线动画模拟去向，可整屏全览。 | - |
 | 边疆治理 | https://china.chaosmic.cn/china/atlas/frontier | 总览页的边疆预设图层：八项边疆制度（西域都护府、羁縻州县、榷场、行省、宣政院等）的治所方印地图，逐项标注辖区与资料出处。 | - |
-| 典章制度索引 | https://china.chaosmic.cn/china/institutions | 制度专题总索引：官制、赋役、律令、科举与礼制五类专题页（沿革脉络 + 关键条目），按朝代脉络梳理制度变迁。 | - |
+| 典章制度索引 | https://china.chaosmic.cn/china/institutions | 制度专题总索引：左侧条目目录 + 右侧内容的应用式版式，官制、赋役、律令、科举与礼制五类专题以编年体时间轴呈现沿革脉络与关键条目。 | - |
 | HTML 专题资源 | https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片、阅读指南等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
 | 台湾专题 | https://china.chaosmic.cn/taiwan | 五卷分页：地形剖面与经纬度投影地图、岛屿编年、风土人情，以及 1895—1945 年日治与 1947 年之后的近代，逐节标注资料出处。内容存于 `resources/html-data/taiwan.json`，渲染逻辑在 `resources/html/taiwan.html`。 | - |
 | 解放战争交互图 | https://china.chaosmic.cn/liberation-war | 1946—1951 战局沙盘：真实省界地形上的攻防连线、包围圈与起义/和平解放部署，可拖动时间轴逐阶段推演。 | - |

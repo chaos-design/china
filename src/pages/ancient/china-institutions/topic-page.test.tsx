@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { InstitutionTopicPage } from "./topic-page";
@@ -13,27 +13,38 @@ function renderTopic(topicId: string) {
 }
 
 describe("<InstitutionTopicPage />", () => {
-  it("renders the topic header with scope, intro and a back link", () => {
+  it("renders the shell header with scope badge, intro and the topic as page", () => {
     const topic = getInstitutionTopic("official-system");
     if (!topic) throw new Error("official-system topic should be registered");
 
     renderTopic(topic.id);
 
     expect(screen.getByRole("heading", { level: 1, name: "官制" })).toBeInTheDocument();
-    expect(screen.getByText(/职官 · 品级 · 央地结构/)).toBeInTheDocument();
+    // 徽章在页头里（目录条目的 scope 同文案，不在此断言）
+    const header = screen.getByRole("heading", { level: 1, name: "官制" }).closest("header");
+    if (!header) throw new Error("shell header should exist");
+    expect(within(header).getByText(/职官 · 品级 · 央地结构/)).toBeInTheDocument();
     expect(screen.getByText(/官制是王朝的骨架/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /← 典章制度索引/ })).toHaveAttribute(
-      "href",
-      "/china/institutions",
-    );
+    // 左侧目录中当前条目以 aria-current 标记为当前页
+    const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
+    const activeLink = menu.getByRole("link", { name: /^官制/ });
+    expect(activeLink).toHaveAttribute("aria-current", "page");
+    expect(activeLink).toHaveAttribute("href", "/china/institutions/official-system");
+    // 总览条目始终在目录里且不是当前页
+    const overviewLink = menu.getByRole("link", { name: /^总览/ });
+    expect(overviewLink).toHaveAttribute("href", "/china/institutions");
+    expect(overviewLink).not.toHaveAttribute("aria-current");
   });
 
-  it("renders one era block per chronological stage with its legacy line", () => {
+  it("renders the annal-style timeline with one node per era", () => {
     const topic = getInstitutionTopic("official-system");
     if (!topic) throw new Error("official-system topic should be registered");
 
     renderTopic(topic.id);
 
+    const timeline = screen.getByLabelText("编年沿革时间轴");
+    expect(within(timeline).getAllByRole("heading", { level: 3 })).toHaveLength(topic.eras.length);
+    expect(document.querySelectorAll("[data-era-dot]")).toHaveLength(topic.eras.length);
     expect(screen.getByText(/沿革脉络/)).toBeInTheDocument();
     const firstDynasty = topic.eras[0].dynasty;
     const lastDynasty = topic.eras[topic.eras.length - 1].dynasty;
@@ -72,8 +83,10 @@ describe("<InstitutionTopicPage />", () => {
     }
 
     expect(screen.getByText("关联条目")).toBeInTheDocument();
+    const panel = screen.getByText("关联条目").closest("aside");
+    if (!panel) throw new Error("related-entries panel should exist");
     for (const sibling of siblings) {
-      const link = screen.getByRole("link", { name: new RegExp(`^${sibling.name}`) });
+      const link = within(panel).getByRole("link", { name: new RegExp(`^${sibling.name}`) });
       expect(link).toHaveAttribute("href", `/china/institutions/${sibling.slug}`);
     }
   });

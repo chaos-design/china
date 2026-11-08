@@ -1,6 +1,7 @@
 import { ArrowRight, BookOpen, FileText, Gavel, Landmark, ScrollText } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { InstitutionShell } from "./institution-shell";
 import { INSTITUTION_TOPICS } from "./topics";
 
 interface TopicCardMeta {
@@ -55,29 +56,52 @@ const implementedSlugs = new Set(INSTITUTION_TOPICS.map((topic) => topic.slug));
 
 export function ChinaInstitutionsPage() {
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-16">
-      <header className="flex flex-col gap-6">
-        <span className="eyebrow">专题索引</span>
-        <h1 className="font-brush text-5xl leading-tight text-ink sm:text-6xl">
-          <span className="ink-underline inline-block pb-1">典章制度索引</span>
-        </h1>
-        <p className="max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">
-          官制、赋役、律令、科举与礼制五类条目已全部开放：先定朝代坐标，
-          再把制度放回具体的历史现场，适合做专题检索与延伸阅读。
-        </p>
-      </header>
+    <InstitutionShell
+      activeTopicId={null}
+      badge="五类条目"
+      description="官制、赋役、律令、科举与礼制五类条目已全部开放：先定朝代坐标，再把制度放回具体的历史现场，适合做专题检索与延伸阅读。"
+      title="典章制度索引"
+    >
+      <div className="flex flex-col gap-10">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="topic-card-grid">
+          {TOPIC_LINEUP.map((entry) => {
+            const Icon = entry.icon;
+            const implemented = implementedSlugs.has(entry.slug);
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {TOPIC_LINEUP.map((entry) => {
-          const Icon = entry.icon;
-          const implemented = implementedSlugs.has(entry.slug);
+            if (implemented) {
+              return (
+                <Link
+                  className="group index-card relative flex min-h-52 flex-col justify-between gap-6 overflow-hidden p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-paper"
+                  key={entry.slug}
+                  to={`/china/institutions/${entry.slug}`}
+                >
+                  <span className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-vermillion/70 to-transparent opacity-70" />
+                  <Icon aria-hidden="true" className="h-8 w-8 text-vermillion" />
+                  <div className="flex flex-col gap-3">
+                    <span className="font-brush text-3xl text-ink">{entry.name}</span>
+                    <span className="font-mono-tech text-muted-foreground text-xs tracking-[0.22em] uppercase">
+                      {entry.scope}
+                    </span>
+                    <span className="text-muted-foreground text-sm leading-relaxed">
+                      {entry.description}
+                    </span>
+                  </div>
+                  <span className="relative z-10 flex items-center gap-1.5 font-mono-tech text-xs tracking-[0.25em] text-vermillion uppercase">
+                    进入条目
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1"
+                    />
+                  </span>
+                </Link>
+              );
+            }
 
-          if (implemented) {
             return (
-              <Link
+              <article
+                aria-disabled="true"
+                className="index-card index-card-preview relative flex min-h-52 cursor-default flex-col justify-between gap-6 overflow-hidden p-6"
                 key={entry.slug}
-                to={`/china/institutions/${entry.slug}`}
-                className="group index-card relative flex min-h-52 flex-col justify-between gap-6 overflow-hidden p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-paper"
               >
                 <span className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-vermillion/70 to-transparent opacity-70" />
                 <Icon aria-hidden="true" className="h-8 w-8 text-vermillion" />
@@ -90,50 +114,23 @@ export function ChinaInstitutionsPage() {
                     {entry.description}
                   </span>
                 </div>
-                <span className="relative z-10 flex items-center gap-1.5 font-mono-tech text-xs tracking-[0.25em] text-vermillion uppercase">
-                  进入条目
-                  <ArrowRight
-                    aria-hidden="true"
-                    className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1"
-                  />
+                <span className="relative z-10 font-mono-tech text-xs tracking-[0.25em] text-vermillion uppercase">
+                  筹备中
                 </span>
-              </Link>
+              </article>
             );
-          }
+          })}
+        </div>
 
-          return (
-            <article
-              key={entry.slug}
-              aria-disabled="true"
-              className="index-card index-card-preview relative flex min-h-52 cursor-default flex-col justify-between gap-6 overflow-hidden p-6"
-            >
-              <span className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-vermillion/70 to-transparent opacity-70" />
-              <Icon aria-hidden="true" className="h-8 w-8 text-vermillion" />
-              <div className="flex flex-col gap-3">
-                <span className="font-brush text-3xl text-ink">{entry.name}</span>
-                <span className="font-mono-tech text-muted-foreground text-xs tracking-[0.22em] uppercase">
-                  {entry.scope}
-                </span>
-                <span className="text-muted-foreground text-sm leading-relaxed">
-                  {entry.description}
-                </span>
-              </div>
-              <span className="relative z-10 font-mono-tech text-xs tracking-[0.25em] text-vermillion uppercase">
-                筹备中
-              </span>
-            </article>
-          );
-        })}
+        <aside className="flex flex-col gap-4 rounded-xl border border-border bg-card/60 p-5">
+          <span className="eyebrow">阅读指引</span>
+          <p className="max-w-3xl text-pretty leading-relaxed text-muted-foreground">
+            本页是典章制度的总索引：五类条目各自独立成篇，之间以朝代与机构相互引用。
+            建议先在时间长河中定位朝代坐标，再带着具体问题回到对应条目，
+            对照制度在不同朝代的变形与继承。
+          </p>
+        </aside>
       </div>
-
-      <aside className="home-section-panel flex flex-col gap-4">
-        <span className="eyebrow">阅读指引</span>
-        <p className="max-w-3xl text-pretty leading-relaxed text-muted-foreground">
-          本页是典章制度的总索引：五类条目各自独立成篇，之间以朝代与机构相互引用。
-          建议先在时间长河中定位朝代坐标，再带着具体问题回到对应条目，
-          对照制度在不同朝代的变形与继承。
-        </p>
-      </aside>
-    </section>
+    </InstitutionShell>
   );
 }

@@ -409,13 +409,19 @@ describe("<App /> routing", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: "典章制度索引" }),
     ).toBeInTheDocument();
+    const cardGrid = await screen.findByTestId("topic-card-grid");
     for (const name of ["官制", "赋役", "律令", "科举", "礼制"]) {
-      expect(screen.getByText(name)).toBeInTheDocument();
+      expect(within(cardGrid).getByText(name)).toBeInTheDocument();
     }
     // 已落地的条目渲染为卡片链接（数量断言在 page.test.tsx 里随注册表走）
-    expect(screen.getByRole("link", { name: /^官制/ })).toHaveAttribute(
+    expect(within(cardGrid).getByRole("link", { name: /^官制/ })).toHaveAttribute(
       "href",
       "/china/institutions/official-system",
+    );
+    // 外壳左侧目录：总览 + 五类条目
+    expect(screen.getByRole("link", { name: /^总览/ })).toHaveAttribute(
+      "href",
+      "/china/institutions",
     );
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
@@ -424,8 +430,12 @@ describe("<App /> routing", () => {
     renderAt("/china/institutions/official-system");
 
     expect(await screen.findByRole("heading", { level: 1, name: "官制" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /秦到清：官制的演变/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /← 典章制度索引/ })).toHaveAttribute(
+    // 编年时间轴 + 左侧目录（当前条目 aria-current）
+    expect(screen.getByLabelText("编年沿革时间轴")).toBeInTheDocument();
+    expect(document.querySelectorAll("[data-era-dot]")).toHaveLength(7);
+    const activeLink = screen.getByRole("link", { name: /^官制/ });
+    expect(activeLink).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: /^总览/ })).toHaveAttribute(
       "href",
       "/china/institutions",
     );

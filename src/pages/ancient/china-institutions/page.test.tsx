@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
@@ -6,7 +6,7 @@ import { ChinaInstitutionsPage } from "./page";
 import { INSTITUTION_TOPICS } from "./topics";
 
 describe("<ChinaInstitutionsPage />", () => {
-  it("renders the institutions index heading and description", () => {
+  it("renders the overview shell with heading and description", () => {
     render(
       <MemoryRouter>
         <ChinaInstitutionsPage />
@@ -15,35 +15,43 @@ describe("<ChinaInstitutionsPage />", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "典章制度索引" })).toBeInTheDocument();
     expect(screen.getByText(/官制、赋役、律令、科举与礼制五类条目已全部开放/)).toBeInTheDocument();
+    // 总览态下目录以 aria-current 标记总览条目
+    const overviewLink = screen.getByRole("link", { name: /^总览/ });
+    expect(overviewLink).toHaveAttribute("aria-current", "page");
+    expect(overviewLink).toHaveAttribute("href", "/china/institutions");
   });
 
-  it("shows the full five-topic lineup exactly once", () => {
+  it("keeps the full five-topic lineup in the sidebar menu", () => {
     render(
       <MemoryRouter>
         <ChinaInstitutionsPage />
       </MemoryRouter>,
     );
 
-    for (const name of ["官制", "赋役", "律令", "科举", "礼制"]) {
-      expect(screen.getAllByText(name).length).toBe(1);
+    const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
+    for (const topic of INSTITUTION_TOPICS) {
+      const link = menu.getByRole("link", { name: new RegExp(`^${topic.name}`) });
+      expect(link).toHaveAttribute("href", `/china/institutions/${topic.slug}`);
+      expect(link).not.toHaveAttribute("aria-current");
     }
   });
 
-  it("links implemented topics and keeps the rest as reserved articles", () => {
+  it("renders one card per topic in the grid, linking implemented topics", () => {
     render(
       <MemoryRouter>
         <ChinaInstitutionsPage />
       </MemoryRouter>,
     );
 
+    const grid = screen.getByTestId("topic-card-grid");
     for (const topic of INSTITUTION_TOPICS) {
-      const link = screen.getByRole("link", { name: new RegExp(`^${topic.name}`) });
+      const link = within(grid).getByRole("link", { name: new RegExp(`^${topic.name}`) });
       expect(link).toHaveAttribute("href", `/china/institutions/${topic.slug}`);
     }
 
     const reservedCount = 5 - INSTITUTION_TOPICS.length;
-    expect(screen.queryAllByText("筹备中")).toHaveLength(reservedCount);
-    for (const article of screen.queryAllByRole("article")) {
+    expect(within(grid).queryAllByText("筹备中")).toHaveLength(reservedCount);
+    for (const article of within(grid).queryAllByRole("article")) {
       expect(article).toHaveAttribute("aria-disabled", "true");
       expect(article).toHaveClass("index-card-preview");
     }
