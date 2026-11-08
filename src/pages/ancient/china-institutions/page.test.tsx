@@ -42,7 +42,7 @@ describe("<ChinaInstitutionsPage />", () => {
     }
 
     const reservedCount = 5 - INSTITUTION_TOPICS.length;
-    expect(screen.getAllByText("筹备中")).toHaveLength(reservedCount);
+    expect(screen.queryAllByText("筹备中")).toHaveLength(reservedCount);
     for (const article of screen.queryAllByRole("article")) {
       expect(article).toHaveAttribute("aria-disabled", "true");
       expect(article).toHaveClass("index-card-preview");

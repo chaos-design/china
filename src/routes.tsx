@@ -81,6 +81,10 @@ export const routes: RouteObject[] = [
       { path: "china/atlas/frontier", element: withSuspense(<FrontierAtlasPage />) },
       { path: "china/institutions", element: withSuspense(<ChinaInstitutionsPage />) },
       {
+        path: "china/institutions/rites",
+        element: withSuspense(<InstitutionTopicPage topicId="rites" />),
+      },
+      {
         path: "china/institutions/official-system",
         element: withSuspense(<InstitutionTopicPage topicId="official-system" />),
       },
