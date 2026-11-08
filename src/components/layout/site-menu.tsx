@@ -21,7 +21,7 @@ const OPEN_DELAY_MS = 60;
  *   因此不需要焦点陷阱、backdrop 和 inert；焦点可以自由进出面板，
  *   焦点离开触发器与面板时自动收起，键盘用户和鼠标用户走同一套关闭逻辑。
  * - 面板常驻在顶栏 DOM 里（内容按 open 条件挂载），定位锚在导航栏下方，
- *   宽度与导航内容区对齐，三列分类并排，右侧留一条手绘地图带。
+ *   宽度与导航内容区对齐，四列分类并排，右侧留一条手绘地图带。
  * - 手绘地图仍在：它跟着「悬停/当前路由的分区」高亮，是面板的识别性装饰，
  *   窄屏（<xl）整体隐藏，不参与布局。
  * - 鼠标与焦点处理都挂在 wrapperRef 的原生监听上而不是 JSX 属性：
@@ -234,12 +234,12 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
         <section
           aria-label="全览目录"
           className={cn(
-            "mega-panel absolute right-0 top-full z-40 mt-3 w-[min(56rem,calc(100vw-3rem))]",
+            "mega-panel absolute right-0 top-full z-40 mt-3 w-[min(64rem,calc(100vw-3rem))]",
             "rounded-2xl border border-ink/12 bg-paper/97 backdrop-blur-xl",
           )}
           id={MENU_PANEL_ID}
         >
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_13rem]">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_13rem]">
             {NAV_GROUPS.map((group) => renderColumn(group))}
 
             {/* 右缘地图带：装饰性识别区，随悬停/当前路由切换分区高亮。

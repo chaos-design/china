@@ -80,17 +80,29 @@ describe("<App /> routing", () => {
       "href",
       "/liberation-war",
     );
-    expect(screen.getByText("疆域与民族图谱")).toBeInTheDocument();
+    // 「历史地理图谱」三条主题合并为一张入口卡，直达统一图谱页
+    expect(screen.getByRole("link", { name: /历史地理图谱/ })).toHaveAttribute(
+      "href",
+      "/china/atlas",
+    );
+    for (const topicPath of [
+      "/china/atlas/territory",
+      "/china/atlas/migration",
+      "/china/atlas/frontier",
+    ]) {
+      expect(document.querySelector(`a[href="${topicPath}"]`)).toBeNull();
+    }
     expect(screen.getByText("典章制度索引")).toBeInTheDocument();
     expect(screen.queryByText("丝路与海疆线索")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /疆域与民族图谱/ })).not.toBeInTheDocument();
-    const previewEntry = screen.getByText("疆域与民族图谱").closest("article");
+    // 筹备中条目降级为紧凑预告行：不再是可点击卡片，也没有「进入」引导
+    const previewEntry = screen.getByText("典章制度索引").closest("article");
     if (!previewEntry) {
       throw new Error("Expected preview entry to render as an article");
     }
-    expect(previewEntry).toHaveClass("index-card", "index-card-preview");
     expect(previewEntry).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getAllByText("筹备中")).toHaveLength(2);
+    expect(previewEntry.className).not.toContain("index-card");
+    expect(within(previewEntry).queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getAllByText("筹备中")).toHaveLength(1);
   });
 
   it("merges the about content into the home page", async () => {
@@ -139,7 +151,7 @@ describe("<App /> routing", () => {
     fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
     const panel = await screen.findByLabelText("全览目录");
 
-    for (const group of ["编年与制度", "文化与交通", "地域与近代"]) {
+    for (const group of ["编年与制度", "历史地理", "文化与交通", "地域与近代"]) {
       expect(
         Array.from(panel.querySelectorAll(".mega-col .mega-col-title")).some(
           (node) => node.textContent === group,
@@ -147,10 +159,11 @@ describe("<App /> routing", () => {
       ).toBe(true);
     }
 
-    // 下拉三列同时可见：五个入口一次点齐，visited 计数防空转
+    // 下拉四列同时可见：七个入口一次点齐，visited 计数防空转
     const destinations = [
       ["/china/timeline", /朝代时间长河/],
       ["/china/policies", /朝代政策全览/],
+      ["/china/atlas", /历史地理图谱/],
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],
@@ -185,6 +198,29 @@ describe("<App /> routing", () => {
   it("hides the footer on the React policy route", async () => {
     renderAt("/china/policies");
     expect(await screen.findByRole("navigation")).toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it("renders the unified atlas at /china/atlas", async () => {
+    renderAt("/china/atlas");
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "历史地理图谱" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("三谱同图 · 汉唐宋元")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /历史地理图谱综合地图/ })).toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["/china/atlas/territory", "疆域变迁", /首批六幅快照 · 汉唐宋元/],
+    ["/china/atlas/migration", "民族迁徙", /首批八条路线 · 汉唐宋元/],
+    ["/china/atlas/frontier", "边疆治理", /首批八项制度 · 汉唐宋元/],
+  ])("renders the atlas page at %s", async (path, label, badge) => {
+    renderAt(path);
+
+    expect(await screen.findByRole("heading", { level: 1, name: label })).toBeInTheDocument();
+    expect(screen.getByText(badge)).toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
@@ -227,8 +263,8 @@ describe("<App /> routing", () => {
     fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
     const panel = await screen.findByLabelText("全览目录");
 
-    // 三列分类 + 右缘地图带，全部挂在顶栏 DOM 里
-    expect(panel.querySelectorAll(".mega-col")).toHaveLength(3);
+    // 四列分类 + 右缘地图带，全部挂在顶栏 DOM 里
+    expect(panel.querySelectorAll(".mega-col")).toHaveLength(4);
     expect(panel.querySelector(".mega-map")).toBeInTheDocument();
     // 装饰地图不进无障碍树
     expect(panel.querySelector(".hand-drawn-map")).toHaveAttribute("aria-hidden", "true");

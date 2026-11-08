@@ -9,7 +9,8 @@ This repository is **中国古代全览**, a React 19 + TypeScript single-page a
 - a water-ink styled home page with a one-per-window scroll entrance animation,
 - a Three.js-powered 3D chronology at `/china/timeline`,
 - a dynasty policy atlas at `/china/policies`,
-- resource-driven preview entries for future topics,
+- one unified 疆域与民族图谱 explorer at `/china/atlas` (top mega-menu entry: 历史地理 / 图谱总览) with `/china/atlas/*` as preset-layer entry points (all render the same `AtlasExplorer` with a persistent SVG),
+- resource-driven preview entries for future topics (home splits them into 已开放 cards and a compact 筹备中 row — preview entries must not render as clickable cards),
 - iframe-isolated HTML resource pages generated from `resources/html/*.html`,
 - a 404 fallback page for unknown routes.
 
@@ -98,10 +99,26 @@ Current public routes:
 | `/china` | Redirect to `/china/timeline` |
 | `/china/timeline` | 3D chronology / 时间长河 |
 | `/china/policies` | Dynasty policy atlas / 政策全览 |
+| `/china/atlas` | Unified atlas / 图谱总览（一张常驻底图，页内切换全部 / 单项不重挂载地图） |
+| `/china/atlas/territory` | 疆域变迁预设图层（时间轴 + 真实底图快照节点） |
+| `/china/atlas/migration` | 民族迁徙预设图层（真实底图迁徙路线图） |
+| `/china/atlas/frontier` | 边疆治理预设图层（真实底图治所地图） |
 | `/<html-resource-slug>` | Generated from `resources/html/*.html` with kebab-case slugs |
 | `*` | 404 fallback page |
 
 Route-level layout options live in `src/route-layout-config.ts`.
+
+The migration atlas page (`src/pages/ancient/china-atlas/migration-*.ts(x)`) renders its routes on the real-border basemap imported with `?raw` from `resources/html-data/liberation-war.json` — the same shared basemap the 丝绸之路 and 解放战争 pages use. Importing (not copying) keeps one source of truth; Vite dedupes the raw payload into the existing liberation-war chunk. The Lambert projection formula in `migration-projection.ts` is verified against the basemap's own city anchors (`CITIES.ll` → `x/y`) in `migration-projection.test.ts`; if the basemap projection ever changes, that test fails loudly.
+
+The three atlas topics are consolidated into one `AtlasExplorer` page (`atlas-explorer.tsx`), sharing `atlas-shell.tsx` (pinned header, left sidebar with an in-page 图谱导航 switcher, page menu below) and `basemap-layers.tsx` (identical basemap styling). The top mega menu group is `历史地理` with a single `历史地理图谱` entry; the in-page 图谱导航 holds only the 朝代断面 chips (全部朝代 / 汉 / 唐 / 宋 / 元). The side menu is one flat accordion: `全部图谱` / `疆域变迁` / `民族迁徙` / `边疆治理` are four section headers (aria-expanded, one open at a time), each section holding its own data grouped by dynasty. Item rows are single-line names with no right-side type tags; the selected row is vermillion-highlighted. Switching a dynasty overlays a clearly-labelled **schematic** territory extent (outset from the convex hull of documented capitals/cities, never a measured boundary) plus capital / major-city symbols and names; `dynasty-territories.ts` owns the sourced city list, `dynasty-overlay.ts` owns the hull/support-function outset/hand-drawn path/label de-confliction, and `dynasty-territory-layer.tsx` renders it over the unmodified modern-basemap layers. The outline is deliberately organic, not GIS-stiff: the hull is inflated by a support-function offset (`HULL_MARGIN`), given a seeded two-harmonic wobble keyed by dynasty id, and closed with Catmull-Rom → cubic Bézier (`smoothClosedPath`); a blurred under-stroke plus a keyed fade-in (`atlas-dynasty-enter`, remounts on dynasty change) keep the appearance soft. Frontier entries carry a sourced `defenseScope` field and get a uniform dashed schematic ring (`DEFENSE_RADIUS` is a legend symbol, never a measured boundary). Migration uses a brighter fixed 朱色 (`ATLAS_TOPIC_COLOR.migration`), territory uses the accent vermillion, frontier uses ochre. The top strip is always the same fixed-height 疆域断面 timeline — there is no 图层说明 strip — so switching layers never shifts the map. `atlas-items.ts` flattens the three datasets into 22 entries and computes a **fixed** `ATLAS_VIEW` plus a frozen `ATLAS_LABELS` layout; `placeLabels()` is a pure deterministic de-confliction pass that keeps label boxes off each other and off other markers, using leader lines to move crowded labels to open space. `atlas-map.tsx` is a single persistent SVG — switching 全部 / 单项 only changes its children, never the viewBox, label positions, SVG DOM node or surrounding fixed-height panels, so the map cannot jump. Focusing (selecting an item, or switching a dynasty) replaces the viewBox via `atlas-focus.ts` — **never** a CSS transform on a `<g>`, whose transform-origin is not equivalent to SVG user coordinates and pushes the focus off-centre. The focus viewBox keeps the map container's measured aspect ratio (ResizeObserver inside `useMapView`, jsdom falls back to `ATLAS_VIEW`), so `xMidYMid meet` fills the visible area with no letterbox and the focus centre is exactly the viewport centre. All symbol sizes, label boxes and font sizes are compensated by `1/sqrt(zoom)`; `placeLabels()` runs against the **target** view (not the animated frame) so label layout never re-flows during transitions; basemap graticule / river / sea text is dimmed past zoom 1.08 via the `.atlas-notes` CSS-opacity transition. A fixed-size HTML card inside the map frame (outside the SVG) carries dynasty, capital, cities, zoom factor and a reset button — it never scales. Selecting any item also pins its dynasty, so the overlay and the item always agree; switching a topic or using overview clears both. Hover / keyboard focus expands the item's verbatim description and sources in a fixed-height detail card (no floating overlay over the map); do not add unsourced historical claims. Menu entries are deliberately single-line and compact so the whole menu fits the viewport without internal scrolling; keep that property when adding entries. Layout-wise the shell is `lg:h-full` inside the `<main>` scroll container with an internally scrolling map column — `h-full` resolves because `<main>` is a definite-height flex item; jsdom cannot verify any of this, so check a real browser when touching it. Animations default on everywhere; the page-level toggle is the single playback control.
+
+The map is also directly navigable, beyond selection-driven focus. `map-view.ts` owns the view state machine (`useMapView`) and `map-stage.tsx` renders the frame around `AtlasMap` — owning it in a child component keeps the per-frame re-renders of the tween out of the page header, menu and detail card; `BasemapLayers` is memoized for the same reason. Rules worth keeping:
+
+- There are two views: the **target** (`AtlasFocus` from `atlas-focus.ts`, drives label placement and semantics) and the **live view** (the animated frame, drives `viewBox` / `data-zoom` / size compensation). Target changes tween the live view with an ease-in-out rAF loop (`VIEW_TWEEN_MS`); wheel zoom and drag pan bypass the tween entirely — direct manipulation must not lag. Pinch (two pointers) zooms around the finger midpoint.
+- The tween and gestures are two ways to move the same state, so they compose: a gesture cancels the in-flight tween, a new target tweens from the current gesture position. Zooming back out to 1× re-aligns exactly with the overview viewBox; panning is clamped to the overview rect with a slack that shrinks to zero at 1× (dragging the overview does nothing — the whole map already fits).
+- Wheel zoom is anchored at the cursor via the `xMidYMid meet` inverse (letterbox-aware); React's wheel listener is passive, so the hook attaches its own non-passive listener. Pointer capture is only taken **after** the 4px drag threshold, so clicks on labels and buttons are unaffected. Double-click zooms unless the target is a button/label.
+- Zoom is clamped to `[1, MAP_ZOOM_MAX=5]` relative to `ATLAS_VIEW.height`; symbol sizes compensate continuously with `1/sqrt(max(1, zoom))`.
+- Tests: `setViewTweenMs(0)` (exported from `map-view.ts`) makes target changes apply synchronously — the exact-viewBox assertions in `atlas-explorer.test.tsx` and the three page tests depend on it. `map-stage.test.tsx` mocks the frame's `getBoundingClientRect` and uses fake rAF wrapped in `act()`; `vi.advanceTimersByTime` outside `act()` silently loses the React updates. jsdom has no ResizeObserver and zero-size rects, so gestures there are pure-math tests.
 
 Current HTML resource slugs: `/ancient-china` (legacy, hidden from home), `/intangible-culture-heritage`, `/silk-road`, `/taiwan`, `/liberation-war`.
 
@@ -146,7 +163,7 @@ The page is a canvas-rendered 3D "沙盘" (the old SVG engine was replaced): a h
 
 ### The header mega menu
 
-The header has a single trigger (「全览地图」) that opens a **hover mega dropdown** anchored under the navigation bar (modeled on the Claude.ai nav): three category columns side by side, each listing its entries by name only (no subtitle, no visible path; long names truncate to one line), plus a decorative hand-drawn China map strip on the right edge. Files:
+The header has a single trigger (「全览地图」) that opens a **hover mega dropdown** anchored under the navigation bar (modeled on the Claude.ai nav): category columns side by side (four at present), each listing its entries by name only (no subtitle, no visible path; long names truncate to one line), plus a decorative hand-drawn China map strip on the right edge. Files:
 
 | File | Role |
 | --- | --- |
@@ -161,7 +178,7 @@ Decisions worth keeping:
 - The dropdown is a **disclosure pattern, not a modal**. No `role="dialog"`, no backdrop, no focus trap: focus moves freely between trigger and panel, Escape closes and refocuses the trigger, `pointerdown` outside or focus leaving the wrapper closes it. Do not reintroduce a focus trap here — there is nothing to trap.
 - Hover opens after a short delay (`OPEN_DELAY_MS`); leaving the trigger/panel area closes after a grace period (`CLOSE_GRACE_MS`) so crossing the gap does not blink the panel shut. Both timers must be cleaned up on unmount — a late `setOpen` from a StrictMode double-mount reopens a closed panel.
 - Panel content is conditionally mounted (`{open ? <div id="site-mega-menu">…} : null}`), so "closed means absent" is a fact; there is no hidden tree needing `inert`.
-- All three columns are rendered at once (the old full-screen panel swapped one tabpanel). Tests can therefore assert all five destinations in a single pass.
+- All columns are rendered at once (the old full-screen panel swapped one tabpanel). Tests can therefore assert every destination in a single pass.
 - The map strip (`.mega-map`) is `pointer-events-none` and `hidden` below `lg`; the map's active zone follows the hovered column, falling back to the group that owns the current route.
 
 ### Editing the hand-drawn map
