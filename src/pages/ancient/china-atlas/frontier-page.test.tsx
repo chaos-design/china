@@ -46,7 +46,7 @@ describe("<FrontierAtlasPage />（统一图谱的边疆图层）", () => {
     expect(screen.getByText(`资料出处 · ${first.sources[0]}`)).toBeInTheDocument();
   });
 
-  it("切换制度不改变地图视野", () => {
+  it("切换制度只换视野，不重挂载地图", () => {
     const { container } = renderPage();
     const map = container.querySelector('svg[role="img"]');
     const viewBox = map?.getAttribute("viewBox");
@@ -61,6 +61,9 @@ describe("<FrontierAtlasPage />（统一图谱的边疆图层）", () => {
       }),
     );
     expect(screen.getByText(FRONTIER_POLICIES[1]!.description)).toBeInTheDocument();
+    expect(container.querySelector('svg[role="img"]')).toBe(map);
+    expect(map?.getAttribute("viewBox")).not.toBe(viewBox);
+    fireEvent.click(screen.getByRole("button", { name: "全览 · 全部治所" }));
     expect(map?.getAttribute("viewBox")).toBe(viewBox);
   });
 });

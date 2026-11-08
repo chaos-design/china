@@ -2,11 +2,14 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { AtlasExplorer } from "./atlas-explorer";
+import { getAtlasFocus, regionOfPoints } from "./atlas-focus";
 import { ATLAS_ITEMS, ATLAS_LAYER_OPTIONS, ATLAS_VIEW, type AtlasLayerId } from "./atlas-items";
 import { ATLAS_TOPIC_COLOR, FLOW_DOTS } from "./atlas-map";
-import { DYNASTY_TERRITORIES } from "./dynasty-territories";
+import { getDynastyOutline } from "./dynasty-overlay";
+import { DYNASTY_TERRITORIES, getDynastyTerritory } from "./dynasty-territories";
 import { FRONTIER_POLICIES } from "./frontier-policies";
 import { MIGRATION_EVENTS } from "./migration-events";
+import { projectMigration } from "./migration-projection";
 import { TERRITORY_SNAPSHOTS } from "./territory-snapshots";
 
 function renderExplorer(initialLayer?: AtlasLayerId) {
@@ -41,7 +44,7 @@ describe("<AtlasExplorer /> 统一功能页", () => {
   it("顶部只留一张菜单：四个专题铺平、三个专题不再收进选择器", () => {
     const { map } = renderExplorer();
 
-    expect(screen.getByRole("heading", { level: 1, name: "疆域与民族图谱" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "历史地理图谱" })).toBeInTheDocument();
     expect(screen.getByText("三谱同图 · 汉唐宋元")).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "专题图层" })).not.toBeInTheDocument();
     for (const { label } of ATLAS_LAYER_OPTIONS) {
@@ -89,11 +92,12 @@ describe("<AtlasExplorer /> 统一功能页", () => {
     );
   });
 
-  it("选中条目朱色高亮，并局部放大所在地区；复位后回到全图", () => {
+  it("选中条目朱色高亮，并聚焦到条目所在地区；复位后回到全图", () => {
     const { map } = renderExplorer("frontier");
     const policy = FRONTIER_POLICIES[0]!;
-    const zoom = () => map()?.querySelector(".atlas-zoom-layer");
-    expect(zoom()?.getAttribute("data-zoom")).toBe("1");
+    const svg = map();
+    expect(svg?.getAttribute("data-zoom")).toBe("1");
+    expect(svg?.getAttribute("viewBox")).toBe(ATLAS_VIEW.box);
 
     fireEvent.click(
       within(screen.getByRole("complementary", { name: "边疆制度目录" })).getByRole("button", {
@@ -107,12 +111,27 @@ describe("<AtlasExplorer /> 统一功能页", () => {
     );
     expect(row).toHaveAttribute("aria-pressed", "true");
     expect(row.className).toContain("text-vermillion");
-    expect(Number(zoom()?.getAttribute("data-zoom"))).toBeGreaterThan(1);
-    expect(zoom()?.getAttribute("style")).toContain("scale(2");
-    expect(map()?.getAttribute("viewBox")).toBe(ATLAS_VIEW.box);
+    expect(map()).toBe(svg);
+    expect(Number(svg?.getAttribute("data-zoom"))).toBeGreaterThan(1);
+    const focusedBox = svg?.getAttribute("viewBox");
+    expect(focusedBox).not.toBe(ATLAS_VIEW.box);
+    // 焦点中心 = viewBox 中心 = 可视区中心，视野完全按预期公式算出
+    const expected = getAtlasFocus({
+      maxZoom: 2.2,
+      padding: 12,
+      region: regionOfPoints([projectMigration(...policy.seat.ll)]),
+    });
+    expect(focusedBox).toBe(expected.box);
+    const [x, y, width, height] = expected.box.split(" ").map(Number);
+    expect(expected.cx).toBeCloseTo(x! + width! / 2, 1);
+    expect(expected.cy).toBeCloseTo(y! + height! / 2, 1);
+    // 聚焦后视图说明卡给出朝代、都城与倍率
+    expect(screen.getByRole("button", { name: "回到全览" })).toBeInTheDocument();
+    expect(screen.getByText(/放大 \d/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /局部放大/ }));
-    expect(zoom()?.getAttribute("data-zoom")).toBe("1");
+    fireEvent.click(screen.getByRole("button", { name: "回到全览" }));
+    expect(svg?.getAttribute("data-zoom")).toBe("1");
+    expect(svg?.getAttribute("viewBox")).toBe(ATLAS_VIEW.box);
   });
 
   it("底图恒为现今疆域，切换朝代叠加该朝疆域示意与都城、大城市标记", () => {
@@ -123,48 +142,61 @@ describe("<AtlasExplorer /> 统一功能页", () => {
     const chips = screen.getByRole("group", { name: "朝代切换" });
     fireEvent.click(within(chips).getByRole("button", { name: "唐" }));
 
-    const tang = DYNASTY_TERRITORIES.find((entry) => entry.id === "tang")!;
+    const tang = getDynastyTerritory("tang");
+    expect(DYNASTY_TERRITORIES).toContain(tang);
     expect(map()?.querySelector(".atlas-dynasty-area")).not.toBeNull();
     expect(map()?.querySelectorAll(".atlas-city-label")).toHaveLength(tang.cities.length);
     expect(svgWithin(map()).getByText("长安 · 都城")).toBeInTheDocument();
     expect(screen.getByText(/唐 · 疆域示意（非实测边界）/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "唐 · 都城与主要城市" })).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(`都城 · ${tang.capital}`))).toBeInTheDocument();
+    expect(screen.getAllByText(new RegExp(`都城 · ${tang.capital}`)).length).toBeGreaterThan(0);
     for (const source of tang.sources) {
       expect(screen.getByText(`资料出处 · ${source}`)).toBeInTheDocument();
     }
 
+    // 切换朝代自动把视野定位到该朝疆域范围，中心对齐可视区
+    const { bounds } = getDynastyOutline(tang);
+    const expected = getAtlasFocus({
+      maxZoom: 1.8,
+      padding: 9,
+      region: { x0: bounds.x0, x1: bounds.x1, y0: bounds.y0, y1: bounds.y1 },
+    });
+    expect(map()?.getAttribute("viewBox")).toBe(expected.box);
+    expect(Number(map()?.getAttribute("data-zoom"))).toBeGreaterThan(1);
+    expect(screen.getByRole("button", { name: "回到全览" })).toBeInTheDocument();
+
     fireEvent.click(within(chips).getByRole("button", { name: "全部朝代" }));
     expect(map()?.querySelector(".atlas-dynasty-area")).toBeNull();
+    expect(map()?.getAttribute("viewBox")).toBe(ATLAS_VIEW.box);
     expect(screen.getByText(/全览模式：六幅疆域快照/)).toBeInTheDocument();
   });
 
-  it("切换全部与单项时不重挂载地图：同一 SVG、同一视野、同一底图节点", () => {
+  it("切换全部与单项时不重挂载地图：同一 SVG、同一底图节点", () => {
     const { map } = renderExplorer();
     const svg = map();
     expect(svg).not.toBeNull();
-    const viewBox = svg?.getAttribute("viewBox");
     const firstBasemapPath = svg?.querySelector("path");
     const basemapCount = svg?.querySelectorAll("path").length;
-    expect(viewBox).toBe(ATLAS_VIEW.box);
+    expect(svg?.getAttribute("viewBox")).toBe(ATLAS_VIEW.box);
 
     switchTo("民族迁徙");
     expect(map()).toBe(svg);
-    expect(svg?.getAttribute("viewBox")).toBe(viewBox);
+    expect(svg?.getAttribute("viewBox")).toBe(ATLAS_VIEW.box);
     expect(svg?.querySelector("path")).toBe(firstBasemapPath);
 
-    // 单选某一条也不改视野，只改 <g> 的 transform
+    // 选中条目换的是 viewBox（中心对齐），不是重挂载 SVG 或底图
     fireEvent.click(
       within(screen.getByRole("complementary")).getByRole("button", {
         name: new RegExp(MIGRATION_EVENTS[1]!.group),
       }),
     );
     expect(map()).toBe(svg);
-    expect(svg?.getAttribute("viewBox")).toBe(viewBox);
+    expect(svg?.getAttribute("viewBox")).not.toBe(ATLAS_VIEW.box);
+    expect(svg?.querySelector("path")).toBe(firstBasemapPath);
 
     switchTo("全部图谱");
     expect(map()).toBe(svg);
-    expect(svg?.getAttribute("viewBox")).toBe(viewBox);
+    expect(svg?.getAttribute("viewBox")).toBe(ATLAS_VIEW.box);
     expect(svg?.querySelectorAll("path").length).toBeGreaterThanOrEqual(basemapCount ?? 0);
   });
 

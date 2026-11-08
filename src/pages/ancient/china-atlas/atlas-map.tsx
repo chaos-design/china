@@ -1,14 +1,13 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 import { cn } from "../../../lib/utils";
-import { type AtlasFocus, atlasTransform } from "./atlas-focus";
+import type { AtlasFocus } from "./atlas-focus";
 import {
-  ATLAS_LABELS,
-  ATLAS_VIEW,
   type AtlasItem,
   type AtlasLayerId,
   type AtlasPoint,
   LABEL_FONT_SIZE,
+  placeLabels,
 } from "./atlas-items";
 import { BasemapLayers } from "./basemap-layers";
 import { getDynastyTerritory } from "./dynasty-territories";
@@ -21,8 +20,8 @@ export interface AtlasMapProps {
   animated: boolean;
   /** 当前朝代断面；null 表示只画现代疆域底图。 */
   dynasty: AtlasDynastyId | null;
-  /** 选中条目后要聚焦的 transform；全览时为单位变换。 */
-  focus: AtlasFocus;
+  /** 当前视野（全览或聚焦）。viewBox 与标注避让都由它决定。 */
+  view: AtlasFocus;
   /** 悬停中的条目 id（详情卡据此展开，地图只做强调）。 */
   hoveredId: string | null;
   /** 可见条目；切换「全部 / 单项」只换这个数组，SVG 与视野保持不动。 */
@@ -56,10 +55,12 @@ function DefenseRing({
   active,
   dim,
   point,
+  unit,
 }: {
   active: boolean;
   dim: boolean;
   point: readonly [number, number];
+  unit: number;
 }) {
   return (
     <circle
@@ -70,58 +71,99 @@ function DefenseRing({
       opacity={dim ? 0.32 : 1}
       r={DEFENSE_RADIUS}
       stroke="hsl(var(--ochre))"
-      strokeDasharray="0.9 0.6"
-      strokeWidth={active ? 0.5 : 0.34}
+      strokeDasharray={`${0.9 * unit} ${0.6 * unit}`}
+      strokeWidth={(active ? 0.5 : 0.34) * unit}
     />
   );
 }
 
 const MAP_ARIA_LABEL: Record<AtlasLayerId, string> = {
-  all: "疆域与民族图谱综合地图：真实省界底图上的三类标注",
+  all: "历史地理图谱综合地图：真实省界底图上的三类标注",
   territory: "疆域变迁地图：真实省界底图上的历代疆域快照节点",
   migration: "民族迁徙路线图：真实省界底图上的历代迁徙路线",
   frontier: "边疆治理地图：真实省界底图上的历代边疆机构治所",
 };
 
-function PointSymbol({ color, dim, point }: { color: string; dim: boolean; point: AtlasPoint }) {
+function PointSymbol({
+  color,
+  dim,
+  point,
+  unit,
+}: {
+  color: string;
+  dim: boolean;
+  point: AtlasPoint;
+  unit: number;
+}) {
   const [x, y] = point.point;
   if (point.kind === "seat") {
     return (
       <rect
         fill={dim ? "hsl(var(--paper))" : color}
-        height={1}
+        height={unit}
         stroke={dim ? "hsl(var(--ink) / 0.4)" : "hsl(var(--paper) / 0.8)"}
-        strokeWidth={0.14}
-        width={1}
-        x={x - 0.5}
-        y={y - 0.5}
+        strokeWidth={0.14 * unit}
+        width={unit}
+        x={x - unit / 2}
+        y={y - unit / 2}
       />
     );
   }
   if (point.kind === "waypoint") {
     return (
-      <circle cx={x} cy={y} fill={color} r={0.34} stroke="hsl(var(--paper))" strokeWidth={0.1} />
+      <circle
+        cx={x}
+        cy={y}
+        fill={color}
+        r={0.34 * unit}
+        stroke="hsl(var(--paper))"
+        strokeWidth={0.1 * unit}
+      />
     );
   }
   if (point.kind === "anchor") {
     return (
-      <circle cx={x} cy={y} fill="hsl(var(--paper))" r={0.42} stroke={color} strokeWidth={0.18} />
+      <circle
+        cx={x}
+        cy={y}
+        fill="hsl(var(--paper))"
+        r={0.42 * unit}
+        stroke={color}
+        strokeWidth={0.18 * unit}
+      />
     );
   }
   return (
-    <circle cx={x} cy={y} fill={color} r={0.6} stroke="hsl(var(--paper))" strokeWidth={0.14} />
+    <circle
+      cx={x}
+      cy={y}
+      fill={color}
+      r={0.6 * unit}
+      stroke="hsl(var(--paper))"
+      strokeWidth={0.14 * unit}
+    />
   );
 }
 
 /** 迁徙路线：画线 + 纸色刻痕 + 流动光点，全览与单选共用同一套动画。 */
-function RouteLayer({ animated, dim, item }: { animated: boolean; dim: boolean; item: AtlasItem }) {
+function RouteLayer({
+  animated,
+  dim,
+  item,
+  unit,
+}: {
+  animated: boolean;
+  dim: boolean;
+  item: AtlasItem;
+  unit: number;
+}) {
   const route = item.route;
   if (!route) return null;
   const color = ATLAS_TOPIC_COLOR.migration;
   const stroke = dim ? "hsl(var(--ink) / 0.32)" : color;
   return (
     <g key={`route-${item.id}`} opacity={dim ? 0.5 : 1}>
-      <path d={route.d} fill="none" opacity={0.16} stroke={stroke} strokeWidth={1} />
+      <path d={route.d} fill="none" opacity={0.16} stroke={stroke} strokeWidth={unit} />
       <path
         d={route.d}
         fill="none"
@@ -130,7 +172,7 @@ function RouteLayer({ animated, dim, item }: { animated: boolean; dim: boolean; 
         strokeDasharray={1}
         strokeDashoffset={animated && !dim ? 1 : 0}
         strokeLinecap="round"
-        strokeWidth={dim ? 0.22 : 0.42}
+        strokeWidth={(dim ? 0.22 : 0.42) * unit}
       >
         {animated && !dim ? (
           <animate
@@ -154,7 +196,7 @@ function RouteLayer({ animated, dim, item }: { animated: boolean; dim: boolean; 
             stroke="hsl(var(--paper) / 0.9)"
             strokeDasharray="0.02 0.085"
             strokeDashoffset={0.105}
-            strokeWidth={0.14}
+            strokeWidth={0.14 * unit}
           >
             <animate
               attributeName="opacity"
@@ -177,9 +219,9 @@ function RouteLayer({ animated, dim, item }: { animated: boolean; dim: boolean; 
               begin={`${(-index * (FLOW_DUR_S / FLOW_DOTS.length)).toFixed(2)}s`}
               fill="hsl(var(--paper))"
               key={`flow-${item.id}-${index}`}
-              r={radius}
+              r={radius * unit}
               stroke={color}
-              strokeWidth={0.16}
+              strokeWidth={0.16 * unit}
             >
               <animateMotion dur={`${FLOW_DUR_S}s`} path={route.d} repeatCount="indefinite" />
             </circle>
@@ -193,44 +235,45 @@ function RouteLayer({ animated, dim, item }: { animated: boolean; dim: boolean; 
 /**
  * 一张常驻 SVG：现代疆域底图、朝代断面、三类标图点、路线与引导线标注全画在同一视野里。
  *
- * 稳定性约定（切换「全部 / 单项」时地图不跳动）：
- * - viewBox 取模块级常量 ATLAS_VIEW，不随选中项重算；
- * - 标注坐标取模块级常量 ATLAS_LABELS，不随过滤结果重排；
- * - SVG 本身没有 key，页面切换只改变 children，DOM 节点与尺寸保持不变；
- * - 局部放大只作用于最外层 <g> 的 transform，视野与标注坐标都不变，
- *   因而放大是可逆的、可过渡的，也不会让底图重挂载。
+ * 稳定性约定：
+ * - SVG 本身没有 key，页面切换只改变 children，DOM 节点不重挂载；
+ * - viewBox 由 AtlasFocus 统一给出，全览时恒为 ATLAS_VIEW 对应的视野；
+ * - 标注按**当前视野**做确定性避让：全览复用固定布局，聚焦时围绕少量可见点
+ *   重新排布，标签不会散到视野外，也不会和朝代城市名挤成一团。
  */
 export const AtlasMap = memo(function AtlasMap({
   animated,
   className,
   dynasty,
-  focus,
   hoveredId,
   items,
   layer,
   onHover,
   onSelect,
   selectedId,
+  view,
 }: AtlasMapProps) {
+  const labels = useMemo(
+    () => new Map(placeLabels(items, view).map((placement) => [placement.id, placement])),
+    [items, view],
+  );
+  // viewBox 收窄会让所有 SVG 文字等比变大；反向补偿字号与标签框，避免放大后糊成一团。
+  const unit = view.focused ? 1 / Math.sqrt(view.zoom) : 1;
   return (
     <svg
       aria-label={`${MAP_ARIA_LABEL[layer]}${dynasty ? ` · 叠加${getDynastyTerritory(dynasty).label}朝疆域示意` : ""}`}
       className={cn("block h-full w-full", className)}
+      data-zoom={view.zoom}
       preserveAspectRatio="xMidYMid meet"
       role="img"
-      viewBox={ATLAS_VIEW.box}
+      viewBox={view.box}
     >
-      {/* 单一常驻 <g>：局部放大只改这里的 transform，viewBox / 底图 / 标注坐标全部不动 */}
-      <g
-        className="atlas-zoom-layer"
-        data-zoom={focus.k}
-        style={{ transform: atlasTransform(focus), transformOrigin: "0 0" }}
-      >
+      <g className="atlas-map-layer">
         {/* 底图公共图层：现代中国省界 → 国界 → 岛屿 → 九段线 → 经纬网 → 河流 → 海名 */}
-        <BasemapLayers />
+        <BasemapLayers subdued={view.focused} />
 
         {/* 朝代断面叠在现代底图之上：示意范围 + 都城 / 大城市符号与名称 */}
-        <DynastyTerritoryLayer dynasty={dynasty} items={items} />
+        <DynastyTerritoryLayer dynasty={dynasty} items={items} view={view} />
 
         {/* 防御范围示意环画在最底层，方印与标签随后覆盖，标注信息不被遮挡 */}
         {items
@@ -241,6 +284,7 @@ export const AtlasMap = memo(function AtlasMap({
               dim={selectedId !== null && selectedId !== item.id}
               key={`defense-${item.id}`}
               point={item.primary}
+              unit={unit}
             />
           ))}
 
@@ -252,6 +296,7 @@ export const AtlasMap = memo(function AtlasMap({
               dim={selectedId !== null && selectedId !== item.id}
               item={item}
               key={`route-layer-${item.id}`}
+              unit={unit}
             />
           ) : null,
         )}
@@ -268,6 +313,7 @@ export const AtlasMap = memo(function AtlasMap({
                   dim={dim}
                   key={`${item.id}-${point.kind}-${index}`}
                   point={point}
+                  unit={unit}
                 />
               ))}
             </g>
@@ -283,18 +329,18 @@ export const AtlasMap = memo(function AtlasMap({
               cy={item.primary[1]}
               fill="none"
               key={`halo-${item.id}`}
-              r={1.1}
+              r={1.1 * unit}
               stroke={ATLAS_TOPIC_COLOR[item.topic]}
-              strokeWidth={0.2}
+              strokeWidth={0.2 * unit}
             >
               {animated ? (
                 <>
                   <animate
                     attributeName="r"
                     dur="2.2s"
-                    from={1.1}
+                    from={1.1 * unit}
                     repeatCount="indefinite"
-                    to={2.4}
+                    to={2.4 * unit}
                   />
                   <animate
                     attributeName="stroke-opacity"
@@ -310,7 +356,7 @@ export const AtlasMap = memo(function AtlasMap({
 
         {/* 引导线与标签画在最上层：选中项以朱色高亮，其余降为墨灰 */}
         {items.map((item) => {
-          const placement = ATLAS_LABELS.get(item.id);
+          const placement = labels.get(item.id);
           if (!placement) return null;
           const dim = selectedId !== null && selectedId !== item.id;
           const isSelected = item.id === selectedId;
@@ -318,6 +364,16 @@ export const AtlasMap = memo(function AtlasMap({
           const color = dim ? "hsl(var(--ink) / 0.38)" : ATLAS_TOPIC_COLOR[item.topic];
           const highlight = isSelected ? "hsl(var(--vermillion))" : color;
           const { height, leader, width, x, y } = placement;
+          const boxWidth = width * unit;
+          const boxHeight = height * unit;
+          const ex = Math.min(
+            Math.max(leader.x1, x - boxWidth / 2 + 0.4 * unit),
+            x + boxWidth / 2 - 0.4 * unit,
+          );
+          const ey = Math.min(
+            Math.max(leader.y1, y - boxHeight / 2 + 0.4 * unit),
+            y + boxHeight / 2 - 0.4 * unit,
+          );
           return (
             // biome-ignore lint/a11y/useSemanticElements: SVG 的 <g> 不能换成 HTML <button>，热点只能靠 role + tabIndex 提供键盘可达性
             <g
@@ -340,23 +396,23 @@ export const AtlasMap = memo(function AtlasMap({
             >
               <path
                 className="atlas-leader"
-                d={`M ${leader.x1} ${leader.y1} L ${leader.x2} ${leader.y2}`}
+                d={`M ${leader.x1} ${leader.y1} L ${ex} ${ey}`}
                 fill="none"
                 opacity={dim ? 0.45 : 0.85}
                 stroke={highlight}
-                strokeWidth={isSelected ? 0.28 : active ? 0.2 : 0.12}
+                strokeWidth={(isSelected ? 0.28 : active ? 0.2 : 0.12) * unit}
               />
-              <circle cx={leader.x1} cy={leader.y1} fill={highlight} r={0.26} />
+              <circle cx={leader.x1} cy={leader.y1} fill={highlight} r={0.26 * unit} />
               <rect
                 className="atlas-label-box"
                 fill={isSelected ? "hsl(var(--vermillion) / 0.14)" : "hsl(var(--paper) / 0.94)"}
-                height={height}
-                rx={0.5}
+                height={boxHeight}
+                rx={0.5 * unit}
                 stroke={highlight}
-                strokeWidth={isSelected ? 0.36 : active ? 0.28 : 0.14}
-                width={width}
-                x={x - width / 2}
-                y={y - height / 2}
+                strokeWidth={(isSelected ? 0.36 : active ? 0.28 : 0.14) * unit}
+                width={boxWidth}
+                x={x - boxWidth / 2}
+                y={y - boxHeight / 2}
               />
               <text
                 className="font-kai"
@@ -367,11 +423,11 @@ export const AtlasMap = memo(function AtlasMap({
                       ? "hsl(var(--ink) / 0.55)"
                       : "hsl(var(--ink))"
                 }
-                fontSize={LABEL_FONT_SIZE}
+                fontSize={LABEL_FONT_SIZE * unit}
                 fontWeight={active ? 700 : 500}
                 textAnchor="middle"
                 x={x}
-                y={y + LABEL_FONT_SIZE * 0.35}
+                y={y + LABEL_FONT_SIZE * unit * 0.35}
               >
                 {item.label}
               </text>

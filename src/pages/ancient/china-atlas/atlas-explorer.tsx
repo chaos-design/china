@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "../../../lib/utils";
-import { getAtlasFocus } from "./atlas-focus";
+import { type FocusRegion, getAtlasFocus, regionOfPoints } from "./atlas-focus";
 import {
   ATLAS_ITEMS,
   ATLAS_LAYER_OPTIONS,
+  ATLAS_VIEW,
   type AtlasItem,
   type AtlasLayerId,
   getVisibleItems,
@@ -12,7 +13,7 @@ import {
 import { AtlasMap } from "./atlas-map";
 import { AtlasShell } from "./atlas-shell";
 import { ATLAS_DYNASTIES } from "./dynasties";
-import { dynastyCitySummary } from "./dynasty-overlay";
+import { dynastyCitySummary, getDynastyOutline } from "./dynasty-overlay";
 import { getDynastyTerritory } from "./dynasty-territories";
 import { TERRITORY_SNAPSHOTS, TERRITORY_YEAR_RANGE } from "./territory-snapshots";
 import { getAtlasTopic } from "./topics";
@@ -37,7 +38,7 @@ const LAYER_META: Record<AtlasLayerId, LayerMeta> = {
     menuLabel: "图谱条目目录",
     overviewLabel: "全览 · 全部图谱",
     tagline: "一图三谱",
-    title: "疆域与民族图谱",
+    title: "历史地理图谱",
   },
   territory: {
     badge: "首批六幅快照 · 汉唐宋元",
@@ -313,6 +314,29 @@ interface MenuGroup {
   period: string;
 }
 
+/**
+ * 地图容器通常是宽扁的，而底图坐标是 173×131。测出真实宽高比后，
+ * 聚焦视野按这个比例生成，放大后正好铺满可视区、焦点落在正中央。
+ * jsdom 没有 ResizeObserver，此时退回全览比例，测试里的 viewBox 保持稳定。
+ */
+function useMapAspect() {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [ratio, setRatio] = useState(ATLAS_VIEW.width / ATLAS_VIEW.height);
+  useEffect(() => {
+    const node = frameRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      const { height, width } = node.getBoundingClientRect();
+      if (width > 0 && height > 0) setRatio(width / height);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return { frameRef, ratio };
+}
+
 /** 每个专题下的条目一律按朝代分组；朝代被选中时只留该朝一组。 */
 function groupsForLayer(layerId: AtlasLayerId, dynasty: AtlasDynastyId | null): MenuGroup[] {
   return ATLAS_DYNASTIES.map((entry) => ({
@@ -329,7 +353,7 @@ function groupsForLayer(layerId: AtlasLayerId, dynasty: AtlasDynastyId | null): 
 }
 
 /**
- * 「疆域与民族图谱」统一功能页。
+ * 「历史地理图谱」统一功能页。
  *
  * 四条旧路由都渲染这一份组件，只在 initialLayer 上不同；页内切换专题、
  * 朝代或条目都是纯 state 变化，不换路由、不重挂载 SVG。底图恒为现代疆域，
@@ -344,14 +368,36 @@ export function AtlasExplorer({ initialLayer = "all" }: { initialLayer?: AtlasLa
   /** 折叠菜单是手风琴式：同一时间只展开一节，避免同名条目在 DOM 里出现两次。 */
   const [expanded, setExpanded] = useState<AtlasLayerId | null>(initialLayer);
 
+  const { frameRef, ratio } = useMapAspect();
   const meta = LAYER_META[layer];
-  const visibleItems = useMemo(
-    () => getVisibleItems(layer).filter((item) => dynasty === null || item.dynastyId === dynasty),
-    [dynasty, layer],
-  );
   const selected = ATLAS_ITEMS.find((item) => item.id === selectedId) ?? null;
   const hovered = ATLAS_ITEMS.find((item) => item.id === hoveredId) ?? null;
-  const focus = useMemo(() => getAtlasFocus(selected), [selected]);
+  const dynastyTerritory = dynasty ? getDynastyTerritory(dynasty) : null;
+
+  // 聚焦时只画当前朝代 / 选中条目的标注，不再把 22 条全糊在一张放大的图上。
+  const visibleItems = useMemo(() => {
+    const byLayer = getVisibleItems(layer);
+    if (selected) return byLayer.filter((item) => item.id === selected.id);
+    if (dynasty) return byLayer.filter((item) => item.dynastyId === dynasty);
+    return byLayer;
+  }, [dynasty, layer, selected]);
+
+  const focusRegion = useMemo<FocusRegion | null>(() => {
+    if (selected) return regionOfPoints(selected.points.map((point) => point.point));
+    if (!dynastyTerritory) return null;
+    const { bounds } = getDynastyOutline(dynastyTerritory);
+    return { x0: bounds.x0, x1: bounds.x1, y0: bounds.y0, y1: bounds.y1 };
+  }, [dynastyTerritory, selected]);
+  const focus = useMemo(
+    () =>
+      getAtlasFocus({
+        maxZoom: selected ? 2.2 : 1.8,
+        padding: selected ? 12 : 9,
+        ratio,
+        region: focusRegion,
+      }),
+    [focusRegion, ratio, selected],
+  );
   const menuSections = useMemo(
     () =>
       ATLAS_LAYER_OPTIONS.map((option) => ({
@@ -365,6 +411,7 @@ export function AtlasExplorer({ initialLayer = "all" }: { initialLayer?: AtlasLa
     setLayer(next);
     setSelectedId(null);
     setHoveredId(null);
+    setDynasty(null);
     setExpanded(next);
   }, []);
 
@@ -392,7 +439,8 @@ export function AtlasExplorer({ initialLayer = "all" }: { initialLayer?: AtlasLa
       setSelectedId(id);
       setHoveredId(null);
       setExpanded(layer);
-      if (item.topic === "territory") setDynasty(item.dynastyId);
+      // 任何条目都归到它所属的朝代：地图与信息卡的朝代语境才不会错位。
+      setDynasty(item.dynastyId);
     },
     [layer],
   );
@@ -429,6 +477,7 @@ export function AtlasExplorer({ initialLayer = "all" }: { initialLayer?: AtlasLa
             onClick={() => {
               setSelectedId(null);
               setHoveredId(null);
+              setDynasty(null);
             }}
             type="button"
           >
@@ -581,18 +630,45 @@ export function AtlasExplorer({ initialLayer = "all" }: { initialLayer?: AtlasLa
 
         {/* 地图列：相对定位容器恒高，浮层用绝对定位，切换时没有布局位移 */}
         <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-ink/10 bg-paper/70 p-2 sm:p-3">
-          <div className="relative min-h-0 flex-1">
+          <div className="relative min-h-0 flex-1" ref={frameRef}>
             <AtlasMap
               animated={animated}
               dynasty={dynasty}
-              focus={focus}
               hoveredId={hoveredId}
               items={visibleItems}
               layer={layer}
               onHover={setHoveredId}
               onSelect={selectItem}
               selectedId={selectedId}
+              view={focus}
             />
+
+            {/* 固定尺寸的视图说明：只放不随 viewBox 缩放的控件信息（标题 + 倍率 + 复位）；
+                都城、主要城市与史料出处统一由下方固定详情卡承载，避免重复与看不清。 */}
+            {focus.focused ? (
+              <div className="pointer-events-none absolute top-3 right-3 z-10 flex flex-col items-end gap-1 rounded-xl border border-vermillion/25 bg-paper/95 px-3 py-2 shadow-[0_2px_12px_hsl(var(--ink)/0.08)]">
+                <p className="font-kai text-sm font-bold text-vermillion">
+                  {selected ? selected.title : `${dynastyTerritory?.label ?? ""} · 疆域示意`}
+                </p>
+                <p className="font-mono-tech text-[0.7rem] text-muted-foreground">
+                  {selected ? selected.period : dynastyTerritory?.period} · 放大 {focus.zoom}×
+                </p>
+                <p className="font-body text-[0.7rem] leading-relaxed text-muted-foreground">
+                  示意范围非实测边界 · 底图为现今疆域
+                </p>
+                <button
+                  className="pointer-events-auto mt-0.5 rounded-full border border-vermillion/40 bg-vermillion/10 px-2.5 py-0.5 font-body text-xs text-vermillion transition-colors hover:bg-vermillion/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  onClick={() => {
+                    setSelectedId(null);
+                    setHoveredId(null);
+                    setDynasty(null);
+                  }}
+                  type="button"
+                >
+                  回到全览
+                </button>
+              </div>
+            ) : null}
           </div>
 
           <div className="flex h-8 shrink-0 flex-wrap items-center justify-between gap-x-4 overflow-hidden px-1">
@@ -611,17 +687,10 @@ export function AtlasExplorer({ initialLayer = "all" }: { initialLayer?: AtlasLa
               )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              {selected ? (
-                <button
-                  className="rounded-full border border-vermillion/40 bg-vermillion/10 px-3 py-1 font-body text-xs text-vermillion transition-colors hover:bg-vermillion/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  onClick={() => {
-                    setSelectedId(null);
-                    setHoveredId(null);
-                  }}
-                  type="button"
-                >
-                  局部放大 · {focus.k}× · 复位
-                </button>
+              {focus.focused ? (
+                <span className="font-mono-tech text-xs text-vermillion">
+                  局部放大 · {focus.zoom}×
+                </span>
               ) : null}
               <button
                 aria-pressed={animated}

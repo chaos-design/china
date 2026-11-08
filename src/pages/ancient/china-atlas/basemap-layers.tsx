@@ -4,8 +4,12 @@ import { MIGRATION_BASEMAP } from "./migration-projection";
  * 真实底图的公共图层：省界 → 国界 → 岛屿 → 九段线 → 经纬网 → 河流 → 海名。
  * 民族迁徙与边疆治理两张地图共用这一份渲染，
  * 图层样式只在这里调一处——两页的底图永远一致。
+ *
+ * 聚焦时把经纬网、河名、海名这类辅助文字淡下去，只留省界与国界做地理参照，
+ * 避免放大后底图注记和图谱标注抢读。
  */
-export function BasemapLayers() {
+export function BasemapLayers({ subdued = false }: { subdued?: boolean }) {
+  const noteOpacity = subdued ? 0.18 : 1;
   return (
     <>
       <g fill="hsl(var(--ink) / 0.035)" stroke="hsl(var(--ink) / 0.16)" strokeWidth={0.14}>
@@ -34,6 +38,7 @@ export function BasemapLayers() {
       <path
         d={MIGRATION_BASEMAP.graticule.d}
         fill="none"
+        opacity={noteOpacity}
         stroke="hsl(var(--ink) / 0.08)"
         strokeWidth={0.08}
       />
@@ -43,6 +48,7 @@ export function BasemapLayers() {
           fill="hsl(var(--ink) / 0.32)"
           fontSize={1.5}
           key={label.t}
+          opacity={noteOpacity}
           textAnchor={label.a as "middle"}
           x={label.x}
           y={label.y}
@@ -61,6 +67,7 @@ export function BasemapLayers() {
           fill="hsl(var(--blueprint) / 0.62)"
           fontSize={1.7}
           key={`${river.n}-label`}
+          opacity={noteOpacity}
           textAnchor="middle"
           x={river.label[0]}
           y={river.label[1]}
@@ -74,6 +81,7 @@ export function BasemapLayers() {
           fill="hsl(var(--blueprint) / 0.5)"
           fontSize={2.1}
           key={sea.t}
+          opacity={noteOpacity}
           textAnchor="middle"
           x={sea.x}
           y={sea.y}

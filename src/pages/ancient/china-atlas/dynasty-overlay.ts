@@ -1,6 +1,7 @@
 import {
   ATLAS_LABELS,
   ATLAS_VIEW,
+  type AtlasView,
   estimateLabelWidth,
   LABEL_FONT_SIZE,
   type LabelPlacement,
@@ -166,6 +167,7 @@ function cityLabelWidth(text: string): number {
 export function placeDynastyCityLabels(
   territory: DynastyTerritory,
   visibleItemIds: readonly string[],
+  view: AtlasView = ATLAS_VIEW,
 ): readonly DynastyCityLabel[] {
   const cities = projectDynastyCities(territory);
   const obstacles: Box[] = visibleItemIds.flatMap((id) => {
@@ -200,10 +202,10 @@ export function placeDynastyCityLabels(
           y1: y + CITY_LABEL_HEIGHT / 2,
         };
         const outside =
-          Math.max(0, ATLAS_VIEW.x - box.x0) +
-          Math.max(0, box.x1 - (ATLAS_VIEW.x + ATLAS_VIEW.width)) +
-          Math.max(0, ATLAS_VIEW.y - box.y0) +
-          Math.max(0, box.y1 - (ATLAS_VIEW.y + ATLAS_VIEW.height));
+          Math.max(0, view.x - box.x0) +
+          Math.max(0, box.x1 - (view.x + view.width)) +
+          Math.max(0, view.y - box.y0) +
+          Math.max(0, box.y1 - (view.y + view.height));
         const collisions =
           [...obstacles, ...placed].reduce((sum, other) => sum + overlap(box, other), 0) +
           cities

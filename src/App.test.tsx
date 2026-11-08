@@ -80,7 +80,7 @@ describe("<App /> routing", () => {
       "href",
       "/liberation-war",
     );
-    // 「疆域与民族图谱」三条入口已从筹备中转为可用
+    // 「历史地理图谱」三条入口已从筹备中转为可用
     expect(screen.getByRole("link", { name: /疆域变迁/ })).toHaveAttribute(
       "href",
       "/china/atlas/territory",
@@ -150,7 +150,7 @@ describe("<App /> routing", () => {
     fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
     const panel = await screen.findByLabelText("全览目录");
 
-    for (const group of ["编年与制度", "疆域与民族图谱", "文化与交通", "地域与近代"]) {
+    for (const group of ["编年与制度", "历史地理", "文化与交通", "地域与近代"]) {
       expect(
         Array.from(panel.querySelectorAll(".mega-col .mega-col-title")).some(
           (node) => node.textContent === group,
@@ -162,7 +162,7 @@ describe("<App /> routing", () => {
     const destinations = [
       ["/china/timeline", /朝代时间长河/],
       ["/china/policies", /朝代政策全览/],
-      ["/china/atlas", /全部图谱/],
+      ["/china/atlas", /历史地理图谱/],
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],
@@ -204,10 +204,10 @@ describe("<App /> routing", () => {
     renderAt("/china/atlas");
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "疆域与民族图谱" }),
+      await screen.findByRole("heading", { level: 1, name: "历史地理图谱" }),
     ).toBeInTheDocument();
     expect(screen.getByText("三谱同图 · 汉唐宋元")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /疆域与民族图谱综合地图/ })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /历史地理图谱综合地图/ })).toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 

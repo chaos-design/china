@@ -57,11 +57,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       {
         highlights: ["三类图谱同图", "按朝代切换疆域", "选中局部放大"],
-        label: "全部图谱",
+        label: "历史地理图谱",
         to: "/china/atlas",
       },
     ],
-    label: "疆域与民族图谱",
+    label: "历史地理",
     mapZone: "north",
   },
   {

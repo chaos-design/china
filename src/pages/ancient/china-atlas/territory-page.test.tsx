@@ -51,7 +51,7 @@ describe("<TerritoryAtlasPage />（统一图谱的疆域图层）", () => {
     expect(screen.getByText(`资料出处 · ${first.sources[0]}`)).toBeInTheDocument();
   });
 
-  it("全览提示与固定视野：切换选中项不重算 viewBox", () => {
+  it("全览提示与固定视野：全览 viewBox 恒定，选中后只换视野不换 SVG", () => {
     const { container } = renderPage();
     const map = container.querySelector('svg[role="img"]');
     expect(map).not.toBeNull();
@@ -66,6 +66,9 @@ describe("<TerritoryAtlasPage />（统一图谱的疆域图层）", () => {
         name: new RegExp(TERRITORY_SNAPSHOTS[1]!.label),
       }),
     );
+    expect(container.querySelector('svg[role="img"]')).toBe(map);
+    expect(map?.getAttribute("viewBox")).not.toBe(viewBox);
+    fireEvent.click(screen.getByRole("button", { name: "全览 · 全部快照" }));
     expect(map?.getAttribute("viewBox")).toBe(viewBox);
   });
 });

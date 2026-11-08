@@ -5,7 +5,7 @@ import { TERRITORY_SNAPSHOTS } from "./territory-snapshots";
 import type { AtlasDynastyId, AtlasTopicId } from "./types";
 
 /**
- * 「疆域与民族图谱」统一功能页的数据层。
+ * 「历史地理图谱」统一功能页的数据层。
  *
  * 三份史料数据（疆域快照 / 迁徙路线 / 边疆制度）在这里被整理成同一组「条目」，
  * 每条都带着自己的定位点、说明、时期与资料出处。页面与地图只认这一份结构：

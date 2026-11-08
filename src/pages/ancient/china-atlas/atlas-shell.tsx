@@ -20,7 +20,7 @@ export interface AtlasShellProps {
 }
 
 /**
- * 「疆域与民族图谱」统一功能页的应用式外壳：
+ * 「历史地理图谱」统一功能页的应用式外壳：
  * - 页头（标题区）钉在顶部，不随内容滚动；
  * - 左侧菜单贴住页面左缘、全高侧栏：顶部是朝代断面切换，下方是唯一一张
  *   铺平的可折叠条目菜单（四个专题各一节，节内按朝代分组），独立滚动；
@@ -47,7 +47,7 @@ export function AtlasShell({
             {badge}
           </span>
           <span className="font-body text-xs font-medium tracking-[0.3em] text-vermillion">
-            疆域与民族图谱 · {tagline}
+            历史地理图谱 · {tagline}
           </span>
         </div>
         <p className="mt-2 max-w-3xl font-body text-sm leading-relaxed text-ink/85">

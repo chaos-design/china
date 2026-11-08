@@ -84,7 +84,7 @@ describe("<MigrationAtlasPage />（统一图谱的迁徙图层）", () => {
     const map = container.querySelector('svg[role="img"]');
 
     fireEvent.click(screen.getByRole("button", { name: "全部图谱" }));
-    expect(screen.getByRole("heading", { level: 1, name: "疆域与民族图谱" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "历史地理图谱" })).toBeInTheDocument();
     expect(container.querySelector('svg[role="img"]')).toBe(map);
 
     fireEvent.click(screen.getByRole("button", { name: "边疆治理" }));
