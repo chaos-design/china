@@ -6,14 +6,14 @@ const institutionsResource = {
       path: "/china/institutions",
       icon: "book-open",
       status: "available",
-      title: "典章制度索引",
-      description: "官制、赋役、律令、科举与礼制五大专题已开放，梳理制度沿革与关键条目。",
+      title: "典章制度",
+      description: "官制、赋役、律令、科举与礼制五大专题：编年时间轴呈现制度沿革，附关键条目表。",
     },
   ],
   aboutItems: [
     {
       title: "制度与日常",
-      text: "官制、赋役、律令、科举与礼制五大专题已开放，观察制度如何进入社会生活。",
+      text: "官制、赋役、律令、科举与礼制五大专题以编年时间轴展开，观察制度如何进入社会生活。",
     },
   ],
   readingGuides: [

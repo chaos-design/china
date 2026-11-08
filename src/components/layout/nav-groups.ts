@@ -55,7 +55,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       },
       {
         highlights: ["五大制度专题", "沿革与关键条目", "专题检索"],
-        label: "典章制度索引",
+        label: "典章制度",
         to: "/china/institutions",
       },
     ],

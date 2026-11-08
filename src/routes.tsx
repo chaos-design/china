@@ -32,11 +32,6 @@ const TerritoryAtlasPage = lazy(() =>
     default: module.TerritoryAtlasPage,
   })),
 );
-const ChinaInstitutionsPage = lazy(() =>
-  import("./pages/ancient/china-institutions").then((module) => ({
-    default: module.ChinaInstitutionsPage,
-  })),
-);
 const InstitutionTopicPage = lazy(() =>
   import("./pages/ancient/china-institutions").then((module) => ({
     default: module.InstitutionTopicPage,
@@ -79,7 +74,11 @@ export const routes: RouteObject[] = [
       { path: "china/atlas/territory", element: withSuspense(<TerritoryAtlasPage />) },
       { path: "china/atlas/migration", element: withSuspense(<MigrationAtlasPage />) },
       { path: "china/atlas/frontier", element: withSuspense(<FrontierAtlasPage />) },
-      { path: "china/institutions", element: withSuspense(<ChinaInstitutionsPage />) },
+      // 本节没有总览页：/china/institutions 直接落到第一个条目
+      {
+        path: "china/institutions",
+        element: <Navigate to="/china/institutions/official-system" replace />,
+      },
       {
         path: "china/institutions/rites",
         element: withSuspense(<InstitutionTopicPage topicId="rites" />),

@@ -5,29 +5,22 @@ import { cn } from "../../../lib/utils";
 import { INSTITUTION_TOPICS } from "./topics";
 
 export interface InstitutionShellProps {
-  /** 当前激活的专题 id；null 表示索引/总览。 */
-  activeTopicId: string | null;
+  /** 当前激活的专题 id（本节没有总览页，每个路由都是一个条目）。 */
+  activeTopicId: string;
   /** 页头徽章文案，如「职官 · 品级 · 央地结构」。 */
   badge: string;
   /** 右侧内容区。 */
   children: ReactNode;
   /** 页头说明。 */
   description: string;
-  /** 页头主标题（总览为「典章制度索引」，专题页为条目名）。 */
+  /** 页头主标题（条目名）。 */
   title: string;
-}
-
-interface MenuEntry {
-  active: boolean;
-  href: string;
-  label: string;
-  scope: string;
 }
 
 /**
  * 「典章制度」的应用式外壳（与图谱页 shell 同一套版式语言）：
  * - 页头钉在顶部，右侧内容滚动时保持可见；
- * - 左侧目录贴住页面左缘、全高侧栏：总览 + 已注册的五类条目，
+ * - 左侧目录贴住页面左缘、全高侧栏：五类条目一一线列，
  *   当前条目以朱色高亮并带 aria-current，窄屏退化为内容在前、目录在后的文档流；
  * - 右侧为内容区，lg 下区域内滚动（<main> 是定高 flex 项，lg:h-full 才能生效，
  *   jsdom 无法验证布局，动这块必须在真浏览器里检查）。
@@ -39,21 +32,6 @@ export function InstitutionShell({
   description,
   title,
 }: InstitutionShellProps) {
-  const menuEntries: readonly MenuEntry[] = [
-    {
-      active: activeTopicId === null,
-      href: "/china/institutions",
-      label: "总览",
-      scope: "五类条目索引",
-    },
-    ...INSTITUTION_TOPICS.map((topic) => ({
-      active: topic.id === activeTopicId,
-      href: `/china/institutions/${topic.slug}`,
-      label: topic.name,
-      scope: topic.scope,
-    })),
-  ];
-
   return (
     <article className="flex min-h-0 flex-col lg:h-full">
       <header className="shrink-0 border-ink/10 border-b px-4 py-4 lg:px-6">
@@ -82,40 +60,44 @@ export function InstitutionShell({
               条目导航
             </p>
             <ul className="mt-2 flex flex-col gap-1">
-              {menuEntries.map((entry) => (
-                <li key={entry.href}>
-                  <Link
-                    aria-current={entry.active ? "page" : undefined}
-                    className={cn(
-                      "group block rounded-md border px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                      entry.active
-                        ? "border-vermillion/30 bg-vermillion/10"
-                        : "border-transparent hover:border-vermillion/25 hover:bg-vermillion/5",
-                    )}
-                    to={entry.href}
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span
-                        className={cn(
-                          "font-brush text-lg",
-                          entry.active ? "text-vermillion" : "text-ink",
-                        )}
-                      >
-                        {entry.label}
-                      </span>
-                      {entry.active ? (
+              {INSTITUTION_TOPICS.map((topic) => {
+                const active = topic.id === activeTopicId;
+
+                return (
+                  <li key={topic.id}>
+                    <Link
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "group block rounded-md border px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                        active
+                          ? "border-vermillion/30 bg-vermillion/10"
+                          : "border-transparent hover:border-vermillion/25 hover:bg-vermillion/5",
+                      )}
+                      to={`/china/institutions/${topic.slug}`}
+                    >
+                      <span className="flex items-center justify-between gap-2">
                         <span
-                          aria-hidden="true"
-                          className="h-2 w-2 shrink-0 rounded-full bg-vermillion"
-                        />
-                      ) : null}
-                    </span>
-                    <span className="block truncate font-body text-muted-foreground text-xs">
-                      {entry.scope}
-                    </span>
-                  </Link>
-                </li>
-              ))}
+                          className={cn(
+                            "font-brush text-lg",
+                            active ? "text-vermillion" : "text-ink",
+                          )}
+                        >
+                          {topic.name}
+                        </span>
+                        {active ? (
+                          <span
+                            aria-hidden="true"
+                            className="h-2 w-2 shrink-0 rounded-full bg-vermillion"
+                          />
+                        ) : null}
+                      </span>
+                      <span className="block truncate font-body text-muted-foreground text-xs">
+                        {topic.scope}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </nav>

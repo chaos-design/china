@@ -114,13 +114,13 @@ describe("<App /> routing", () => {
     ]) {
       expect(document.querySelector(`a[href="${topicPath}"]`)).toBeNull();
     }
-    // 典章制度索引已开放为索引页：可进入，页内五类条目也全部落地为专题页
-    expect(screen.getByRole("link", { name: /典章制度索引/ })).toHaveAttribute(
+    // 典章制度已开放：可进入，页内五类条目全部落地为专题页
+    expect(screen.getByRole("link", { name: /^典章制度/ })).toHaveAttribute(
       "href",
       "/china/institutions",
     );
     expect(screen.queryByText("丝路与海疆线索")).not.toBeInTheDocument();
-    // 两个原 preview 专题（历史地理图谱、典章制度索引）都已转正：
+    // 两个原 preview 专题（历史地理图谱、典章制度）都已转正：
     // 首页不再有「后续专题 · 筹备中」紧凑预告区
     expect(screen.queryByText("后续专题 · 筹备中")).not.toBeInTheDocument();
     expect(screen.queryAllByText("筹备中")).toHaveLength(0);
@@ -185,7 +185,7 @@ describe("<App /> routing", () => {
       ["/china/timeline", /朝代时间长河/],
       ["/china/policies", /朝代政策全览/],
       ["/china/atlas", /历史地理图谱/],
-      ["/china/institutions", /典章制度索引/],
+      ["/china/institutions", /典章制度/],
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],
@@ -403,26 +403,15 @@ describe("<App /> routing", () => {
     expect(document.querySelector(".acp-lightbox-mask")).toBeInstanceOf(HTMLButtonElement);
   });
 
-  it("renders the institutions index route with its five topic entries", async () => {
+  it("redirects /china/institutions to the first topic page", async () => {
+    // 本节没有总览页：索引路径直接落到官制专题
     renderAt("/china/institutions");
 
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "典章制度索引" }),
-    ).toBeInTheDocument();
-    const cardGrid = await screen.findByTestId("topic-card-grid");
-    for (const name of ["官制", "赋役", "律令", "科举", "礼制"]) {
-      expect(within(cardGrid).getByText(name)).toBeInTheDocument();
-    }
-    // 已落地的条目渲染为卡片链接（数量断言在 page.test.tsx 里随注册表走）
-    expect(within(cardGrid).getByRole("link", { name: /^官制/ })).toHaveAttribute(
-      "href",
-      "/china/institutions/official-system",
-    );
-    // 外壳左侧目录：总览 + 五类条目
-    expect(screen.getByRole("link", { name: /^总览/ })).toHaveAttribute(
-      "href",
-      "/china/institutions",
-    );
+    expect(await screen.findByRole("heading", { level: 1, name: "官制" })).toBeInTheDocument();
+    expect(screen.getByLabelText("编年沿革时间轴")).toBeInTheDocument();
+    const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
+    expect(menu.getByRole("link", { name: /^官制/ })).toHaveAttribute("aria-current", "page");
+    expect(menu.queryByRole("link", { name: /^总览/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
@@ -433,12 +422,8 @@ describe("<App /> routing", () => {
     // 编年时间轴 + 左侧目录（当前条目 aria-current）
     expect(screen.getByLabelText("编年沿革时间轴")).toBeInTheDocument();
     expect(document.querySelectorAll("[data-era-dot]")).toHaveLength(7);
-    const activeLink = screen.getByRole("link", { name: /^官制/ });
-    expect(activeLink).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: /^总览/ })).toHaveAttribute(
-      "href",
-      "/china/institutions",
-    );
+    const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
+    expect(menu.getByRole("link", { name: /^官制/ })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
