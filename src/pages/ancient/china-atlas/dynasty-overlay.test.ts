@@ -64,7 +64,8 @@ describe("dynasty-overlay 几何与标注", () => {
       expect(outline.d.startsWith("M ")).toBe(true);
       expect(outline.d).toContain(" C ");
       expect(outline.d.endsWith(" Z")).toBe(true);
-      expect(outline.points.length).toBeGreaterThan(2);
+      // 边界沿每条凸包边等距采样并外弓：点足够密，不会出现长直线段
+      expect(outline.points.length).toBeGreaterThanOrEqual(18);
       for (const city of projectDynastyCities(territory)) {
         expect(city.point[0]).toBeGreaterThanOrEqual(outline.bounds.x0 - 0.01);
         expect(city.point[0]).toBeLessThanOrEqual(outline.bounds.x1 + 0.01);

@@ -40,11 +40,14 @@ export const CITY_FONT_SIZE = 2.2;
 export const CITY_LABEL_HEIGHT = 3.2;
 /** 示意范围从锚点凸包向外扩张的留白：边界不再贴着城市符号，也更像一片墨晕。 */
 const HULL_MARGIN = 1.9;
-/** 法向采样数：凸包按 support function 外扩后，每 5° 取一点再连成闭合曲线。 */
-const OUTLINE_SAMPLES = 72;
+/** 边界采样间距（用户单位）：沿每条凸包边等距取点，长边多分几段。 */
+const EDGE_SEGMENT = 9;
+/** 长边中点外弓幅度：按边长比例封顶，长边鼓成缓弧，边界不出现直线段。 */
+const BOW_RATIO = 0.07;
+const BOW_MAX = 1.7;
 /** 确定性「手抖」幅度：一低一高两个谐波让边界读作手绘墨迹而非几何圆。 */
-const WOBBLE_PRIMARY = 0.42;
-const WOBBLE_SECONDARY = 0.22;
+const WOBBLE_PRIMARY = 0.34;
+const WOBBLE_SECONDARY = 0.18;
 const round = (value: number) => Math.round(value * 100) / 100;
 
 export function projectDynastyCities(territory: DynastyTerritory): readonly ProjectedCity[] {
@@ -131,40 +134,73 @@ export function smoothClosedPath(points: readonly MapPoint[]): string {
 }
 
 /**
- * 凸包 + support function 外扩 + 手绘微抖：
+ * 凸包外扩成一片没有直线的示意边界：
  *
- * 先取锚点凸包，再沿 72 个法向取「最远顶点 + 留白」外推——数学上等价于凸包与
- * 圆盘的 Minkowski 和，尖角被自然磨圆；叠加由朝代 id 决定相位的两个谐波微抖，
- * 边界才像手绘本墨晕而不是 GIS 缓冲区。最后 Catmull-Rom 连成闭合曲线。
+ * 沿每条凸包边按 EDGE_SEGMENT 等距取点，逐点沿外法向推开 HULL_MARGIN，
+ * 长边中点再外弓一段缓弧（sin 半波）、整圈叠加由朝代 id 决定相位的两个
+ * 谐波微抖——凸包边被鼓成弧线，顶点由角点 + Catmull-Rom 自然磨圆。
+ * 全部几何只由锚点凸包与 id 派生，不宣称实测边界。
  */
 export function getDynastyOutline(territory: DynastyTerritory): DynastyOutline {
   const hull = convexHull(projectDynastyCities(territory).map((entry) => entry.point));
-  if (hull.length === 0) {
+  if (hull.length < 3) {
+    // 退化凸包（单点 / 两点 / 空）：数据保证不会发生，给出安全空值而不是画错。
     return { bounds: { x0: 0, x1: 0, y0: 0, y1: 0 }, d: "", points: [] };
   }
   const seed = hashSeed(territory.id);
   const phase1 = ((seed % 360) / 360) * TAU;
   const phase2 = (((seed >>> 9) % 360) / 360) * TAU;
+
+  const count = hull.length;
+  const edges = hull.map((start, index) => {
+    const end = hull[(index + 1) % count]!;
+    const dx = end[0] - start[0];
+    const dy = end[1] - start[1];
+    const length = Math.hypot(dx, dy);
+    return {
+      start,
+      end,
+      dx,
+      dy,
+      length,
+      // 该绕向下的外法向：底图坐标 y 向下，凸包呈顺时针绕行视觉。
+      normal: length > 0 ? [dy / length, -dx / length] : [0, 0],
+    };
+  });
+  const perimeter = edges.reduce((sum, edge) => sum + edge.length, 0);
+  const wobbleAt = (progress: number) =>
+    WOBBLE_PRIMARY * Math.sin(3 * TAU * progress + phase1) +
+    WOBBLE_SECONDARY * Math.sin(5 * TAU * progress + phase2);
+
   const points: MapPoint[] = [];
-  for (let index = 0; index < OUTLINE_SAMPLES; index += 1) {
-    const theta = (index / OUTLINE_SAMPLES) * TAU;
-    const dirX = Math.cos(theta);
-    const dirY = Math.sin(theta);
-    let best = -Infinity;
-    let vertex = hull[0]!;
-    for (const candidate of hull) {
-      const dot = candidate[0] * dirX + candidate[1] * dirY;
-      if (dot > best) {
-        best = dot;
-        vertex = candidate;
-      }
+  let travelled = 0;
+  for (let index = 0; index < count; index += 1) {
+    const edge = edges[index]!;
+    const next = edges[(index + 1) % count]!;
+    const steps = Math.min(12, Math.max(2, Math.round(edge.length / EDGE_SEGMENT)));
+    const bow = Math.min(BOW_MAX, edge.length * BOW_RATIO);
+    for (let step = 0; step <= steps; step += 1) {
+      const t = step / steps;
+      const progress = (travelled + t * edge.length) / perimeter;
+      const offset = HULL_MARGIN + bow * Math.sin(Math.PI * t) + wobbleAt(progress);
+      points.push([
+        round(edge.start[0] + edge.dx * t + edge.normal[0] * offset),
+        round(edge.start[1] + edge.dy * t + edge.normal[1] * offset),
+      ]);
     }
-    const wobble =
-      WOBBLE_PRIMARY * Math.sin(3 * theta + phase1) +
-      WOBBLE_SECONDARY * Math.sin(5 * theta + phase2);
+    travelled += edge.length;
+
+    // 顶点角点：取相邻两条边外法向的角平分方向，把两段边的接缝鼓到外切圆弧上。
+    const bisX = edge.normal[0] + next.normal[0];
+    const bisY = edge.normal[1] + next.normal[1];
+    const bisLength = Math.hypot(bisX, bisY);
+    const cornerProgress = travelled / perimeter;
+    const cornerOffset = HULL_MARGIN + wobbleAt(cornerProgress);
+    const unitX = bisLength > 1e-6 ? bisX / bisLength : edge.normal[0];
+    const unitY = bisLength > 1e-6 ? bisY / bisLength : edge.normal[1];
     points.push([
-      round(vertex[0] + dirX * (HULL_MARGIN + wobble)),
-      round(vertex[1] + dirY * (HULL_MARGIN + wobble)),
+      round(edge.end[0] + unitX * cornerOffset),
+      round(edge.end[1] + unitY * cornerOffset),
     ]);
   }
   return {

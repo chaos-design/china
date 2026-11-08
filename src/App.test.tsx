@@ -80,19 +80,18 @@ describe("<App /> routing", () => {
       "href",
       "/liberation-war",
     );
-    // 「历史地理图谱」三条入口已从筹备中转为可用
-    expect(screen.getByRole("link", { name: /疆域变迁/ })).toHaveAttribute(
+    // 「历史地理图谱」三条主题合并为一张入口卡，直达统一图谱页
+    expect(screen.getByRole("link", { name: /历史地理图谱/ })).toHaveAttribute(
       "href",
+      "/china/atlas",
+    );
+    for (const topicPath of [
       "/china/atlas/territory",
-    );
-    expect(screen.getByRole("link", { name: /民族迁徙/ })).toHaveAttribute(
-      "href",
       "/china/atlas/migration",
-    );
-    expect(screen.getByRole("link", { name: /边疆治理/ })).toHaveAttribute(
-      "href",
       "/china/atlas/frontier",
-    );
+    ]) {
+      expect(document.querySelector(`a[href="${topicPath}"]`)).toBeNull();
+    }
     expect(screen.getByText("典章制度索引")).toBeInTheDocument();
     expect(screen.queryByText("丝路与海疆线索")).not.toBeInTheDocument();
     // 筹备中条目降级为紧凑预告行：不再是可点击卡片，也没有「进入」引导

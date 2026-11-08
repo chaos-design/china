@@ -4,24 +4,11 @@ const geographyResource = {
   homeEntries: [
     {
       icon: "map",
-      path: "/china/atlas/territory",
+      path: "/china/atlas",
       status: "available",
-      title: "疆域变迁",
-      description: "六幅疆域快照锚在真实省界上：都城与控制节点随时间轴切换，面积估算写明分歧。",
-    },
-    {
-      icon: "users",
-      path: "/china/atlas/migration",
-      status: "available",
-      title: "民族迁徙",
-      description: "八条迁徙路线在真实底图上流动：从漠北到江南，看人群如何改写疆域。",
-    },
-    {
-      icon: "shield",
-      path: "/china/atlas/frontier",
-      status: "available",
-      title: "边疆治理",
-      description: "八项边疆制度的治所地图：从西域都护府到宣政院，看边界怎么管。",
+      title: "历史地理图谱",
+      description:
+        "疆域变迁、民族迁徙与边疆治理三谱同图：真实省界底图上按朝代切换断面，看边界、人群与治所的变化。",
     },
   ],
   aboutItems: [
