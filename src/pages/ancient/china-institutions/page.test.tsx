@@ -14,7 +14,7 @@ describe("<ChinaInstitutionsPage />", () => {
     );
 
     expect(screen.getByRole("heading", { level: 1, name: "典章制度索引" })).toBeInTheDocument();
-    expect(screen.getByText(/官制、赋役、律令、科举与礼制按专题展开/)).toBeInTheDocument();
+    expect(screen.getByText(/官制、赋役、律令、科举与礼制五类条目已全部开放/)).toBeInTheDocument();
   });
 
   it("shows the full five-topic lineup exactly once", () => {

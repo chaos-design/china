@@ -62,8 +62,8 @@ export function ChinaInstitutionsPage() {
           <span className="ink-underline inline-block pb-1">典章制度索引</span>
         </h1>
         <p className="max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">
-          官制、赋役、律令、科举与礼制按专题展开：先立索引骨架，再把制度放回具体的历史现场，
-          适合做专题检索与延伸阅读。
+          官制、赋役、律令、科举与礼制五类条目已全部开放：先定朝代坐标，
+          再把制度放回具体的历史现场，适合做专题检索与延伸阅读。
         </p>
       </header>
 

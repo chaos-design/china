@@ -1,5 +1,5 @@
-import { legalCodeTopic } from "./legal-code";
 import { examinationsTopic } from "./examinations";
+import { legalCodeTopic } from "./legal-code";
 import { officialSystemTopic } from "./official-system";
 import { ritesTopic } from "./rites";
 import { taxationTopic } from "./taxation";

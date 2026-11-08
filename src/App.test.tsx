@@ -114,7 +114,7 @@ describe("<App /> routing", () => {
     ]) {
       expect(document.querySelector(`a[href="${topicPath}"]`)).toBeNull();
     }
-    // 典章制度索引已开放为索引页：可进入，页内五类条目仍是预留位
+    // 典章制度索引已开放为索引页：可进入，页内五类条目也全部落地为专题页
     expect(screen.getByRole("link", { name: /典章制度索引/ })).toHaveAttribute(
       "href",
       "/china/institutions",

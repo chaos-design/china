@@ -7,13 +7,13 @@ const institutionsResource = {
       icon: "book-open",
       status: "available",
       title: "典章制度索引",
-      description: "预留官制、赋役、律令、科举与礼制条目，适合做专题检索与延伸阅读。",
+      description: "官制、赋役、律令、科举与礼制五大专题已开放，梳理制度沿革与关键条目。",
     },
   ],
   aboutItems: [
     {
       title: "制度与日常",
-      text: "后续可继续延展赋税、官制、律令、教育与礼制，观察制度如何进入社会生活。",
+      text: "官制、赋役、律令、科举与礼制五大专题已开放，观察制度如何进入社会生活。",
     },
   ],
   readingGuides: [

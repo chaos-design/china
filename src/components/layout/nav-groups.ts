@@ -47,7 +47,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         to: "/china/policies",
       },
       {
-        highlights: ["官制 · 赋役 · 律令", "科举与礼制", "专题检索"],
+        highlights: ["五大制度专题", "沿革与关键条目", "专题检索"],
         label: "典章制度索引",
         to: "/china/institutions",
       },
