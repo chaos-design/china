@@ -128,9 +128,8 @@ describe("<SiteMenu /> columns and content", () => {
     const expected: [string, RegExp][] = [
       ["/china/timeline", /朝代时间长河/],
       ["/china/policies", /朝代政策全览/],
-      ["/china/atlas/territory", /疆域变迁/],
-      ["/china/atlas/migration", /民族迁徙/],
-      ["/china/atlas/frontier", /边疆治理/],
+      ["/china/atlas", /全部图谱/],
+      ["/china/atlas/territory", /专题图层/],
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],

@@ -126,7 +126,11 @@ const frontierItems: readonly AtlasItem[] = FRONTIER_POLICIES.map((policy) => {
     period: policy.period,
     description: policy.description,
     sources: policy.sources,
-    notes: [`治所 · ${policy.seat.name}`, `辖区 · ${policy.regions.join("、")}`],
+    notes: [
+      `治所 · ${policy.seat.name}`,
+      `辖区 · ${policy.regions.join("、")}`,
+      `防御范围 · ${policy.defenseScope}`,
+    ],
     primary: seat,
     points: [{ kind: "seat" as const, name: policy.seat.name, point: seat }],
   };

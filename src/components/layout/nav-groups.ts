@@ -18,6 +18,11 @@ export interface NavLeaf {
 }
 
 export interface NavGroup {
+  /**
+   * 只用于判定「当前分组」的路径，不在菜单里渲染链接。
+   * 兼容入口（如图谱的三个预设图层）收敛成一个菜单条目后仍要高亮所属分组。
+   */
+  activePaths?: readonly string[];
   blurb: string;
   id: string;
   items: readonly NavLeaf[];
@@ -46,29 +51,19 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     mapZone: "north",
   },
   {
-    blurb:
-      "疆域、民族与边疆三条图谱线索：边界怎么画、人群怎么走、边疆怎么管。骨架已立，内容按朝代逐批填充。",
+    activePaths: ["/china/atlas/migration", "/china/atlas/frontier"],
+    blurb: "疆域、民族与边疆三条线索合为一张图谱：全部图谱看全貌，专题图层按专题逐项展开。",
     id: "atlas",
     items: [
       {
         highlights: ["三类图谱同图", "引导线标注", "悬停查看出处"],
-        label: "图谱总览",
+        label: "全部图谱",
         to: "/china/atlas",
       },
       {
-        highlights: ["按朝代分章", "变迁节点", "疆域快照"],
-        label: "疆域变迁",
+        highlights: ["按朝代分章", "专题逐项展开", "史料出处"],
+        label: "专题图层",
         to: "/china/atlas/territory",
-      },
-      {
-        highlights: ["迁徙路线", "人群流动", "定居与融合"],
-        label: "民族迁徙",
-        to: "/china/atlas/migration",
-      },
-      {
-        highlights: ["都护府与羁縻", "行省与土司", "互市与和议"],
-        label: "边疆治理",
-        to: "/china/atlas/frontier",
       },
     ],
     label: "疆域与民族图谱",
@@ -143,7 +138,10 @@ export function findNavGroupId(
   matches: (path: string, pathname: string) => boolean,
 ): string | undefined {
   for (const group of NAV_GROUPS) {
-    if (group.items.some((item) => matches(item.to, pathname))) {
+    if (
+      group.items.some((item) => matches(item.to, pathname)) ||
+      group.activePaths?.some((path) => matches(path, pathname))
+    ) {
       return group.id;
     }
   }

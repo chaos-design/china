@@ -31,11 +31,43 @@ export interface AtlasMapProps {
 export const FLOW_DOTS = [0.5, 0.36, 0.44, 0.32, 0.4] as const;
 const FLOW_DUR_S = 3.6;
 
-const TOPIC_COLOR: Record<AtlasTopicId, string> = {
+/** 迁徙回到原先的朱色系，但比底图上的疆域红更亮一档，便于与都城红点区分。 */
+export const ATLAS_TOPIC_COLOR: Record<AtlasTopicId, string> = {
   territory: "hsl(var(--vermillion))",
-  migration: "hsl(var(--blueprint))",
+  migration: "hsl(6 84% 60%)",
   frontier: "hsl(var(--ochre))",
 };
+
+/**
+ * 防御范围示意环：统一半径的虚线圈，只表达「治所之外另有防区」这一层含义。
+ * 半径是图例符号而非实测距离——各制度真实范围写在详情的「防御范围」里，
+ * 不据推测补画边界。
+ */
+const DEFENSE_RADIUS = 3.6;
+
+function DefenseRing({
+  active,
+  dim,
+  point,
+}: {
+  active: boolean;
+  dim: boolean;
+  point: readonly [number, number];
+}) {
+  return (
+    <circle
+      className="atlas-defense-ring"
+      cx={point[0]}
+      cy={point[1]}
+      fill="hsl(var(--ochre) / 0.1)"
+      opacity={dim ? 0.32 : 1}
+      r={DEFENSE_RADIUS}
+      stroke="hsl(var(--ochre))"
+      strokeDasharray="0.9 0.6"
+      strokeWidth={active ? 0.5 : 0.34}
+    />
+  );
+}
 
 const MAP_ARIA_LABEL: Record<AtlasLayerId, string> = {
   all: "疆域与民族图谱综合地图：真实省界底图上的三类标注",
@@ -78,7 +110,7 @@ function PointSymbol({ color, dim, point }: { color: string; dim: boolean; point
 function RouteLayer({ animated, dim, item }: { animated: boolean; dim: boolean; item: AtlasItem }) {
   const route = item.route;
   if (!route) return null;
-  const color = TOPIC_COLOR.migration;
+  const color = ATLAS_TOPIC_COLOR.migration;
   const stroke = dim ? "hsl(var(--ink) / 0.32)" : color;
   return (
     <g key={`route-${item.id}`} opacity={dim ? 0.5 : 1}>
@@ -180,6 +212,18 @@ export const AtlasMap = memo(function AtlasMap({
       {/* 底图公共图层：省界 → 国界 → 岛屿 → 九段线 → 经纬网 → 河流 → 海名 */}
       <BasemapLayers />
 
+      {/* 防御范围示意环画在最底层，方印与标签随后覆盖，标注信息不被遮挡 */}
+      {items
+        .filter((item) => item.topic === "frontier")
+        .map((item) => (
+          <DefenseRing
+            active={item.id === selectedId || item.id === hoveredId}
+            dim={selectedId !== null && selectedId !== item.id}
+            key={`defense-${item.id}`}
+            point={item.primary}
+          />
+        ))}
+
       {/* 路线底层：先画线再画点，点不会被线压住 */}
       {items.map((item) =>
         item.route ? (
@@ -195,7 +239,7 @@ export const AtlasMap = memo(function AtlasMap({
       {/* 标图点：都城、控制节点、途经地、治所 */}
       {items.map((item) => {
         const dim = selectedId !== null && selectedId !== item.id;
-        const color = dim ? "hsl(var(--ink) / 0.42)" : TOPIC_COLOR[item.topic];
+        const color = dim ? "hsl(var(--ink) / 0.42)" : ATLAS_TOPIC_COLOR[item.topic];
         return (
           <g key={`points-${item.id}`} opacity={dim ? 0.55 : 1}>
             {item.points.map((point, index) => (
@@ -220,7 +264,7 @@ export const AtlasMap = memo(function AtlasMap({
             fill="none"
             key={`halo-${item.id}`}
             r={1.1}
-            stroke={TOPIC_COLOR[item.topic]}
+            stroke={ATLAS_TOPIC_COLOR[item.topic]}
             strokeWidth={0.2}
           >
             {animated ? (
@@ -250,7 +294,7 @@ export const AtlasMap = memo(function AtlasMap({
         if (!placement) return null;
         const dim = selectedId !== null && selectedId !== item.id;
         const active = item.id === selectedId || item.id === hoveredId;
-        const color = dim ? "hsl(var(--ink) / 0.38)" : TOPIC_COLOR[item.topic];
+        const color = dim ? "hsl(var(--ink) / 0.38)" : ATLAS_TOPIC_COLOR[item.topic];
         const { height, leader, width, x, y } = placement;
         return (
           // biome-ignore lint/a11y/useSemanticElements: SVG 的 <g> 不能换成 HTML <button>，热点只能靠 role + tabIndex 提供键盘可达性

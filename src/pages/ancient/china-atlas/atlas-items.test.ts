@@ -44,6 +44,7 @@ describe("统一图谱数据", () => {
       expect(frontier[index]?.description).toBe(policy.description);
       expect(frontier[index]?.sources).toEqual(policy.sources);
       expect(frontier[index]?.notes[0]).toBe(`治所 · ${policy.seat.name}`);
+      expect(frontier[index]?.notes).toContain(`防御范围 · ${policy.defenseScope}`);
     });
   });
 

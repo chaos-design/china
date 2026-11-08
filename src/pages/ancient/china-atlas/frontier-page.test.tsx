@@ -52,7 +52,7 @@ describe("<FrontierAtlasPage />（统一图谱的边疆图层）", () => {
     const viewBox = map?.getAttribute("viewBox");
 
     fireEvent.click(screen.getByRole("button", { name: "全览 · 全部治所" }));
-    expect(screen.getByText(/全览模式：八项制度的治所同步呈现/)).toBeInTheDocument();
+    expect(screen.getByText(/全览模式：八项制度的治所与防御范围同步呈现/)).toBeInTheDocument();
     expect(map?.getAttribute("viewBox")).toBe(viewBox);
 
     fireEvent.click(

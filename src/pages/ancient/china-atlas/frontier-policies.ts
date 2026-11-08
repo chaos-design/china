@@ -11,6 +11,8 @@ export const FRONTIER_POLICIES: readonly FrontierPolicyEntry[] = [
   {
     id: "han-xiyu-duhu",
     dynastyId: "han",
+    defenseScope:
+      "东扼玉门、阳关，西限葱岭，领护西域诸国；都护治乌垒城，以册命、屯田、烽燧与屯戍构成沿线防务。王莽末政令中断，东汉三绝三通。",
     institution: "西域都护府",
     period: "汉宣帝神爵二年（前 60 年）起",
     regions: ["西域"],
@@ -22,6 +24,8 @@ export const FRONTIER_POLICIES: readonly FrontierPolicyEntry[] = [
   {
     id: "han-shuguo-duwei",
     dynastyId: "han",
+    defenseScope:
+      "沿北部边塞安置内附的匈奴、羌人部落，属国都尉「依其本国之俗」领之，保留部落组织而隶于郡县体系，把归附人群转为边防力量。",
     institution: "属国都尉",
     period: "两汉",
     regions: ["北部边塞"],
@@ -33,6 +37,8 @@ export const FRONTIER_POLICIES: readonly FrontierPolicyEntry[] = [
   {
     id: "tang-anxi-duhu",
     dynastyId: "tang",
+    defenseScope:
+      "统龟兹、于阗、疏勒、碎叶安西四镇，以都护府—守捉—烽燧层层布防，与羁縻州府相表里。安史之乱后道路隔绝，守军仍奉唐正朔数十年。",
     institution: "安西都护府",
     period: "贞观十四年（640 年）置，后移治龟兹",
     regions: ["西域"],
@@ -44,6 +50,8 @@ export const FRONTIER_POLICIES: readonly FrontierPolicyEntry[] = [
   {
     id: "tang-jimi-zhou",
     dynastyId: "tang",
+    defenseScope:
+      "缘边降附部落置羁縻州府八百五十六，以首领为都督、刺史世袭统领，贡赋不上户部；名单与辖境随各部叛附进退，与都护府防务相表里。",
     institution: "羁縻州县",
     period: "唐代（贞观年间大盛）",
     regions: ["东北、北方边地"],
@@ -55,6 +63,8 @@ export const FRONTIER_POLICIES: readonly FrontierPolicyEntry[] = [
   {
     id: "song-quechang",
     dynastyId: "song",
+    defenseScope:
+      "宋辽、宋夏边界的指定地点设榷场，官督商办，违禁之物各有所限、抽税有制；岁币与榷场收入、走私与缉私构成和议体制下的边界防务。",
     institution: "榷场互市",
     period: "澶渊之盟（1005 年）后",
     regions: ["宋辽、宋夏边界"],
@@ -66,6 +76,8 @@ export const FRONTIER_POLICIES: readonly FrontierPolicyEntry[] = [
   {
     id: "song-nanfang-jimi",
     dynastyId: "song",
+    defenseScope:
+      "西南溪洞以首领知州、知洞，另籍土丁、峒丁备边；侬智高之乱（1052）后，对邕州左右江地区的册封与控制更加细密。",
     institution: "西南羁縻与土丁",
     period: "两宋",
     regions: ["西南"],
@@ -77,6 +89,8 @@ export const FRONTIER_POLICIES: readonly FrontierPolicyEntry[] = [
   {
     id: "yuan-xingzheng",
     dynastyId: "yuan",
+    defenseScope:
+      "中书省之外设十大行省，云南、岭北等边地皆入行省体系；赛典赤·赡思丁治滇，建孔子庙、立赋役、修驿路，边疆防务与内地行政一体化。",
     institution: "行省制度",
     period: "至元十一年（1274 年）起",
     regions: ["全国，边地亦入行省"],
@@ -88,6 +102,8 @@ export const FRONTIER_POLICIES: readonly FrontierPolicyEntry[] = [
   {
     id: "yuan-xuanzheng-yuan",
     dynastyId: "yuan",
+    defenseScope:
+      "吐蕃之地不入行省而由宣政院直辖，帝师领院事，下设宣慰司都元帅府，兼掌释教与吐蕃军民之政，构成元代西南边地的治理范围。",
     institution: "宣政院",
     period: "至元初设总制院，1288 年改宣政院",
     regions: ["吐蕃"],

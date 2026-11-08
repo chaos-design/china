@@ -19,7 +19,6 @@ interface LayerMeta {
   description: string;
   hint: string;
   menuLabel: string;
-  note: string;
   overviewLabel: string;
   tagline: string;
   title: string;
@@ -29,10 +28,9 @@ const LAYER_META: Record<AtlasLayerId, LayerMeta> = {
   all: {
     badge: "三谱同图 · 汉唐宋元",
     description:
-      "疆域变迁、民族迁徙、边疆治理三类材料锚在同一份真实省界底图上。切换「全部」或单项，地图视野与标注位置保持不变；悬停标注看详情与出处，点选可固定。",
+      "疆域变迁、民族迁徙、边疆治理三类材料锚在同一份真实省界底图上。切换「全部图谱」或「专题图层」，地图视野与标注位置保持不变；悬停标注看详情与出处，点选可固定。",
     hint: "全览模式：六幅疆域快照、八条迁徙路线与八项边疆制度同图呈现，共用一张真实省界底图。悬停任一标注展开详情，点选可把详情固定在下方。",
     menuLabel: "图谱条目目录",
-    note: "三类图谱共用同一底图与投影；节点、路线与治所都是示意锚点，不代表边界或唯一通道。详情文案与出处逐条取自史料数据。",
     overviewLabel: "全览 · 全部图谱",
     tagline: "一图三谱",
     title: "疆域与民族图谱",
@@ -42,7 +40,6 @@ const LAYER_META: Record<AtlasLayerId, LayerMeta> = {
     description: getAtlasTopic("territory").description,
     hint: "全览模式：六幅快照的都城与控制节点同时呈现，重复地点以引导线错开标注。选择时间轴或左侧任一条目，聚焦单个断面。",
     menuLabel: "疆域快照目录",
-    note: "疆域是一片连续区域，图上节点只是锚点而非边界；面积诸家估算分歧极大，一律写区间或省略。底图采用真实省界投影。",
     overviewLabel: "全览 · 全部快照",
     tagline: getAtlasTopic("territory").tagline,
     title: "疆域变迁",
@@ -52,7 +49,6 @@ const LAYER_META: Record<AtlasLayerId, LayerMeta> = {
     description: getAtlasTopic("migration").description,
     hint: "全览模式：八条迁徙路线同时播放流动动画，按汉、唐、宋、元依次启程。选择左侧任一条目，聚焦单条路线的完整说明与出处。",
     menuLabel: "迁徙路线目录",
-    note: "路线为主流向的示意走廊：同一次迁徙往往分几波、走几条道。底图采用真实省界投影，与丝绸之路、解放战争两图同源。",
     overviewLabel: "全览 · 全部路线",
     tagline: getAtlasTopic("migration").tagline,
     title: "民族迁徙",
@@ -60,9 +56,8 @@ const LAYER_META: Record<AtlasLayerId, LayerMeta> = {
   frontier: {
     badge: "首批八项制度 · 汉唐宋元",
     description: getAtlasTopic("frontier").description,
-    hint: "全览模式：八项制度的治所同步呈现。选择左侧任一条目，查看辖区、治所与资料出处。",
+    hint: "全览模式：八项制度的治所与防御范围同步呈现。选择左侧任一条目，查看辖区、治所、防御范围与资料出处。",
     menuLabel: "边疆制度目录",
-    note: "制度往往覆盖一片区域，图上的方印只是它的治所或代表地点；辖区范围见详情说明。底图采用真实省界投影。",
     overviewLabel: "全览 · 全部治所",
     tagline: getAtlasTopic("frontier").tagline,
     title: "边疆治理",
@@ -78,7 +73,10 @@ function yearPercent(year: number): number {
   return Math.min(100, Math.max(0, ((year - min) / (max - min)) * 100));
 }
 
-/** 时间轴与图层说明条高度完全一致：切换图层时地图上方不产生任何位移。 */
+/**
+ * 顶条在所有图层下都是同一条时间轴，高度恒定：既去掉了图层说明文字，
+ * 也保证切换「全部图谱 / 专题图层」时地图上方不会产生任何位移。
+ */
 function ContextStrip({
   layer,
   onSelect,
@@ -88,25 +86,14 @@ function ContextStrip({
   onSelect: (id: string) => void;
   selectedId: string | null;
 }) {
-  if (layer !== "territory" && layer !== "all") {
-    return (
-      <div className="flex h-[4.75rem] shrink-0 items-center gap-4 rounded-2xl border border-ink/10 bg-paper/70 px-5">
-        <span className="font-body text-xs font-medium tracking-[0.3em] text-muted-foreground">
-          图层说明
-        </span>
-        <p className="font-body text-sm leading-relaxed text-ink/85">{LAYER_META[layer].note}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="h-[4.75rem] shrink-0 rounded-2xl border border-ink/10 bg-paper/70 px-5 pb-1 pt-2">
       <div className="flex items-baseline justify-between">
         <p className="font-body text-xs font-medium tracking-[0.3em] text-muted-foreground">
-          时间轴 · 前111 — 1330
+          时间轴 · 疆域断面（前111 — 1330）
         </p>
         <p className="font-body text-xs text-muted-foreground">
-          {selectedId ? "已选中单个断面" : "全览六幅快照"}
+          {LAYER_META[layer].title} · {selectedId ? "已选中条目" : "全览"}
         </p>
       </div>
       <ol className="relative mx-6 mt-1 h-12" aria-label="疆域快照时间轴">
@@ -166,14 +153,39 @@ function ContextStrip({
   );
 }
 
-const LEGEND: readonly { label: string; symbol: "solid" | "hollow" | "square" | "line" }[] = [
-  { label: "都城 / 迁徙终点", symbol: "solid" },
-  { label: "控制节点 / 途经地", symbol: "hollow" },
+type LegendSymbolId = "solid" | "hollow" | "square" | "defense" | "line";
+
+const LEGEND: readonly { label: string; symbol: LegendSymbolId }[] = [
+  { label: "都城 / 终点", symbol: "solid" },
+  { label: "节点 / 途经地", symbol: "hollow" },
   { label: "治所方印", symbol: "square" },
+  { label: "防御范围（示意）", symbol: "defense" },
   { label: "引导线标注", symbol: "line" },
 ];
 
-function LegendSymbol({ symbol }: { symbol: "solid" | "hollow" | "square" | "line" }) {
+/** 图例只列当前图层真正出现的符号；行高固定，切换图层不会造成位移。 */
+function legendSymbols(layer: AtlasLayerId): readonly LegendSymbolId[] {
+  if (layer === "frontier") return ["square", "defense", "line"];
+  if (layer !== "all") return ["solid", "hollow", "line"];
+  return ["solid", "hollow", "square", "defense", "line"];
+}
+
+function LegendSymbol({ symbol }: { symbol: LegendSymbolId }) {
+  if (symbol === "defense") {
+    return (
+      <svg aria-hidden="true" height="12" viewBox="0 0 12 12" width="12">
+        <circle
+          cx="6"
+          cy="6"
+          fill="hsl(var(--ochre) / 0.08)"
+          r="4.6"
+          stroke="hsl(var(--ochre) / 0.7)"
+          strokeDasharray="1.4 1.1"
+          strokeWidth="0.9"
+        />
+      </svg>
+    );
+  }
   if (symbol === "line") {
     return (
       <svg aria-hidden="true" height="8" viewBox="0 0 22 8" width="22">
@@ -257,22 +269,29 @@ export function AtlasExplorer({ initialLayer = "all" }: { initialLayer?: AtlasLa
     setHoveredId(null);
   }, []);
 
-  const menuGroups = useMemo(() => {
-    if (layer === "all") {
-      return ATLAS_LAYER_OPTIONS.filter((option) => option.id !== "all").map((option) => ({
-        id: option.id,
-        items: ATLAS_ITEMS.filter((item) => item.topic === option.id),
-        label: option.label,
-        period: "",
-      }));
-    }
-    return ATLAS_DYNASTIES.map((dynasty) => ({
-      id: dynasty.id,
-      items: ATLAS_ITEMS.filter((item) => item.topic === layer && item.dynastyId === dynasty.id),
-      label: dynasty.label,
-      period: dynasty.period,
-    })).filter((group) => group.items.length > 0);
-  }, [layer]);
+  // 条目菜单一律按朝代分组：三项专题名只出现在「专题图层」选择器里，菜单不再平铺。
+  const menuGroups = useMemo(
+    () =>
+      ATLAS_DYNASTIES.map((dynasty) => ({
+        id: dynasty.id,
+        items: ATLAS_ITEMS.filter(
+          (item) => (layer === "all" || item.topic === layer) && item.dynastyId === dynasty.id,
+        ),
+        label: dynasty.label,
+        period: dynasty.period,
+      })).filter((group) => group.items.length > 0),
+    [layer],
+  );
+
+  const selectSnapshot = useCallback(
+    (id: string) => {
+      // 从非疆域图层点时间轴时切到疆域图层，保证被选中的断面确实在图上。
+      if (layer === "migration" || layer === "frontier") setLayer("territory");
+      setSelectedId(id);
+      setHoveredId(null);
+    },
+    [layer],
+  );
 
   return (
     <AtlasShell
@@ -336,35 +355,56 @@ export function AtlasExplorer({ initialLayer = "all" }: { initialLayer?: AtlasLa
               </section>
             ))}
           </div>
-
-          <p className="mt-4 font-body text-xs leading-relaxed text-muted-foreground">
-            {meta.note}
-          </p>
         </>
       }
       menuLabel={meta.menuLabel}
-      nav={ATLAS_LAYER_OPTIONS.map((option) => (
-        <button
-          aria-pressed={layer === option.id}
-          className={cn(
-            "-mx-2 rounded-lg px-2 py-1.5 text-left font-kai text-base transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            layer === option.id
-              ? "bg-vermillion/10 font-bold text-ink"
-              : "text-ink/80 hover:bg-ink/4 hover:text-primary",
-          )}
-          key={option.id}
-          onClick={() => switchLayer(option.id)}
-          type="button"
-        >
-          {option.label}
-        </button>
-      ))}
+      nav={
+        <>
+          <button
+            aria-pressed={layer === "all"}
+            className={cn(
+              "-mx-2 rounded-lg px-2 py-1.5 text-left font-kai text-base transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              layer === "all"
+                ? "bg-vermillion/10 font-bold text-ink"
+                : "text-ink/80 hover:bg-ink/4 hover:text-primary",
+            )}
+            onClick={() => switchLayer("all")}
+            type="button"
+          >
+            全部图谱
+          </button>
+          {/* 三个专题收进一个「专题图层」选择器：菜单只留两个名字，切换仍是页内 state */}
+          <select
+            aria-label="专题图层"
+            className={cn(
+              "-mx-2 w-[calc(100%+1rem)] rounded-lg border px-2 py-1.5 font-kai text-base transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              layer === "all"
+                ? "border-ink/12 bg-paper/70 text-ink/75"
+                : "border-primary/40 bg-vermillion/8 font-bold text-ink",
+            )}
+            onChange={(event) => {
+              if (event.target.value) switchLayer(event.target.value as AtlasLayerId);
+            }}
+            value={layer === "all" ? "" : layer}
+          >
+            <option disabled value="">
+              专题图层
+            </option>
+            {ATLAS_LAYER_OPTIONS.filter((option) => option.id !== "all").map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </>
+      }
       tagline={meta.tagline}
       title={meta.title}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 py-4 lg:px-6">
-        <ContextStrip layer={layer} onSelect={setSelectedId} selectedId={selectedId} />
+        <ContextStrip layer={layer} onSelect={selectSnapshot} selectedId={selectedId} />
 
         {/* 地图列：相对定位容器恒高，浮层用绝对定位，切换时没有布局位移 */}
         <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-ink/10 bg-paper/70 p-2 sm:p-3">
@@ -385,12 +425,14 @@ export function AtlasExplorer({ initialLayer = "all" }: { initialLayer?: AtlasLa
               aria-hidden="true"
               className="flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-xs text-muted-foreground"
             >
-              {LEGEND.map((entry) => (
-                <span className="flex items-center gap-1.5" key={entry.label}>
-                  <LegendSymbol symbol={entry.symbol} />
-                  {entry.label}
-                </span>
-              ))}
+              {LEGEND.filter((entry) => legendSymbols(layer).includes(entry.symbol)).map(
+                (entry) => (
+                  <span className="flex items-center gap-1.5" key={entry.label}>
+                    <LegendSymbol symbol={entry.symbol} />
+                    {entry.label}
+                  </span>
+                ),
+              )}
             </div>
             <button
               aria-pressed={animated}

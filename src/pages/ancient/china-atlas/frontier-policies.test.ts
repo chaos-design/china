@@ -40,4 +40,15 @@ describe("frontier policies", () => {
       expect(policy.sources.length, policy.id).toBeGreaterThan(0);
     }
   });
+
+  it("补充可据的防御范围，且不与辖区、说明混为一句", () => {
+    for (const policy of FRONTIER_POLICIES) {
+      expect(policy.defenseScope.length, policy.id).toBeGreaterThan(24);
+      expect(policy.defenseScope, policy.id).not.toBe(policy.description);
+      expect(policy.defenseScope, policy.id).not.toContain("约");
+    }
+    expect(new Set(FRONTIER_POLICIES.map((policy) => policy.defenseScope)).size).toBe(
+      FRONTIER_POLICIES.length,
+    );
+  });
 });

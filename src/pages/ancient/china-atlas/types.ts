@@ -103,6 +103,11 @@ export interface FrontierPolicyEntry {
   institution: string;
   /** 大致时段，如「前 60 年起」「澶渊之盟（1005）后」。 */
   period: string;
+  /**
+   * 防御 / 治理范围：以史料可据的表述写明该制度覆盖的地带与防务形态。
+   * 只陈述 description、sources 中已有的事实，不据今人推测补画边界。
+   */
+  defenseScope: string;
   /** 施行区域，如「西域」「西南」。 */
   regions: readonly string[];
   /** 治所或代表地点：地图上的定位锚点。 */
