@@ -84,6 +84,10 @@ export const routes: RouteObject[] = [
         path: "china/institutions/official-system",
         element: withSuspense(<InstitutionTopicPage topicId="official-system" />),
       },
+      {
+        path: "china/institutions/taxation",
+        element: withSuspense(<InstitutionTopicPage topicId="taxation" />),
+      },
       ...htmlResourceRoutes,
       { path: "*", element: withSuspense(<NotFoundPage />) },
     ],
