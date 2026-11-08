@@ -23,7 +23,7 @@ describe("<MigrationAtlasPage />（统一图谱的迁徙图层）", () => {
     expect(screen.getByRole("img", { name: /民族迁徙路线图/ })).toBeInTheDocument();
     const aside = screen.getByRole("complementary", { name: "迁徙路线目录" });
     for (const dynasty of ["汉", "唐", "宋", "元"]) {
-      expect(within(aside).getByText(dynasty)).toBeInTheDocument();
+      expect(within(aside).getAllByText(dynasty).length).toBeGreaterThan(0);
     }
     for (const event of MIGRATION_EVENTS) {
       expect(
@@ -82,15 +82,12 @@ describe("<MigrationAtlasPage />（统一图谱的迁徙图层）", () => {
   it("页内可切到另外两个图层，不跨路由重挂载", () => {
     const { container } = renderPage();
     const map = container.querySelector('svg[role="img"]');
-    const nav = screen.getByRole("navigation", { name: "图谱导航" });
 
-    fireEvent.click(within(nav).getByRole("button", { name: "全部图谱" }));
+    fireEvent.click(screen.getByRole("button", { name: "全部图谱" }));
     expect(screen.getByRole("heading", { level: 1, name: "疆域与民族图谱" })).toBeInTheDocument();
     expect(container.querySelector('svg[role="img"]')).toBe(map);
 
-    fireEvent.change(within(nav).getByRole("combobox", { name: "专题图层" }), {
-      target: { value: "frontier" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "边疆治理" }));
     expect(screen.getByRole("heading", { level: 1, name: "边疆治理" })).toBeInTheDocument();
     expect(container.querySelector('svg[role="img"]')).toBe(map);
   });

@@ -718,3 +718,22 @@
     opacity: 1;
   }
 }
+
+/* 图谱局部放大：变换只作用在单个常驻 <g> 上，viewBox 与标注坐标始终不变 */
+.atlas-zoom-layer {
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.atlas-dynasty-area {
+  transition:
+    opacity 320ms ease,
+    fill 320ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-zoom-layer,
+  .atlas-dynasty-area {
+    transition: none;
+  }
+}

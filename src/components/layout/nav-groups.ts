@@ -51,19 +51,14 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     mapZone: "north",
   },
   {
-    activePaths: ["/china/atlas/migration", "/china/atlas/frontier"],
-    blurb: "疆域、民族与边疆三条线索合为一张图谱：全部图谱看全貌，专题图层按专题逐项展开。",
+    activePaths: ["/china/atlas/territory", "/china/atlas/migration", "/china/atlas/frontier"],
+    blurb: "疆域、民族与边疆三条线索合为一张图谱，页内按专题与朝代逐项展开。",
     id: "atlas",
     items: [
       {
-        highlights: ["三类图谱同图", "引导线标注", "悬停查看出处"],
+        highlights: ["三类图谱同图", "按朝代切换疆域", "选中局部放大"],
         label: "全部图谱",
         to: "/china/atlas",
-      },
-      {
-        highlights: ["按朝代分章", "专题逐项展开", "史料出处"],
-        label: "专题图层",
-        to: "/china/atlas/territory",
       },
     ],
     label: "疆域与民族图谱",

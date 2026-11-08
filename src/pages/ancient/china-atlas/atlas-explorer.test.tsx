@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { AtlasExplorer } from "./atlas-explorer";
 import { ATLAS_ITEMS, ATLAS_LAYER_OPTIONS, ATLAS_VIEW, type AtlasLayerId } from "./atlas-items";
 import { ATLAS_TOPIC_COLOR, FLOW_DOTS } from "./atlas-map";
+import { DYNASTY_TERRITORIES } from "./dynasty-territories";
 import { FRONTIER_POLICIES } from "./frontier-policies";
 import { MIGRATION_EVENTS } from "./migration-events";
 import { TERRITORY_SNAPSHOTS } from "./territory-snapshots";
@@ -17,17 +18,18 @@ function renderExplorer(initialLayer?: AtlasLayerId) {
   return { ...result, map: () => result.container.querySelector('svg[role="img"]') };
 }
 
+/** 铺平后的一级菜单：点专题标题即切换图层，不再有下拉选择器。 */
 function switchTo(label: string) {
-  const nav = screen.getByRole("navigation", { name: "图谱导航" });
-  if (label === "全部图谱") {
-    fireEvent.click(within(nav).getByRole("button", { name: "全部图谱" }));
-    return;
-  }
   const option = ATLAS_LAYER_OPTIONS.find((candidate) => candidate.label === label);
   if (!option) throw new Error(`未知图层：${label}`);
-  fireEvent.change(within(nav).getByRole("combobox", { name: "专题图层" }), {
-    target: { value: option.id },
-  });
+  const header = screen.getByRole("button", { name: label });
+  if (header.getAttribute("aria-expanded") === "true" && option.id === "all") {
+    // 已经是当前专题时标题只负责折叠，这里先收起再重新展开以模拟重复点击
+    fireEvent.click(header);
+    fireEvent.click(header);
+    return;
+  }
+  fireEvent.click(header);
 }
 
 /** SVG 在 Testing Library 的 within() 里按 HTMLElement 处理，这里只做查询用途。 */
@@ -36,44 +38,105 @@ function svgWithin(svg: Element | null) {
 }
 
 describe("<AtlasExplorer /> 统一功能页", () => {
-  it("图谱导航只留「全部图谱」与「专题图层」，三个专题收进选择器", () => {
+  it("顶部只留一张菜单：四个专题铺平、三个专题不再收进选择器", () => {
     const { map } = renderExplorer();
 
     expect(screen.getByRole("heading", { level: 1, name: "疆域与民族图谱" })).toBeInTheDocument();
     expect(screen.getByText("三谱同图 · 汉唐宋元")).toBeInTheDocument();
-    const nav = screen.getByRole("navigation", { name: "图谱导航" });
-    expect(within(nav).getByRole("button", { name: "全部图谱" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    const picker = within(nav).getByRole("combobox", { name: "专题图层" }) as HTMLSelectElement;
-    expect(picker.value).toBe("");
-    // 一个占位「专题图层」+ 三个专题选项
-    expect(within(picker).getAllByRole("option")).toHaveLength(ATLAS_LAYER_OPTIONS.length);
-    expect(within(nav).queryByRole("button", { name: "民族迁徙" })).not.toBeInTheDocument();
-    expect(within(nav).queryByRole("button", { name: "边疆治理" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "专题图层" })).not.toBeInTheDocument();
+    for (const { label } of ATLAS_LAYER_OPTIONS) {
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+    }
     expect(screen.getByRole("complementary", { name: "图谱条目目录" })).toBeInTheDocument();
     expect(svgWithin(map()).getAllByRole("button")).toHaveLength(ATLAS_ITEMS.length);
   });
 
-  it("切到专题后选择器回显当前专题，回到全部图谱时复位", () => {
+  it("条目右侧不再挂「迁徙 / 治所 / 快照」之类的类型标签", () => {
     renderExplorer();
-    const nav = screen.getByRole("navigation", { name: "图谱导航" });
-    const picker = () => within(nav).getByRole("combobox", { name: "专题图层" });
+    const aside = screen.getByRole("complementary", { name: "图谱条目目录" });
+    for (const tag of ["迁徙", "治所", "快照"]) {
+      expect(within(aside).queryByText(tag)).not.toBeInTheDocument();
+    }
+    // 名称仍全部在菜单里，只是不再带右侧类型文字
+    expect(within(aside).getAllByRole("button").length).toBeGreaterThan(ATLAS_ITEMS.length);
+  });
+
+  it("每个专题是一节可折叠菜单，节内数据按朝代分组", () => {
+    renderExplorer();
+    const all = screen.getByRole("button", { name: "全部图谱" });
+    const aside = screen.getByRole("complementary");
+    expect(all).toHaveAttribute("aria-expanded", "true");
+    expect(within(aside).getAllByText("汉").length).toBeGreaterThan(0);
+
+    fireEvent.click(all);
+    expect(all).toHaveAttribute("aria-expanded", "false");
+    expect(within(aside).queryByRole("button", { name: /南越置郡/ })).not.toBeInTheDocument();
+
+    fireEvent.click(all);
+    expect(all).toHaveAttribute("aria-expanded", "true");
+    expect(within(aside).getByRole("button", { name: /南越置郡/ })).toBeInTheDocument();
 
     switchTo("民族迁徙");
-    expect(picker()).toHaveValue("migration");
-    expect(within(nav).getByRole("button", { name: "全部图谱" })).toHaveAttribute(
+    expect(screen.getByRole("heading", { level: 1, name: "民族迁徙" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "民族迁徙" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(all).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: "全部图谱" })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
+  });
 
-    switchTo("全部图谱");
-    expect(picker()).toHaveValue("");
-    expect(within(nav).getByRole("button", { name: "全部图谱" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
+  it("选中条目朱色高亮，并局部放大所在地区；复位后回到全图", () => {
+    const { map } = renderExplorer("frontier");
+    const policy = FRONTIER_POLICIES[0]!;
+    const zoom = () => map()?.querySelector(".atlas-zoom-layer");
+    expect(zoom()?.getAttribute("data-zoom")).toBe("1");
+
+    fireEvent.click(
+      within(screen.getByRole("complementary", { name: "边疆制度目录" })).getByRole("button", {
+        name: new RegExp(policy.institution),
+      }),
     );
+
+    const row = within(screen.getByRole("complementary", { name: "边疆制度目录" })).getByRole(
+      "button",
+      { name: new RegExp(policy.institution) },
+    );
+    expect(row).toHaveAttribute("aria-pressed", "true");
+    expect(row.className).toContain("text-vermillion");
+    expect(Number(zoom()?.getAttribute("data-zoom"))).toBeGreaterThan(1);
+    expect(zoom()?.getAttribute("style")).toContain("scale(2");
+    expect(map()?.getAttribute("viewBox")).toBe(ATLAS_VIEW.box);
+
+    fireEvent.click(screen.getByRole("button", { name: /局部放大/ }));
+    expect(zoom()?.getAttribute("data-zoom")).toBe("1");
+  });
+
+  it("底图恒为现今疆域，切换朝代叠加该朝疆域示意与都城、大城市标记", () => {
+    const { map } = renderExplorer();
+    expect(screen.getByText("底图 · 现今中国疆域")).toBeInTheDocument();
+    expect(map()?.querySelector(".atlas-dynasty-area")).toBeNull();
+
+    const chips = screen.getByRole("group", { name: "朝代切换" });
+    fireEvent.click(within(chips).getByRole("button", { name: "唐" }));
+
+    const tang = DYNASTY_TERRITORIES.find((entry) => entry.id === "tang")!;
+    expect(map()?.querySelector(".atlas-dynasty-area")).not.toBeNull();
+    expect(map()?.querySelectorAll(".atlas-city-label")).toHaveLength(tang.cities.length);
+    expect(svgWithin(map()).getByText("长安 · 都城")).toBeInTheDocument();
+    expect(screen.getByText(/唐 · 疆域示意（非实测边界）/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "唐 · 都城与主要城市" })).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`都城 · ${tang.capital}`))).toBeInTheDocument();
+    for (const source of tang.sources) {
+      expect(screen.getByText(`资料出处 · ${source}`)).toBeInTheDocument();
+    }
+
+    fireEvent.click(within(chips).getByRole("button", { name: "全部朝代" }));
+    expect(map()?.querySelector(".atlas-dynasty-area")).toBeNull();
+    expect(screen.getByText(/全览模式：六幅疆域快照/)).toBeInTheDocument();
   });
 
   it("切换全部与单项时不重挂载地图：同一 SVG、同一视野、同一底图节点", () => {
@@ -90,7 +153,7 @@ describe("<AtlasExplorer /> 统一功能页", () => {
     expect(svg?.getAttribute("viewBox")).toBe(viewBox);
     expect(svg?.querySelector("path")).toBe(firstBasemapPath);
 
-    // 单选某一条也不改视野，详情卡高度固定，地图因此不会跳动
+    // 单选某一条也不改视野，只改 <g> 的 transform
     fireEvent.click(
       within(screen.getByRole("complementary")).getByRole("button", {
         name: new RegExp(MIGRATION_EVENTS[1]!.group),
@@ -201,13 +264,14 @@ describe("<AtlasExplorer /> 统一功能页", () => {
     );
   });
 
-  it("疆域图层保留时间轴，点年份可聚焦单个断面", () => {
+  it("疆域图层保留时间轴，点年份可聚焦断面并叠加当朝疆域", () => {
     renderExplorer("territory");
     expect(screen.getByRole("list", { name: "疆域快照时间轴" })).toBeInTheDocument();
     const last = TERRITORY_SNAPSHOTS[TERRITORY_SNAPSHOTS.length - 1]!;
     fireEvent.click(screen.getByRole("button", { name: `${last.year}` }));
     expect(screen.getByText(last.description)).toBeInTheDocument();
     expect(screen.getByText(`都城 · ${last.capital.name}`)).toBeInTheDocument();
+    expect(screen.getByText(/元 · 疆域示意（非实测边界）/)).toBeInTheDocument();
   });
 
   it.each([

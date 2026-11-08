@@ -1,6 +1,7 @@
 import { memo } from "react";
 
 import { cn } from "../../../lib/utils";
+import { type AtlasFocus, atlasTransform } from "./atlas-focus";
 import {
   ATLAS_LABELS,
   ATLAS_VIEW,
@@ -10,12 +11,18 @@ import {
   LABEL_FONT_SIZE,
 } from "./atlas-items";
 import { BasemapLayers } from "./basemap-layers";
-import type { AtlasTopicId } from "./types";
+import { getDynastyTerritory } from "./dynasty-territories";
+import { DynastyTerritoryLayer } from "./dynasty-territory-layer";
+import type { AtlasDynastyId, AtlasTopicId } from "./types";
 
 export interface AtlasMapProps {
   className?: string;
   /** 是否播放画线、流动光点与脉冲。 */
   animated: boolean;
+  /** 当前朝代断面；null 表示只画现代疆域底图。 */
+  dynasty: AtlasDynastyId | null;
+  /** 选中条目后要聚焦的 transform；全览时为单位变换。 */
+  focus: AtlasFocus;
   /** 悬停中的条目 id（详情卡据此展开，地图只做强调）。 */
   hoveredId: string | null;
   /** 可见条目；切换「全部 / 单项」只换这个数组，SVG 与视野保持不动。 */
@@ -184,16 +191,20 @@ function RouteLayer({ animated, dim, item }: { animated: boolean; dim: boolean; 
 }
 
 /**
- * 一张常驻 SVG：底图、三类标图点、路线与引导线标注全部画在同一个视野里。
+ * 一张常驻 SVG：现代疆域底图、朝代断面、三类标图点、路线与引导线标注全画在同一视野里。
  *
  * 稳定性约定（切换「全部 / 单项」时地图不跳动）：
  * - viewBox 取模块级常量 ATLAS_VIEW，不随选中项重算；
  * - 标注坐标取模块级常量 ATLAS_LABELS，不随过滤结果重排；
- * - SVG 本身没有 key，页面切换只改变 children，DOM 节点与尺寸保持不变。
+ * - SVG 本身没有 key，页面切换只改变 children，DOM 节点与尺寸保持不变；
+ * - 局部放大只作用于最外层 <g> 的 transform，视野与标注坐标都不变，
+ *   因而放大是可逆的、可过渡的，也不会让底图重挂载。
  */
 export const AtlasMap = memo(function AtlasMap({
   animated,
   className,
+  dynasty,
+  focus,
   hoveredId,
   items,
   layer,
@@ -203,153 +214,171 @@ export const AtlasMap = memo(function AtlasMap({
 }: AtlasMapProps) {
   return (
     <svg
-      aria-label={MAP_ARIA_LABEL[layer]}
+      aria-label={`${MAP_ARIA_LABEL[layer]}${dynasty ? ` · 叠加${getDynastyTerritory(dynasty).label}朝疆域示意` : ""}`}
       className={cn("block h-full w-full", className)}
       preserveAspectRatio="xMidYMid meet"
       role="img"
       viewBox={ATLAS_VIEW.box}
     >
-      {/* 底图公共图层：省界 → 国界 → 岛屿 → 九段线 → 经纬网 → 河流 → 海名 */}
-      <BasemapLayers />
+      {/* 单一常驻 <g>：局部放大只改这里的 transform，viewBox / 底图 / 标注坐标全部不动 */}
+      <g
+        className="atlas-zoom-layer"
+        data-zoom={focus.k}
+        style={{ transform: atlasTransform(focus), transformOrigin: "0 0" }}
+      >
+        {/* 底图公共图层：现代中国省界 → 国界 → 岛屿 → 九段线 → 经纬网 → 河流 → 海名 */}
+        <BasemapLayers />
 
-      {/* 防御范围示意环画在最底层，方印与标签随后覆盖，标注信息不被遮挡 */}
-      {items
-        .filter((item) => item.topic === "frontier")
-        .map((item) => (
-          <DefenseRing
-            active={item.id === selectedId || item.id === hoveredId}
-            dim={selectedId !== null && selectedId !== item.id}
-            key={`defense-${item.id}`}
-            point={item.primary}
-          />
-        ))}
+        {/* 朝代断面叠在现代底图之上：示意范围 + 都城 / 大城市符号与名称 */}
+        <DynastyTerritoryLayer dynasty={dynasty} items={items} />
 
-      {/* 路线底层：先画线再画点，点不会被线压住 */}
-      {items.map((item) =>
-        item.route ? (
-          <RouteLayer
-            animated={animated}
-            dim={selectedId !== null && selectedId !== item.id}
-            item={item}
-            key={`route-layer-${item.id}`}
-          />
-        ) : null,
-      )}
+        {/* 防御范围示意环画在最底层，方印与标签随后覆盖，标注信息不被遮挡 */}
+        {items
+          .filter((item) => item.topic === "frontier")
+          .map((item) => (
+            <DefenseRing
+              active={item.id === selectedId || item.id === hoveredId}
+              dim={selectedId !== null && selectedId !== item.id}
+              key={`defense-${item.id}`}
+              point={item.primary}
+            />
+          ))}
 
-      {/* 标图点：都城、控制节点、途经地、治所 */}
-      {items.map((item) => {
-        const dim = selectedId !== null && selectedId !== item.id;
-        const color = dim ? "hsl(var(--ink) / 0.42)" : ATLAS_TOPIC_COLOR[item.topic];
-        return (
-          <g key={`points-${item.id}`} opacity={dim ? 0.55 : 1}>
-            {item.points.map((point, index) => (
-              <PointSymbol
-                color={color}
-                dim={dim}
-                key={`${item.id}-${point.kind}-${index}`}
-                point={point}
-              />
-            ))}
-          </g>
-        );
-      })}
+        {/* 路线底层：先画线再画点，点不会被线压住 */}
+        {items.map((item) =>
+          item.route ? (
+            <RouteLayer
+              animated={animated}
+              dim={selectedId !== null && selectedId !== item.id}
+              item={item}
+              key={`route-layer-${item.id}`}
+            />
+          ) : null,
+        )}
 
-      {/* 选中 / 悬停的锚点脉冲：只加环形描边，不改变任何点的位置 */}
-      {items
-        .filter((item) => item.id === selectedId || item.id === hoveredId)
-        .map((item) => (
-          <circle
-            cx={item.primary[0]}
-            cy={item.primary[1]}
-            fill="none"
-            key={`halo-${item.id}`}
-            r={1.1}
-            stroke={ATLAS_TOPIC_COLOR[item.topic]}
-            strokeWidth={0.2}
-          >
-            {animated ? (
-              <>
-                <animate
-                  attributeName="r"
-                  dur="2.2s"
-                  from={1.1}
-                  repeatCount="indefinite"
-                  to={2.4}
+        {/* 标图点：都城、控制节点、途经地、治所 */}
+        {items.map((item) => {
+          const dim = selectedId !== null && selectedId !== item.id;
+          const color = dim ? "hsl(var(--ink) / 0.42)" : ATLAS_TOPIC_COLOR[item.topic];
+          return (
+            <g key={`points-${item.id}`} opacity={dim ? 0.55 : 1}>
+              {item.points.map((point, index) => (
+                <PointSymbol
+                  color={color}
+                  dim={dim}
+                  key={`${item.id}-${point.kind}-${index}`}
+                  point={point}
                 />
-                <animate
-                  attributeName="stroke-opacity"
-                  dur="2.2s"
-                  from={0.7}
-                  repeatCount="indefinite"
-                  to={0}
-                />
-              </>
-            ) : null}
-          </circle>
-        ))}
+              ))}
+            </g>
+          );
+        })}
 
-      {/* 引导线与标签画在最上层：纸色底 + 描边，保证标图信息不被图层遮挡 */}
-      {items.map((item) => {
-        const placement = ATLAS_LABELS.get(item.id);
-        if (!placement) return null;
-        const dim = selectedId !== null && selectedId !== item.id;
-        const active = item.id === selectedId || item.id === hoveredId;
-        const color = dim ? "hsl(var(--ink) / 0.38)" : ATLAS_TOPIC_COLOR[item.topic];
-        const { height, leader, width, x, y } = placement;
-        return (
-          // biome-ignore lint/a11y/useSemanticElements: SVG 的 <g> 不能换成 HTML <button>，热点只能靠 role + tabIndex 提供键盘可达性
-          <g
-            aria-label={`地图标注 · ${item.label}`}
-            className="cursor-pointer outline-none"
-            key={`label-${item.id}`}
-            onBlur={() => onHover(null)}
-            onClick={() => onSelect(item.id)}
-            onFocus={() => onHover(item.id)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onSelect(item.id);
-              }
-            }}
-            onMouseEnter={() => onHover(item.id)}
-            onMouseLeave={() => onHover(null)}
-            role="button"
-            tabIndex={0}
-          >
-            <path
-              className="atlas-leader"
-              d={`M ${leader.x1} ${leader.y1} L ${leader.x2} ${leader.y2}`}
+        {/* 选中 / 悬停的锚点脉冲：只加环形描边，不改变任何点的位置 */}
+        {items
+          .filter((item) => item.id === selectedId || item.id === hoveredId)
+          .map((item) => (
+            <circle
+              cx={item.primary[0]}
+              cy={item.primary[1]}
               fill="none"
-              opacity={dim ? 0.45 : 0.85}
-              stroke={color}
-              strokeWidth={active ? 0.2 : 0.12}
-            />
-            <circle cx={leader.x1} cy={leader.y1} fill={color} r={0.26} />
-            <rect
-              className="atlas-label-box"
-              fill="hsl(var(--paper) / 0.94)"
-              height={height}
-              rx={0.5}
-              stroke={color}
-              strokeWidth={active ? 0.28 : 0.14}
-              width={width}
-              x={x - width / 2}
-              y={y - height / 2}
-            />
-            <text
-              className="font-kai"
-              fill={dim ? "hsl(var(--ink) / 0.55)" : "hsl(var(--ink))"}
-              fontSize={LABEL_FONT_SIZE}
-              fontWeight={active ? 700 : 500}
-              textAnchor="middle"
-              x={x}
-              y={y + LABEL_FONT_SIZE * 0.35}
+              key={`halo-${item.id}`}
+              r={1.1}
+              stroke={ATLAS_TOPIC_COLOR[item.topic]}
+              strokeWidth={0.2}
             >
-              {item.label}
-            </text>
-          </g>
-        );
-      })}
+              {animated ? (
+                <>
+                  <animate
+                    attributeName="r"
+                    dur="2.2s"
+                    from={1.1}
+                    repeatCount="indefinite"
+                    to={2.4}
+                  />
+                  <animate
+                    attributeName="stroke-opacity"
+                    dur="2.2s"
+                    from={0.7}
+                    repeatCount="indefinite"
+                    to={0}
+                  />
+                </>
+              ) : null}
+            </circle>
+          ))}
+
+        {/* 引导线与标签画在最上层：选中项以朱色高亮，其余降为墨灰 */}
+        {items.map((item) => {
+          const placement = ATLAS_LABELS.get(item.id);
+          if (!placement) return null;
+          const dim = selectedId !== null && selectedId !== item.id;
+          const isSelected = item.id === selectedId;
+          const active = isSelected || item.id === hoveredId;
+          const color = dim ? "hsl(var(--ink) / 0.38)" : ATLAS_TOPIC_COLOR[item.topic];
+          const highlight = isSelected ? "hsl(var(--vermillion))" : color;
+          const { height, leader, width, x, y } = placement;
+          return (
+            // biome-ignore lint/a11y/useSemanticElements: SVG 的 <g> 不能换成 HTML <button>，热点只能靠 role + tabIndex 提供键盘可达性
+            <g
+              aria-label={`地图标注 · ${item.label}`}
+              className="cursor-pointer outline-none"
+              key={`label-${item.id}`}
+              onBlur={() => onHover(null)}
+              onClick={() => onSelect(item.id)}
+              onFocus={() => onHover(item.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(item.id);
+                }
+              }}
+              onMouseEnter={() => onHover(item.id)}
+              onMouseLeave={() => onHover(null)}
+              role="button"
+              tabIndex={0}
+            >
+              <path
+                className="atlas-leader"
+                d={`M ${leader.x1} ${leader.y1} L ${leader.x2} ${leader.y2}`}
+                fill="none"
+                opacity={dim ? 0.45 : 0.85}
+                stroke={highlight}
+                strokeWidth={isSelected ? 0.28 : active ? 0.2 : 0.12}
+              />
+              <circle cx={leader.x1} cy={leader.y1} fill={highlight} r={0.26} />
+              <rect
+                className="atlas-label-box"
+                fill={isSelected ? "hsl(var(--vermillion) / 0.14)" : "hsl(var(--paper) / 0.94)"}
+                height={height}
+                rx={0.5}
+                stroke={highlight}
+                strokeWidth={isSelected ? 0.36 : active ? 0.28 : 0.14}
+                width={width}
+                x={x - width / 2}
+                y={y - height / 2}
+              />
+              <text
+                className="font-kai"
+                fill={
+                  isSelected
+                    ? "hsl(var(--vermillion))"
+                    : dim
+                      ? "hsl(var(--ink) / 0.55)"
+                      : "hsl(var(--ink))"
+                }
+                fontSize={LABEL_FONT_SIZE}
+                fontWeight={active ? 700 : 500}
+                textAnchor="middle"
+                x={x}
+                y={y + LABEL_FONT_SIZE * 0.35}
+              >
+                {item.label}
+              </text>
+            </g>
+          );
+        })}
+      </g>
     </svg>
   );
 });
