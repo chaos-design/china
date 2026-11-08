@@ -1,3 +1,4 @@
+import { legalCodeTopic } from "./legal-code";
 import { officialSystemTopic } from "./official-system";
 import { taxationTopic } from "./taxation";
 import type { InstitutionTopic } from "./types";
@@ -9,6 +10,7 @@ import type { InstitutionTopic } from "./types";
 export const INSTITUTION_TOPICS: readonly InstitutionTopic[] = [
   officialSystemTopic,
   taxationTopic,
+  legalCodeTopic,
 ];
 
 export function getInstitutionTopic(topicId: string): InstitutionTopic | undefined {

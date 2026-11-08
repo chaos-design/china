@@ -85,6 +85,10 @@ export const routes: RouteObject[] = [
         element: withSuspense(<InstitutionTopicPage topicId="official-system" />),
       },
       {
+        path: "china/institutions/legal-code",
+        element: withSuspense(<InstitutionTopicPage topicId="legal-code" />),
+      },
+      {
         path: "china/institutions/taxation",
         element: withSuspense(<InstitutionTopicPage topicId="taxation" />),
       },
