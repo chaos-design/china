@@ -73,7 +73,7 @@ describe("<InstitutionTopicPage />", () => {
 
     expect(screen.getByText("关联条目")).toBeInTheDocument();
     for (const sibling of siblings) {
-      const link = screen.getByRole("link", { name: new RegExp(sibling.name) });
+      const link = screen.getByRole("link", { name: new RegExp(`^${sibling.name}`) });
       expect(link).toHaveAttribute("href", `/china/institutions/${sibling.slug}`);
     }
   });

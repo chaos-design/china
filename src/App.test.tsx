@@ -413,7 +413,7 @@ describe("<App /> routing", () => {
       expect(screen.getByText(name)).toBeInTheDocument();
     }
     // 已落地的条目渲染为卡片链接（数量断言在 page.test.tsx 里随注册表走）
-    expect(screen.getByRole("link", { name: /官制/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /^官制/ })).toHaveAttribute(
       "href",
       "/china/institutions/official-system",
     );

@@ -37,7 +37,7 @@ describe("<ChinaInstitutionsPage />", () => {
     );
 
     for (const topic of INSTITUTION_TOPICS) {
-      const link = screen.getByRole("link", { name: new RegExp(topic.name) });
+      const link = screen.getByRole("link", { name: new RegExp(`^${topic.name}`) });
       expect(link).toHaveAttribute("href", `/china/institutions/${topic.slug}`);
     }
 
