@@ -14,9 +14,10 @@
 
 | 页面 | 预览地址 | 内容 | 截图 |
 | --- | --- | --- | --- |
-| 首页 | https://china.chaosmic.cn/ | 水墨风首页、画卷入场动画与全局换色入口。画卷动画每个浏览器窗口只展示一次，状态存储在 `sessionStorage`；主题色偏好存储在 `localStorage`。 | ![中国古代全览首页](./screenshots/home.webp) |
+| 首页 | https://china.chaosmic.cn/ | 水墨风首页、画卷入场动画与全局换色入口。画卷动画播过一次后 7 天内不再展示，时间戳存储在 `localStorage`；主题色偏好同样存储在 `localStorage`。 | ![中国古代全览首页](./screenshots/home.webp) |
 | 时间长河 | https://china.chaosmic.cn/china/timeline | 基于 Three.js 的 3D 朝代与少数民族关系漫游，包含主时间轴、战争连线、民族副线、吞并箭头、朝代筛选与时间范围筛选。`/china` 会重定向到此页面。 | ![3D 时间长河](./screenshots/china-timeline.webp) |
 | 政策全览 | https://china.chaosmic.cn/china/policies | 按朝代整理核心政策、制度机构、历史人物、疆域治理与文化科技内容。 | ![朝代政策全览](./screenshots/china-policies.webp) |
+| 典章制度索引 | https://china.chaosmic.cn/china/institutions | 制度专题总索引：预留官制、赋役、律令、科举与礼制五类条目（筹备中），后续按朝代脉络逐篇充实。 | - |
 | HTML 专题资源 | https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片、阅读指南等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
 | 台湾专题 | https://china.chaosmic.cn/taiwan | 五卷分页：地形剖面与经纬度投影地图、岛屿编年、风土人情，以及 1895—1945 年日治与 1947 年之后的近代，逐节标注资料出处。内容存于 `resources/html-data/taiwan.json`，渲染逻辑在 `resources/html/taiwan.html`。 | - |
 
@@ -101,6 +102,7 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 | `/china` | 兼容旧入口，自动重定向到 `/china/timeline` |
 | `/china/timeline` | Three.js 3D 时间长河 |
 | `/china/policies` | 朝代政策全览 |
+| `/china/institutions` | 典章制度索引（官制、赋役、律令、科举与礼制预留条目） |
 | `/<html-resource-slug>` | 从 `resources/html/*.html` 自动生成，文件名会按 kebab-case 转为路由 |
 | `*` | 404 兜底页面 |
 

@@ -3,8 +3,9 @@ import type { PageResourceConfig } from "../page-resources";
 const institutionsResource = {
   homeEntries: [
     {
+      path: "/china/institutions",
       icon: "book-open",
-      status: "preview",
+      status: "available",
       title: "典章制度索引",
       description: "预留官制、赋役、律令、科举与礼制条目，适合做专题检索与延伸阅读。",
     },

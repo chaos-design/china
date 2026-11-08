@@ -9,4 +9,5 @@ export const ROUTE_LAYOUT_CONFIGS: RouteLayoutConfig[] = [
   { path: "/", showFooter: true, showThemePicker: true },
   { path: "/china/timeline", immersive: true },
   { path: "/china/policies" },
+  { path: "/china/institutions" },
 ];

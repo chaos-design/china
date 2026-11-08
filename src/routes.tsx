@@ -12,6 +12,11 @@ const AncientChinaPoliciesReactPage = lazy(() =>
     default: module.AncientChinaPoliciesReactPage,
   })),
 );
+const ChinaInstitutionsPage = lazy(() =>
+  import("./pages/ancient/china-institutions").then((module) => ({
+    default: module.ChinaInstitutionsPage,
+  })),
+);
 const AncientChinaReactPage = lazy(() =>
   import("./pages/ancient/china").then((module) => ({
     default: module.AncientChinaReactPage,
@@ -43,6 +48,7 @@ export const routes: RouteObject[] = [
       { path: "china", element: <Navigate to="/china/timeline" replace /> },
       { path: "china/timeline", element: withSuspense(<AncientChinaReactPage />) },
       { path: "china/policies", element: withSuspense(<AncientChinaPoliciesReactPage />) },
+      { path: "china/institutions", element: withSuspense(<ChinaInstitutionsPage />) },
       ...htmlResourceRoutes,
       { path: "*", element: withSuspense(<NotFoundPage />) },
     ],
