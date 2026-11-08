@@ -48,18 +48,18 @@ export function InstitutionTopicPage({ topicId }: { topicId: string }) {
           </div>
 
           {/* 编年体时间轴：竖轴在左，每个阶段一张节点卡，连接线把卡片钉回轴线 */}
-          <ol className="relative flex flex-col gap-8 border-ink/15 border-l-2 pl-6 sm:pl-8">
+          <ol className="relative flex flex-col gap-8 border-ink/15 border-l-2 pl-8">
             {topic.eras.map((era) => (
               <li className="relative" key={era.title}>
                 {/* 节点与连接件：朱点钉在轴线上，横线把卡片牵回轴线 */}
                 <span
                   aria-hidden="true"
-                  className="absolute -left-[7px] top-7 z-10 h-3.5 w-3.5 rounded-full border-2 border-vermillion bg-paper shadow-[0_0_0_3px_hsl(var(--paper))]"
+                  className="absolute -left-[40px] top-7 z-10 h-3.5 w-3.5 rounded-full border-2 border-vermillion bg-paper shadow-[0_0_0_3px_hsl(var(--paper))]"
                   data-era-dot=""
                 />
                 <span
                   aria-hidden="true"
-                  className="absolute -left-8 top-[37px] hidden h-px w-8 bg-vermillion/35 sm:block"
+                  className="absolute -left-[33px] top-[35px] hidden h-px w-[33px] bg-vermillion/35 sm:block"
                 />
                 <div className="relative flex flex-col gap-3 rounded-xl border border-ink/15 bg-card/90 p-5 shadow-[0_10px_28px_hsl(var(--ink)/0.08)] transition-shadow duration-300 hover:shadow-[0_14px_34px_hsl(var(--ink)/0.12)]">
                   <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
