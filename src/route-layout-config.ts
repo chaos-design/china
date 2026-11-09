@@ -14,4 +14,6 @@ export const ROUTE_LAYOUT_CONFIGS: RouteLayoutConfig[] = [
   { path: "/china/atlas/territory" },
   { path: "/china/atlas/migration" },
   { path: "/china/atlas/frontier" },
+  // 品级纵横：官位品级八朝对比，默认布局（无页脚、无调色器）。
+  { path: "/china/ranks" },
 ];

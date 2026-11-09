@@ -46,6 +46,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         label: "朝代政策全览",
         to: "/china/policies",
       },
+      {
+        highlights: ["八朝官阶阶梯", "六条职系追踪", "同品序八朝断面"],
+        label: "品级纵横",
+        to: "/china/ranks",
+      },
     ],
     label: "编年与制度",
     mapZone: "north",
