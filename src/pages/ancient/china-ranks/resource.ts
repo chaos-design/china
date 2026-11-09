@@ -7,7 +7,8 @@ const chinaRanksResource = {
       icon: "scale",
       status: "available",
       title: "品级纵横",
-      description: "八朝官位品级立体对照：单朝与双朝阶梯、六条职系追踪、同一品序八朝断面。",
+      description:
+        "八朝官位品级立体树：3D 层级从属、双朝同品并置，辅以阶梯、六条职系追踪与同品断面。",
     },
   ],
 } satisfies PageResourceConfig;

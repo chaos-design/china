@@ -1,8 +1,18 @@
 import { useState } from "react";
 
 import { cn } from "../../../lib/utils";
-import { getRankDynasty, RANK_DYNASTIES, RANK_TRACKS } from "./rank-data";
+import { DynastyChips } from "./dynasty-chips";
+import type { SelectedOffice } from "./office-detail-card";
+import { OfficeDetailCard } from "./office-detail-card";
+import {
+  getRankDynasty,
+  nextDynastyId,
+  RANK_DYNASTIES,
+  RANK_TRACKS,
+  resolveOfficeBand,
+} from "./rank-data";
 import { LadderStep } from "./rank-step-glyph";
+import { RankTreeSection } from "./rank-tree-section";
 import type { RankBand, RankDynasty, RankDynastyId, RankLevel, RankOffice } from "./types";
 
 const GRADE_BANDS: readonly RankBand[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -18,77 +28,6 @@ const GRADE_LABELS: Record<RankBand, string> = {
   8: "八品",
   9: "九品",
 };
-
-interface SelectedOffice {
-  dynasty: RankDynasty;
-  level: RankLevel;
-  office: RankOffice;
-}
-
-/** 品序解析：office.band 优先，秦汉官职回退到等级的 approxGrade。 */
-function resolveOfficeBand(level: RankLevel, office: RankOffice): RankBand | null {
-  if (office.band !== undefined) {
-    return office.band;
-  }
-  if (level.outOfRank === true) {
-    return null;
-  }
-  return level.approxGrade ?? null;
-}
-
-function nextDynastyId(id: RankDynastyId): RankDynastyId {
-  const index = RANK_DYNASTIES.findIndex((dynasty) => dynasty.id === id);
-  const next = (index + 1) % RANK_DYNASTIES.length;
-  const candidate = RANK_DYNASTIES[next];
-  if (!candidate) {
-    return "qin";
-  }
-  return candidate.id;
-}
-
-function DynastyChips({
-  ariaLabel,
-  currentId,
-  disabledId,
-  onSelect,
-}: {
-  ariaLabel: string;
-  currentId: RankDynastyId;
-  disabledId?: RankDynastyId;
-  onSelect: (id: RankDynastyId) => void;
-}) {
-  return (
-    <fieldset aria-label={ariaLabel} className="flex flex-wrap gap-2">
-      {RANK_DYNASTIES.map((dynasty) => {
-        const active = dynasty.id === currentId;
-        const disabled = dynasty.id === disabledId;
-
-        return (
-          <button
-            aria-pressed={active}
-            className={cn(
-              "rounded-full border px-3.5 py-1.5 font-brush text-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-              active
-                ? "border-vermillion/40 bg-vermillion/15 text-vermillion"
-                : "border-ink/15 bg-card/70 text-ink hover:border-vermillion/30 hover:bg-vermillion/5",
-              disabled && "cursor-not-allowed opacity-40 hover:border-ink/15 hover:bg-card/70",
-            )}
-            disabled={disabled}
-            key={dynasty.id}
-            onClick={() => {
-              if (!disabled) {
-                onSelect(dynasty.id);
-              }
-            }}
-            type="button"
-          >
-            {dynasty.name}
-          </button>
-        );
-      })}
-    </fieldset>
-  );
-}
 
 function OfficeRow({
   isSelected,
@@ -210,52 +149,6 @@ function LadderColumn({
         ))}
       </ol>
     </div>
-  );
-}
-
-function DetailFacet({ label, text }: { label: string; text: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="font-mono-tech text-[0.7rem] text-vermillion tracking-[0.2em] uppercase">
-        {label}
-      </dt>
-      <dd className="text-foreground/90 text-sm leading-relaxed">{text}</dd>
-    </div>
-  );
-}
-
-function OfficeDetailCard({ selection }: { selection: SelectedOffice | null }) {
-  if (!selection) {
-    return (
-      <p className="rounded-xl border border-dashed border-ink/20 bg-paper/60 px-4 py-4 text-muted-foreground text-sm">
-        点选任一官职，查看职能、秩俸、实态沿革与古今对应。
-      </p>
-    );
-  }
-
-  const { office, dynasty } = selection;
-
-  return (
-    <aside
-      aria-label="官职详情"
-      className="min-h-[150px] rounded-xl border border-ink/15 bg-paper/70 p-5 shadow-[0_10px_28px_hsl(var(--ink)/0.08)]"
-    >
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="font-brush text-2xl text-ink">{office.title}</span>
-        <span className="rounded-sm bg-vermillion/10 px-2 py-0.5 font-brush text-vermillion text-base">
-          {dynasty.name}
-        </span>
-        <span className="font-mono-tech text-muted-foreground text-xs tracking-[0.12em]">
-          {office.rank}
-        </span>
-      </div>
-      <dl className="mt-3 grid gap-x-8 gap-y-2.5 sm:grid-cols-2">
-        <DetailFacet label="职能" text={office.duty} />
-        {office.salary ? <DetailFacet label="秩俸" text={office.salary} /> : null}
-        {office.note ? <DetailFacet label="实态 · 沿革" text={office.note} /> : null}
-        {office.modern ? <DetailFacet label="古今对应（参考）" text={office.modern} /> : null}
-      </dl>
-    </aside>
   );
 }
 
@@ -533,12 +426,13 @@ export function RanksPage() {
             </span>
           </div>
           <p className="max-w-3xl font-body text-ink/85 text-sm leading-relaxed">
-            把八个王朝的官位品级摆在同一张桌上：纵向看每一朝的阶梯，横向追同一条职系，断面比同一品级——品级如何从秩石走向九品十八级，又如何一次次与实权脱钩。
+            先看立体树：树干自皇权垂下，平台是品级，枝头是文武百官，两朝按品并置即可同高对读；再看阶梯、职系与同品断面——品级如何从秩石走向九品十八级，又如何一次次与实权脱钩。
           </p>
         </div>
       </header>
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-8 sm:px-6">
+        <RankTreeSection />
         <LadderSection
           compareEnabled={compareEnabled}
           compareId={effectiveCompareId}

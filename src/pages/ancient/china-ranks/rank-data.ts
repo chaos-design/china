@@ -1,4 +1,11 @@
-import type { OfficeTrack, RankDynasty } from "./types";
+import type {
+  OfficeTrack,
+  RankBand,
+  RankDynasty,
+  RankDynastyId,
+  RankLevel,
+  RankOffice,
+} from "./types";
 
 /**
  * 八朝品级数据：秦、汉行秩石制而无「品」，每级附「约当 N 品」示意映射；
@@ -1534,4 +1541,21 @@ export const RANK_TRACKS: readonly OfficeTrack[] = [
 
 export function getRankDynasty(id: string): RankDynasty | undefined {
   return RANK_DYNASTIES.find((dynasty) => dynasty.id === id);
+}
+
+/** 按八朝顺序取下一位；对比列与主朝重合时用它顺延。 */
+export function nextDynastyId(id: RankDynastyId): RankDynastyId {
+  const index = RANK_DYNASTIES.findIndex((dynasty) => dynasty.id === id);
+  return (index < 0 ? RANK_DYNASTIES[0] : RANK_DYNASTIES[(index + 1) % RANK_DYNASTIES.length])!.id;
+}
+
+/** 官职品序：office.band 优先，秦汉官职回退到所属层级的 approxGrade。 */
+export function resolveOfficeBand(level: RankLevel, office: RankOffice): RankBand | null {
+  if (office.band !== undefined) {
+    return office.band;
+  }
+  if (level.outOfRank === true) {
+    return null;
+  }
+  return level.approxGrade ?? null;
 }
