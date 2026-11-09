@@ -37,6 +37,11 @@ const RanksPage = lazy(() =>
     default: module.RanksPage,
   })),
 );
+const OfficialsHallPage = lazy(() =>
+  import("./pages/ancient/china-officials").then((module) => ({
+    default: module.OfficialsHallPage,
+  })),
+);
 const AncientChinaReactPage = lazy(() =>
   import("./pages/ancient/china").then((module) => ({
     default: module.AncientChinaReactPage,
@@ -76,6 +81,8 @@ export const routes: RouteObject[] = [
       { path: "china/atlas/frontier", element: withSuspense(<FrontierAtlasPage />) },
       // 品级纵横：官位品级八朝对比，单路由页内切换阶梯 / 职系 / 断面三个视角
       { path: "china/ranks", element: withSuspense(<RanksPage />) },
+      // 品秩全景：全屏立体，3D 只以品级为节点，官职在同层名录 / 抽屉里展开
+      { path: "china/officials", element: withSuspense(<OfficialsHallPage />) },
       ...htmlResourceRoutes,
       { path: "*", element: withSuspense(<NotFoundPage />) },
     ],

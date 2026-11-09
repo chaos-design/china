@@ -428,6 +428,12 @@ export function RanksPage() {
           <p className="max-w-3xl font-body text-ink/85 text-sm leading-relaxed">
             先看立体树：树干自皇权垂下，平台是品级，枝头是文武百官，两朝按品并置即可同高对读；再看阶梯、职系与同品断面——品级如何从秩石走向九品十八级，又如何一次次与实权脱钩。
           </p>
+          <a
+            className="w-fit rounded-full border border-vermillion/35 bg-vermillion/10 px-3 py-1 font-body text-xs text-vermillion transition-colors hover:bg-vermillion/20"
+            href="/china/officials"
+          >
+            进入全屏「品秩全景」→
+          </a>
         </div>
       </header>
 

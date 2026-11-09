@@ -51,6 +51,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         label: "品级纵横",
         to: "/china/ranks",
       },
+      {
+        highlights: ["全屏立体品阶", "文武分列官职", "名臣名将示例"],
+        label: "品秩全景",
+        to: "/china/officials",
+      },
     ],
     label: "编年与制度",
     mapZone: "north",
