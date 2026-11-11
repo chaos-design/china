@@ -8,7 +8,7 @@ describe("<RanksPage />", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "品级纵横" })).toBeInTheDocument();
     expect(screen.getByText(/职官 · 品阶 · 朝代对照/)).toBeInTheDocument();
-    for (const label of ["立体品级树", "品级阶梯", "同职追踪", "同品断面"]) {
+    for (const label of ["立体品级树", "品级族谱", "品级阶梯", "同职追踪", "同品断面"]) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
     expect(screen.getByText(/点选任一官职/)).toBeInTheDocument();

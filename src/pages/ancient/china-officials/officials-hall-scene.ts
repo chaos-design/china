@@ -52,7 +52,7 @@ const PRESET_ANGLES: Record<HallPreset, { azimuth: number; polar: number }> = {
 
 const FONT_STACK =
   '"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif';
-const LABEL_WORLD_PER_PX = 0.021;
+const LABEL_WORLD_PER_PX = 0.017;
 
 export function readHallColors(container: HTMLElement): HallColors {
   const styles = getComputedStyle(container);
@@ -93,8 +93,8 @@ function prefersReducedMotion(): boolean {
 
 function makePlaque(colors: HallColors, title: string, subtitle: string): THREE.Sprite {
   const pixelRatio = 2;
-  const titleSize = 40;
-  const subtitleSize = 25;
+  const titleSize = 32;
+  const subtitleSize = 20;
   const padX = 20;
   const padY = 10;
   const measure = document.createElement("canvas").getContext("2d");

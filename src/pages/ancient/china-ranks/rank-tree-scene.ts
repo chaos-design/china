@@ -1,14 +1,19 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import type { RankTreeLayout, RankTreeSpan } from "./rank-tree-layout";
-import { formatBandLabel, RANK_RULER, TREE_GEOMETRY } from "./rank-tree-layout";
-import type { RankDynasty, RankDynastyId } from "./types";
+import type { OfficialsDynastyId } from "../china-officials/officials-data";
+import type {
+  RankTreeDynastyMeta,
+  RankTreeLayout,
+  RankTreeSpan,
+  RankTreeVec3,
+} from "./rank-tree-layout";
+import { RANK_RULER, TREE_GEOMETRY } from "./rank-tree-layout";
 
 /**
  * 立体品级树的 Three.js 场景层。
  *
  * 这一层只负责「把布局画出来 + 拾取 + 镜头」，不做任何布局决策：
- * 层级坐标来自 rank-tree-layout.ts，业务选中态由 React 持有。
+ * 层级坐标与文武双枝锚点来自 rank-tree-layout.ts，业务选中态由 React 持有。
  * 因此这里不参与单测（jsdom 无 WebGL），纯几何逻辑全部下沉到布局模块。
  */
 
@@ -23,21 +28,21 @@ export interface RankTreeColors {
 }
 
 export interface RankTreeSceneEntry {
-  dynasty: RankDynasty;
+  dynasty: RankTreeDynastyMeta;
   layout: RankTreeLayout;
 }
 
 export type RankTreePick =
   | {
-      dynastyId: RankDynastyId;
+      dynastyId: OfficialsDynastyId;
       kind: "office";
-      levelIndex: number;
+      gradeIndex: number;
       officeTitle: string;
     }
   | {
-      dynastyId: RankDynastyId;
+      dynastyId: OfficialsDynastyId;
       kind: "tier";
-      levelIndex: number;
+      gradeIndex: number;
     };
 
 export type RankTreeHover = RankTreePick & {
@@ -57,7 +62,7 @@ export interface RankTreeSceneHandlers {
 export interface RankTreeScene {
   applyPreset: (preset: RankTreeCameraPreset) => void;
   dispose: () => void;
-  focusTier: (dynastyId: RankDynastyId, levelIndex: number) => void;
+  focusTier: (dynastyId: OfficialsDynastyId, gradeIndex: number) => void;
   resize: () => void;
   resetView: () => void;
   setAutoRotate: (enabled: boolean) => void;
@@ -220,6 +225,23 @@ function createPlateShadowTexture(): THREE.Texture | null {
   context.fillStyle = gradient;
   context.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(canvas);
+}
+
+/** 文/武双枝：Catmull-Rom 管状曲线，从分叉点沿各级锚点垂下。 */
+function buildBough(points: RankTreeVec3[], color: string): THREE.Mesh {
+  const curve = new THREE.CatmullRomCurve3(
+    points.map((point) => new THREE.Vector3(point.x, point.y, point.z)),
+  );
+  const geometry = new THREE.TubeGeometry(curve, Math.max(24, points.length * 8), 0.07, 6, false);
+  const material = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(color),
+    emissive: new THREE.Color(color),
+    emissiveIntensity: 0.16,
+    opacity: 0.62,
+    roughness: 0.55,
+    transparent: true,
+  });
+  return new THREE.Mesh(geometry, material);
 }
 
 function disposeObject(root: THREE.Object3D): void {
@@ -627,7 +649,7 @@ export function createRankTreeScene(
       plate.userData.pick = {
         dynastyId: dynasty.id,
         kind: "tier",
-        levelIndex: tier.levelIndex,
+        gradeIndex: tier.gradeIndex,
       } satisfies RankTreePick;
       group.add(plate);
       pickMeshes.push(plate);
@@ -669,17 +691,16 @@ export function createRankTreeScene(
       rim.position.set(0, tier.y - 0.1, 0);
       group.add(rim);
 
-      tierVisuals.set(tier.levelIndex, { edge, plate });
+      tierVisuals.set(tier.gradeIndex, { edge, plate });
 
       const plaque = createLabelSprite(
         colors,
         [
           {
             size: 30,
-            text:
-              tier.level.approxGrade !== undefined
-                ? `${tier.grade} · 约${formatBandLabel(tier.band)}`
-                : tier.grade,
+            text: tier.grade.approx
+              ? `${tier.grade.label} · ${tier.grade.approx}`
+              : tier.grade.label,
             weight: 600,
           },
         ],
@@ -689,9 +710,9 @@ export function createRankTreeScene(
       group.add(plaque);
 
       for (const node of layout.nodes.filter(
-        (candidate) => candidate.levelIndex === tier.levelIndex,
+        (candidate) => candidate.gradeIndex === tier.gradeIndex,
       )) {
-        const officeColor = node.office.branch === "civil" ? civilColor : militaryColor;
+        const officeColor = node.post.branch === "civil" ? civilColor : militaryColor;
         const mesh = new THREE.Mesh(
           new THREE.OctahedronGeometry(NODE_RADIUS, 0),
           new THREE.MeshStandardMaterial({
@@ -708,14 +729,21 @@ export function createRankTreeScene(
         mesh.userData.pick = {
           dynastyId: dynasty.id,
           kind: "office",
-          levelIndex: node.levelIndex,
-          officeTitle: node.office.title,
+          gradeIndex: node.gradeIndex,
+          officeTitle: node.post.title,
         } satisfies RankTreePick;
         group.add(mesh);
         pickMeshes.push(mesh);
         nodeVisuals.set(node.id, mesh);
 
-        branchPositions.push(0, tier.y + 0.1, 0, node.x, node.y, node.z);
+        // 分列模式节点挂枝（短梗接本枝锚点）；合列模式仍从层心放射。
+        const stemFrom =
+          layout.civilBough.length > 0
+            ? node.post.branch === "civil"
+              ? tier.civilAnchor
+              : tier.militaryAnchor
+            : { x: 0, y: tier.y + 0.1, z: 0 };
+        branchPositions.push(stemFrom.x, stemFrom.y, stemFrom.z, node.x, node.y, node.z);
         branchColors.push(
           officeColor.r,
           officeColor.g,
@@ -725,6 +753,13 @@ export function createRankTreeScene(
           officeColor.b,
         );
       }
+    }
+
+    if (layout.civilBough.length > 1) {
+      group.add(buildBough(layout.civilBough, colors.vermillion));
+    }
+    if (layout.militaryBough.length > 1) {
+      group.add(buildBough(layout.militaryBough, colors.blueprint));
     }
 
     const branchGeometry = new THREE.BufferGeometry();
@@ -765,19 +800,19 @@ export function createRankTreeScene(
     if (!a || !b) {
       return false;
     }
-    if (a.kind !== b.kind || a.dynastyId !== b.dynastyId || a.levelIndex !== b.levelIndex) {
+    if (a.kind !== b.kind || a.dynastyId !== b.dynastyId || a.gradeIndex !== b.gradeIndex) {
       return false;
     }
     return a.kind === "tier" || a.officeTitle === (b as { officeTitle: string }).officeTitle;
   }
 
-  function isFocused(dynastyId: RankDynastyId, levelIndex: number): boolean {
+  function isFocused(dynastyId: OfficialsDynastyId, gradeIndex: number): boolean {
     for (const key of [focus, mirror]) {
       if (
         key &&
         key.kind === "tier" &&
         key.dynastyId === dynastyId &&
-        key.levelIndex === levelIndex
+        key.gradeIndex === gradeIndex
       ) {
         return true;
       }
@@ -787,8 +822,8 @@ export function createRankTreeScene(
 
   function applyFocus() {
     for (const tree of trees) {
-      for (const [levelIndex, visual] of tree.tierVisuals) {
-        const active = isFocused(tree.entry.dynasty.id, levelIndex);
+      for (const [gradeIndex, visual] of tree.tierVisuals) {
+        const active = isFocused(tree.entry.dynasty.id, gradeIndex);
         const material = visual.plate.material as THREE.MeshStandardMaterial;
         material.emissiveIntensity = active ? 0.05 : 0.03;
         const edgeMaterial = visual.edge.material as THREE.LineBasicMaterial;
@@ -808,8 +843,8 @@ export function createRankTreeScene(
         const pick: RankTreePick = {
           dynastyId: tree.entry.dynasty.id,
           kind: "office",
-          levelIndex: node.levelIndex,
-          officeTitle: node.office.title,
+          gradeIndex: node.gradeIndex,
+          officeTitle: node.post.title,
         };
         const selected = samePick(selection, pick);
         const scale = nodeStateScale(pick) * (selected ? 1.12 : 1);
@@ -835,12 +870,12 @@ export function createRankTreeScene(
     const tree = trees.find((candidate) => candidate.entry.dynasty.id === pick.dynastyId);
     const node = tree?.entry.layout.nodes.find(
       (candidate) =>
-        candidate.levelIndex === pick.levelIndex && candidate.office.title === pick.officeTitle,
+        candidate.gradeIndex === pick.gradeIndex && candidate.post.title === pick.officeTitle,
     );
     if (!tree || !node) {
       return;
     }
-    const label = createLabelSprite(colors, [{ size: 28, text: node.office.title, weight: 600 }]);
+    const label = createLabelSprite(colors, [{ size: 28, text: node.post.title, weight: 600 }]);
     label.position.set(tree.offsetX + node.x * 1.2, node.y + 0.62, node.z * 1.2);
     selectionLabel = new THREE.Group();
     selectionLabel.add(label);
@@ -853,32 +888,28 @@ export function createRankTreeScene(
 
   function describePick(pick: RankTreePick): { detail: string; subtitle: string; title: string } {
     const tree = trees.find((candidate) => candidate.entry.dynasty.id === pick.dynastyId);
-    if (!tree) {
+    const tier = tree?.entry.layout.tiers[pick.gradeIndex];
+    if (!tree || !tier) {
       return { detail: "", subtitle: "", title: "" };
     }
-    const level = tree.entry.dynasty.levels[pick.levelIndex];
-    if (!level) {
-      return { detail: "", subtitle: "", title: "" };
-    }
+    const grade = tier.grade;
 
     if (pick.kind === "tier") {
-      const civil = level.offices.filter((office) => office.branch === "civil").length;
-      const military = level.offices.length - civil;
       return {
-        detail: `本级设官：${level.offices.map((office) => office.title).join("、")}`,
-        subtitle: `${tree.entry.dynasty.name} · ${level.offices.length} 官 · 文 ${civil} / 武 ${military}`,
-        title: level.grade,
+        detail: `${grade.caption} 本级设官：${grade.posts.map((post) => post.title).join("、")}`,
+        subtitle: `${tree.entry.dynasty.name} · ${grade.posts.length} 官 · 文 ${tier.civilCount} / 武 ${tier.militaryCount}`,
+        title: grade.approx ? `${grade.label} · ${grade.approx}` : grade.label,
       };
     }
 
-    const office = level.offices.find((candidate) => candidate.title === pick.officeTitle);
-    if (!office) {
+    const post = grade.posts.find((candidate) => candidate.title === pick.officeTitle);
+    if (!post) {
       return { detail: "", subtitle: "", title: "" };
     }
     return {
-      detail: office.duty,
-      subtitle: `${tree.entry.dynasty.name} · ${office.rank}`,
-      title: office.title,
+      detail: post.intro,
+      subtitle: `${tree.entry.dynasty.name} · ${post.rank ?? grade.label}`,
+      title: post.title,
     };
   }
 
@@ -942,7 +973,7 @@ export function createRankTreeScene(
     const pick = pickAt(event);
     handlers.onPick(pick);
     if (pick?.kind === "tier") {
-      focusTier(pick.dynastyId, pick.levelIndex);
+      focusTier(pick.dynastyId, pick.gradeIndex);
     }
   }
 
@@ -955,9 +986,9 @@ export function createRankTreeScene(
     renderer.domElement.style.cursor = "grab";
   }
 
-  function focusTier(dynastyId: RankDynastyId, levelIndex: number) {
+  function focusTier(dynastyId: OfficialsDynastyId, gradeIndex: number) {
     const tree = trees.find((candidate) => candidate.entry.dynasty.id === dynastyId);
-    const tier = tree?.entry.layout.tiers.find((candidate) => candidate.levelIndex === levelIndex);
+    const tier = tree?.entry.layout.tiers.find((candidate) => candidate.gradeIndex === gradeIndex);
     if (!tree || !tier) {
       return;
     }

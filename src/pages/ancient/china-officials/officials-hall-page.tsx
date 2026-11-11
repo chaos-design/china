@@ -86,7 +86,7 @@ function OfficeChip({
     <button
       aria-pressed={active}
       className={cn(
-        "rounded border px-1.5 py-0.5 text-left font-body text-[0.68rem] leading-snug transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        "rounded border px-2 py-1 text-left font-body text-[0.78rem] leading-snug transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active
           ? "border-vermillion/50 bg-vermillion/15 text-vermillion"
           : branch === "military"
@@ -122,7 +122,7 @@ function GradeCard({
     <section
       aria-label={`${grade.label}官职名录`}
       className={cn(
-        "pointer-events-auto relative rounded-xl border bg-card/80 p-2.5 shadow-[0_10px_28px_hsl(var(--ink)/0.1)] backdrop-blur-md lg:absolute lg:right-0 lg:left-0 lg:max-h-[136px] lg:overflow-y-auto lg:top-[var(--hall-row-y)] lg:-translate-y-1/2",
+        "pointer-events-auto relative rounded-xl border bg-card/80 p-2.5 shadow-[0_10px_28px_hsl(var(--ink)/0.1)] backdrop-blur-md lg:absolute lg:right-0 lg:left-0 lg:max-h-[var(--hall-card-max-h,136px)] lg:overflow-y-auto lg:top-[var(--hall-row-y)] lg:-translate-y-1/2",
         active ? "border-vermillion/45 bg-paper/85" : "border-ink/12",
       )}
       ref={(element) => {
@@ -130,17 +130,17 @@ function GradeCard({
       }}
     >
       <header className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <h3 className="font-brush text-lg text-ink">{grade.label}</h3>
+        <h3 className="font-brush text-xl text-ink">{grade.label}</h3>
         {grade.approx ? (
-          <span className="rounded border border-dashed border-ochre px-1 font-body text-[0.62rem] text-ochre">
+          <span className="rounded border border-dashed border-ochre px-1 font-body text-[0.68rem] text-ochre">
             {grade.approx}
           </span>
         ) : null}
-        <span className="font-mono-tech text-[0.6rem] text-muted-foreground">
+        <span className="font-mono-tech text-[0.68rem] text-muted-foreground">
           {grade.posts.length} 官 · 文 {grouped.civil.length} / 武 {grouped.military.length}
         </span>
       </header>
-      <p className="mt-0.5 text-[0.66rem] text-muted-foreground leading-snug">{grade.caption}</p>
+      <p className="mt-0.5 text-[0.75rem] text-muted-foreground leading-snug">{grade.caption}</p>
       <div className="mt-1.5 grid grid-cols-2 gap-2">
         {(
           [
@@ -151,7 +151,7 @@ function GradeCard({
           <div className="flex min-w-0 flex-col gap-1" key={group.key}>
             <span
               className={cn(
-                "flex items-center gap-1 font-mono-tech text-[0.6rem] tracking-[0.12em]",
+                "flex items-center gap-1 font-mono-tech text-[0.66rem] tracking-[0.12em]",
                 group.key === "civil" ? "text-vermillion" : "text-blueprint",
               )}
             >
@@ -166,7 +166,7 @@ function GradeCard({
             </span>
             <div className="flex flex-wrap gap-1">
               {group.posts.length === 0 ? (
-                <span className="text-[0.66rem] text-muted-foreground">本级无</span>
+                <span className="text-[0.72rem] text-muted-foreground">本级无</span>
               ) : (
                 group.posts.map((item) => (
                   <OfficeChip
@@ -245,7 +245,10 @@ export function OfficialsHallPage() {
     if (height === 0) {
       return;
     }
-    const gap = Math.min(132, (height - 150) / Math.max(1, projections.length - 1));
+    const gap = Math.min(140, (height - 150) / Math.max(1, projections.length - 1));
+    // 卡片最大高度 = 行间距 - 12px：相邻卡片中心至少相距 gap，卡高不超过 gap-12，
+    // 保证任意视口 / 品级数量下右侧名录都不重叠，超量内容在卡内滚动。
+    const cardMaxHeight = Math.max(48, gap - 12);
     const rows = layoutHudRows(projections, {
       minGap: gap,
       minY: 76,
@@ -256,7 +259,9 @@ export function OfficialsHallPage() {
     const railLeft = railRect ? railRect.left - hostRect.left : hostRect.width - 420;
 
     for (const row of rows) {
-      cardRefs.current.get(row.id)?.style.setProperty("--hall-row-y", `${row.rowY}px`);
+      const card = cardRefs.current.get(row.id);
+      card?.style.setProperty("--hall-row-y", `${row.rowY}px`);
+      card?.style.setProperty("--hall-card-max-h", `${cardMaxHeight}px`);
       const line = lineRefs.current.get(row.id);
       if (line) {
         line.setAttribute("x1", String(row.x));
@@ -598,7 +603,7 @@ export function OfficialsHallPage() {
           className="fixed inset-x-3 bottom-3 z-40 max-h-[72vh] overflow-y-auto rounded-2xl border border-vermillion/30 bg-paper p-5 shadow-[0_24px_64px_hsl(var(--ink)/0.24)] backdrop-blur-xl lg:absolute lg:inset-x-auto lg:right-5 lg:bottom-auto lg:top-[var(--hall-drawer-y)] lg:w-[min(33vw,400px)] lg:max-h-[min(56vh,420px)] lg:-translate-y-1/2"
         >
           <div className="flex items-start justify-between gap-3">
-            <span className="font-mono-tech text-[0.62rem] text-muted-foreground tracking-[0.16em]">
+            <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.16em]">
               {dynasty.name} · {detail.grade.label} ·{" "}
               {detail.post.branch === "civil" ? "文官" : "武官"}
             </span>
@@ -615,18 +620,18 @@ export function OfficialsHallPage() {
           </div>
 
           <h2 className="mt-1 font-brush text-3xl text-ink">{detail.post.title}</h2>
-          <p className="mt-1 font-mono-tech text-[0.68rem] text-vermillion tracking-[0.08em]">
+          <p className="mt-1 font-mono-tech text-[0.78rem] text-vermillion tracking-[0.08em]">
             {detail.grade.label}
             {detail.grade.approx ? ` · ${detail.grade.approx}` : ""}
             {detail.post.rankNote ? ` · ${detail.post.rankNote}` : ""}
           </p>
           <p className="mt-3 text-foreground/90 text-sm leading-relaxed">{detail.post.intro}</p>
-          <p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+          <p className="mt-1 text-[0.75rem] text-muted-foreground leading-relaxed">
             {detail.grade.caption}
           </p>
 
           <div className="mt-4 border-ink/10 border-t pt-3">
-            <h3 className="font-mono-tech text-[0.68rem] text-vermillion tracking-[0.2em]">
+            <h3 className="font-mono-tech text-[0.75rem] text-vermillion tracking-[0.2em]">
               相关名臣 · 名将
             </h3>
             {detail.post.figures && detail.post.figures.length > 0 ? (
@@ -637,19 +642,21 @@ export function OfficialsHallPage() {
                     key={figure.name}
                   >
                     <span className="font-brush text-lg text-ink">{figure.name}</span>
-                    <p className="text-muted-foreground text-xs leading-relaxed">{figure.note}</p>
+                    <p className="text-[0.75rem] text-muted-foreground leading-relaxed">
+                      {figure.note}
+                    </p>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-muted-foreground text-xs">
+              <p className="mt-2 text-[0.75rem] text-muted-foreground">
                 该职未附人物示例，职掌以正史职官志为准。
               </p>
             )}
           </div>
 
           <div className="mt-4 border-ink/10 border-t pt-3">
-            <h3 className="font-mono-tech text-[0.68rem] text-vermillion tracking-[0.2em]">
+            <h3 className="font-mono-tech text-[0.75rem] text-vermillion tracking-[0.2em]">
               同层其他官职 · {detail.grade.label}
             </h3>
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -657,7 +664,7 @@ export function OfficialsHallPage() {
                 <button
                   aria-pressed={item.title === selected.title}
                   className={cn(
-                    "rounded border px-2 py-1 font-body text-[0.7rem] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    "rounded border px-2 py-1 font-body text-[0.78rem] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     item.title === selected.title
                       ? "border-vermillion/45 bg-vermillion/15 text-vermillion"
                       : "border-ink/15 bg-card/60 text-ink hover:border-vermillion/30",
@@ -673,7 +680,7 @@ export function OfficialsHallPage() {
               ))}
             </div>
             <button
-              className="mt-3 rounded-md border border-ink/15 bg-card/60 px-2.5 py-1 font-body text-[0.7rem] text-muted-foreground transition-colors hover:border-vermillion/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="mt-3 rounded-md border border-ink/15 bg-card/60 px-2.5 py-1 font-body text-[0.78rem] text-muted-foreground transition-colors hover:border-vermillion/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               onClick={() => {
                 sceneRef.current?.focusGrade(detail.grade.id);
               }}
@@ -683,7 +690,7 @@ export function OfficialsHallPage() {
             </button>
           </div>
 
-          <p className="mt-4 font-mono-tech text-[0.6rem] text-muted-foreground/80 leading-relaxed">
+          <p className="mt-4 font-mono-tech text-[0.68rem] text-muted-foreground/80 leading-relaxed">
             人物示例含实任、加衔、差遣与追赠，仅作参照，非严格同品对应。出处 · {dynasty.source}
           </p>
         </aside>

@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "../../../lib/utils";
+import type {
+  OfficialPost,
+  OfficialsDynasty,
+  OfficialsDynastyId,
+} from "../china-officials/officials-data";
+import { countPosts, getOfficialsDynasty } from "../china-officials/officials-data";
 import { DynastyChips } from "./dynasty-chips";
-import type { SelectedOffice } from "./office-detail-card";
+import type { OfficeDetail } from "./office-detail-card";
 import { OfficeDetailCard } from "./office-detail-card";
-import { getRankDynasty, nextDynastyId } from "./rank-data";
+import { nextDynastyId } from "./rank-data";
 import type { RankTreeSpan, RankTreeSplit, RankTreeTier } from "./rank-tree-layout";
-import { findComparableTier, formatBandLabel, layoutRankTree } from "./rank-tree-layout";
+import { findComparableGrade, formatBandLabel, layoutRankTree } from "./rank-tree-layout";
 import type {
   RankTreeCameraPreset,
   RankTreeHover,
@@ -14,7 +20,6 @@ import type {
   RankTreeScene,
 } from "./rank-tree-scene";
 import { createRankTreeScene, readRankTreeColors } from "./rank-tree-scene";
-import type { RankDynasty, RankDynastyId, RankOffice } from "./types";
 
 const SPAN_OPTIONS: readonly { id: RankTreeSpan; hint: string; label: string }[] = [
   { id: "band", hint: "按品序对齐，两朝同一高度即同一品", label: "品序对齐" },
@@ -22,18 +27,14 @@ const SPAN_OPTIONS: readonly { id: RankTreeSpan; hint: string; label: string }[]
 ];
 
 const SPLIT_OPTIONS: readonly { id: RankTreeSplit; hint: string; label: string }[] = [
+  { id: "branch", hint: "皇权分出文武两大枝，文官居左、武官居右", label: "文武分列" },
   { id: "merged", hint: "文武同环，按数据顺序排布", label: "合列" },
-  { id: "branch", hint: "文官居左半环、武官居右半环", label: "文武分列" },
 ];
 
 const PRESET_OPTIONS: readonly { id: RankTreeCameraPreset; label: string }[] = [
   { id: "three-quarter", label: "斜侧" },
   { id: "front", label: "正视" },
 ];
-
-function countOffices(dynasty: RankDynasty): number {
-  return dynasty.levels.reduce((total, level) => total + level.offices.length, 0);
-}
 
 function OptionPill({
   active,
@@ -72,8 +73,8 @@ function TierColumn({
   onSelectOffice,
 }: {
   bandLabel: string;
-  dynasty: RankDynasty;
-  onSelectOffice: (tier: RankTreeTier, office: RankOffice) => void;
+  dynasty: OfficialsDynasty;
+  onSelectOffice: (tier: RankTreeTier, office: OfficialPost) => void;
   selected: RankTreePick | null;
   tier: RankTreeTier | undefined;
 }) {
@@ -84,10 +85,10 @@ function TierColumn({
     >
       <header className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
         <h3 className="font-brush text-2xl text-ink">{dynasty.name}</h3>
-        <span className="font-mono-tech text-[0.68rem] text-muted-foreground tracking-[0.12em]">
+        <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.12em]">
           {dynasty.period}
         </span>
-        <span className="rounded-full border border-vermillion/25 bg-vermillion/10 px-2 py-0.5 font-body text-[0.68rem] text-vermillion">
+        <span className="rounded-full border border-vermillion/25 bg-vermillion/10 px-2 py-0.5 font-body text-xs text-vermillion">
           {dynasty.system}
         </span>
       </header>
@@ -95,34 +96,32 @@ function TierColumn({
       {tier ? (
         <>
           <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <span className="font-mono-tech text-vermillion text-xs tracking-[0.16em]">
-              {tier.grade}
+            <span className="font-mono-tech text-vermillion text-[0.7rem] tracking-[0.16em]">
+              {tier.grade.label}
             </span>
-            {tier.level.approxGrade !== undefined ? (
-              <span className="rounded border border-dashed border-ochre px-1.5 font-body text-[0.68rem] text-ochre">
-                约当{formatBandLabel(tier.band)}
+            {tier.grade.approx ? (
+              <span className="rounded border border-dashed border-ochre px-1.5 font-body text-[0.7rem] text-ochre">
+                {tier.grade.approx}
               </span>
             ) : null}
-            {tier.level.outOfRank === true ? (
-              <span className="font-body text-[0.68rem] text-muted-foreground">品外</span>
-            ) : null}
-            <span className="font-mono-tech text-[0.68rem] text-muted-foreground">
+            <span className="font-mono-tech text-[0.7rem] text-muted-foreground">
               {tier.officeCount} 官 · 文 {tier.civilCount} / 武 {tier.militaryCount}
             </span>
           </div>
-          <p className="font-mono-tech text-[0.65rem] text-muted-foreground tracking-[0.12em]">
+          <p className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.12em]">
             本级职权范围
           </p>
           <ul className="flex flex-col gap-1">
-            {tier.level.offices.map((office) => {
+            {tier.grade.posts.map((post) => {
               const active =
                 selected?.kind === "office" &&
                 selected.dynastyId === dynasty.id &&
-                selected.levelIndex === tier.levelIndex &&
-                selected.officeTitle === office.title;
+                selected.gradeIndex === tier.gradeIndex &&
+                selected.officeTitle === post.title;
+              const rankLine = post.rank ?? tier.grade.approx;
 
               return (
-                <li key={office.title}>
+                <li key={post.title}>
                   <button
                     aria-pressed={active}
                     className={cn(
@@ -130,7 +129,7 @@ function TierColumn({
                       active && "border-vermillion/25 bg-vermillion/10",
                     )}
                     onClick={() => {
-                      onSelectOffice(tier, office);
+                      onSelectOffice(tier, post);
                     }}
                     type="button"
                   >
@@ -139,18 +138,18 @@ function TierColumn({
                         aria-hidden="true"
                         className={cn(
                           "mt-[0.5em] h-1.5 w-1.5 shrink-0 rounded-full",
-                          office.branch === "civil" ? "bg-vermillion" : "bg-blueprint",
+                          post.branch === "civil" ? "bg-vermillion" : "bg-blueprint",
                         )}
                       />
-                      <span className="font-brush text-lg leading-snug text-ink">
-                        {office.title}
-                      </span>
-                      <span className="font-mono-tech text-[0.65rem] text-muted-foreground tracking-[0.08em]">
-                        {office.rank}
-                      </span>
+                      <span className="font-brush text-lg leading-snug text-ink">{post.title}</span>
+                      {rankLine ? (
+                        <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.08em]">
+                          {rankLine}
+                        </span>
+                      ) : null}
                     </span>
                     <span className="text-muted-foreground text-xs leading-relaxed">
-                      {office.duty}
+                      {post.intro}
                     </span>
                   </button>
                 </li>
@@ -170,11 +169,11 @@ function TierColumn({
 export function RankTreeSection() {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<RankTreeScene | null>(null);
-  const [mainId, setMainId] = useState<RankDynastyId>("qin");
+  const [mainId, setMainId] = useState<OfficialsDynastyId>("qin");
   const [compareEnabled, setCompareEnabled] = useState(false);
-  const [compareId, setCompareId] = useState<RankDynastyId>("qing");
+  const [compareId, setCompareId] = useState<OfficialsDynastyId>("qing");
   const [span, setSpan] = useState<RankTreeSpan>("band");
-  const [split, setSplit] = useState<RankTreeSplit>("merged");
+  const [split, setSplit] = useState<RankTreeSplit>("branch");
   const [focusBand, setFocusBand] = useState(1);
   const [selected, setSelected] = useState<RankTreePick | null>(null);
   const [hover, setHover] = useState<RankTreeHover | null>(null);
@@ -182,9 +181,9 @@ export function RankTreeSection() {
   const [autoRotate, setAutoRotate] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const mainDynasty = getRankDynasty(mainId) ?? getRankDynasty("qin")!;
+  const mainDynasty = getOfficialsDynasty(mainId) ?? getOfficialsDynasty("qin")!;
   const effectiveCompareId = compareId === mainId ? nextDynastyId(mainId) : compareId;
-  const compareDynasty = compareEnabled ? getRankDynasty(effectiveCompareId) : undefined;
+  const compareDynasty = compareEnabled ? getOfficialsDynasty(effectiveCompareId) : undefined;
 
   const mainLayout = useMemo(
     () => layoutRankTree(mainDynasty, { span, split }),
@@ -197,9 +196,10 @@ export function RankTreeSection() {
 
   const mainTier = mainLayout.tiers.find((tier) => tier.band === focusBand);
   const compareTier = compareLayout?.tiers.find((tier) => tier.band === focusBand);
-  const focusLabel = mainTier?.grade ?? compareTier?.grade ?? formatBandLabel(focusBand);
-  const mainTierIndex = mainTier?.levelIndex ?? -1;
-  const compareTierIndex = compareTier?.levelIndex ?? -1;
+  const focusLabel =
+    mainTier?.grade.label ?? compareTier?.grade.label ?? formatBandLabel(focusBand);
+  const mainTierIndex = mainTier?.gradeIndex ?? -1;
+  const compareTierIndex = compareTier?.gradeIndex ?? -1;
   const compareTierDynastyId = compareDynasty?.id ?? null;
 
   const focusPicks = useMemo<{ compare: RankTreePick | null; main: RankTreePick | null }>(
@@ -209,26 +209,35 @@ export function RankTreeSection() {
           ? {
               dynastyId: compareTierDynastyId,
               kind: "tier",
-              levelIndex: compareTierIndex,
+              gradeIndex: compareTierIndex,
             }
           : null,
       main:
-        mainTierIndex >= 0 ? { dynastyId: mainId, kind: "tier", levelIndex: mainTierIndex } : null,
+        mainTierIndex >= 0 ? { dynastyId: mainId, kind: "tier", gradeIndex: mainTierIndex } : null,
     }),
     [compareTierDynastyId, compareTierIndex, mainId, mainTierIndex],
   );
 
-  const selectedOffice = useMemo<SelectedOffice | null>(() => {
+  const selectedOffice = useMemo<OfficeDetail | null>(() => {
     if (selected?.kind !== "office") {
       return null;
     }
-    const dynasty = getRankDynasty(selected.dynastyId);
-    const level = dynasty?.levels[selected.levelIndex];
-    const office = level?.offices.find((candidate) => candidate.title === selected.officeTitle);
-    if (!dynasty || !level || !office) {
+    const dynasty = getOfficialsDynasty(selected.dynastyId);
+    const grade = dynasty?.grades[selected.gradeIndex];
+    const post = grade?.posts.find((candidate) => candidate.title === selected.officeTitle);
+    if (!dynasty || !grade || !post) {
       return null;
     }
-    return { dynasty, level, office };
+    return {
+      title: post.title,
+      dynastyName: dynasty.name,
+      rank: post.rank ?? (grade.approx ? `${grade.label} · ${grade.approx}` : grade.label),
+      duty: post.intro,
+      salary: post.salary,
+      note: post.note,
+      modern: post.modern,
+      figures: post.figures,
+    };
   }, [selected]);
 
   const onPickRef = useRef<(pick: RankTreePick | null) => void>(() => {});
@@ -245,7 +254,7 @@ export function RankTreeSection() {
         setSelected(null);
       }
       const layout = pick.dynastyId === mainId ? mainLayout : compareLayout;
-      const tier = layout?.tiers.find((candidate) => candidate.levelIndex === pick.levelIndex);
+      const tier = layout?.tiers.find((candidate) => candidate.gradeIndex === pick.gradeIndex);
       if (tier) {
         setFocusBand(tier.band);
       }
@@ -306,12 +315,12 @@ export function RankTreeSection() {
     sceneRef.current?.setAutoRotate(autoRotate);
   }, [autoRotate]);
 
-  const chooseMain = (id: RankDynastyId) => {
-    const nextDynasty = getRankDynasty(id);
+  const chooseMain = (id: OfficialsDynastyId) => {
+    const nextDynasty = getOfficialsDynasty(id);
     if (!nextDynasty) {
       return;
     }
-    const fallback = findComparableTier(nextDynasty, focusBand);
+    const fallback = findComparableGrade(nextDynasty, focusBand);
     setMainId(id);
     setSelected(null);
     if (compareEnabled && compareId === id) {
@@ -322,7 +331,7 @@ export function RankTreeSection() {
     }
   };
 
-  const chooseCompare = (id: RankDynastyId) => {
+  const chooseCompare = (id: OfficialsDynastyId) => {
     setCompareId(id);
     setSelected(null);
   };
@@ -334,7 +343,7 @@ export function RankTreeSection() {
       setCompareId(nextDynastyId(mainId));
     }
     if (!enabled) {
-      const fallback = findComparableTier(mainDynasty, focusBand);
+      const fallback = findComparableGrade(mainDynasty, focusBand);
       if (fallback) {
         setFocusBand(fallback.band);
       }
@@ -362,30 +371,30 @@ export function RankTreeSection() {
     sceneRef.current?.resetView();
   };
 
-  const selectOffice = (dynasty: RankDynasty, tier: RankTreeTier, office: RankOffice) => {
+  const selectOffice = (dynasty: OfficialsDynasty, tier: RankTreeTier, office: OfficialPost) => {
     setSelected({
       dynastyId: dynasty.id,
       kind: "office",
-      levelIndex: tier.levelIndex,
+      gradeIndex: tier.gradeIndex,
       officeTitle: office.title,
     });
     setFocusBand(tier.band);
     setHover(null);
-    sceneRef.current?.focusTier(dynasty.id, tier.levelIndex);
+    sceneRef.current?.focusTier(dynasty.id, tier.gradeIndex);
   };
 
   const focusTierChip = (tier: RankTreeTier) => {
     setSelected(null);
     setFocusBand(tier.band);
-    sceneRef.current?.focusTier(mainId, tier.levelIndex);
+    sceneRef.current?.focusTier(mainId, tier.gradeIndex);
   };
 
-  const officeCount = countOffices(mainDynasty);
-  const compareOfficeCount = compareDynasty ? countOffices(compareDynasty) : 0;
+  const officeCount = countPosts(mainDynasty);
+  const compareOfficeCount = compareDynasty ? countPosts(compareDynasty) : 0;
   const detailCard = (
     <OfficeDetailCard
       ariaLabel="品级树详情"
-      emptyHint="点选树上的官职节点或下方列表，查看该官的职权、秩俸与沿革。"
+      emptyHint="点选树上的官职节点或下方列表，查看该官的职权、秩俸、沿革与相关名臣名将。"
       selection={selectedOffice}
     />
   );
@@ -396,7 +405,7 @@ export function RankTreeSection() {
         <span className="eyebrow">立体 · 品级树</span>
         <h2 className="font-brush text-3xl text-ink">一树看尽：品级如何从皇权长出官职</h2>
         <p className="max-w-3xl text-muted-foreground text-sm leading-relaxed">
-          每个朝代是一棵树：树干自皇权垂下，六棱平台是品级，枝头的朱点、蓝点是文武百官——点到哪一级，就看哪一级的职权范围。两朝并置、按品对齐后，同一高度就是同一品，留白即这一朝没有设官的品级。
+          每个朝代是一棵完整的官职树：树干自皇权垂下，在顶端分出文（朱）武（蓝）两大枝，沿品级平台逐层挂满这一朝的全部官职——点到哪一级，就看哪一级的职权范围与名臣名将。两朝并置、按品对齐后，同一高度就是同一品，留白即这一朝没有设官的品级。
         </p>
       </div>
 
@@ -406,8 +415,8 @@ export function RankTreeSection() {
             树 · 朝代
           </span>
           <DynastyChips ariaLabel="树状朝代选择" currentId={mainId} onSelect={chooseMain} />
-          <span className="font-mono-tech text-[0.68rem] text-muted-foreground">
-            {mainDynasty.levels.length} 级 · {officeCount} 官
+          <span className="font-mono-tech text-[0.7rem] text-muted-foreground">
+            {mainDynasty.grades.length} 级 · {officeCount} 官
           </span>
         </div>
 
@@ -439,8 +448,8 @@ export function RankTreeSection() {
                 disabledId={mainId}
                 onSelect={chooseCompare}
               />
-              <span className="font-mono-tech text-[0.68rem] text-muted-foreground">
-                {compareDynasty.levels.length} 级 · {compareOfficeCount} 官
+              <span className="font-mono-tech text-[0.7rem] text-muted-foreground">
+                {compareDynasty.grades.length} 级 · {compareOfficeCount} 官
               </span>
             </>
           ) : null}
@@ -516,7 +525,7 @@ export function RankTreeSection() {
 
       <div className="relative overflow-hidden rounded-xl border border-ink/12 bg-[radial-gradient(ellipse_at_50%_38%,hsl(var(--ink)/0.07),transparent_68%)]">
         <div
-          aria-label={`${mainDynasty.name}官品立体树：${mainDynasty.levels.length} 级、${officeCount} 个官职${
+          aria-label={`${mainDynasty.name}官品立体树：${mainDynasty.grades.length} 级、${officeCount} 个官职${
             compareDynasty ? `；与${compareDynasty.name}并置对照` : ""
           }。拖拽旋转、滚轮缩放、点击节点查看职权。`}
           className="relative h-[clamp(420px,62vh,640px)] w-full"
@@ -528,7 +537,7 @@ export function RankTreeSection() {
           <div className="absolute inset-0 grid place-items-center bg-paper/85 p-6 text-center">
             <p className="max-w-sm text-muted-foreground text-sm leading-relaxed">
               当前浏览器未能启用
-              WebGL，立体树无法绘制。下方的「品级阶梯」与「同品断面」仍可查看全部品级与职权。
+              WebGL，立体树无法绘制。下方的「品级族谱」「品级阶梯」与「同品断面」仍可查看全部品级与职权。
             </p>
           </div>
         ) : null}
@@ -540,7 +549,7 @@ export function RankTreeSection() {
                 <>
                   <div className="flex flex-wrap items-baseline gap-x-2">
                     <span className="font-brush text-xl text-ink">{hover.title}</span>
-                    <span className="font-mono-tech text-[0.65rem] text-muted-foreground tracking-[0.06em]">
+                    <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.06em]">
                       {hover.subtitle}
                     </span>
                   </div>
@@ -554,7 +563,7 @@ export function RankTreeSection() {
                 </p>
               )}
             </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-[0.68rem] text-muted-foreground">
+            <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-[0.7rem] text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-vermillion" />
                 文官
@@ -565,16 +574,16 @@ export function RankTreeSection() {
               </span>
               <span className="flex items-center gap-1.5">
                 <span aria-hidden="true" className="h-px w-3 bg-ink/40" />
-                品级 · 从属
+                双枝 · 品级台
               </span>
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="font-mono-tech text-[0.65rem] text-muted-foreground tracking-[0.08em]">
+            <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.08em]">
               {span === "band" ? "品序轴 · 超品↓流外" : "层级轴 · 等距"} ·{" "}
               {split === "branch" ? "文武分列" : "文武合列"}
             </span>
-            <span className="rounded-full border border-vermillion/25 bg-vermillion/10 px-2.5 py-1 font-body text-[0.68rem] text-vermillion">
+            <span className="rounded-full border border-vermillion/25 bg-vermillion/10 px-2.5 py-1 font-body text-xs text-vermillion">
               聚焦 {formatBandLabel(focusBand)}
               {compareDynasty ? ` · ${mainDynasty.name} / ${compareDynasty.name}` : ""}
             </span>
@@ -589,7 +598,7 @@ export function RankTreeSection() {
               品级 · 职权
             </span>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              选一级，展开这一级所有官职的职权范围；点官职看秩俸与沿革。
+              选一级，展开这一级所有官职的职权范围；点官职看秩俸、沿革与名臣名将。
             </p>
           </div>
           <fieldset aria-label="树状品级选择" className="flex flex-wrap gap-1.5">
@@ -597,18 +606,18 @@ export function RankTreeSection() {
               <button
                 aria-pressed={tier.band === focusBand}
                 className={cn(
-                  "rounded-md border px-2.5 py-1.5 font-body text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  "rounded-md border px-2.5 py-1.5 font-mono-tech text-[0.7rem] tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   tier.band === focusBand
                     ? "border-vermillion/40 bg-vermillion/15 text-vermillion"
                     : "border-ink/15 bg-card/70 text-muted-foreground hover:border-vermillion/30 hover:text-ink",
                 )}
-                key={`${tier.levelIndex}-${tier.grade}`}
+                key={`${tier.gradeIndex}-${tier.grade.label}`}
                 onClick={() => {
                   focusTierChip(tier);
                 }}
                 type="button"
               >
-                {tier.grade}
+                {tier.grade.label}
               </button>
             ))}
           </fieldset>
@@ -648,8 +657,9 @@ export function RankTreeSection() {
       {compareDynasty ? detailCard : null}
 
       <p className="text-muted-foreground text-xs leading-relaxed">
-        读图口径：层高「品序对齐」时，秦汉以「约当 N
-        品」示意、元代「路府州县」按前后层内插，只用于布局，不改史料口径；正、从相邻两阶占半格，同一层跨两品者按首品落位。「层级等距」只比较结构，不比较高低；双朝并置的竖轴同尺，横向留白即该朝未设此品。
+        读图口径：树取的是 officials
+        名录里的全部官职，品序轴按各朝自定级序落位（超品、九品、流外同轴），秦汉无品以「约当 N
+        品」示意对照；文武分列时枝条位置示意从属，不表示地理或实权方位。「层级等距」只比较结构，不比较高低；双朝并置的竖轴同尺，横向留白即该朝未设此品。
       </p>
     </section>
   );

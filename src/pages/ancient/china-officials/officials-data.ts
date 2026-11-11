@@ -1,12 +1,18 @@
 /**
- * 官职体系（品秩全景）数据。
+ * 官职体系（品秩全景）数据 —— 也是全站唯一的职官名录数据源：
+ * 「品级纵横」的立体品级树与品级族谱都从这里取数。
  *
- * 与「品级纵横」不同，这里立体场景**只以品级为节点**：具体官职是每一级的名录，
- * 按文官 / 武官分组，点名录中的官职才在同一层级展开详情抽屉。
+ * 立体场景（品秩全景页）**只以品级为节点**：具体官职是每一级的名录，
+ * 按文官 / 武官分组，点名录中的官职才在同一层级展开详情抽屉；
+ * 「品级纵横」页的立体树则把同一份名录摊成官职节点。
  *
  * 职位一律用确切官名（如「廷尉」「折冲都尉」「六科给事中」），不写「九卿」「诸卫」
  * 这类笼统类别；人物示例取该朝实任、加衔、差遣或追赠此职者，仅作参照，不作严格同品对应。
  * 品秩以正史职官志的通行记载为准，官、职、差遣分离之处在 rankNote / caption 里说明。
+ *
+ * rank / salary / note / modern 四个可选字段来自《品级纵横》rank-data 的同朝同名官职，
+ * 经 MERGED_RANK_NOTES 集中合并（键 `${朝代id}:${官名}`，source 记录来源官），
+ * officials-data.test.ts 保证 rank-data 里带口径的官职全部在此落地。
  */
 
 export type OfficialsDynastyId =
@@ -35,6 +41,14 @@ export interface OfficialPost {
   rankNote?: string;
   title: string;
   figures?: readonly OfficialFigure[];
+  /** 印绶·秩石或确切品秩写法（合并自《品级纵横》数据）。 */
+  rank?: string;
+  /** 俸禄/秩俸（有通行记载者填，存疑用「约」）。 */
+  salary?: string;
+  /** 权力实态与沿革备注：品级与实权脱钩之处写在这里。 */
+  note?: string;
+  /** 古今对应（参考）：仅为量级类比，非严格等价。 */
+  modern?: string;
 }
 
 export interface OfficialGrade {
@@ -83,7 +97,7 @@ function grade(
   return { approx, caption, id, label, order, posts };
 }
 
-export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
+const RAW_OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
   {
     id: "qin",
     name: "秦",
@@ -125,7 +139,9 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
         "九卿各掌一曹，礼乐、宫禁、刑狱、财赋自此分理。",
         [
           post("奉常", "civil", "掌宗庙祭祀、礼乐与谥号，列九卿之首。"),
-          post("郎中令", "civil", "掌宫殿掖门户，统诸郎宿卫，皇帝近臣之长。"),
+          post("郎中令", "civil", "掌宫殿掖门户，统诸郎宿卫，皇帝近臣之长。", {
+            figures: [f("赵高", "二世时郎中令，掌宿卫出入、引见群臣")],
+          }),
           post("卫尉", "military", "掌宫门卫士与宫中屯兵，卫戍宫禁。"),
           post("廷尉", "civil", "掌刑狱，为全国最高司法长官，决疑平法。", {
             figures: [f("李斯", "先任廷尉，后擢丞相")],
@@ -246,8 +262,12 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
         [
           post("太常", "civil", "掌宗庙礼乐、博士选试与谥议。"),
           post("光禄勋", "civil", "掌宫殿宿卫与诸郎、谒者、大夫之选署。"),
-          post("卫尉", "military", "掌宫门卫士与南北军宫禁屯兵。"),
-          post("太仆", "civil", "掌车马、厩苑与马政。"),
+          post("卫尉", "military", "掌宫门卫士与南北军宫禁屯兵。", {
+            figures: [f("李广", "武帝时任未央卫尉，与程不识并以治军严整著称")],
+          }),
+          post("太仆", "civil", "掌车马、厩苑与马政。", {
+            figures: [f("夏侯婴", "自高祖至惠帝朝常为太仆，随军驭车，人称滕公")],
+          }),
           post("廷尉", "civil", "掌天下刑狱、平决疑案，为最高司法长官。", {
             figures: [
               f("张释之", "文帝时廷尉，持法平允，犯跸、盗环二案著称"),
@@ -305,7 +325,9 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
             figures: [f("霍去病", "年十八为票姚校尉，随卫青出击匈奴")],
           }),
           post("戊己校尉", "military", "掌西域车师一带屯田与戍守。"),
-          post("骑都尉", "military", "掌羽林骑与监领边郡骑兵。"),
+          post("骑都尉", "military", "掌羽林骑与监领边郡骑兵。", {
+            figures: [f("李陵", "天汉间为骑都尉，率五千步卒出居延战匈奴")],
+          }),
         ],
         "约当四品",
       ),
@@ -373,7 +395,9 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
         post("太尉", "civil", "三公之一，掌武事名义与考课，多为优崇之位。", {
           figures: [f("司马懿", "曹魏太尉、太傅，高平陵之变后专朝政")],
         }),
-        post("司徒", "civil", "三公之一，掌民事、籍账与礼制。"),
+        post("司徒", "civil", "三公之一，掌民事、籍账与礼制。", {
+          figures: [f("王朗", "曹魏司徒，以经学著称，与华歆、钟繇并列三公")],
+        }),
         post("大司马大将军", "military", "掌中外诸军，常兼录尚书事，权倾朝野。", {
           figures: [f("桓温", "东晋大司马，都督中外诸军事，三次北伐")],
         }),
@@ -404,7 +428,9 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
             f("司马懿", "曹魏都督雍凉诸军事，拒蜀于渭南"),
           ],
         }),
-        post("州刺史", "civil", "掌一州民政与察举，加将军号者兼领兵。"),
+        post("州刺史", "civil", "掌一州民政与察举，加将军号者兼领兵。", {
+          figures: [f("陶侃", "东晋荆州刺史，勤于吏职，朝夕运甓以自励")],
+        }),
         post("御史中丞", "civil", "掌纠弹百官、督司隶与诸州。"),
       ]),
       grade("weijin-siwupin", "四品 — 五品", 4, "郡守、台省郎官与军府僚属，承上启下。", [
@@ -415,7 +441,9 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
         post("参军", "military", "将军府僚属，参谋军事、署府中文书。", {
           figures: [f("马谡", "蜀汉参军，好论军计，街亭违令致败")],
         }),
-        post("太子洗马", "civil", "东宫属官，掌图籍、侍从与仪卫前导。"),
+        post("太子洗马", "civil", "东宫属官，掌图籍、侍从与仪卫前导。", {
+          figures: [f("卫玠", "西晋末补太子洗马，风神秀异，为时人所重")],
+        }),
       ]),
       grade("weijin-liuqipin", "六品 — 七品", 6, "县令与掾属，品第与中正品第相互表里。", [
         post("县令", "civil", "一县长官，掌政刑、赋役与户籍。", {
@@ -482,7 +510,9 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
           post("辅国大将军", "military", "武散官高阶，位次骠骑大将军。", {
             rankNote: "从二品，多用以酬军功",
           }),
-          post("太子少师", "civil", "东宫三少之一，掌辅导皇太子。"),
+          post("太子少师", "civil", "东宫三少之一，掌辅导皇太子。", {
+            figures: [f("李纲", "贞观间任太子少师，辅导太子承乾")],
+          }),
         ],
       ),
       grade("tang-zhengsan", "正三品", 3, "中书、门下、六部与十六卫长官，唐代政令与军令的核心。", [
@@ -495,7 +525,9 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
             f("宋璟", "开元间黄门监（即侍中），与姚崇并称「姚宋」"),
           ],
         }),
-        post("吏部尚书", "civil", "六部之首，掌铨选、考课与封爵。"),
+        post("吏部尚书", "civil", "六部之首，掌铨选、考课与封爵。", {
+          figures: [f("高士廉", "贞观间任吏部尚书，主持修《氏族志》、定姓族等第")],
+        }),
         post("兵部尚书", "civil", "掌武选、军籍、驿传与甲仗之政。", {
           figures: [f("侯君集", "贞观间兵部尚书、参议朝政，率军平高昌")],
         }),
@@ -637,7 +669,9 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
             rankNote: "从二品，不之镇、不掌实兵",
             figures: [f("岳飞", "绍兴间授清远军节度使，仍以宣抚使统军北伐")],
           }),
-          post("枢密副使", "military", "佐枢密使掌军政，参议边事与除授。"),
+          post("枢密副使", "military", "佐枢密使掌军政，参议边事与除授。", {
+            figures: [f("岳飞", "绍兴十一年罢宣抚，授枢密副使，寻被诬下狱")],
+          }),
         ],
       ),
       grade(
@@ -654,9 +688,12 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
             rankNote: "以差遣任事，本官另计品秩",
             figures: [f("包拯", "嘉祐间权知开封府，开正门、断讼明允")],
           }),
-          post("知制诰", "civil", "掌外制诏敕，与翰林学士分掌内外两制。"),
+          post("知制诰", "civil", "掌外制诏敕，与翰林学士分掌内外两制。", {
+            figures: [f("欧阳修", "庆历间擢知制诰，掌外制、预闻政事")],
+          }),
           post("三衙都指挥使", "military", "掌殿前司、马军司、步军司禁军，京师宿卫所系。", {
             rankNote: "三衙管军而无调兵权，调兵归枢密院",
+            figures: [f("杨存中", "高宗朝领殿前都指挥使，典禁军宿卫二十余年")],
           }),
         ],
       ),
@@ -676,7 +713,9 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
           }),
           post("通判", "civil", "佐知州治事，与知州通签文书，兼监察之责。"),
           post("转运使", "civil", "掌一路财赋、漕运与察访官吏。"),
-          post("提点刑狱", "civil", "掌一路刑狱、复审与纠察州县。"),
+          post("提点刑狱", "civil", "掌一路刑狱、复审与纠察州县。", {
+            figures: [f("宋慈", "理宗间历广东、湖南提点刑狱，著《洗冤集录》")],
+          }),
           post("兵马都监", "military", "掌州军屯戍、教阅与捕盗，受知州节制。"),
         ],
       ),
@@ -739,7 +778,9 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
           figures: [f("阿合马", "世祖朝中书平章政事，专领财赋、行钩考")],
         }),
         post("知枢密院事", "military", "掌天下兵甲、边备与军籍，枢密院长官。"),
-        post("御史大夫", "civil", "御史台长官，掌纠察百官、按劾不法。"),
+        post("御史大夫", "civil", "御史台长官，掌纠察百官、按劾不法。", {
+          figures: [f("脱脱", "顺帝朝先为御史大夫，后拜中书右丞相主持修三史")],
+        }),
         post("枢密副使", "military", "佐知院掌军政、调度与边报。"),
         post("太保", "civil", "三公之一，参议大政、辅导储君。", {
           figures: [f("刘秉忠", "世祖朝太保、参领中书省事，营建大都、定朝仪")],
@@ -828,6 +869,7 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
           }),
           post("左都督", "military", "五军都督府长官，掌全国卫所军籍、屯田与武官除授。", {
             rankNote: "正一品，有军籍管理权而无调兵权，调兵归兵部",
+            figures: [f("戚继光", "蓟镇任上累官至左都督，加太子太保")],
           }),
           post("右都督", "military", "佐左都督分领都督府事务。"),
         ],
@@ -928,12 +970,14 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
           }),
           post("监察御史", "civil", "分道掌纠劾、巡按州县与监临乡试。", {
             rankNote: "正七品",
+            figures: [f("于谦", "宣德初授监察御史，巡按江西，平反冤狱")],
           }),
           post("六科给事中", "civil", "掌封驳章奏、稽察六部、科抄与注销。", {
             rankNote: "从七品，都给事中为正七品",
           }),
           post("翰林院编修", "civil", "掌修史、纂修、记注与讲读。", {
             rankNote: "正七品",
+            figures: [f("张居正", "嘉靖间选庶吉士、授翰林院编修，后入阁为首辅")],
           }),
         ],
       ),
@@ -1001,7 +1045,9 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
             f("张之洞", "宣统初体仁阁大学士、军机大臣，督办新政"),
           ],
         }),
-        post("领侍卫内大臣", "military", "掌上三旗侍卫、禁中宿卫与御前扈从。"),
+        post("领侍卫内大臣", "military", "掌上三旗侍卫、禁中宿卫与御前扈从。", {
+          figures: [f("索额图", "康熙间任领侍卫内大臣，后主持与沙俄议定《尼布楚条约》")],
+        }),
         post("太傅", "civil", "三公之一，多为重臣加衔、赠官。"),
       ]),
       grade("qing-congyi", "从一品", 2, "六部尚书、总督与提督，分掌部务、疆寄与军旅。", [
@@ -1084,7 +1130,7 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
         "部司、州县正印与守备、千总，文武两途在此分列。",
         [
           post("六部郎中", "civil", "一司之长，掌该司案牍、议拟与题奏。", {
-            rankNote: "正五品",
+            rankNote: "正五品，雍正八年改从五品",
           }),
           post("直隶州知州", "civil", "掌直属州民政、赋役与刑狱，位望高于散州。", {
             rankNote: "正五品",
@@ -1139,6 +1185,390 @@ export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = [
     ],
   },
 ];
+
+/**
+ * 从《品级纵横》rank-data 合并的职官口径（印绶秩石 / 秩俸 / 实态沿革 / 古今对应）。
+ * 键为 `${朝代id}:${本表官名}`，`source` 记录 rank-data 中的来源官（含「县令 · 县长」
+ * 这类合并名，拆分归置到本名录的同朝官职上）。测试保证 rank-data 里带口径的官职
+ * 全部在此落地或列入有意跳过的白名单。
+ */
+export interface MergedRankNote {
+  /** 来源官键：`${朝代id}:${rank-data 官名}`。 */
+  source: string;
+  rank?: string;
+  salary?: string;
+  note?: string;
+  modern?: string;
+}
+
+export const MERGED_RANK_NOTES: Record<string, MergedRankNote> = {
+  // 秦
+  "qin:丞相": {
+    source: "qin:丞相",
+    rank: "金印紫绶 · 秩万石",
+    note: "李斯由廷尉进位丞相；相权与皇权的张力自秦已有。",
+    modern: "国务院总理（参考）",
+  },
+  "qin:太尉": {
+    source: "qin:太尉",
+    rank: "金印紫绶 · 秩万石",
+    note: "实际未常设，出征临时拜将，如王翦、蒙恬。",
+    modern: "中央军委主席（参考）",
+  },
+  "qin:御史大夫": {
+    source: "qin:御史大夫",
+    rank: "银印青绶 · 秩中二千石",
+    modern: "国家监委主任＋副总理（参考）",
+  },
+  "qin:廷尉": {
+    source: "qin:廷尉",
+    rank: "银印青绶 · 秩中二千石",
+    modern: "最高法院院长＋司法部长（参考）",
+  },
+  "qin:治粟内史": {
+    source: "qin:治粟内史",
+    rank: "银印青绶 · 秩中二千石",
+    modern: "财政部长（参考）",
+  },
+  "qin:郡守": { source: "qin:郡守", rank: "秩二千石", modern: "省长（参考）" },
+  "qin:郡尉": { source: "qin:郡尉", rank: "秩比二千石", modern: "省军区司令（参考）" },
+  "qin:县令": {
+    source: "qin:县令 · 县长",
+    rank: "秩千石至六百石",
+    modern: "县委书记＋县长（参考）",
+  },
+  "qin:县长": {
+    source: "qin:县令 · 县长",
+    rank: "秩千石至六百石",
+    modern: "县委书记＋县长（参考）",
+  },
+  "qin:县尉": { source: "qin:县尉", rank: "秩四百石至二百石", modern: "县武装部长（参考）" },
+  "qin:亭长": {
+    source: "qin:亭长",
+    rank: "秩百石以下",
+    note: "刘邦起家之职。",
+    modern: "派出所所长（参考）",
+  },
+  // 汉
+  "han:丞相": {
+    source: "han:丞相 · 大司徒",
+    rank: "秩万石 · 金印紫绶",
+    salary: "月俸约三百五十斛",
+    note: "武帝后内朝尚书兴起，外朝丞相渐成尊位。",
+    modern: "国务院总理（参考）",
+  },
+  "han:大司马大将军": {
+    source: "han:大司马 · 大将军",
+    rank: "秩万石",
+    note: "汉武之后外朝三公渐让于内朝大将军。",
+    modern: "军委副主席兼中枢执政（参考）",
+  },
+  "han:郡太守": { source: "han:州牧 · 郡守", rank: "秩二千石", modern: "省长（参考）" },
+  "han:州刺史": {
+    source: "han:州牧 · 郡守",
+    note: "武帝置十三州刺史秩仅六百石，「以卑临尊」而权重。",
+  },
+  "han:校尉": { source: "han:校尉 · 都尉", rank: "秩比二千石", modern: "省军区司令（参考）" },
+  "han:尚书令": {
+    source: "han:尚书令",
+    rank: "秩千石",
+    note: "秩止千石而权倾朝野——「品级≠实权」最早的样本。",
+    modern: "中央办公厅主任（参考）",
+  },
+  "han:御史中丞": { source: "han:御史中丞", rank: "秩千石", modern: "国家监委副主任（参考）" },
+  "han:县令": { source: "han:县令 · 县长", rank: "秩千石至三百石", modern: "县长（参考）" },
+  "han:亭长": { source: "han:佐史 · 亭长", rank: "秩二百石以下", modern: "基层办事员（参考）" },
+  "han:佐史": { source: "han:佐史 · 亭长", rank: "秩二百石以下", modern: "基层办事员（参考）" },
+  // 魏晋南北朝
+  "weijin:录尚书事": { source: "weijin:录尚书事 · 尚书令", modern: "国务院总理（参考）" },
+  "weijin:尚书令": { source: "weijin:录尚书事 · 尚书令", modern: "国务院总理（参考）" },
+  "weijin:中书监": { source: "weijin:中书监 · 中书令", modern: "中办＋中央政策研究室（参考）" },
+  "weijin:中书令": { source: "weijin:中书监 · 中书令", modern: "中办＋中央政策研究室（参考）" },
+  "weijin:吏部尚书": {
+    source: "weijin:侍中 · 吏部尚书",
+    rank: "约三品至四品",
+    note: "吏部之权与中正品第相表里，门阀必争之职。",
+    modern: "组织部长（参考）",
+  },
+  "weijin:州刺史": {
+    source: "weijin:州刺史 · 都督诸州军事",
+    rank: "约四品，带将军号持节者权重",
+    modern: "省委书记（参考）",
+  },
+  "weijin:大司马大将军": { source: "weijin:大司马 · 大将军", modern: "军委副主席（参考）" },
+  "weijin:郡太守": { source: "weijin:郡太守", rank: "约五品", modern: "市长（参考）" },
+  "weijin:县令": { source: "weijin:县令", rank: "约六品至七品", modern: "县长（参考）" },
+  "weijin:台省令史": {
+    source: "weijin:台省令史 · 胥吏",
+    note: "门阀清官居上品、寒人浊官居下位，「清」「浊」两途自此分立。",
+    modern: "基层办事员（参考）",
+  },
+  "weijin:胥吏": {
+    source: "weijin:台省令史 · 胥吏",
+    note: "门阀清官居上品、寒人浊官居下位，「清」「浊」两途自此分立。",
+    modern: "基层办事员（参考）",
+  },
+  // 隋唐
+  "suitang:太师": { source: "suitang:太师 · 太傅 · 太保", modern: "名誉国家主席（参考）" },
+  "suitang:太傅": { source: "suitang:太师 · 太傅 · 太保", modern: "名誉国家主席（参考）" },
+  "suitang:天策上将": {
+    source: "suitang:天策上将",
+    rank: "正一品（特置）",
+    modern: "荣誉元帅（参考）",
+  },
+  "suitang:骠骑大将军": {
+    source: "suitang:骠骑大将军",
+    rank: "从一品（散官）",
+    modern: "上将衔（参考）",
+  },
+  "suitang:尚书令": { source: "suitang:尚书令", rank: "正二品", modern: "国务院总理（参考）" },
+  "suitang:尚书左仆射": { source: "suitang:尚书仆射", rank: "从二品", modern: "副总理（参考）" },
+  "suitang:尚书右仆射": { source: "suitang:尚书仆射", rank: "从二品", modern: "副总理（参考）" },
+  "suitang:吏部尚书": { source: "suitang:六部尚书", modern: "部长（参考）" },
+  "suitang:兵部尚书": { source: "suitang:六部尚书", modern: "部长（参考）" },
+  "suitang:中书令": {
+    source: "suitang:中书令 · 侍中",
+    rank: "正三品（大历后升正二品）",
+    modern: "副总理级（参考）",
+  },
+  "suitang:侍中": {
+    source: "suitang:中书令 · 侍中",
+    rank: "正三品（大历后升正二品）",
+    modern: "副总理级（参考）",
+  },
+  "suitang:上州刺史": {
+    source: "suitang:州刺史",
+    rank: "从三品下至正四品下，随州等",
+    modern: "省长／市委书记（参考）",
+  },
+  "suitang:十六卫大将军": { source: "suitang:十六卫大将军", modern: "卫戍司令（参考）" },
+  "suitang:中书侍郎": {
+    source: "suitang:中书侍郎 · 门下侍郎",
+    rank: "正四品上",
+    modern: "副部长（参考）",
+  },
+  "suitang:门下侍郎": {
+    source: "suitang:中书侍郎 · 门下侍郎",
+    rank: "正四品上",
+    modern: "副部长（参考）",
+  },
+  "suitang:折冲都尉": {
+    source: "suitang:折冲都尉",
+    rank: "上府正四品上至下府正五品下",
+    modern: "师长（参考）",
+  },
+  "suitang:给事中": {
+    source: "suitang:给事中",
+    note: "品不高而可驳君命，封驳之权历代所重。",
+    modern: "中办法规审核（参考）",
+  },
+  "suitang:京县令": {
+    source: "suitang:县令",
+    rank: "京县正五品上至下县从七品下",
+    modern: "县长（参考）",
+  },
+  "suitang:侍御史": { source: "suitang:侍御史", rank: "从六品下", modern: "中央巡视组长（参考）" },
+  "suitang:县尉": { source: "suitang:县尉", rank: "从八品下至从九品下", modern: "科员（参考）" },
+  "suitang:校书郎": {
+    source: "suitang:校书郎",
+    note: "品虽末而号清贵，白居易、元稹皆由此入仕。",
+    modern: "科员（参考）",
+  },
+  "suitang:令史": { source: "suitang:令史 · 书令史", modern: "基层办事员（参考）" },
+  "suitang:书令史": { source: "suitang:令史 · 书令史", modern: "基层办事员（参考）" },
+  // 宋
+  "song:太师": { source: "song:三师 · 三公", modern: "名誉国家主席（参考）" },
+  "song:同中书门下平章事": {
+    source: "song:宰相 · 同平章事",
+    note: "同一相位，品可悬殊——「官」与「职」分离的枢纽。",
+    modern: "国务院总理（参考）",
+  },
+  "song:枢密使": { source: "song:枢密使", rank: "差遣", modern: "军委副主席（参考）" },
+  "song:参知政事": { source: "song:参知政事", rank: "差遣", modern: "副总理（参考）" },
+  "song:礼部尚书": {
+    source: "song:六部尚书",
+    rank: "从二品（元丰后实化）",
+    modern: "部长（参考）",
+  },
+  "song:御史中丞": {
+    source: "song:御史中丞",
+    rank: "约从三品（寄禄定品）",
+    modern: "国家监委副主任（参考）",
+  },
+  "song:知州": {
+    source: "song:知州 · 知府",
+    note: "「知」字官皆差遣，故有知州知县之称。",
+    modern: "市委书记（参考）",
+  },
+  "song:转运使": { source: "song:转运使", rank: "差遣", modern: "省长级专员（参考）" },
+  "song:通判": { source: "song:通判", rank: "差遣", modern: "市委副书记＋监察专员（参考）" },
+  "song:知县": {
+    source: "song:知县",
+    note: "高官知小县与低品知大县并存，品级与辖区彻底解耦。",
+    modern: "县委书记（参考）",
+  },
+  "song:县尉": { source: "song:县尉 · 主簿", rank: "从八品至从九品（约）", modern: "科员（参考）" },
+  "song:主簿": { source: "song:县尉 · 主簿", rank: "从八品至从九品（约）", modern: "科员（参考）" },
+  // 元
+  "yuan:中书令": { source: "yuan:中书令", modern: "名誉职位（参考）" },
+  "yuan:中书右丞相": {
+    source: "yuan:右丞相 · 左丞相",
+    note: "蒙古旧俗尚右，故右丞相居左之上。",
+    modern: "国务院总理（参考）",
+  },
+  "yuan:中书左丞相": {
+    source: "yuan:右丞相 · 左丞相",
+    note: "蒙古旧俗尚右，故右丞相居左之上。",
+    modern: "国务院总理（参考）",
+  },
+  "yuan:中书平章政事": { source: "yuan:平章政事", modern: "副总理（参考）" },
+  "yuan:知枢密院事": { source: "yuan:知枢密院事", modern: "军委副主席（参考）" },
+  "yuan:中书右丞": { source: "yuan:右丞 · 左丞", modern: "国务委员（参考）" },
+  "yuan:中书左丞": { source: "yuan:右丞 · 左丞", modern: "国务委员（参考）" },
+  "yuan:御史大夫": { source: "yuan:御史大夫", rank: "正二品", modern: "国家监委主任（参考）" },
+  "yuan:六部尚书": { source: "yuan:六部尚书", modern: "部长（参考）" },
+  "yuan:达鲁花赤": {
+    source: "yuan:达鲁花赤",
+    note: "蒙古色目专任，汉人南人为总管、知州以下。",
+    modern: "党委书记（参考）",
+  },
+  "yuan:路总管": {
+    source: "yuan:路总管 · 府尹",
+    rank: "正三品至从四品（约）",
+    modern: "市长（参考）",
+  },
+  "yuan:府尹": {
+    source: "yuan:路总管 · 府尹",
+    rank: "正三品至从四品（约）",
+    modern: "市长（参考）",
+  },
+  "yuan:县尹": { source: "yuan:县尹", rank: "从七品至从八品（约）", modern: "县长（参考）" },
+  "yuan:巡检": { source: "yuan:巡检", rank: "从九品（约）", modern: "派出所所长（参考）" },
+  // 明
+  "ming:太师": { source: "ming:三公 · 三孤", modern: "名誉国家主席（参考）" },
+  "ming:太傅": { source: "ming:三公 · 三孤", modern: "名誉国家主席（参考）" },
+  "ming:左都督": { source: "ming:五军都督府左右都督", modern: "军委副主席（参考）" },
+  "ming:右都督": { source: "ming:五军都督府左右都督", modern: "军委副主席（参考）" },
+  "ming:兵部尚书": { source: "ming:六部尚书", modern: "部长（参考）" },
+  "ming:吏部尚书": { source: "ming:六部尚书", modern: "部长（参考）" },
+  "ming:都察院左都御史": { source: "ming:都察院左都御史", modern: "国家监委主任（参考）" },
+  "ming:都指挥使": { source: "ming:都指挥使", modern: "省军区司令（参考）" },
+  "ming:六部侍郎": { source: "ming:六部侍郎", rank: "正三品", modern: "副部长（参考）" },
+  "ming:按察使": { source: "ming:按察使", rank: "正三品", modern: "省高院院长＋公安厅长（参考）" },
+  "ming:卫指挥使": {
+    source: "ming:卫指挥使 · 锦衣卫指挥使",
+    rank: "正三品",
+    modern: "师长／国安部长（参考）",
+  },
+  "ming:知府": { source: "ming:知府", rank: "正四品", modern: "市委书记＋市长（参考）" },
+  "ming:内阁大学士": {
+    source: "ming:内阁大学士",
+    rank: "正五品（后多加至一品）",
+    note: "品低权重：位在尚书之上凭加衔，票拟终须批红而后行。",
+    modern: "国务院总理（参考）",
+  },
+  "ming:六部郎中": { source: "ming:郎中", modern: "司局长（参考）" },
+  "ming:千户": { source: "ming:千户", modern: "团长（参考）" },
+  "ming:百户": { source: "ming:百户", modern: "营长（参考）" },
+  "ming:监察御史": { source: "ming:监察御史", modern: "中央巡视组长（参考）" },
+  "ming:六科给事中": {
+    source: "ming:六科给事中",
+    note: "品极低而权重，言官之制明代最盛。",
+    modern: "纪检监察组长（参考）",
+  },
+  "ming:知县": { source: "ming:知县", modern: "县委书记＋县长（参考）" },
+  "ming:主簿": { source: "ming:县主簿", modern: "科员（参考）" },
+  "ming:巡检": { source: "ming:巡检", modern: "派出所所长（参考）" },
+  // 清
+  "qing:亲王": { source: "qing:亲王 · 郡王", note: "不在职官品级表内，故不与九品对列。" },
+  "qing:郡王": { source: "qing:亲王 · 郡王", note: "不在职官品级表内，故不与九品对列。" },
+  "qing:文华殿大学士": { source: "qing:大学士", modern: "国务院总理（参考）" },
+  "qing:体仁阁大学士": { source: "qing:大学士", modern: "国务院总理（参考）" },
+  "qing:领侍卫内大臣": { source: "qing:领侍卫内大臣", modern: "中央警卫局局长（参考）" },
+  "qing:礼部尚书": {
+    source: "qing:六部尚书",
+    rank: "从一品（雍正八年自二品升）",
+    modern: "部长（参考）",
+  },
+  "qing:吏部尚书": {
+    source: "qing:六部尚书",
+    rank: "从一品（雍正八年自二品升）",
+    modern: "部长（参考）",
+  },
+  "qing:都察院左都御史": { source: "qing:都察院左都御史", modern: "国家监委主任（参考）" },
+  "qing:驻防将军": {
+    source: "qing:驻防将军",
+    rank: "从一品（乾隆间定制）",
+    modern: "战区司令（参考）",
+  },
+  "qing:直隶总督": {
+    source: "qing:总督",
+    rank: "正二品（例加兵部尚书衔至从一品）",
+    modern: "大区书记（参考）",
+  },
+  "qing:湖广总督": {
+    source: "qing:总督",
+    rank: "正二品（例加兵部尚书衔至从一品）",
+    modern: "大区书记（参考）",
+  },
+  "qing:巡抚": {
+    source: "qing:巡抚",
+    rank: "从二品（例加侍郎衔至正二品）",
+    modern: "省委书记（参考）",
+  },
+  "qing:布政使": { source: "qing:布政使", modern: "省长（参考）" },
+  "qing:总兵": { source: "qing:总兵", modern: "军长（参考）" },
+  "qing:按察使": { source: "qing:按察使", modern: "省高院院长＋公安厅长（参考）" },
+  "qing:知府": {
+    source: "qing:知府",
+    rank: "从四品（初正四品，乾隆中改）",
+    modern: "市委书记（参考）",
+  },
+  "qing:六部郎中": { source: "qing:郎中", rank: "从五品（雍正八年定）", modern: "司局级（参考）" },
+  "qing:同知": { source: "qing:同知", rank: "正五品", modern: "副市长（参考）" },
+  "qing:千总": { source: "qing:千总", rank: "正六品", modern: "营长（参考）" },
+  "qing:知县": { source: "qing:知县", modern: "县委书记＋县长（参考）" },
+  "qing:县丞": { source: "qing:县丞 · 主簿", rank: "正八品", modern: "副县长（参考）" },
+  "qing:主簿": { source: "qing:县丞 · 主簿", rank: "正九品", modern: "科员（参考）" },
+  "qing:巡检": { source: "qing:巡检", modern: "派出所所长（参考）" },
+};
+
+/**
+ * rank-data 口径里确认不落进本名录的来源官：要么是类别集合（九卿），
+ * 要么本名录无对应官职（军机大臣为差遣、郎中员外郎隋唐未单列）。
+ * officials-data.test.ts 会校验这份白名单始终对应真实存在的来源官。
+ */
+export const UNMERGED_RANK_SOURCES: readonly string[] = [
+  "han:九卿",
+  "weijin:丞相 · 八公",
+  "suitang:郎中 · 员外郎",
+  "qing:军机大臣",
+];
+
+function mergeRankNotes(
+  dynasties: readonly OfficialsDynasty[],
+  notes: Record<string, MergedRankNote>,
+): readonly OfficialsDynasty[] {
+  return dynasties.map((dynasty) => ({
+    ...dynasty,
+    grades: dynasty.grades.map((grade) => ({
+      ...grade,
+      posts: grade.posts.map((post) => {
+        const extra = notes[`${dynasty.id}:${post.title}`];
+        if (!extra) {
+          return post;
+        }
+        const { source: _source, ...fields } = extra;
+        return { ...post, ...fields };
+      }),
+    })),
+  }));
+}
+
+export const OFFICIALS_DYNASTIES: readonly OfficialsDynasty[] = mergeRankNotes(
+  RAW_OFFICIALS_DYNASTIES,
+  MERGED_RANK_NOTES,
+);
 
 export function getOfficialsDynasty(id: string): OfficialsDynasty | undefined {
   return OFFICIALS_DYNASTIES.find((dynasty) => dynasty.id === id);

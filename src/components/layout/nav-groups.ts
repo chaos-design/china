@@ -47,7 +47,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         to: "/china/policies",
       },
       {
-        highlights: ["八朝官阶阶梯", "六条职系追踪", "同品序八朝断面"],
+        highlights: ["文武双枝官职树", "完整名录与名臣名将", "同品序八朝断面"],
         label: "品级纵横",
         to: "/china/ranks",
       },

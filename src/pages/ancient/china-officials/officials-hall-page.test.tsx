@@ -103,6 +103,8 @@ describe("<OfficialsHallPage />", () => {
 
     const firstCard = screen.getByLabelText("万石官职名录");
     expect(firstCard.style.getPropertyValue("--hall-row-y")).toMatch(/px$/);
+    // 卡片最大高度 = 行间距(130) - 12，任何视口下右侧名录都不重叠
+    expect(firstCard.style.getPropertyValue("--hall-card-max-h")).toBe("118px");
     expect(document.querySelector("article")?.style.getPropertyValue("--hall-drawer-y")).toMatch(
       /px$/,
     );

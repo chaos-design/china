@@ -2,8 +2,8 @@ import { useState } from "react";
 
 import { cn } from "../../../lib/utils";
 import { DynastyChips } from "./dynasty-chips";
-import type { SelectedOffice } from "./office-detail-card";
-import { OfficeDetailCard } from "./office-detail-card";
+import type { OfficeDetail } from "./office-detail-card";
+import { OfficeDetailCard, rankOfficeDetail } from "./office-detail-card";
 import {
   getRankDynasty,
   nextDynastyId,
@@ -11,6 +11,7 @@ import {
   RANK_TRACKS,
   resolveOfficeBand,
 } from "./rank-data";
+import { RankGenealogySection } from "./rank-genealogy";
 import { LadderStep } from "./rank-step-glyph";
 import { RankTreeSection } from "./rank-tree-section";
 import type { RankBand, RankDynasty, RankDynastyId, RankLevel, RankOffice } from "./types";
@@ -87,7 +88,7 @@ function LadderColumn({
       <header className="flex flex-col gap-1">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h3 className="font-brush text-2xl text-ink">{dynasty.name}</h3>
-          <span className="font-mono-tech text-muted-foreground text-xs tracking-[0.18em]">
+          <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.18em]">
             {dynasty.period}
           </span>
           <span className="rounded-full border border-vermillion/30 bg-vermillion/10 px-2.5 py-0.5 font-body text-vermillion text-xs">
@@ -114,7 +115,7 @@ function LadderColumn({
               }}
             >
               <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                <span className="font-mono-tech text-vermillion text-xs tracking-[0.14em]">
+                <span className="font-mono-tech text-vermillion text-[0.7rem] tracking-[0.14em]">
                   {level.grade}
                 </span>
                 {level.approxGrade !== undefined ? (
@@ -165,7 +166,7 @@ function LadderSection({
   compareEnabled: boolean;
   compareId: RankDynastyId;
   dynastyId: RankDynastyId;
-  selection: SelectedOffice | null;
+  selection: OfficeDetail | null;
   onCompareChange: (id: RankDynastyId) => void;
   onToggleCompare: (enabled: boolean) => void;
   onSelectDynasty: (id: RankDynastyId) => void;
@@ -241,25 +242,19 @@ function LadderSection({
         </div>
       </div>
 
-      <div className={cn("grid gap-8", compareEnabled ? "xl:grid-cols-2" : "grid-cols-1")}>
+      <div
+        className={cn("grid gap-8", compareEnabled ? "lg:grid-cols-2" : "grid-cols-1 lg:max-w-2xl")}
+      >
         <LadderColumn
           dynasty={mainDynasty}
           onSelectOffice={onSelectOffice}
-          selectedKey={
-            selection && selection.dynasty.id === mainDynasty.id
-              ? `${selection.dynasty.id}:${selection.level.grade}:${selection.office.title}`
-              : null
-          }
+          selectedKey={selection?.key ?? null}
         />
         {compareDynasty ? (
           <LadderColumn
             dynasty={compareDynasty}
             onSelectOffice={onSelectOffice}
-            selectedKey={
-              selection && selection.dynasty.id === compareDynasty.id
-                ? `${selection.dynasty.id}:${selection.level.grade}:${selection.office.title}`
-                : null
-            }
+            selectedKey={selection?.key ?? null}
           />
         ) : null}
       </div>
@@ -334,7 +329,7 @@ function GradeSection({
           <button
             aria-pressed={band === gradeBand}
             className={cn(
-              "rounded-full border px-3 py-1 font-mono-tech text-xs tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "rounded-full border px-3 py-1 font-mono-tech text-[0.7rem] tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               band === gradeBand
                 ? "border-vermillion/40 bg-vermillion/15 text-vermillion"
                 : "border-ink/15 bg-card/70 text-muted-foreground hover:border-vermillion/30 hover:bg-vermillion/5",
@@ -373,12 +368,14 @@ function GradeSection({
                 ) : (
                   matches.map((match) => (
                     <div className="flex flex-col" key={match.office.title}>
-                      <span className="font-brush text-ink text-base">{match.office.title}</span>
-                      <span className="font-mono-tech text-muted-foreground text-[0.65rem]">
+                      <span className="font-brush text-ink text-lg leading-snug">
+                        {match.office.title}
+                      </span>
+                      <span className="font-mono-tech text-muted-foreground text-[0.7rem]">
                         {match.office.rank}
                       </span>
                       {match.approx ? (
-                        <span className="font-body text-ochre text-[0.65rem]">约当</span>
+                        <span className="font-body text-ochre text-[0.7rem]">约当</span>
                       ) : null}
                     </div>
                   ))
@@ -399,15 +396,15 @@ function GradeSection({
 
 /**
  * 品级纵横：官位品级跨朝代对比页。
- * 三条立体视角共用一版式：纵（单朝/双朝阶梯）、横（六条职系追踪）、
- * 断面（同品序八朝对照）；阶梯官职可点开四维详情卡。
+ * 立体树与族谱取 officials-data 的完整官职名录（含名臣名将），
+ * 阶梯 / 职系 / 断面基于 rank-data 的秩石与九品口径；阶梯官职可点开五维详情卡。
  */
 export function RanksPage() {
   const [dynastyId, setDynastyId] = useState<RankDynastyId>("qin");
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [compareId, setCompareId] = useState<RankDynastyId>("qing");
   const [gradeBand, setGradeBand] = useState<RankBand>(1);
-  const [selection, setSelection] = useState<SelectedOffice | null>(null);
+  const [selection, setSelection] = useState<OfficeDetail | null>(null);
 
   // 主朝代切到原对比朝代时，对比列自动顺延到下一位，保证两列不重合。
   const effectiveCompareId = compareId === dynastyId ? nextDynastyId(dynastyId) : compareId;
@@ -426,7 +423,7 @@ export function RanksPage() {
             </span>
           </div>
           <p className="max-w-3xl font-body text-ink/85 text-sm leading-relaxed">
-            先看立体树：树干自皇权垂下，平台是品级，枝头是文武百官，两朝按品并置即可同高对读；再看阶梯、职系与同品断面——品级如何从秩石走向九品十八级，又如何一次次与实权脱钩。
+            先看立体树：树干自皇权垂下、在顶端分出文武两枝，枝头挂满这一朝的全部官职，两朝按品并置即可同高对读；再看族谱、阶梯、职系与同品断面——品级如何从秩石走向九品十八级，又如何一次次与实权脱钩。
           </p>
           <a
             className="w-fit rounded-full border border-vermillion/35 bg-vermillion/10 px-3 py-1 font-body text-xs text-vermillion transition-colors hover:bg-vermillion/20"
@@ -439,6 +436,7 @@ export function RanksPage() {
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-8 sm:px-6">
         <RankTreeSection />
+        <RankGenealogySection />
         <LadderSection
           compareEnabled={compareEnabled}
           compareId={effectiveCompareId}
@@ -450,7 +448,7 @@ export function RanksPage() {
             setDynastyId(id);
           }}
           onSelectOffice={(office, level, dynasty) => {
-            setSelection({ dynasty, level, office });
+            setSelection(rankOfficeDetail(dynasty, level, office));
           }}
           onToggleCompare={(enabled) => {
             setCompareEnabled(enabled);

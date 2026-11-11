@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { RANK_DYNASTIES } from "../china-ranks/rank-data";
 import type { OfficialsDynastyId } from "./officials-data";
 import {
   branchCounts,
   countPosts,
   findPost,
   getOfficialsDynasty,
+  MERGED_RANK_NOTES,
   OFFICIALS_DYNASTIES,
+  UNMERGED_RANK_SOURCES,
 } from "./officials-data";
 
 const EXPECTED_ORDER: readonly OfficialsDynastyId[] = [
@@ -110,5 +113,70 @@ describe("品秩全景数据", () => {
     expect(match?.post.figures?.map((figure) => figure.name)).toEqual(["王绾", "李斯"]);
     expect(findPost(qin, qin.grades[0]!.id, "军机大臣")).toBeNull();
     expect(findPost(qin, "missing-grade", "丞相")).toBeNull();
+  });
+
+  it("resolves every merge key to a real post and applies its fields", () => {
+    const postIndex = new Map<
+      string,
+      { title: string; rank?: string; salary?: string; note?: string; modern?: string }
+    >();
+    for (const dynasty of OFFICIALS_DYNASTIES) {
+      for (const grade of dynasty.grades) {
+        for (const post of grade.posts) {
+          postIndex.set(`${dynasty.id}:${post.title}`, post);
+        }
+      }
+    }
+
+    expect(Object.keys(MERGED_RANK_NOTES).length).toBeGreaterThan(90);
+    for (const [key, entry] of Object.entries(MERGED_RANK_NOTES)) {
+      const post = postIndex.get(key);
+      expect(post, `合并键无对应官职：${key}`).toBeTruthy();
+      const { source: _source, ...fields } = entry;
+      const applied = Object.entries(fields);
+      expect(applied.length, `${key} 缺少任何合并字段`).toBeGreaterThan(0);
+      for (const [field, value] of applied) {
+        expect(
+          post?.[field as "rank" | "salary" | "note" | "modern"],
+          `${key}.${field} 未生效`,
+        ).toBe(value);
+      }
+    }
+
+    // 抽查典型合并结果
+    const qin = getOfficialsDynasty("qin")!;
+    const chancellor = findPost(qin, "qin-wanshi", "丞相")!.post;
+    expect(chancellor.rank).toBe("金印紫绶 · 秩万石");
+    expect(chancellor.modern).toBe("国务院总理（参考）");
+
+    const han = getOfficialsDynasty("han")!;
+    expect(findPost(han, "han-wanshi", "丞相")!.post.salary).toBe("月俸约三百五十斛");
+  });
+
+  it("merges every sourced rank-data office into the roster or an explicit allowlist", () => {
+    const expectedSources = new Set<string>();
+    for (const dynasty of RANK_DYNASTIES) {
+      for (const level of dynasty.levels) {
+        for (const office of level.offices) {
+          if (office.salary || office.note || office.modern) {
+            expectedSources.add(`${dynasty.id}:${office.title}`);
+          }
+        }
+      }
+    }
+    const coveredSources = new Set(Object.values(MERGED_RANK_NOTES).map((entry) => entry.source));
+
+    for (const source of coveredSources) {
+      expect(expectedSources.has(source), `合并来源在 rank-data 中已不存在：${source}`).toBe(true);
+    }
+    for (const key of UNMERGED_RANK_SOURCES) {
+      expect(expectedSources.has(key), `白名单来源已无口径可跳过：${key}`).toBe(true);
+    }
+    for (const source of expectedSources) {
+      expect(
+        coveredSources.has(source) || UNMERGED_RANK_SOURCES.includes(source),
+        `rank-data 官职口径未合并也未入白名单：${source}`,
+      ).toBe(true);
+    }
   });
 });
