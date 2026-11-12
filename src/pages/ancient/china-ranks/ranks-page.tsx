@@ -75,8 +75,8 @@ function rankTreePickDetail(pick: RankTreePick): OfficeDetail | null {
  *   （分列 / 层高 / 视角 / 自动旋转 / 重置）；
  * - 左下筛选面板：朝代选择 + 双朝并置 + 文武图例（可收起）；
  * - 底部居中：`pointer-events-none` 的 hover 读出 / 聚焦提示；
- * - 右侧滑入抽屉（`ranks-drawer.tsx`）：树 / 族谱 / 阶梯 / 追踪 / 断面五个 tab，
- *   即旧版四个滚动 section 的全部数据口径，纵排进 420px 抽屉宽度。
+ * - 右侧滑入抽屉（`ranks-drawer.tsx`，默认打开，顶条「品级资料」按钮切换开合）：树 / 族谱 /
+ *   阶梯 / 追踪 / 断面五个 tab，即旧版四个滚动 section 的全部数据口径，纵排进 420px 抽屉宽度。
  * 画布取景随全幅容器（场景 ResizeObserver 自适应）；面板是小块玻璃卡浮在角落，
  * 与 timeline 的 #cv + 悬浮面板同一模式。勿改回「舞台 + 下方滚动 section」的结构。
  */
@@ -99,7 +99,7 @@ export function RanksPage() {
 
   // —— 悬浮面板状态 ——
   const [filterCollapsed, setFilterCollapsed] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(true);
   const [drawerTab, setDrawerTab] = useState<RanksDrawerTab>("tree");
 
   const mainDynasty = getOfficialsDynasty(dynastyId) ?? getOfficialsDynasty("qin")!;
@@ -311,8 +311,8 @@ export function RanksPage() {
   const officeCount = countPosts(mainDynasty);
   const compareOfficeCount = compareDynasty ? countPosts(compareDynasty) : 0;
 
-  const openDrawer = () => {
-    setDrawerOpen(true);
+  const toggleDrawer = () => {
+    setDrawerOpen((previous) => !previous);
   };
 
   return (
@@ -371,7 +371,7 @@ export function RanksPage() {
                 ? "border-vermillion/40 bg-vermillion/15 text-vermillion"
                 : "border-ink/15 bg-paper/85 text-ink hover:border-vermillion/30",
             )}
-            onClick={openDrawer}
+            onClick={toggleDrawer}
             type="button"
           >
             品级资料

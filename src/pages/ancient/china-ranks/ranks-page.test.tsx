@@ -43,7 +43,10 @@ function sceneHandlers() {
 }
 
 function openDrawer() {
-  fireEvent.click(screen.getByRole("button", { name: "品级资料" }));
+  // 抽屉默认已打开；顶条按钮现为 toggle，仅收起时才点击重新打开
+  if (!screen.queryByRole("tablist")) {
+    fireEvent.click(screen.getByRole("button", { name: "品级资料" }));
+  }
 }
 
 function openTab(label: string) {
@@ -68,7 +71,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
     vi.clearAllMocks();
   });
 
-  it("renders the full-viewport stage: full-bleed canvas, top title strip, bottom-left menu, closed drawer", () => {
+  it("renders the full-viewport stage: full-bleed canvas, top title strip, bottom-left menu, open drawer", () => {
     render(<RanksPage />);
 
     const article = screen.getByRole("heading", { level: 1, name: "品级纵横" }).closest("article");
@@ -92,8 +95,16 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
     expect(within(filter).getByLabelText("视角预设")).toBeInTheDocument();
     expect(within(filter).getByText(/6 级 · 26 官/)).toBeInTheDocument();
 
-    // 抽屉默认收起（aria-hidden，对读屏/键盘不可达）
+    // 抽屉默认打开（落地即读树 tab）；顶条「品级资料」按钮双向切换，收起后对读屏/键盘不可达
+    expect(screen.getByRole("tablist")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "品级资料" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "品级资料" }));
     expect(screen.queryByRole("tablist")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "品级资料" }));
+    expect(screen.getByRole("tablist")).toBeInTheDocument();
   });
 
   it("hands the complete qin tree to the scene and mirrors split/span options", () => {
