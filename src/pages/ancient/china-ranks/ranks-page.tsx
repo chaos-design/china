@@ -71,7 +71,7 @@ function rankTreePickDetail(pick: RankTreePick): OfficeDetail | null {
  * 布局参照 /china/timeline：页面根 `h-full overflow-hidden` 铺满 main（definite 高度）
  * 的可视区域，整页永不滚动；Three.js 画布 `absolute inset-0` 全幅垫底，所有 UI 都是
  * 画布上方的悬浮面板：
- * - 顶部条：页题（左）+ 品秩全景入口与「品级资料」开关（右）+ 居中工具条
+ * - 顶部条：页题（左）+「品级资料」开关（右）+ 居中工具条
  *   （分列 / 层高 / 视角 / 自动旋转 / 重置）；
  * - 左下筛选面板：朝代选择 + 双朝并置 + 文武图例（可收起）；
  * - 底部居中：`pointer-events-none` 的 hover 读出 / 聚焦提示；
@@ -347,7 +347,7 @@ export function RanksPage() {
         ) : null}
       </div>
 
-      {/* 顶部条：页题（左）+ 品秩全景入口与「品级资料」开关（右）。工具条已并入
+      {/* 顶部条：页题（左）+「品级资料」开关（右）。工具条已并入
           左侧「对照 · 视图」面板——舞台中央不再有任何悬浮控件。
           整条 pointer-events-none，交互子元素各自重新开启。 */}
       <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex items-start justify-between gap-3 lg:inset-x-5 lg:top-4">
@@ -363,12 +363,6 @@ export function RanksPage() {
           </p>
         </div>
         <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
-          <a
-            className="rounded-full border border-vermillion/35 bg-paper/85 px-3 py-1 font-body text-xs text-vermillion shadow-[0_8px_24px_hsl(var(--ink)/0.10)] backdrop-blur-md transition-colors hover:bg-vermillion/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            href="/china/officials"
-          >
-            品秩全景 →
-          </a>
           <button
             aria-expanded={drawerOpen}
             className={cn(

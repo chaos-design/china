@@ -92,8 +92,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
     expect(within(filter).getByLabelText("视角预设")).toBeInTheDocument();
     expect(within(filter).getByText(/6 级 · 26 官/)).toBeInTheDocument();
 
-    // 品秩全景入口 + 抽屉默认收起（aria-hidden，对读屏/键盘不可达）
-    expect(screen.getByRole("link", { name: /品秩全景/ })).toBeInTheDocument();
+    // 抽屉默认收起（aria-hidden，对读屏/键盘不可达）
     expect(screen.queryByRole("tablist")).toBeNull();
   });
 

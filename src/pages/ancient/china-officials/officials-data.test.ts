@@ -22,10 +22,10 @@ const EXPECTED_ORDER: readonly OfficialsDynastyId[] = [
   "qing",
 ];
 
-// 立体场景只认品级；名录里若出现这类集合名词，说明粒度退回了「类别」。
+// 立体品级树以品级为层级；名录里若出现这类集合名词，说明粒度退回了「类别」。
 const VAGUE_TITLES = ["九卿", "三公", "百官", "诸官", "各级", "各类", "等官", "众官", "诸卫"];
 
-describe("品秩全景数据", () => {
+describe("职官名录数据", () => {
   it("keeps the eight dynasties in chronological order", () => {
     expect(OFFICIALS_DYNASTIES.map((dynasty) => dynasty.id)).toEqual(EXPECTED_ORDER);
   });

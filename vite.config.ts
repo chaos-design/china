@@ -48,7 +48,6 @@ export default defineConfig({
         // WebGL scene builder: needs a real WebGL context, which jsdom does not
         // provide. Pure layout/geometry lives in rank-tree-layout.ts and is tested.
         "src/pages/ancient/china-ranks/rank-tree-scene.ts",
-        "src/pages/ancient/china-officials/officials-hall-scene.ts",
       ],
     },
   },
