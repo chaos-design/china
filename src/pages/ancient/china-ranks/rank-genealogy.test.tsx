@@ -3,18 +3,23 @@ import { describe, expect, it } from "vitest";
 
 import { RanksPage } from "./ranks-page";
 
+/**
+ * 品级族谱现在是资料抽屉的一个 tab（无 WebGL / 键盘可达的 2D 镜像）：
+ * jsdom 下场景不可用，页面自动停在「族谱」tab，直接可断言；
+ * 换朝走页面统一的「朝代选择」筛选面板，族谱展开状态随之重置。
+ */
 function genealogy() {
   return within(screen.getByLabelText("品级族谱"));
 }
 
-/** 品级节点只取主 <ol> 的一级 <li>（展开块里嵌套的官职 <li> 不算）。 */
+/** 品级节点只取主干 <ol> 的一级 <li>（展开块里嵌套的官职 <ol> 不算）。 */
 function levelButton(section: HTMLElement, index: number): HTMLButtonElement {
   const mainOl = section.querySelector("ol")!;
   const item = mainOl.querySelectorAll(":scope > li")[index]!;
   return item.querySelector(":scope > button") as HTMLButtonElement;
 }
 
-describe("rank genealogy section", () => {
+describe("rank genealogy panel（资料抽屉 · 族谱 tab）", () => {
   it("expands only the first grade by default and marks the schematic 品 mapping", () => {
     render(<RanksPage />);
     const section = screen.getByLabelText("品级族谱");
@@ -66,7 +71,7 @@ describe("rank genealogy section", () => {
     expect(genealogy().getByLabelText("太尉官职详情")).toBeInTheDocument();
   });
 
-  it("switches dynasty and resets the expansion state", () => {
+  it("follows the unified dynasty picker and resets the expansion state", () => {
     render(<RanksPage />);
     const section = screen.getByLabelText("品级族谱");
 
@@ -74,10 +79,8 @@ describe("rank genealogy section", () => {
     fireEvent.click(genealogy().getByRole("button", { name: /最高司法长官/ }));
     expect(genealogy().getByLabelText("廷尉官职详情")).toBeInTheDocument();
 
-    fireEvent.click(
-      within(screen.getByLabelText("族谱朝代选择")).getByRole("button", { name: "清" }),
-    );
-    // 回到默认：只展开第一级（清 = 超品），详情清空
+    fireEvent.click(within(screen.getByLabelText("朝代选择")).getByRole("button", { name: "清" }));
+    // 换朝即重置：回到默认展开第一级（清 = 超品），详情清空
     expect(levelButton(section, 0)).toHaveAttribute("aria-expanded", "true");
     expect(genealogy().getAllByText("超品").length).toBeGreaterThan(0);
     expect(genealogy().queryByLabelText("廷尉官职详情")).not.toBeInTheDocument();

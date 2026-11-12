@@ -1,475 +1,613 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "../../../lib/utils";
+import type { OfficialPost, OfficialsDynasty } from "../china-officials/officials-data";
+import { countPosts, getOfficialsDynasty } from "../china-officials/officials-data";
 import { DynastyChips } from "./dynasty-chips";
 import type { OfficeDetail } from "./office-detail-card";
-import { OfficeDetailCard, rankOfficeDetail } from "./office-detail-card";
+import { rankOfficeDetail } from "./office-detail-card";
+import { getRankDynasty, nextDynastyId } from "./rank-data";
 import {
-  getRankDynasty,
-  nextDynastyId,
-  RANK_DYNASTIES,
-  RANK_TRACKS,
-  resolveOfficeBand,
-} from "./rank-data";
-import { RankGenealogySection } from "./rank-genealogy";
-import { LadderStep } from "./rank-step-glyph";
-import { RankTreeSection } from "./rank-tree-section";
-import type { RankBand, RankDynasty, RankDynastyId, RankLevel, RankOffice } from "./types";
+  findComparableGrade,
+  formatBandLabel,
+  layoutRankTree,
+  type RankTreeSpan,
+  type RankTreeSplit,
+  type RankTreeTier,
+} from "./rank-tree-layout";
+import {
+  createRankTreeScene,
+  type RankTreeCameraPreset,
+  type RankTreeHover,
+  type RankTreePick,
+  type RankTreeScene,
+  readRankTreeColors,
+} from "./rank-tree-scene";
+import { RanksDrawer, type RanksDrawerTab } from "./ranks-drawer";
+import { OptionPill } from "./ranks-option-pill";
+import type { RankDynastyId } from "./types";
 
-const GRADE_BANDS: readonly RankBand[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const SPAN_OPTIONS: readonly { id: RankTreeSpan; hint: string; label: string }[] = [
+  { id: "band", hint: "按品序对齐，两朝同一高度即同一品", label: "品序对齐" },
+  { id: "even", hint: "每级等距，看这一朝自己的层级结构", label: "层级等距" },
+];
 
-const GRADE_LABELS: Record<RankBand, string> = {
-  1: "一品",
-  2: "二品",
-  3: "三品",
-  4: "四品",
-  5: "五品",
-  6: "六品",
-  7: "七品",
-  8: "八品",
-  9: "九品",
-};
+const SPLIT_OPTIONS: readonly { id: RankTreeSplit; hint: string; label: string }[] = [
+  { id: "branch", hint: "皇权分出文武两大枝，文官居左、武官居右", label: "文武分列" },
+  { id: "merged", hint: "文武同环，按数据顺序排布", label: "合列" },
+];
 
-function OfficeRow({
-  isSelected,
-  level,
-  office,
-  onSelect,
-  selectedKey,
-}: {
-  isSelected: boolean;
-  level: RankLevel;
-  office: RankOffice;
-  onSelect: (office: RankOffice, level: RankLevel) => void;
-  selectedKey: string;
-}) {
-  return (
-    <button
-      aria-expanded={isSelected}
-      className={cn(
-        "flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-vermillion/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-        isSelected && "bg-vermillion/10",
-      )}
-      key={selectedKey}
-      onClick={() => {
-        onSelect(office, level);
-      }}
-      type="button"
-    >
-      <span className="flex flex-wrap items-baseline gap-x-2.5">
-        <span
-          aria-hidden="true"
-          className={cn(
-            "mt-[0.5em] h-1.5 w-1.5 shrink-0 rounded-full",
-            office.branch === "civil" ? "bg-vermillion" : "bg-blueprint",
-          )}
-        />
-        <span className="font-brush text-lg leading-snug text-ink">{office.title}</span>
-        <span className="font-mono-tech text-[0.7rem] tracking-[0.08em] text-muted-foreground">
-          {office.rank}
-        </span>
-      </span>
-      <span className="text-sm leading-relaxed text-muted-foreground">{office.duty}</span>
-    </button>
-  );
-}
+const PRESET_OPTIONS: readonly { id: RankTreeCameraPreset; label: string }[] = [
+  { id: "three-quarter", label: "斜侧" },
+  { id: "front", label: "正视" },
+];
 
-function LadderColumn({
-  dynasty,
-  onSelectOffice,
-  selectedKey,
-}: {
-  dynasty: RankDynasty;
-  onSelectOffice: (office: RankOffice, level: RankLevel, dynasty: RankDynasty) => void;
-  selectedKey: string | null;
-}) {
-  return (
-    <div className="flex min-w-0 flex-1 flex-col gap-4">
-      <header className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h3 className="font-brush text-2xl text-ink">{dynasty.name}</h3>
-          <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.18em]">
-            {dynasty.period}
-          </span>
-          <span className="rounded-full border border-vermillion/30 bg-vermillion/10 px-2.5 py-0.5 font-body text-vermillion text-xs">
-            {dynasty.system}
-          </span>
-        </div>
-        <p className="text-muted-foreground text-sm leading-relaxed">{dynasty.systemNote}</p>
-        <p className="font-mono-tech text-[0.7rem] text-muted-foreground/80 tracking-[0.12em]">
-          出处 · {dynasty.source}
-        </p>
-      </header>
-      <ol className="flex flex-col gap-2">
-        {dynasty.levels.map((level, levelIndex) => (
-          <li
-            className="flex gap-2"
-            key={level.grade}
-            style={{ marginLeft: `${Math.min(levelIndex * 14, 112)}px` }}
-          >
-            <LadderStep apex={levelIndex === 0} />
-            <div
-              className="min-w-0 flex-1 rounded-r-lg border border-ink/15 border-l-4 bg-card/90 py-2 pl-3 pr-3 shadow-[0_1px_0_hsl(var(--ink)/0.05)]"
-              style={{
-                borderLeftColor: `hsl(var(--vermillion) / ${Math.max(0.25, 0.85 - levelIndex * 0.08)})`,
-              }}
-            >
-              <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                <span className="font-mono-tech text-vermillion text-[0.7rem] tracking-[0.14em]">
-                  {level.grade}
-                </span>
-                {level.approxGrade !== undefined ? (
-                  <span className="rounded border border-dashed border-ochre px-1.5 font-body text-ochre text-[0.7rem]">
-                    约当{GRADE_LABELS[level.approxGrade]}
-                  </span>
-                ) : null}
-                {level.outOfRank === true ? (
-                  <span className="font-body text-[0.7rem] text-muted-foreground">品外</span>
-                ) : null}
-              </div>
-              <div className="mt-1 flex flex-col gap-0.5">
-                {level.offices.map((office) => {
-                  const key = `${dynasty.id}:${level.grade}:${office.title}`;
-
-                  return (
-                    <OfficeRow
-                      isSelected={selectedKey === key}
-                      key={key}
-                      level={level}
-                      office={office}
-                      onSelect={(selectedOffice, selectedLevel) => {
-                        onSelectOffice(selectedOffice, selectedLevel, dynasty);
-                      }}
-                      selectedKey={key}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-function LadderSection({
-  compareEnabled,
-  compareId,
-  dynastyId,
-  selection,
-  onCompareChange,
-  onToggleCompare,
-  onSelectDynasty,
-  onSelectOffice,
-}: {
-  compareEnabled: boolean;
-  compareId: RankDynastyId;
-  dynastyId: RankDynastyId;
-  selection: OfficeDetail | null;
-  onCompareChange: (id: RankDynastyId) => void;
-  onToggleCompare: (enabled: boolean) => void;
-  onSelectDynasty: (id: RankDynastyId) => void;
-  onSelectOffice: (office: RankOffice, level: RankLevel, dynasty: RankDynasty) => void;
-}) {
-  const mainDynasty = getRankDynasty(dynastyId);
-  if (!mainDynasty) {
+/** 3D 树官职 pick → 共享详情卡视图模型（品序取 grade.label，秦汉补 approx）。 */
+function rankTreePickDetail(pick: RankTreePick): OfficeDetail | null {
+  if (pick.kind !== "office") {
     return null;
   }
-
-  // 对比朝代与主朝代相同时（如把主朝代切到原对比朝代），自动顺延一位。
-  const compareDynasty =
-    compareEnabled && compareId !== dynastyId ? getRankDynasty(compareId) : undefined;
-
-  return (
-    <section aria-label="品级阶梯" className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <span className="eyebrow">纵 · 品级阶梯</span>
-        <h2 className="font-brush text-3xl text-ink">一品到九品：这一朝的官阶台阶</h2>
-      </div>
-
-      <div className="flex flex-col gap-3 rounded-xl border border-ink/10 bg-card/60 p-4">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
-            阶梯朝代
-          </span>
-          <DynastyChips ariaLabel="阶梯朝代选择" currentId={dynastyId} onSelect={onSelectDynasty} />
-        </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
-            对比模式
-          </span>
-          <fieldset aria-label="阶梯模式" className="flex gap-2">
-            <button
-              aria-pressed={!compareEnabled}
-              className={cn(
-                "rounded-full border px-3 py-1 font-body text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                !compareEnabled
-                  ? "border-vermillion/40 bg-vermillion/15 text-vermillion"
-                  : "border-ink/15 bg-card/70 text-muted-foreground hover:border-vermillion/30",
-              )}
-              onClick={() => {
-                onToggleCompare(false);
-              }}
-              type="button"
-            >
-              单朝
-            </button>
-            <button
-              aria-pressed={compareEnabled}
-              className={cn(
-                "rounded-full border px-3 py-1 font-body text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                compareEnabled
-                  ? "border-vermillion/40 bg-vermillion/15 text-vermillion"
-                  : "border-ink/15 bg-card/70 text-muted-foreground hover:border-vermillion/30",
-              )}
-              onClick={() => {
-                onToggleCompare(true);
-              }}
-              type="button"
-            >
-              朝代对比
-            </button>
-          </fieldset>
-          {compareEnabled ? (
-            <DynastyChips
-              ariaLabel="对比朝代选择"
-              currentId={compareId}
-              disabledId={dynastyId}
-              onSelect={onCompareChange}
-            />
-          ) : null}
-        </div>
-      </div>
-
-      <div
-        className={cn("grid gap-8", compareEnabled ? "lg:grid-cols-2" : "grid-cols-1 lg:max-w-2xl")}
-      >
-        <LadderColumn
-          dynasty={mainDynasty}
-          onSelectOffice={onSelectOffice}
-          selectedKey={selection?.key ?? null}
-        />
-        {compareDynasty ? (
-          <LadderColumn
-            dynasty={compareDynasty}
-            onSelectOffice={onSelectOffice}
-            selectedKey={selection?.key ?? null}
-          />
-        ) : null}
-      </div>
-
-      <OfficeDetailCard selection={selection} />
-    </section>
-  );
-}
-
-function TrackSection() {
-  return (
-    <section aria-label="同职追踪" className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <span className="eyebrow">横 · 同职追踪</span>
-        <h2 className="font-brush text-3xl text-ink">同一职位，八个王朝</h2>
-        <p className="max-w-3xl text-muted-foreground text-sm leading-relaxed">
-          六条职系各追一遍八朝：名称、品秩与实权如何一起变——品级与实权脱钩之处，正是制度史的转折点。
-        </p>
-      </div>
-      {RANK_TRACKS.map((track) => (
-        <div className="flex flex-col gap-2" key={track.id}>
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h3 className="font-brush text-xl text-ink">{track.name}</h3>
-            <span className="text-muted-foreground text-xs">{track.blurb}</span>
-          </div>
-          <div className="overflow-x-auto pb-1">
-            <ol className="grid min-w-[880px] grid-cols-8 gap-2">
-              {track.stops.map((stop) => (
-                <li
-                  className="flex flex-col gap-1 rounded-lg border border-ink/15 bg-card/80 p-2.5"
-                  key={stop.dynastyId}
-                >
-                  <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.14em]">
-                    {getRankDynasty(stop.dynastyId)?.name ?? stop.dynastyId}
-                  </span>
-                  <span className="font-brush text-ink text-lg leading-snug">{stop.title}</span>
-                  <span className="font-mono-tech text-vermillion text-[0.7rem] tracking-[0.06em]">
-                    {stop.rank}
-                  </span>
-                  <span className="text-muted-foreground text-xs leading-relaxed">
-                    {stop.power}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function GradeSection({
-  gradeBand,
-  onGradeChange,
-}: {
-  gradeBand: RankBand;
-  onGradeChange: (band: RankBand) => void;
-}) {
-  return (
-    <section aria-label="同品断面" className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <span className="eyebrow">断面 · 同品对照</span>
-        <h2 className="font-brush text-3xl text-ink">同一品级，谁在任上</h2>
-        <p className="max-w-3xl text-muted-foreground text-sm leading-relaxed">
-          选一品序，看八个王朝在同一级台阶上都摆了什么官。
-        </p>
-      </div>
-
-      <fieldset aria-label="品序选择" className="flex flex-wrap gap-2">
-        {GRADE_BANDS.map((band) => (
-          <button
-            aria-pressed={band === gradeBand}
-            className={cn(
-              "rounded-full border px-3 py-1 font-mono-tech text-[0.7rem] tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-              band === gradeBand
-                ? "border-vermillion/40 bg-vermillion/15 text-vermillion"
-                : "border-ink/15 bg-card/70 text-muted-foreground hover:border-vermillion/30 hover:bg-vermillion/5",
-            )}
-            key={band}
-            onClick={() => {
-              onGradeChange(band);
-            }}
-            type="button"
-          >
-            {GRADE_LABELS[band]}
-          </button>
-        ))}
-      </fieldset>
-
-      <div className="overflow-x-auto pb-1">
-        <ol className="grid min-w-[960px] grid-cols-8 gap-2">
-          {RANK_DYNASTIES.map((dynasty) => {
-            const matches = dynasty.levels.flatMap((level) =>
-              level.offices
-                .filter((office) => resolveOfficeBand(level, office) === gradeBand)
-                .map((office) => ({
-                  approx: office.band === undefined,
-                  office,
-                })),
-            );
-
-            return (
-              <li
-                className="flex flex-col gap-1.5 rounded-lg border border-ink/15 bg-card/80 p-2.5"
-                key={dynasty.id}
-              >
-                <span className="font-brush text-ink text-lg">{dynasty.name}</span>
-                {matches.length === 0 ? (
-                  <span className="text-muted-foreground text-xs">本级无设官</span>
-                ) : (
-                  matches.map((match) => (
-                    <div className="flex flex-col" key={match.office.title}>
-                      <span className="font-brush text-ink text-lg leading-snug">
-                        {match.office.title}
-                      </span>
-                      <span className="font-mono-tech text-muted-foreground text-[0.7rem]">
-                        {match.office.rank}
-                      </span>
-                      {match.approx ? (
-                        <span className="font-body text-ochre text-[0.7rem]">约当</span>
-                      ) : null}
-                    </div>
-                  ))
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-
-      <p className="text-muted-foreground text-xs leading-relaxed">
-        秦汉未行九品，「约当 N
-        品」按秩石高下示意排布，仅作对照参考；「古今对应」同为量级类比，非严格等价。品秩以正史职官志通行记载为准，存疑处以「约」标示。
-      </p>
-    </section>
-  );
+  const dynasty = getOfficialsDynasty(pick.dynastyId);
+  const grade = dynasty?.grades[pick.gradeIndex];
+  const post = grade?.posts.find((candidate) => candidate.title === pick.officeTitle);
+  if (!dynasty || !grade || !post) {
+    return null;
+  }
+  return {
+    title: post.title,
+    dynastyName: dynasty.name,
+    rank: post.rank ?? (grade.approx ? `${grade.label} · ${grade.approx}` : grade.label),
+    duty: post.intro,
+    salary: post.salary,
+    note: post.note,
+    modern: post.modern,
+    figures: post.figures,
+  };
 }
 
 /**
- * 品级纵横：官位品级跨朝代对比页。
- * 立体树与族谱取 officials-data 的完整官职名录（含名臣名将），
- * 阶梯 / 职系 / 断面基于 rank-data 的秩石与九品口径；阶梯官职可点开五维详情卡。
+ * 品级纵横：八朝官位品级对比的**单屏沉浸页**。
+ *
+ * 布局参照 /china/timeline：页面根 `h-full overflow-hidden` 铺满 main（definite 高度）
+ * 的可视区域，整页永不滚动；Three.js 画布 `absolute inset-0` 全幅垫底，所有 UI 都是
+ * 画布上方的悬浮面板：
+ * - 顶部条：页题（左）+ 品秩全景入口与「品级资料」开关（右）+ 居中工具条
+ *   （分列 / 层高 / 视角 / 自动旋转 / 重置）；
+ * - 左下筛选面板：朝代选择 + 双朝并置 + 文武图例（可收起）；
+ * - 底部居中：`pointer-events-none` 的 hover 读出 / 聚焦提示；
+ * - 右侧滑入抽屉（`ranks-drawer.tsx`）：树 / 族谱 / 阶梯 / 追踪 / 断面五个 tab，
+ *   即旧版四个滚动 section 的全部数据口径，纵排进 420px 抽屉宽度。
+ * 画布取景随全幅容器（场景 ResizeObserver 自适应）；面板是小块玻璃卡浮在角落，
+ * 与 timeline 的 #cv + 悬浮面板同一模式。勿改回「舞台 + 下方滚动 section」的结构。
  */
 export function RanksPage() {
+  // —— 单一状态源：朝代 / 对比 / 品序断面 / 共享详情 ——
   const [dynastyId, setDynastyId] = useState<RankDynastyId>("qin");
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [compareId, setCompareId] = useState<RankDynastyId>("qing");
-  const [gradeBand, setGradeBand] = useState<RankBand>(1);
   const [selection, setSelection] = useState<OfficeDetail | null>(null);
 
-  // 主朝代切到原对比朝代时，对比列自动顺延到下一位，保证两列不重合。
+  // —— 3D 树舞台状态（场景接口 + 取景参数）——
+  const [span, setSpan] = useState<RankTreeSpan>("band");
+  const [split, setSplit] = useState<RankTreeSplit>("branch");
+  const [focusBand, setFocusBand] = useState(1);
+  const [selected, setSelected] = useState<RankTreePick | null>(null);
+  const [hover, setHover] = useState<RankTreeHover | null>(null);
+  const [preset, setPreset] = useState<RankTreeCameraPreset | null>("three-quarter");
+  const [autoRotate, setAutoRotate] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  // —— 悬浮面板状态 ——
+  const [filterCollapsed, setFilterCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<RanksDrawerTab>("tree");
+
+  const mainDynasty = getOfficialsDynasty(dynastyId) ?? getOfficialsDynasty("qin")!;
   const effectiveCompareId = compareId === dynastyId ? nextDynastyId(dynastyId) : compareId;
+  const compareDynasty = compareEnabled ? getOfficialsDynasty(effectiveCompareId) : undefined;
+  const ladderCompareDynasty = compareEnabled ? getRankDynasty(effectiveCompareId) : undefined;
+
+  const mainLayout = useMemo(
+    () => layoutRankTree(mainDynasty, { span, split }),
+    [mainDynasty, span, split],
+  );
+  const compareLayout = useMemo(
+    () => (compareDynasty ? layoutRankTree(compareDynasty, { span, split }) : null),
+    [compareDynasty, span, split],
+  );
+
+  const mainTier = mainLayout.tiers.find((tier) => tier.band === focusBand);
+  const compareTier = compareLayout?.tiers.find((tier) => tier.band === focusBand);
+  const focusLabel =
+    mainTier?.grade.label ?? compareTier?.grade.label ?? formatBandLabel(focusBand);
+  const mainTierIndex = mainTier?.gradeIndex ?? -1;
+  const compareTierIndex = compareTier?.gradeIndex ?? -1;
+  const compareTierDynastyId = compareDynasty?.id ?? null;
+
+  const focusPicks = useMemo<{ compare: RankTreePick | null; main: RankTreePick | null }>(
+    () => ({
+      compare:
+        compareTierDynastyId !== null && compareTierIndex >= 0
+          ? {
+              dynastyId: compareTierDynastyId,
+              kind: "tier",
+              gradeIndex: compareTierIndex,
+            }
+          : null,
+      main:
+        mainTierIndex >= 0
+          ? { dynastyId: dynastyId, kind: "tier", gradeIndex: mainTierIndex }
+          : null,
+    }),
+    [compareTierDynastyId, compareTierIndex, dynastyId, mainTierIndex],
+  );
+
+  // —— 场景生命周期（自 rank-tree-section 迁移，画布 host 现为全幅容器）——
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const sceneRef = useRef<RankTreeScene | null>(null);
+  const onPickRef = useRef<(pick: RankTreePick | null) => void>(() => {});
+
+  const handlePick = useCallback(
+    (pick: RankTreePick | null) => {
+      if (!pick) {
+        setSelected(null);
+        setSelection(null);
+        return;
+      }
+      if (pick.kind === "office") {
+        setSelected(pick);
+        setSelection(rankTreePickDetail(pick));
+      } else {
+        setSelected(null);
+        setSelection(null);
+      }
+      const layout = pick.dynastyId === dynastyId ? mainLayout : compareLayout;
+      const tier = layout?.tiers.find((candidate) => candidate.gradeIndex === pick.gradeIndex);
+      if (tier) {
+        setFocusBand(tier.band);
+      }
+      // 仿 timeline：点选画布节点即滑出右侧资料面板。
+      setDrawerOpen(true);
+      setDrawerTab("tree");
+    },
+    [compareLayout, dynastyId, mainLayout],
+  );
+
+  useEffect(() => {
+    onPickRef.current = handlePick;
+  }, [handlePick]);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) {
+      return;
+    }
+    const scene = createRankTreeScene(host, readRankTreeColors(host), {
+      onHover: setHover,
+      onPick: (pick) => {
+        onPickRef.current(pick);
+      },
+      onUnavailable: () => {
+        setFailed(true);
+        setDrawerOpen(true);
+        setDrawerTab("genealogy");
+      },
+    });
+    if (!scene) {
+      setFailed(true);
+      setDrawerOpen(true);
+      setDrawerTab("genealogy");
+      return;
+    }
+    sceneRef.current = scene;
+    return () => {
+      scene.dispose();
+      sceneRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) {
+      return;
+    }
+    const entries = [{ dynasty: mainDynasty, layout: mainLayout }];
+    if (compareDynasty && compareLayout) {
+      entries.push({ dynasty: compareDynasty, layout: compareLayout });
+    }
+    scene.setTrees(entries, { span });
+  }, [compareDynasty, compareLayout, mainDynasty, mainLayout, span]);
+
+  useEffect(() => {
+    sceneRef.current?.setFocus(focusPicks.main, focusPicks.compare);
+  }, [focusPicks]);
+
+  useEffect(() => {
+    sceneRef.current?.setSelection(selected);
+  }, [selected]);
+
+  useEffect(() => {
+    sceneRef.current?.setAutoRotate(autoRotate);
+  }, [autoRotate]);
+
+  const chooseMain = (id: RankDynastyId) => {
+    const nextDynasty = getOfficialsDynasty(id);
+    if (!nextDynasty) {
+      return;
+    }
+    const fallback = findComparableGrade(nextDynasty, focusBand);
+    setDynastyId(id);
+    setSelected(null);
+    setSelection(null);
+    if (compareEnabled && compareId === id) {
+      setCompareId(nextDynastyId(id));
+    }
+    if (fallback) {
+      setFocusBand(fallback.band);
+    }
+  };
+
+  const chooseCompare = (id: RankDynastyId) => {
+    setCompareId(id);
+    setSelection(null);
+  };
+
+  const toggleCompare = (enabled: boolean) => {
+    setCompareEnabled(enabled);
+    setSelection(null);
+    if (enabled && compareId === dynastyId) {
+      setCompareId(nextDynastyId(dynastyId));
+    }
+    if (!enabled) {
+      const fallback = findComparableGrade(mainDynasty, focusBand);
+      if (fallback) {
+        setFocusBand(fallback.band);
+      }
+    }
+  };
+
+  const chooseSpan = (next: RankTreeSpan) => {
+    setSpan(next);
+    setPreset("three-quarter");
+  };
+
+  const applyPreset = (next: RankTreeCameraPreset) => {
+    setPreset(next);
+    setAutoRotate(false);
+    sceneRef.current?.applyPreset(next);
+  };
+
+  const resetView = () => {
+    setPreset("three-quarter");
+    setAutoRotate(false);
+    sceneRef.current?.resetView();
+  };
+
+  const selectTreeOffice = (
+    dynasty: OfficialsDynasty,
+    tier: RankTreeTier,
+    office: OfficialPost,
+  ) => {
+    const pick: RankTreePick = {
+      dynastyId: dynasty.id,
+      kind: "office",
+      gradeIndex: tier.gradeIndex,
+      officeTitle: office.title,
+    };
+    setSelected(pick);
+    setSelection(rankTreePickDetail(pick));
+    setFocusBand(tier.band);
+    setHover(null);
+    sceneRef.current?.focusTier(dynasty.id, tier.gradeIndex);
+  };
+
+  const focusTierChip = (tier: RankTreeTier) => {
+    setSelected(null);
+    setSelection(null);
+    setFocusBand(tier.band);
+    sceneRef.current?.focusTier(dynastyId, tier.gradeIndex);
+  };
+
+  const officeCount = countPosts(mainDynasty);
+  const compareOfficeCount = compareDynasty ? countPosts(compareDynasty) : 0;
+
+  const openDrawer = () => {
+    setDrawerOpen(true);
+  };
 
   return (
-    <article className="flex flex-col">
-      <header className="border-ink/10 border-b px-4 py-6 lg:px-6">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-            <h1 className="font-brush text-3xl text-ink sm:text-4xl">品级纵横</h1>
-            <span className="rounded-full border border-ink/15 bg-paper/80 px-3 py-0.5 font-body text-muted-foreground text-xs tracking-widest">
+    <article className="bg-paper relative h-full overflow-hidden bg-[radial-gradient(ellipse_at_50%_38%,hsl(var(--ink)/0.07),transparent_68%)]">
+      {/* 全幅画布宿主：场景 ResizeObserver 自适应容器，取景自动随全幅宽高比。 */}
+      <div className="absolute inset-0 z-0">
+        <div
+          aria-label={`${mainDynasty.name}官品立体树：${mainDynasty.grades.length} 级、${officeCount} 个官职${
+            compareDynasty ? `；与${compareDynasty.name}并置对照` : ""
+          }。拖拽旋转、滚轮缩放、点击节点查看职权。`}
+          className="h-full w-full"
+          ref={hostRef}
+          role="img"
+        />
+        {failed ? (
+          <div className="absolute left-1/2 top-1/2 z-10 w-[min(420px,calc(100%-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-ink/15 bg-paper/95 p-5 text-center shadow-[0_18px_48px_hsl(var(--ink)/0.18)]">
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              当前浏览器未能启用
+              WebGL，立体树无法绘制。右侧「品级资料」抽屉的族谱、阶梯与断面仍可查看全部品级与职权。
+            </p>
+            <button
+              className="mt-3 rounded-full border border-vermillion/35 bg-vermillion/10 px-3 py-1 font-body text-xs text-vermillion transition-colors hover:bg-vermillion/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={() => {
+                setDrawerOpen(true);
+                setDrawerTab("genealogy");
+              }}
+              type="button"
+            >
+              打开「族谱」对照 →
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {/* 顶部条：页题（左）+ 品秩全景入口与「品级资料」开关（右）。工具条已并入
+          左侧「对照 · 视图」面板——舞台中央不再有任何悬浮控件。
+          整条 pointer-events-none，交互子元素各自重新开启。 */}
+      <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex items-start justify-between gap-3 lg:inset-x-5 lg:top-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-baseline gap-x-3">
+            <h1 className="font-brush text-3xl text-ink lg:text-4xl">品级纵横</h1>
+            <span className="hidden rounded-full border border-ink/15 bg-paper/80 px-3 py-0.5 font-body text-muted-foreground text-xs tracking-widest sm:inline">
               职官 · 品阶 · 朝代对照
             </span>
-            <span className="font-body text-vermillion text-xs font-medium tracking-[0.3em]">
-              典章制度 · 品级图谱
-            </span>
           </div>
-          <p className="max-w-3xl font-body text-ink/85 text-sm leading-relaxed">
-            先看立体树：树干自皇权垂下、在顶端分出文武两枝，枝头挂满这一朝的全部官职，两朝按品并置即可同高对读；再看族谱、阶梯、职系与同品断面——品级如何从秩石走向九品十八级，又如何一次次与实权脱钩。
+          <p className="hidden max-w-[260px] text-muted-foreground text-xs leading-relaxed lg:block">
+            一树看尽：品级如何从皇权长出官职
           </p>
+        </div>
+        <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
           <a
-            className="w-fit rounded-full border border-vermillion/35 bg-vermillion/10 px-3 py-1 font-body text-xs text-vermillion transition-colors hover:bg-vermillion/20"
+            className="rounded-full border border-vermillion/35 bg-paper/85 px-3 py-1 font-body text-xs text-vermillion shadow-[0_8px_24px_hsl(var(--ink)/0.10)] backdrop-blur-md transition-colors hover:bg-vermillion/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             href="/china/officials"
           >
-            进入全屏「品秩全景」→
+            品秩全景 →
           </a>
+          <button
+            aria-expanded={drawerOpen}
+            className={cn(
+              "rounded-full border px-3 py-1 font-body text-xs shadow-[0_8px_24px_hsl(var(--ink)/0.10)] backdrop-blur-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              drawerOpen
+                ? "border-vermillion/40 bg-vermillion/15 text-vermillion"
+                : "border-ink/15 bg-paper/85 text-ink hover:border-vermillion/30",
+            )}
+            onClick={openDrawer}
+            type="button"
+          >
+            品级资料
+          </button>
         </div>
-      </header>
-
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-8 sm:px-6">
-        <RankTreeSection />
-        <RankGenealogySection />
-        <LadderSection
-          compareEnabled={compareEnabled}
-          compareId={effectiveCompareId}
-          dynastyId={dynastyId}
-          onCompareChange={(id) => {
-            setCompareId(id);
-          }}
-          onSelectDynasty={(id) => {
-            setDynastyId(id);
-          }}
-          onSelectOffice={(office, level, dynasty) => {
-            setSelection(rankOfficeDetail(dynasty, level, office));
-          }}
-          onToggleCompare={(enabled) => {
-            setCompareEnabled(enabled);
-          }}
-          selection={selection}
-        />
-        <TrackSection />
-        <GradeSection
-          gradeBand={gradeBand}
-          onGradeChange={(band) => {
-            setGradeBand(band);
-          }}
-        />
-
-        <footer className="border-ink/10 border-t pt-4">
-          <p className="font-mono-tech text-muted-foreground/80 text-[0.7rem] tracking-[0.12em]">
-            数据口径 ·
-            品秩以正史职官志为准；「约当N品」为秩石与九品的示意对照；古今对应仅为量级参考。
-          </p>
-        </footer>
       </div>
+
+      {/* 左侧「对照 · 视图」面板：朝代 / 双朝并置 / 图例 + 立体树视图控件
+          （分列 / 层高 / 视角 / 自动旋转 / 重置），全部收进这一个可收起菜单，
+          舞台中央与顶边不再有任何悬浮控件（timeline #filterbar 的对应物）。
+          max-h 把展开高度钳在「不吞没画布中部」的上限，溢出内部滚动；
+          收起后只剩一行，给不需要的用户让出整片画布。 */}
+      <section
+        aria-label="对照视图"
+        className="absolute bottom-3 left-3 z-20 flex max-h-[calc(100%-1.5rem)] w-[min(360px,calc(100%-1.5rem))] flex-col gap-3 overflow-y-auto rounded-2xl border border-ink/15 bg-paper/85 p-4 shadow-[0_18px_48px_hsl(var(--ink)/0.14)] backdrop-blur-xl lg:bottom-5 lg:left-5 lg:w-[360px]"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
+            对照 · 视图
+          </span>
+          <button
+            aria-expanded={!filterCollapsed}
+            className="rounded-full border border-ink/15 bg-card/70 px-2.5 py-0.5 font-body text-[0.7rem] text-muted-foreground transition-colors hover:border-vermillion/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            onClick={() => {
+              setFilterCollapsed((previous) => !previous);
+            }}
+            type="button"
+          >
+            {filterCollapsed ? "展开" : "收起"}
+          </button>
+        </div>
+
+        {!filterCollapsed ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
+              <DynastyChips ariaLabel="朝代选择" currentId={dynastyId} onSelect={chooseMain} />
+              <span className="font-mono-tech text-[0.7rem] text-muted-foreground">
+                {mainDynasty.grades.length} 级 · {officeCount} 官
+                {compareDynasty
+                  ? ` / ${compareDynasty.name} ${compareDynasty.grades.length} 级 · ${compareOfficeCount} 官`
+                  : ""}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <fieldset
+                aria-label="双朝并置"
+                className="flex flex-wrap items-center gap-x-4 gap-y-2"
+              >
+                <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
+                  双朝并置
+                </span>
+                <div className="flex gap-2">
+                  <OptionPill
+                    active={!compareEnabled}
+                    label="单朝"
+                    onSelect={() => {
+                      toggleCompare(false);
+                    }}
+                  />
+                  <OptionPill
+                    active={compareEnabled}
+                    label="朝代对比"
+                    onSelect={() => {
+                      toggleCompare(true);
+                    }}
+                  />
+                </div>
+              </fieldset>
+              {compareEnabled ? (
+                <DynastyChips
+                  ariaLabel="对比朝代选择"
+                  currentId={effectiveCompareId}
+                  disabledId={dynastyId}
+                  onSelect={chooseCompare}
+                />
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-1.5 border-ink/10 border-t pt-2.5">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.7rem] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-vermillion" />
+                  文官
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-blueprint" />
+                  武官
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span aria-hidden="true" className="h-px w-3 bg-ink/40" />
+                  双枝 · 品级台
+                </span>
+              </div>
+              <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.08em]">
+                {span === "band" ? "品序轴 · 超品↓流外" : "层级轴 · 等距"} ·{" "}
+                {split === "branch" ? "文武分列" : "文武合列"}
+              </span>
+            </div>
+
+            {/* 立体树视图控件（原顶置工具条并入此菜单）：分列 / 层高 / 视角。 */}
+            <div className="flex flex-col gap-2.5 border-ink/10 border-t pt-2.5">
+              <fieldset
+                aria-label="分列模式"
+                className="flex flex-wrap items-center gap-x-3 gap-y-2"
+              >
+                <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
+                  分列
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {SPLIT_OPTIONS.map((option) => (
+                    <OptionPill
+                      active={split === option.id}
+                      hint={option.hint}
+                      key={option.id}
+                      label={option.label}
+                      onSelect={() => {
+                        setSplit(option.id);
+                      }}
+                    />
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset
+                aria-label="层高模式"
+                className="flex flex-wrap items-center gap-x-3 gap-y-2"
+              >
+                <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
+                  层高
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {SPAN_OPTIONS.map((option) => (
+                    <OptionPill
+                      active={span === option.id}
+                      hint={option.hint}
+                      key={option.id}
+                      label={option.label}
+                      onSelect={() => {
+                        chooseSpan(option.id);
+                      }}
+                    />
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset
+                aria-label="视角预设"
+                className="flex flex-wrap items-center gap-x-3 gap-y-2"
+              >
+                <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
+                  视角
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {PRESET_OPTIONS.map((option) => (
+                    <OptionPill
+                      active={preset === option.id}
+                      key={option.id}
+                      label={option.label}
+                      onSelect={() => {
+                        applyPreset(option.id);
+                      }}
+                    />
+                  ))}
+                  <OptionPill
+                    active={autoRotate}
+                    label={autoRotate ? "停止旋转" : "自动旋转"}
+                    onSelect={() => {
+                      setAutoRotate((previous) => !previous);
+                      setPreset(null);
+                    }}
+                  />
+                  <OptionPill active={false} label="重置视角" onSelect={resetView} />
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      {/* 底部居中读出：hover 信息 / 聚焦提示。pointer-events-none，不挡画布拖拽。 */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 hidden justify-center lg:bottom-5 lg:flex">
+        {hover ? (
+          <div className="rounded-xl border border-ink/10 bg-paper/85 px-4 py-2.5 text-center shadow-[0_12px_32px_hsl(var(--ink)/0.12)] backdrop-blur-md">
+            <div className="flex flex-wrap items-baseline justify-center gap-x-2">
+              <span className="font-brush text-xl text-ink">{hover.title}</span>
+              <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.06em]">
+                {hover.subtitle}
+              </span>
+            </div>
+            <p className="mt-0.5 line-clamp-2 text-muted-foreground text-xs leading-relaxed">
+              {hover.detail}
+            </p>
+          </div>
+        ) : (
+          <span className="rounded-full border border-ink/10 bg-paper/85 px-4 py-1.5 font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.08em] backdrop-blur-md">
+            聚焦 {focusLabel}
+            {compareDynasty ? ` · ${mainDynasty.name} / ${compareDynasty.name}` : ""} · 拖拽旋转
+            滚轮缩放 点选节点
+          </span>
+        )}
+      </div>
+
+      {/* 右侧资料抽屉：旧版四个滚动 section 的全部数据口径，纵排进 420px 抽屉。 */}
+      <RanksDrawer
+        compareDynasty={compareDynasty}
+        compareTier={compareTier}
+        ladderCompareDynasty={ladderCompareDynasty}
+        compareEnabled={compareEnabled}
+        compareId={effectiveCompareId}
+        dynastyId={dynastyId}
+        focusBand={focusBand}
+        focusLabel={focusLabel}
+        mainDynasty={mainDynasty}
+        mainLayout={mainLayout}
+        mainTier={mainTier}
+        open={drawerOpen}
+        onSelectLadderOffice={(office, level, dynasty) => {
+          setSelection(rankOfficeDetail(dynasty, level, office));
+        }}
+        onSelectTreeOffice={selectTreeOffice}
+        onTabChange={setDrawerTab}
+        onClose={() => {
+          setDrawerOpen(false);
+        }}
+        onCompareChange={chooseCompare}
+        onTierFocus={focusTierChip}
+        onToggleCompare={toggleCompare}
+        selected={selected}
+        selection={selection}
+        tab={drawerTab}
+      />
     </article>
   );
 }
