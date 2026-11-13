@@ -54,6 +54,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         to: "/china/policies",
       },
       {
+        highlights: ["文武双枝官职树", "完整名录与名臣名将", "同品序八朝断面"],
+        label: "品级纵横",
+        to: "/china/ranks",
+      },
+      {
         highlights: ["五大制度专题", "沿革与关键条目", "专题检索"],
         label: "典章制度",
         to: "/china/institutions",

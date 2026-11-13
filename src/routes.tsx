@@ -32,6 +32,11 @@ const TerritoryAtlasPage = lazy(() =>
     default: module.TerritoryAtlasPage,
   })),
 );
+const RanksPage = lazy(() =>
+  import("./pages/ancient/china-ranks").then((module) => ({
+    default: module.RanksPage,
+  })),
+);
 const InstitutionTopicPage = lazy(() =>
   import("./pages/ancient/china-institutions").then((module) => ({
     default: module.InstitutionTopicPage,
@@ -74,6 +79,9 @@ export const routes: RouteObject[] = [
       { path: "china/atlas/territory", element: withSuspense(<TerritoryAtlasPage />) },
       { path: "china/atlas/migration", element: withSuspense(<MigrationAtlasPage />) },
       { path: "china/atlas/frontier", element: withSuspense(<FrontierAtlasPage />) },
+      // 品级纵横：单屏沉浸立体品级树 + 资料抽屉（树 / 族谱 / 阶梯 / 追踪 / 断面）。
+      // 原「品秩全景」页已下线，/china/officials 不再保留。
+      { path: "china/ranks", element: withSuspense(<RanksPage />) },
       // 本节没有总览页：/china/institutions 直接落到第一个条目
       {
         path: "china/institutions",
