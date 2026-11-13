@@ -1,12 +1,21 @@
 import { Asterisk } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, matchPath, Outlet, useLocation } from "react-router-dom";
 import { useAccent } from "../../hooks/use-accent";
+import { hasFreshHomeEntranceMark, markHomeEntranceShown } from "../../lib/home-entrance-storage";
+import { cn } from "../../lib/utils";
 import { ROUTE_LAYOUT_CONFIGS } from "../../route-layout-config";
 import { AccentPicker } from "../accent-picker";
+import { HomeEntranceAnimation } from "../home-entrance-animation";
 import { RouteErrorBoundary } from "../route-error-boundary";
 import { findNavGroupId } from "./nav-groups";
 import { SiteMenu } from "./site-menu";
+
+/** 首页路由通过 Outlet context 下发的入场状态。 */
+export interface HomeOutletContext {
+  /** 画卷入场是否已经结束（播完、7 天内跳过、或已离开首页）。false 时首页正文保持隐藏。 */
+  homeEntered: boolean;
+}
 
 function GithubMark() {
   return (
@@ -36,6 +45,37 @@ export function RootLayout() {
     Boolean(matchPath({ path, end: true }, pathname)),
   );
 
+  const isHomeRoute = location.pathname === "/";
+  // 入场门控放在布局层而不是 HomePage：遮罩随布局首帧渲染，懒加载的首页
+  // 正文永远排在动画之后，header 也要等动画播完才显示。初始值只读一次存储。
+  const [homeEntered, setHomeEntered] = useState(() =>
+    isHomeRoute ? hasFreshHomeEntranceMark() : true,
+  );
+  const prevIsHomeRef = useRef(isHomeRoute);
+
+  // 路由切换时重判：进入首页按 7 天标记决定是否重播；离开首页一律视为已进入，
+  // 中途离开不回头重播（标记在动画开始时已写入）。
+  // useLayoutEffect 保证在浏览器绘制前翻转状态，导航进首页不会闪出一帧 header。
+  // prevIsHomeRef 是必须的：StrictMode 会重跑 effect，若重跑时再读存储，
+  // 刚写入的标记会立刻把进行中的入场动画判定成「已进入」。
+  useLayoutEffect(() => {
+    if (prevIsHomeRef.current === isHomeRoute) return;
+    prevIsHomeRef.current = isHomeRoute;
+    setHomeEntered(isHomeRoute ? hasFreshHomeEntranceMark() : true);
+  }, [isHomeRoute]);
+
+  // 画卷开始播放即记录时间戳（沿袭旧 sessionStorage 的「挂载即记」语义，
+  // 不等动画播完）：刷新、中途离开、新开窗口都算数，7 天内不再重播。
+  useEffect(() => {
+    if (isHomeRoute && !homeEntered) {
+      markHomeEntranceShown();
+    }
+  }, [isHomeRoute, homeEntered]);
+
+  const handleEntranceComplete = useCallback(() => setHomeEntered(true), []);
+
+  const homeEntrancePlaying = isHomeRoute && !homeEntered;
+
   // 切路由时把滚动位置清回顶部。外层 <main> 是所有路由共用的滚动容器，
   // 从一条 HTML 资源跳到另一条（iframe srcDoc）或跳到政策/时间页时，
   // 否则残留的 scroll 会停在旧位置，造成"路由变了但内容没刷新"的错觉。
@@ -53,7 +93,14 @@ export function RootLayout() {
 
   return (
     <div className="paper-backdrop flex h-screen overflow-hidden flex-col font-body text-foreground">
-      <header className="sticky top-0 z-20 shrink-0 border-ink/8 border-b bg-paper/55 shadow-[0_8px_28px_hsl(var(--ink)/0.06)] backdrop-blur-xl backdrop-saturate-150">
+      {/* 入场动画播完之前 header 保持隐藏（visibility:hidden 在真浏览器里同样
+          不可聚焦），先动画后导航，是需求明确的顺序。 */}
+      <header
+        className={cn(
+          "sticky top-0 z-20 shrink-0 border-ink/8 border-b bg-paper/55 shadow-[0_8px_28px_hsl(var(--ink)/0.06)] backdrop-blur-xl backdrop-saturate-150 transition-opacity duration-700",
+          homeEntrancePlaying ? "pointer-events-none invisible opacity-0" : "opacity-100",
+        )}
+      >
         <nav className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 py-4 font-kai sm:flex-row sm:items-center sm:justify-between">
           <Link
             to="/"
@@ -77,7 +124,7 @@ export function RootLayout() {
               兄弟 HTML 资源路由复用同一组件类型时，React 默认只更新 props 而不换 iframe；
               重挂载才能保证 srcDoc 真正刷新。用 pathname 而非 location.key，避免同页的
               search/state 变化也触发重挂载而丢失页面内部状态。 */}
-          <Outlet key={location.pathname} />
+          <Outlet key={location.pathname} context={{ homeEntered } satisfies HomeOutletContext} />
         </RouteErrorBoundary>
 
         {showFooter ? (
@@ -98,7 +145,13 @@ export function RootLayout() {
         ) : null}
       </main>
 
-      {showThemePicker ? <AccentPicker {...accentState} /> : null}
+      {showThemePicker ? (
+        <div className={cn(homeEntrancePlaying && "pointer-events-none invisible opacity-0")}>
+          <AccentPicker {...accentState} />
+        </div>
+      ) : null}
+
+      {homeEntrancePlaying ? <HomeEntranceAnimation onComplete={handleEntranceComplete} /> : null}
     </div>
   );
 }

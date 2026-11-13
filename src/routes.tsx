@@ -32,6 +32,11 @@ const TerritoryAtlasPage = lazy(() =>
     default: module.TerritoryAtlasPage,
   })),
 );
+const InstitutionTopicPage = lazy(() =>
+  import("./pages/ancient/china-institutions").then((module) => ({
+    default: module.InstitutionTopicPage,
+  })),
+);
 const AncientChinaReactPage = lazy(() =>
   import("./pages/ancient/china").then((module) => ({
     default: module.AncientChinaReactPage,
@@ -69,6 +74,31 @@ export const routes: RouteObject[] = [
       { path: "china/atlas/territory", element: withSuspense(<TerritoryAtlasPage />) },
       { path: "china/atlas/migration", element: withSuspense(<MigrationAtlasPage />) },
       { path: "china/atlas/frontier", element: withSuspense(<FrontierAtlasPage />) },
+      // 本节没有总览页：/china/institutions 直接落到第一个条目
+      {
+        path: "china/institutions",
+        element: <Navigate to="/china/institutions/official-system" replace />,
+      },
+      {
+        path: "china/institutions/rites",
+        element: withSuspense(<InstitutionTopicPage topicId="rites" />),
+      },
+      {
+        path: "china/institutions/official-system",
+        element: withSuspense(<InstitutionTopicPage topicId="official-system" />),
+      },
+      {
+        path: "china/institutions/examinations",
+        element: withSuspense(<InstitutionTopicPage topicId="examinations" />),
+      },
+      {
+        path: "china/institutions/legal-code",
+        element: withSuspense(<InstitutionTopicPage topicId="legal-code" />),
+      },
+      {
+        path: "china/institutions/taxation",
+        element: withSuspense(<InstitutionTopicPage topicId="taxation" />),
+      },
       ...htmlResourceRoutes,
       { path: "*", element: withSuspense(<NotFoundPage />) },
     ],

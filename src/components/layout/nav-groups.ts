@@ -32,6 +32,13 @@ export interface NavGroup {
 
 export const NAV_GROUPS: readonly NavGroup[] = [
   {
+    activePaths: [
+      "/china/institutions/official-system",
+      "/china/institutions/taxation",
+      "/china/institutions/legal-code",
+      "/china/institutions/examinations",
+      "/china/institutions/rites",
+    ],
     blurb:
       "时间与制度两条线：先看朝代怎么更替、边界怎么移动，再看每一朝把制度落在哪些机构与人物身上。长城线以下的北方与中原。",
     id: "chronology",
@@ -45,6 +52,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         highlights: ["385 条政策卡片", "按朝代筛选", "机构与人物"],
         label: "朝代政策全览",
         to: "/china/policies",
+      },
+      {
+        highlights: ["五大制度专题", "沿革与关键条目", "专题检索"],
+        label: "典章制度",
+        to: "/china/institutions",
       },
     ],
     label: "编年与制度",

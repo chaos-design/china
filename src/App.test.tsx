@@ -6,7 +6,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
-import { HOME_ENTRANCE_SESSION_KEY } from "./pages/home";
+import { HOME_ENTRANCE_STORAGE_KEY, HOME_ENTRANCE_TTL_MS } from "./lib/home-entrance-storage";
 
 vi.mock("@vercel/analytics/react", () => ({
   Analytics: () => null,
@@ -35,20 +35,23 @@ describe("<App /> routing", () => {
     expect(screen.getByRole("main")).toHaveClass("flex-1", "min-h-0", "overflow-y-auto", "p-0");
   });
 
-  it("stores the home entrance state in sessionStorage for the current window", async () => {
+  it("records the home entrance in localStorage with a 7-day window", async () => {
     renderAt("/");
 
-    // 这里只断言 sessionStorage 的写入。它由 HomePage 的 useEffect 同步完成，是确定的。
-    // 不要在这里断言入场动画遮罩还在 DOM 里：那是 GSAP 时间轴的事件，rAF 推进到
-    // onComplete 后 HomePage 会立刻把它卸载，findBy* 的轮询会跟真实时钟赛跑——
+    // 这里只断言 localStorage 时间戳的写入。它在 RootLayout 的 useEffect 里同步完成，
+    // 是确定的。不要在这里断言入场遮罩何时消失：那是 GSAP 时间轴的事件，rAF 推进到
+    // onComplete 后遮罩才会卸载，findBy* 的轮询会跟真实时钟赛跑——
     // 机器一忙就是间歇性失败。遮罩本身的渲染由 home-entrance-animation.test.tsx 覆盖，
     // 那里的计时是可控的。
     await screen.findByRole("heading", { level: 1, name: /中国古代全览/ });
-    expect(sessionStorage.getItem(HOME_ENTRANCE_SESSION_KEY)).toBe("true");
+    const stored = Number(localStorage.getItem(HOME_ENTRANCE_STORAGE_KEY));
+    expect(Number.isFinite(stored)).toBe(true);
+    expect(stored).toBeGreaterThan(Date.now() - 60_000);
+    expect(sessionStorage.getItem(HOME_ENTRANCE_STORAGE_KEY)).toBeNull();
   });
 
-  it("skips the home entrance animation after it has shown in the same window", async () => {
-    sessionStorage.setItem(HOME_ENTRANCE_SESSION_KEY, "true");
+  it("skips the home entrance animation within 7 days of the last show", async () => {
+    localStorage.setItem(HOME_ENTRANCE_STORAGE_KEY, String(Date.now()));
 
     renderAt("/");
 
@@ -57,6 +60,25 @@ describe("<App /> routing", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("status", { name: "首页入场动画" })).not.toBeInTheDocument();
     expect(document.querySelector(".home-stage")).toHaveClass("opacity-100");
+    // 跳过入场时 header 立即可见，不处于等待揭示的隐藏态
+    expect(document.querySelector("header")).not.toHaveClass("invisible");
+    expect(document.querySelector("header")).toHaveClass("opacity-100");
+  });
+
+  it("replays the home entrance after the 7-day window has passed", async () => {
+    localStorage.setItem(
+      HOME_ENTRANCE_STORAGE_KEY,
+      String(Date.now() - HOME_ENTRANCE_TTL_MS - 60_000),
+    );
+
+    renderAt("/");
+
+    await screen.findByRole("heading", { level: 1, name: /中国古代全览/ });
+    // 重播：遮罩重新出现，正文与 header 都保持在隐藏态等动画结束。
+    // 此时断言遮罩「在 DOM 里」是安全的——卸载要等 2.5s 动画 + 1s hold 之后。
+    expect(screen.getByRole("status", { name: "首页入场动画" })).toBeInTheDocument();
+    expect(document.querySelector(".home-stage")).toHaveClass("opacity-0");
+    expect(document.querySelector("header")).toHaveClass("invisible", "opacity-0");
   });
 
   it("renders the project entry links on the home page", async () => {
@@ -92,17 +114,16 @@ describe("<App /> routing", () => {
     ]) {
       expect(document.querySelector(`a[href="${topicPath}"]`)).toBeNull();
     }
-    expect(screen.getByText("典章制度索引")).toBeInTheDocument();
+    // 典章制度已开放：可进入，页内五类条目全部落地为专题页
+    expect(screen.getByRole("link", { name: /^典章制度/ })).toHaveAttribute(
+      "href",
+      "/china/institutions",
+    );
     expect(screen.queryByText("丝路与海疆线索")).not.toBeInTheDocument();
-    // 筹备中条目降级为紧凑预告行：不再是可点击卡片，也没有「进入」引导
-    const previewEntry = screen.getByText("典章制度索引").closest("article");
-    if (!previewEntry) {
-      throw new Error("Expected preview entry to render as an article");
-    }
-    expect(previewEntry).toHaveAttribute("aria-disabled", "true");
-    expect(previewEntry.className).not.toContain("index-card");
-    expect(within(previewEntry).queryByRole("link")).not.toBeInTheDocument();
-    expect(screen.getAllByText("筹备中")).toHaveLength(1);
+    // 两个原 preview 专题（历史地理图谱、典章制度）都已转正：
+    // 首页不再有「后续专题 · 筹备中」紧凑预告区
+    expect(screen.queryByText("后续专题 · 筹备中")).not.toBeInTheDocument();
+    expect(screen.queryAllByText("筹备中")).toHaveLength(0);
   });
 
   it("merges the about content into the home page", async () => {
@@ -159,11 +180,12 @@ describe("<App /> routing", () => {
       ).toBe(true);
     }
 
-    // 下拉四列同时可见：七个入口一次点齐，visited 计数防空转
+    // 下拉四列同时可见：八个入口一次点齐，visited 计数防空转
     const destinations = [
       ["/china/timeline", /朝代时间长河/],
       ["/china/policies", /朝代政策全览/],
       ["/china/atlas", /历史地理图谱/],
+      ["/china/institutions", /典章制度/],
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],
@@ -379,6 +401,31 @@ describe("<App /> routing", () => {
     );
     expect(screen.queryByTestId("legacy-html-document")).not.toBeInTheDocument();
     expect(document.querySelector(".acp-lightbox-mask")).toBeInstanceOf(HTMLButtonElement);
+  });
+
+  it("redirects /china/institutions to the first topic page", async () => {
+    // 本节没有总览页：索引路径直接落到官制专题
+    renderAt("/china/institutions");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "官制" })).toBeInTheDocument();
+    expect(screen.getByLabelText("编年沿革时间轴")).toBeInTheDocument();
+    const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
+    expect(menu.getByRole("link", { name: /^官制/ })).toHaveAttribute("aria-current", "page");
+    expect(menu.queryByRole("link", { name: /^总览/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it("renders the institutions topic route", async () => {
+    renderAt("/china/institutions/official-system");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "官制" })).toBeInTheDocument();
+    // 编年时间轴 + 左侧目录（当前条目 aria-current）
+    expect(screen.getByLabelText("编年沿革时间轴")).toBeInTheDocument();
+    // 官制现为 8 个沿革节点（先秦世卿世禄 → 清军机处）
+    expect(document.querySelectorAll("[data-era-dot]")).toHaveLength(8);
+    const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
+    expect(menu.getByRole("link", { name: /^官制/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
   it("preserves the complete policy HTML interactions in the React page", async () => {
