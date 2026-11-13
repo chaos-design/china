@@ -35,19 +35,21 @@ describe("rank genealogy panel（资料抽屉 · 族谱 tab）", () => {
     expect(genealogy().queryByText("廷尉")).not.toBeInTheDocument();
   });
 
-  it("opens one grade branch at a time", () => {
+  it("can keep multiple grade branches open at once", () => {
     render(<RanksPage />);
     const section = screen.getByLabelText("品级族谱");
 
     fireEvent.click(levelButton(section, 1));
     expect(levelButton(section, 1)).toHaveAttribute("aria-expanded", "true");
-    expect(levelButton(section, 0)).toHaveAttribute("aria-expanded", "false");
+    // 多级可同时展开：第一级不被收起
+    expect(levelButton(section, 0)).toHaveAttribute("aria-expanded", "true");
     // 秦 中二千石：七文官 + 一武官（卫尉）。
     expect(genealogy().getByText("文官 · 7")).toBeInTheDocument();
 
-    // 再次点击收起
+    // 再次点击收起该级，其余级不受影响
     fireEvent.click(levelButton(section, 1));
     expect(levelButton(section, 1)).toHaveAttribute("aria-expanded", "false");
+    expect(levelButton(section, 0)).toHaveAttribute("aria-expanded", "true");
   });
 
   it("expands the five-facet detail with figures under an office leaf", () => {
@@ -65,10 +67,27 @@ describe("rank genealogy panel（资料抽屉 · 族谱 tab）", () => {
     expect(within(card).getByText("相关名臣 · 名将")).toBeInTheDocument();
     expect(within(card).getByText("王绾")).toBeInTheDocument();
 
-    // 同时只展开一个官职详情
+    // 多个官职详情可同时展开：点太尉后丞相详情仍在
     fireEvent.click(genealogy().getByRole("button", { name: /掌全国武事/ }));
-    expect(genealogy().queryByLabelText("丞相官职详情")).not.toBeInTheDocument();
+    expect(genealogy().getByLabelText("丞相官职详情")).toBeInTheDocument();
     expect(genealogy().getByLabelText("太尉官职详情")).toBeInTheDocument();
+  });
+
+  it("expand-all opens every grade and office, collapse-all closes them", () => {
+    render(<RanksPage />);
+    const section = screen.getByLabelText("品级族谱");
+
+    fireEvent.click(within(section).getByRole("button", { name: "全部展开" }));
+    // 全部品级展开；默认第一级之外也都展开
+    expect(levelButton(section, 1)).toHaveAttribute("aria-expanded", "true");
+    expect(genealogy().getByText("已全展开")).toBeInTheDocument();
+    // 官职详情随「全部展开」一并打开（秦万石 · 丞相）
+    expect(genealogy().getByLabelText("丞相官职详情")).toBeInTheDocument();
+
+    fireEvent.click(within(section).getByRole("button", { name: "收起全部" }));
+    expect(levelButton(section, 0)).toHaveAttribute("aria-expanded", "false");
+    expect(levelButton(section, 1)).toHaveAttribute("aria-expanded", "false");
+    expect(genealogy().queryByLabelText("丞相官职详情")).not.toBeInTheDocument();
   });
 
   it("follows the unified dynasty picker and resets the expansion state", () => {
