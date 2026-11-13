@@ -6,7 +6,7 @@ Guidance for AI coding agents and humans working in this repository. Keep change
 
 This repository is **中国古代全览**, a React 19 + TypeScript single-page app for exploring Chinese ancient history through:
 
-- a water-ink styled home page with a one-per-window scroll entrance animation,
+- a water-ink styled home page with a scroll entrance animation that replays at most once per 7 days (localStorage timestamp),
 - a Three.js-powered 3D chronology at `/china/timeline`,
 - a dynasty policy atlas at `/china/policies`,
 - one unified 疆域与民族图谱 explorer at `/china/atlas` (top mega-menu entry: 历史地理 / 图谱总览) with `/china/atlas/*` as preset-layer entry points (all render the same `AtlasExplorer` with a persistent SVG),
@@ -84,8 +84,10 @@ Visual language:
 State persistence:
 
 - Long-lived user preferences, such as theme/accent choices, belong in `localStorage`.
-- Per-window experience state, such as whether the home scroll entrance has already played, belongs in `sessionStorage`.
+- The home scroll entrance is a **cross-window, 7-day** experience gate: `src/lib/home-entrance-storage.ts` stores a millisecond timestamp in `localStorage` (`home-entrance-scroll-shown`); once shown, the animation is suppressed for 7 days (exact boundary counts as expired).
 - Accent color state is initialized in `RootLayout` so Header, home, 404, and other routes can react consistently.
+
+Home entrance ownership: the gate lives in **`RootLayout`**, not `HomePage`. `RootLayout` decides whether the entrance plays (route is `/` and no fresh 7-day mark), mounts `HomeEntranceAnimation` so the overlay covers the very first paint (the lazy-loaded `HomePage` would otherwise let the header flash before the overlay appears), hides the header and the accent picker (`invisible opacity-0 pointer-events-none`) while it plays, and reveals both on completion. `HomePage` only consumes `homeEntered` from the `Outlet` context (`HomeOutletContext`). The timestamp is written as soon as the entrance starts ("mark at mount" semantics carried over from the old sessionStorage flow), so refreshing or leaving mid-animation never replays it within the window. Two implementation traps worth keeping: the route-change re-evaluation must be guarded by a `prevIsHomeRef` (StrictMode re-runs the layout effect, and re-reading storage there would see the just-written mark and skip the in-flight animation in dev), and it must be a `useLayoutEffect` so navigating to home never paints one frame with the header visible.
 
 ## Routing
 
@@ -104,10 +106,15 @@ Current public routes:
 | `/china/atlas/migration` | 民族迁徙预设图层（真实底图迁徙路线图） |
 | `/china/atlas/frontier` | 边疆治理预设图层（真实底图治所地图） |
 | `/china/ranks` | Rank comparison / 品级纵横（单屏沉浸：全幅立体树舞台 + 悬浮面板 + 五 tab 资料抽屉：立体树 · 族谱 · 阶梯 · 职系 · 断面） |
+| `/china/institutions` | Institutions index / 典章制度索引 (官制、赋役、律令、科举、礼制 reserved entries, all 筹备中) |
 | `/<html-resource-slug>` | Generated from `resources/html/*.html` with kebab-case slugs |
 | `*` | 404 fallback page |
 
 Route-level layout options live in `src/route-layout-config.ts`.
+
+`/china/institutions` is the hub for five topic pages (官制/赋役/律令/科举/礼制). Topic data lives one file per topic in `src/pages/ancient/china-institutions/topics/` (`InstitutionTopic`: intro + chronological `eras` + `keyTerms`), registered in `topics/index.ts` (`INSTITUTION_TOPICS`); `topic-page.tsx` is the shared renderer for all five — one layout, five datasets, so new entries are data + a registry line + a route in `routes.tsx` (explicit paths, `topicId` string prop, no data imports in the routing table — the registry stays inside the lazy chunk). There is **no overview page**: `/china/institutions` redirects to the first registered topic (`official-system`), and the shell menu lists exactly the registered topics — an unimplemented entry simply has no menu item or route. `topics.test.ts` guards data invariants (kebab-case unique slugs, era counts, point/term shapes) and automatically covers newly registered topics. Home card is `status: "available"` with a path; `page-resources.test.ts` enforces that all `preview` home entries have no path, so an enterable page must be `available`.
+
+Layout: every institutions route (topics only, no index) renders inside `institution-shell.tsx` — a pinned page header, a full-height **left sidebar menu** (总览 + registered topics, `aria-current="page"` marks the active entry), and the content pane on the right that scrolls internally on `lg` (`lg:h-full` resolves because `<main>` is a definite-height flex item; mobile degrades to content-first document flow). The era sequence renders as an **annal-style card timeline**: a `border-l` axis, each era a rounded card (`data-era-dot` node pinned on the axis with a short vermillion connector), plus a 「始 — 末 · N 个节点」 span readout. Topic pages are deliberately self-contained — no cross-topic related-entries panel at the bottom. jsdom resolves no layout, so shell/timeline visual checks must happen in a real browser. Because the shell menu duplicates topic names next to cards/badges, test queries must be scoped (`within` the nav / `[data-testid="topic-card-grid"]` / related-entries aside, anchored `^name` regexes). The chronology nav group lists the five topic routes in `activePaths` so the mega menu keeps the group highlighted on topic pages.
 
 The migration atlas page (`src/pages/ancient/china-atlas/migration-*.ts(x)`) renders its routes on the real-border basemap imported with `?raw` from `resources/html-data/liberation-war.json` — the same shared basemap the 丝绸之路 and 解放战争 pages use. Importing (not copying) keeps one source of truth; Vite dedupes the raw payload into the existing liberation-war chunk. The Lambert projection formula in `migration-projection.ts` is verified against the basemap's own city anchors (`CITIES.ll` → `x/y`) in `migration-projection.test.ts`; if the basemap projection ever changes, that test fails loudly.
 
@@ -217,7 +224,7 @@ Decisions worth keeping:
 - Wobble uses a seeded `mulberry32` evaluated at **module scope**. If it ran during render, the outline would differ between renders (and shift under StrictMode's double render).
 - Region marks are plain `{ className, d }` strokes rather than JSX, so the geometry module stays render-free and directly testable. `map-stipple` exists as a separate class because a stipple dot's diameter is half its stroke width; at `map-mark`'s 1.9px the dots vanish at rail width.
 - jsdom does not validate CSS. The alpha-channel bug above and the `mask-image` fade are invisible to the test suite — both were found by screenshotting a real browser. Visual changes to this menu need a browser check, not just `pnpm test`.
-- Do not assert that the home entrance overlay is still mounted from a test that renders `/`. GSAP's `rAF` ticker unmounts it once the timeline reaches `onComplete` (~2.5s + a 1s hold), so `findByRole` races the real clock and fails intermittently on a loaded machine. Assert the sessionStorage write instead; `home-entrance-animation.test.tsx` covers the overlay itself with controllable timing.
+- Do not assert that the home entrance overlay is still mounted from a test that renders `/`. GSAP's `rAF` ticker unmounts it once the timeline reaches `onComplete` (~2.5s + a 1s hold), so `findByRole` races the real clock and fails intermittently on a loaded machine. Assert the localStorage timestamp write instead (`HOME_ENTRANCE_STORAGE_KEY` in `src/lib/home-entrance-storage.ts`); `home-entrance-animation.test.tsx` covers the overlay itself with controllable timing, and `root-layout.test.tsx` mocks it with a completion button to test the gate deterministically.
 - Island rings are sized against the island's actual extent in the viewBox. Taiwan is only ~30 units tall, so ring gaps that look reasonable on Hainan will swallow Taiwan entirely.
 
 ### Block vocabulary in `resources/html/taiwan.html`
@@ -267,6 +274,7 @@ Two content conventions are worth knowing before editing:
 | `src/pages/ancient/china-policies/` | Policy atlas page, data, parser, tests |
 | `src/pages/ancient/china-ranks/` | 品级纵横：单屏沉浸对比页（全幅文武双枝立体树 + 左侧「对照 · 视图」菜单 + 五 tab 资料抽屉：族谱 / 阶梯 / 职系追踪 / 同品断面） |
 | `src/pages/ancient/china-officials/` | 职官名录数据源：`officials-data.ts`（八朝细粒度官名 + 文武分组 + 名臣名将，`MERGED_RANK_NOTES` 并入 rank-data 口径，全站唯一）；原「品秩全景」页模块已删，并入 `/china/ranks` |
+| `src/pages/ancient/china-institutions/` | Institutions index page (五类预留条目的索引页) |
 | `src/pages/upcoming/` | Preview resources for planned topics |
 | `src/styles/globals.css` | Tailwind layers, design tokens, global CSS |
 | `resources/html/` | Static HTML resources that become generated routes |

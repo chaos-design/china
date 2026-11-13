@@ -1,8 +1,20 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { HOME_ENTRANCE_STORAGE_KEY } from "../../lib/home-entrance-storage";
 import { RootLayout } from "./root-layout";
+
+// 入场遮罩的真实渲染（GSAP 时间轴、淡出、portal）由 home-entrance-animation.test.tsx
+// 在可控计时下覆盖。布局层测试只关心门控逻辑：遮罩何时挂载、header 何时揭示、
+// 7 天标记何时写入——所以这里换成带完成按钮的替身，让完成流程可以确定性触发。
+vi.mock("../home-entrance-animation", () => ({
+  HomeEntranceAnimation: ({ onComplete }: { onComplete?: () => void }) => (
+    <button onClick={onComplete} type="button">
+      完成画卷动画
+    </button>
+  ),
+}));
 
 function renderLayout(path: string) {
   return render(
@@ -22,6 +34,7 @@ function openMenu(path = "/") {
 
 afterEach(() => {
   vi.useRealTimers();
+  localStorage.clear();
 });
 
 describe("<RootLayout /> menu trigger", () => {
@@ -129,6 +142,7 @@ describe("<SiteMenu /> columns and content", () => {
       ["/china/timeline", /朝代时间长河/],
       ["/china/policies", /朝代政策全览/],
       ["/china/atlas", /历史地理图谱/],
+      ["/china/institutions", /典章制度/],
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],
@@ -315,5 +329,81 @@ describe("<SiteMenu /> hand-drawn map", () => {
     const strip = panel.querySelector(".mega-map");
     expect(strip).not.toBeNull();
     expect(strip?.className).toContain("pointer-events-none");
+  });
+});
+
+describe("<RootLayout /> home entrance gate", () => {
+  it("mounts the overlay and hides the header on a first visit", () => {
+    renderLayout("/");
+
+    // 遮罩由布局层随首帧渲染：懒加载的首页正文永远排在动画之后
+    expect(screen.getByRole("button", { name: "完成画卷动画" })).toBeInTheDocument();
+    const header = document.querySelector("header");
+    expect(header).toHaveClass("invisible", "opacity-0", "pointer-events-none");
+  });
+
+  it("shows the header immediately when the entrance was shown within 7 days", () => {
+    localStorage.setItem(HOME_ENTRANCE_STORAGE_KEY, String(Date.now()));
+    renderLayout("/");
+
+    expect(screen.queryByRole("button", { name: "完成画卷动画" })).not.toBeInTheDocument();
+    const header = document.querySelector("header");
+    expect(header).not.toHaveClass("invisible");
+    expect(header).toHaveClass("opacity-100");
+  });
+
+  it("does not mount the overlay or hide the header on content routes", () => {
+    renderLayout("/china/policies");
+
+    expect(screen.queryByRole("button", { name: "完成画卷动画" })).not.toBeInTheDocument();
+    expect(document.querySelector("header")).not.toHaveClass("invisible");
+  });
+
+  it("reveals the header and unmounts the overlay once the entrance completes", () => {
+    renderLayout("/");
+
+    const header = document.querySelector("header");
+    expect(header).toHaveClass("invisible");
+
+    fireEvent.click(screen.getByRole("button", { name: "完成画卷动画" }));
+
+    expect(screen.queryByRole("button", { name: "完成画卷动画" })).not.toBeInTheDocument();
+    expect(header).not.toHaveClass("invisible");
+    expect(header).toHaveClass("opacity-100");
+  });
+
+  it("does not replay the entrance when returning home after leaving mid-animation", () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route element={<RootLayout />}>
+            <Route
+              index
+              element={
+                <>
+                  <Link to="/china/timeline">去时间页</Link>
+                  <div>首页正文</div>
+                </>
+              }
+            />
+            <Route path="/china/timeline" element={<div>时间页正文</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // 动画进行中离开首页：header 揭示、遮罩卸载
+    fireEvent.click(screen.getByText("去时间页"));
+    expect(screen.getByText("时间页正文")).toBeInTheDocument();
+    expect(document.querySelector("header")).not.toHaveClass("invisible");
+    expect(screen.queryByRole("button", { name: "完成画卷动画" })).not.toBeInTheDocument();
+
+    // 返回首页不再重播——开始播放时已写入 7 天标记
+    fireEvent.click(
+      within(screen.getByRole("navigation")).getByRole("link", { name: /中国古代全览/ }),
+    );
+    expect(screen.getByText("首页正文")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "完成画卷动画" })).not.toBeInTheDocument();
+    expect(document.querySelector("header")).not.toHaveClass("invisible");
   });
 });

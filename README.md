@@ -14,13 +14,14 @@
 
 | 页面 | 预览地址 | 内容 | 截图 |
 | --- | --- | --- | --- |
-| 首页 | https://china.chaosmic.cn/ | 水墨风首页、画卷入场动画与全局换色入口，卡片组织全部核心入口。画卷动画每个浏览器窗口只展示一次，状态存储在 `sessionStorage`；主题色偏好存储在 `localStorage`。 | ![中国古代全览首页](./screenshots/home.webp) |
+| 首页 | https://china.chaosmic.cn/ | 水墨风首页、画卷入场动画与全局换色入口，卡片组织全部核心入口。画卷动画播过一次后 7 天内不再展示，时间戳存储在 `localStorage`；主题色偏好同样存储在 `localStorage`。 | ![中国古代全览首页](./screenshots/home.webp) |
 | 时间长河 | https://china.chaosmic.cn/china/timeline | 基于 Three.js 的 3D 朝代与少数民族关系漫游，包含主时间轴、战争连线、民族副线、吞并箭头、朝代筛选与时间范围筛选。`/china` 会重定向到此页面。 | ![3D 时间长河](./screenshots/china-timeline.webp) |
 | 政策全览 | https://china.chaosmic.cn/china/policies | 按朝代整理核心政策、制度机构、历史人物、疆域治理与文化科技内容。 | ![朝代政策全览](./screenshots/china-policies.webp) |
 | 全部图谱 | https://china.chaosmic.cn/china/atlas | 疆域变迁、民族迁徙、边疆治理三类材料整合到同一张现今疆域省界底图上：左侧一张铺平的可折叠菜单按专题分节、按朝代分组，选中条目朱色高亮并局部放大；切换朝代叠加该朝疆域示意与都城、大城市标记；近距离标注用引导线错开，悬停展开条目详情与史料出处。 | - |
 | 疆域变迁 | https://china.chaosmic.cn/china/atlas/territory | 总览页的疆域预设图层：可点击时间轴（前111—1330）切换六幅疆域快照，都城与代表性控制节点锚定在真实省界底图上，面积估算写明分歧口径。 | - |
 | 民族迁徙 | https://china.chaosmic.cn/china/atlas/migration | 总览页的迁徙预设图层：八条迁徙路线（汉唐宋元）以经纬度途经点绘制在真实底图上，流动光点与画线动画模拟去向，可整屏全览。 | - |
 | 边疆治理 | https://china.chaosmic.cn/china/atlas/frontier | 总览页的边疆预设图层：八项边疆制度（西域都护府、羁縻州县、榷场、行省、宣政院等）的治所方印地图，逐项标注辖区与资料出处。 | - |
+| 典章制度 | https://china.chaosmic.cn/china/institutions | 官制、赋役、律令、科举与礼制五大专题：左侧条目目录 + 右侧内容的应用式版式，沿革以编年体时间轴呈现，附关键条目表。 | - |
 | HTML 专题资源 | https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片、阅读指南等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
 | 台湾专题 | https://china.chaosmic.cn/taiwan | 五卷分页：地形剖面与经纬度投影地图、岛屿编年、风土人情，以及 1895—1945 年日治与 1947 年之后的近代，逐节标注资料出处。内容存于 `resources/html-data/taiwan.json`，渲染逻辑在 `resources/html/taiwan.html`。 | - |
 | 解放战争交互图 | https://china.chaosmic.cn/liberation-war | 1946—1951 战局沙盘：真实省界地形上的攻防连线、包围圈与起义/和平解放部署，可拖动时间轴逐阶段推演。 | - |
@@ -110,6 +111,7 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 | `/china/atlas/territory` | 总览页的疆域预设图层：时间轴 + 疆域快照节点（真实省界底图） |
 | `/china/atlas/migration` | 总览页的迁徙预设图层：迁徙路线动画（真实省界底图） |
 | `/china/atlas/frontier` | 总览页的边疆预设图层：边疆制度治所地图（真实省界底图） |
+| `/china/institutions` | 典章制度（官制、赋役、律令、科举与礼制五类专题页，直达官制） |
 | `/<html-resource-slug>` | 从 `resources/html/*.html` 自动生成，文件名会按 kebab-case 转为路由 |
 | `*` | 404 兜底页面 |
 

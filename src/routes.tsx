@@ -37,6 +37,11 @@ const RanksPage = lazy(() =>
     default: module.RanksPage,
   })),
 );
+const InstitutionTopicPage = lazy(() =>
+  import("./pages/ancient/china-institutions").then((module) => ({
+    default: module.InstitutionTopicPage,
+  })),
+);
 const AncientChinaReactPage = lazy(() =>
   import("./pages/ancient/china").then((module) => ({
     default: module.AncientChinaReactPage,
@@ -77,6 +82,31 @@ export const routes: RouteObject[] = [
       // 品级纵横：单屏沉浸立体品级树 + 资料抽屉（树 / 族谱 / 阶梯 / 追踪 / 断面）。
       // 原「品秩全景」页已下线，/china/officials 不再保留。
       { path: "china/ranks", element: withSuspense(<RanksPage />) },
+      // 本节没有总览页：/china/institutions 直接落到第一个条目
+      {
+        path: "china/institutions",
+        element: <Navigate to="/china/institutions/official-system" replace />,
+      },
+      {
+        path: "china/institutions/rites",
+        element: withSuspense(<InstitutionTopicPage topicId="rites" />),
+      },
+      {
+        path: "china/institutions/official-system",
+        element: withSuspense(<InstitutionTopicPage topicId="official-system" />),
+      },
+      {
+        path: "china/institutions/examinations",
+        element: withSuspense(<InstitutionTopicPage topicId="examinations" />),
+      },
+      {
+        path: "china/institutions/legal-code",
+        element: withSuspense(<InstitutionTopicPage topicId="legal-code" />),
+      },
+      {
+        path: "china/institutions/taxation",
+        element: withSuspense(<InstitutionTopicPage topicId="taxation" />),
+      },
       ...htmlResourceRoutes,
       { path: "*", element: withSuspense(<NotFoundPage />) },
     ],

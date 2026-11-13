@@ -3,16 +3,17 @@ import type { PageResourceConfig } from "../page-resources";
 const institutionsResource = {
   homeEntries: [
     {
+      path: "/china/institutions",
       icon: "book-open",
-      status: "preview",
-      title: "典章制度索引",
-      description: "预留官制、赋役、律令、科举与礼制条目，适合做专题检索与延伸阅读。",
+      status: "available",
+      title: "典章制度",
+      description: "官制、赋役、律令、科举与礼制五大专题：编年时间轴呈现制度沿革，附关键条目表。",
     },
   ],
   aboutItems: [
     {
       title: "制度与日常",
-      text: "后续可继续延展赋税、官制、律令、教育与礼制，观察制度如何进入社会生活。",
+      text: "官制、赋役、律令、科举与礼制五大专题以编年时间轴展开，观察制度如何进入社会生活。",
     },
   ],
   readingGuides: [
