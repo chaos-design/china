@@ -119,8 +119,8 @@ describe("<App /> routing", () => {
       "href",
       "/china/institutions",
     );
-    // 清代官制图谱：两图重绘的独立入口
-    expect(screen.getByRole("link", { name: /清代官制图谱/ })).toHaveAttribute(
+    // 历代官制图谱：按朝代切换的独立入口
+    expect(screen.getByRole("link", { name: /历代官制图谱/ })).toHaveAttribute(
       "href",
       "/china/qing-officials",
     );
@@ -251,14 +251,19 @@ describe("<App /> routing", () => {
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
-  it("renders the Qing officials atlas at /china/qing-officials", async () => {
+  it("renders the officials atlas at /china/qing-officials", async () => {
     renderAt("/china/qing-officials");
 
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "清代官制图谱" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "官制图谱" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "官职制度" })).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it("loads a dynasty from the URL query parameter", async () => {
+    renderAt("/china/qing-officials?dynasty=han");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "官制图谱" })).toBeInTheDocument();
+    expect(screen.getByText(/秩石十六等/)).toBeInTheDocument();
   });
 
   it("renders the not found page for unknown routes", async () => {

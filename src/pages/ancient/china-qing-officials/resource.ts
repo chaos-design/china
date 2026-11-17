@@ -6,9 +6,9 @@ const chinaQingOfficialsResource = {
       path: "/china/qing-officials",
       icon: "crown",
       status: "available",
-      title: "清代官制图谱",
+      title: "历代官制图谱",
       description:
-        "两张图谱重绘清代官制：从皇帝到府州县的官职层级，以及九品十八级对应的顶戴、朝服、俸禄与文武补子。",
+        "秦汉至明清八朝官制对照：每朝的官署层级、品秩阶梯与章服礼制，清代部分按《清朝官职制度》《九品十八级》两图重绘。",
     },
   ],
 } satisfies PageResourceConfig;

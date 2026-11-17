@@ -59,8 +59,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         to: "/china/ranks",
       },
       {
-        highlights: ["皇帝到府州县层级", "九品十八级顶戴朝服", "文武补子与礼序"],
-        label: "清代官制图谱",
+        highlights: ["八朝官制按朝代切换", "官署层级与品秩阶梯", "章服补子与朝会礼序"],
+        label: "历代官制图谱",
         to: "/china/qing-officials",
       },
       {
