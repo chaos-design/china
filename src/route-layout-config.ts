@@ -16,6 +16,8 @@ export const ROUTE_LAYOUT_CONFIGS: RouteLayoutConfig[] = [
   { path: "/china/atlas/frontier" },
   // 品级纵横：官位品级八朝对比，默认布局（无页脚、无调色器）。
   { path: "/china/ranks" },
+  // 清代官制图谱：两图重绘的信息图长页，默认布局（无页脚、无调色器）。
+  { path: "/china/qing-officials" },
   { path: "/china/institutions" },
   { path: "/china/institutions/:topicId" },
 ];

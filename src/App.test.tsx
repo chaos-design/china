@@ -119,6 +119,11 @@ describe("<App /> routing", () => {
       "href",
       "/china/institutions",
     );
+    // 清代官制图谱：两图重绘的独立入口
+    expect(screen.getByRole("link", { name: /清代官制图谱/ })).toHaveAttribute(
+      "href",
+      "/china/qing-officials",
+    );
     expect(screen.queryByText("丝路与海疆线索")).not.toBeInTheDocument();
     // 两个原 preview 专题（历史地理图谱、典章制度）都已转正：
     // 首页不再有「后续专题 · 筹备中」紧凑预告区
@@ -243,6 +248,16 @@ describe("<App /> routing", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: label })).toBeInTheDocument();
     expect(screen.getByText(badge)).toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it("renders the Qing officials atlas at /china/qing-officials", async () => {
+    renderAt("/china/qing-officials");
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "清代官制图谱" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "官职制度" })).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 

@@ -37,6 +37,11 @@ const RanksPage = lazy(() =>
     default: module.RanksPage,
   })),
 );
+const QingOfficialsPage = lazy(() =>
+  import("./pages/ancient/china-qing-officials").then((module) => ({
+    default: module.QingOfficialsPage,
+  })),
+);
 const InstitutionTopicPage = lazy(() =>
   import("./pages/ancient/china-institutions").then((module) => ({
     default: module.InstitutionTopicPage,
@@ -82,6 +87,8 @@ export const routes: RouteObject[] = [
       // 品级纵横：单屏沉浸立体品级树 + 资料抽屉（树 / 族谱 / 阶梯 / 追踪 / 断面）。
       // 原「品秩全景」页已下线，/china/officials 不再保留。
       { path: "china/ranks", element: withSuspense(<RanksPage />) },
+      // 清代官制图谱：按《清朝官职制度》《九品十八级》两图重绘的独立信息图页。
+      { path: "china/qing-officials", element: withSuspense(<QingOfficialsPage />) },
       // 本节没有总览页：/china/institutions 直接落到第一个条目
       {
         path: "china/institutions",

@@ -106,6 +106,7 @@ Current public routes:
 | `/china/atlas/migration` | 民族迁徙预设图层（真实底图迁徙路线图） |
 | `/china/atlas/frontier` | 边疆治理预设图层（真实底图治所地图） |
 | `/china/ranks` | Rank comparison / 品级纵横（单屏沉浸：全幅立体树舞台 + 悬浮面板 + 五 tab 资料抽屉：立体树 · 族谱 · 阶梯 · 职系 · 断面） |
+| `/china/qing-officials` | 清代官制图谱：按《清朝官职制度》《九品十八级》两图重绘的信息图长页（官职制度层级树 + 九品十八级顶戴/朝服/俸禄/补子/礼序） |
 | `/china/institutions` | Institutions index / 典章制度索引 (官制、赋役、律令、科举、礼制 reserved entries, all 筹备中) |
 | `/<html-resource-slug>` | Generated from `resources/html/*.html` with kebab-case slugs |
 | `*` | 404 fallback page |
@@ -275,6 +276,7 @@ Two content conventions are worth knowing before editing:
 | `src/pages/ancient/china-policies/` | Policy atlas page, data, parser, tests |
 | `src/pages/ancient/china-ranks/` | 品级纵横：单屏沉浸对比页。`ranks-page.tsx` 纯组合层；`use-ranks-stage.ts` 单一状态源（朝代/对照/聚焦/选中/面板 + 派生 + 命令）；`use-rank-tree-scene.ts` 场景生命周期 / 加载与异常态 / retry；视图拆为 `ranks-stage-header` / `ranks-view-menu` / `ranks-hover-readout` / `ranks-scene-status` / `ranks-drawer`（抽屉 tab 正文再拆 `ranks-tree-panel` / `ranks-track-panel` / `ranks-grade-panel`）。全幅文武双枝立体树 + 左侧「对照 · 视图」菜单 + 五 tab 资料抽屉：族谱 / 阶梯 / 职系追踪 / 同品断面 |
 | `src/pages/ancient/china-officials/` | 职官名录数据源：`officials-data.ts`（八朝细粒度官名 + 文武分组 + 名臣名将，`MERGED_RANK_NOTES` 并入 rank-data 口径，全站唯一）；原「品秩全景」页模块已删，并入 `/china/ranks` |
+| `src/pages/ancient/china-qing-officials/` | 清代官制图谱：`qing-officials-data.ts` 存两图的静态数据（六大官署分区 + 荣衔 + 九品十八级 + 文武补子 + 礼序，带 `qing-officials-data.test.ts` 守护结构），页面拆成 `qing-office-tree` / `qing-rank-ladder` / `qing-regalia` 三块，由 `qing-officials-page.tsx` 以两 tab 组合。默认布局长页（非沉浸舞台），与 ranks 的八朝对照数据互不混用 |
 | `src/pages/ancient/china-institutions/` | Institutions index page (五类预留条目的索引页) |
 | `src/pages/upcoming/` | Preview resources for planned topics |
 | `src/styles/globals.css` | Tailwind layers, design tokens, global CSS |
