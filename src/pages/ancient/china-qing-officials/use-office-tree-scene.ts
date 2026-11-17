@@ -32,6 +32,8 @@ export interface OfficeTreeSceneController {
   retry: () => void;
   applyPreset: (preset: OfficeTreeCameraPreset) => void;
   resetView: () => void;
+  /** 从属筛选高亮（null 恢复全树）。 */
+  setFilter: (ids: readonly string[] | null) => void;
 }
 
 export function useOfficeTreeScene(
@@ -110,8 +112,12 @@ export function useOfficeTreeScene(
     sceneRef.current?.resetView();
   }, []);
 
+  const setFilter = useCallback((ids: readonly string[] | null) => {
+    sceneRef.current?.setFilter(ids);
+  }, []);
+
   return useMemo(
-    () => ({ hostRef, ready, failed, retry, applyPreset, resetView }),
-    [ready, failed, retry, applyPreset, resetView],
+    () => ({ hostRef, ready, failed, retry, applyPreset, resetView, setFilter }),
+    [ready, failed, retry, applyPreset, resetView, setFilter],
   );
 }

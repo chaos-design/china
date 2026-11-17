@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => {
     dispose: vi.fn(),
     resetView: vi.fn(),
     setAtlas: vi.fn(),
+    setFilter: vi.fn(),
   };
   return {
     // 第三个实参是页面传入的回调（onHover / onPick / onUnavailable）。
@@ -146,20 +147,77 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(screen.getByRole("img", { name: /秦官制立体树/ })).toBeInTheDocument();
   });
 
-  it("shows a node detail card on an office pick and clears it", () => {
+  it("opens the right-side detail drawer on an office pick and closes it", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();
 
     act(() => {
       sceneHandlers().onPick({ id: "censorate", kind: "office", title: "都察院" });
     });
-    const card = screen.getByLabelText("清节点详情");
-    expect(within(card).getByText("都察院")).toBeInTheDocument();
-    expect(within(card).getByText("左都御史 · 正一品")).toBeInTheDocument();
-    expect(within(card).getByText("属官衙署")).toBeInTheDocument();
+    const drawer = screen.getByLabelText("官制详情");
+    expect(within(drawer).getByText("都察院")).toBeInTheDocument();
+    expect(within(drawer).getByText("左都御史 · 正一品")).toBeInTheDocument();
+    expect(within(drawer).getByText("属官衙署")).toBeInTheDocument();
+    expect(within(drawer).getByText(/皇帝 \/ .*都察院/)).toBeInTheDocument();
 
-    fireEvent.click(within(card).getByRole("button", { name: "取消选择" }));
-    expect(screen.queryByLabelText("清节点详情")).toBeNull();
+    fireEvent.click(within(drawer).getByRole("button", { name: "关闭详情" }));
+    expect(drawer).toHaveAttribute("aria-hidden", "true");
+    expect(drawer).toHaveAttribute("inert");
+  });
+
+  it("floats a relation filter inside the stage, focuses a branch and details it on the right", () => {
+    mocks.create.mockReturnValue(mocks.scene);
+    renderAt();
+
+    const filter = screen.getByLabelText("从属关系筛选");
+    const branch = within(filter).getByRole("button", { name: /中枢部/ });
+    expect(branch).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(branch);
+    expect(branch).toHaveAttribute("aria-pressed", "true");
+    // 场景收到该分支子树的 id 集合，全景恢复为 null。
+    const calls = mocks.scene.setFilter.mock.calls;
+    const ids = calls[calls.length - 1]?.[0] as string[] | null;
+    expect(ids).toContain("central");
+    expect(ids?.length).toBeGreaterThan(1);
+
+    const drawer = screen.getByLabelText("官制详情");
+    expect(within(drawer).getByRole("heading", { name: "中枢部" })).toBeInTheDocument();
+    expect(within(drawer).getByText("官署分区")).toBeInTheDocument();
+    expect(within(drawer).getByText(/个节点/)).toBeInTheDocument();
+
+    fireEvent.click(within(filter).getByRole("button", { name: "清除" }));
+    expect(
+      mocks.scene.setFilter.mock.calls[mocks.scene.setFilter.mock.calls.length - 1]?.[0],
+    ).toBeNull();
+    expect(drawer).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("shows an overview in the drawer when the full-tree filter is picked", () => {
+    mocks.create.mockReturnValue(mocks.scene);
+    renderAt();
+
+    const filter = screen.getByLabelText("从属关系筛选");
+    fireEvent.click(within(filter).getByRole("button", { name: "全景" }));
+
+    const drawer = screen.getByLabelText("官制详情");
+    expect(within(drawer).getByRole("heading", { name: "全景" })).toBeInTheDocument();
+    expect(within(drawer).getByText(/完整从属树/)).toBeInTheDocument();
+    expect(
+      mocks.scene.setFilter.mock.calls[mocks.scene.setFilter.mock.calls.length - 1]?.[0],
+    ).toBeNull();
+  });
+
+  it("lets the floating filter collapse without unmounting the scene", () => {
+    mocks.create.mockReturnValue(mocks.scene);
+    renderAt();
+
+    const filter = screen.getByLabelText("从属关系筛选");
+    fireEvent.click(within(filter).getByRole("button", { name: "收起从属筛选" }));
+    expect(within(filter).queryByRole("button", { name: /中枢部/ })).toBeNull();
+    fireEvent.click(within(filter).getByRole("button", { name: "展开从属筛选" }));
+    expect(within(filter).getByRole("button", { name: /中枢部/ })).toBeInTheDocument();
+    expect(mocks.scene.setAtlas).toHaveBeenCalledTimes(1);
   });
 
   it("offers a retry entry and keeps the 2D mirror when the scene fails", () => {

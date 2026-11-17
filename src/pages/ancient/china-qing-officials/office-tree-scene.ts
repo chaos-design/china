@@ -46,6 +46,8 @@ export interface OfficeTreeScene {
   dispose: () => void;
   resetView: () => void;
   setAtlas: (atlas: DynastyAtlas, layout: OfficeTreeLayout) => void;
+  /** 按节点 id 高亮子树；null 表示清除筛选、恢复整树。 */
+  setFilter: (ids: readonly string[] | null) => void;
 }
 
 const FONT_STACK =
@@ -254,6 +256,12 @@ export function createOfficeTreeScene(
   let colorFrame = 0;
   let hover: OfficeTreePick | null = null;
   let layoutNodes: readonly OfficeTreeNode[] | null = null;
+  let highlighted: ReadonlySet<string> | null = null;
+  let nodeMeshes: THREE.Mesh[] = [];
+  let nodeLabels: THREE.Sprite[] = [];
+  let edgeLines: THREE.LineSegments | null = null;
+  let edgeBaseColors: number[] = [];
+  let edgeEnds: { from: string; to: string }[] = [];
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 500);
@@ -350,6 +358,11 @@ export function createOfficeTreeScene(
       disposeObject(content);
     }
     pickMeshes = [];
+    nodeMeshes = [];
+    nodeLabels = [];
+    edgeLines = null;
+    edgeBaseColors = [];
+    edgeEnds = [];
     atlasName = atlas.name;
 
     content = new THREE.Group();
@@ -372,6 +385,7 @@ export function createOfficeTreeScene(
       const color = edge.kind === "branch" ? branchColor : officeColor;
       positions.push(from.x, from.y, from.z, to.x, to.y, to.z);
       edgeColors.push(color.r, color.g, color.b, color.r, color.g, color.b);
+      edgeEnds.push({ from: edge.from, to: edge.to });
     }
 
     const edgeGeometry = new THREE.BufferGeometry();
@@ -382,7 +396,9 @@ export function createOfficeTreeScene(
       transparent: true,
       vertexColors: true,
     });
-    content.add(new THREE.LineSegments(edgeGeometry, edgeMaterial));
+    edgeLines = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+    edgeBaseColors = edgeColors;
+    content.add(edgeLines);
 
     for (const node of layout.nodes) {
       const radius = NODE_RADIUS[node.kind];
@@ -395,6 +411,7 @@ export function createOfficeTreeScene(
           flatShading: true,
           metalness: 0.18,
           roughness: 0.45,
+          transparent: true,
         }),
       );
       mesh.position.set(node.x, node.y, node.z);
@@ -407,6 +424,7 @@ export function createOfficeTreeScene(
         title: node.title,
       } satisfies OfficeTreePick;
       content.add(mesh);
+      nodeMeshes.push(mesh);
       pickMeshes.push(mesh);
 
       const lines: { muted?: boolean; size: number; text: string; weight?: number }[] = [];
@@ -425,7 +443,9 @@ export function createOfficeTreeScene(
             : undefined,
       );
       label.position.set(node.x, node.y + radius + 0.5, node.z);
+      label.userData.nodeId = node.id;
       content.add(label);
+      nodeLabels.push(label);
     }
 
     bounds = {
@@ -437,6 +457,53 @@ export function createOfficeTreeScene(
 
     const angles = PRESET_ANGLES["three-quarter"];
     applyCamera(angles.azimuth, angles.polar, fitDistance(), contentCenter());
+    applyHighlight();
+  }
+
+  /**
+   * 从属筛选只改视觉权重与拾取集合，不重建几何、不重置镜头：
+   * 命中子树保持原样，其余节点/标签/连线淡化，让完整树仍在视野里作为背景。
+   */
+  function applyHighlight() {
+    const active = highlighted;
+    const isOn = (id: string) => !active || active.has(id);
+    for (const mesh of nodeMeshes) {
+      const pick = mesh.userData.pick as OfficeTreePick;
+      const on = isOn(pick.id);
+      const material = mesh.material as THREE.MeshStandardMaterial;
+      material.opacity = on ? 1 : 0.12;
+      material.emissiveIntensity = on ? (pick.kind === "root" ? 0.45 : 0.3) : 0.03;
+    }
+    for (const label of nodeLabels) {
+      (label.material as THREE.SpriteMaterial).opacity = isOn(label.userData.nodeId as string)
+        ? 1
+        : 0.16;
+    }
+    if (edgeLines) {
+      const attribute = edgeLines.geometry.getAttribute("color") as THREE.BufferAttribute;
+      for (let index = 0; index < edgeEnds.length; index += 1) {
+        const { from, to } = edgeEnds[index]!;
+        const factor = isOn(from) && isOn(to) ? 1 : isOn(from) || isOn(to) ? 0.45 : 0.12;
+        const offset = index * 6;
+        for (let channel = 0; channel < 6; channel += 1) {
+          attribute.setX(offset + channel, (edgeBaseColors[offset + channel] ?? 0) * factor);
+        }
+      }
+      attribute.needsUpdate = true;
+    }
+    pickMeshes = active
+      ? nodeMeshes.filter((mesh) => active.has((mesh.userData.pick as OfficeTreePick).id))
+      : [...nodeMeshes];
+    if (hover && active && !active.has(hover.id)) {
+      setHoverScale(hover.id, 1);
+      hover = null;
+      handlers.onHover(null);
+    }
+  }
+
+  function setFilter(ids: readonly string[] | null) {
+    highlighted = ids && ids.length > 0 ? new Set(ids) : null;
+    applyHighlight();
   }
 
   const raycaster = new THREE.Raycaster();
@@ -644,8 +711,14 @@ export function createOfficeTreeScene(
       renderer.forceContextLoss();
       renderer.domElement.remove();
       pickMeshes = [];
+      nodeMeshes = [];
+      nodeLabels = [];
+      edgeLines = null;
+      edgeBaseColors = [];
+      edgeEnds = [];
     },
     resetView,
     setAtlas,
+    setFilter,
   };
 }
