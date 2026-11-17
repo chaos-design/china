@@ -340,4 +340,39 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
     );
     expect(screen.getByLabelText("品级族谱")).toBeInTheDocument();
   });
+
+  it("retries scene creation from the WebGL fallback and clears the error state", () => {
+    mocks.create.mockReturnValueOnce(null);
+    render(<RanksPage />);
+
+    expect(screen.getByText(/未能启用 WebGL/)).toBeInTheDocument();
+    expect(mocks.create).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "重试" }));
+
+    // 首次建场景返回 null（无场景可销毁），重试只新建一次并同步数据。
+    expect(mocks.create).toHaveBeenCalledTimes(2);
+    expect(mocks.scene.setTrees).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/未能启用 WebGL/)).toBeNull();
+  });
+
+  it("never syncs into a disposed scene when a retry fails again", () => {
+    // 首次成功建场景 → context lost 路径触发 onUnavailable → retry 失败（返回 null）。
+    render(<RanksPage />);
+    expect(mocks.scene.setTrees).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      sceneHandlers().onUnavailable();
+    });
+    expect(screen.getByText(/未能启用 WebGL/)).toBeInTheDocument();
+
+    mocks.create.mockReturnValueOnce(null);
+    fireEvent.click(screen.getByRole("button", { name: "重试" }));
+
+    // 旧场景被 dispose，重建又失败：scene state 必须清空，随后的朝代切换不应触碰已销毁对象。
+    expect(mocks.scene.dispose).toHaveBeenCalledTimes(1);
+    expect(mocks.create).toHaveBeenCalledTimes(2);
+    fireEvent.click(within(screen.getByLabelText("朝代选择")).getByRole("button", { name: "明" }));
+    expect(mocks.scene.setTrees).toHaveBeenCalledTimes(1);
+  });
 });
