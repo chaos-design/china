@@ -109,7 +109,7 @@ export function QingOfficialsPage() {
             {/* 原头部第二行收为舞台底部一行小字（内容不变，仅重排）：
                 朝代 · 年代 · 制度 · 出处 ｜ 总纲 ｜ 图注；朝代名只在行首出现一次。 */}
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
-              <p className="w-full truncate bg-paper/85 px-3 py-1 text-center font-mono-tech text-[0.7rem] tracking-[0.14em] text-muted-foreground backdrop-blur-sm">
+              <p className="w-full truncate bg-paper/95 px-3 py-1 text-center font-mono-tech text-[0.7rem] tracking-[0.14em] text-muted-foreground">
                 {atlas.name}
                 {" · "}
                 {atlas.period}

@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "../../../lib/utils";
 import type { DynastyAtlas } from "./data";
@@ -277,7 +277,7 @@ function HoverReadout({
   return (
     <div className="pointer-events-none flex justify-center">
       {hover ? (
-        <div className="max-w-[min(420px,calc(100%-1.5rem))] rounded-xl border border-ink/10 bg-paper/90 px-4 py-2.5 text-center shadow-[0_12px_32px_hsl(var(--ink)/0.14)] backdrop-blur-md">
+        <div className="max-w-[min(420px,calc(100%-1.5rem))] rounded-xl border border-ink/10 bg-paper/90 px-4 py-2.5 text-center shadow-[0_12px_32px_hsl(var(--ink)/0.14)]">
           <div className="flex flex-wrap items-baseline justify-center gap-x-2">
             <span className="font-brush text-lg text-ink">{hover.title}</span>
             <span className="font-mono-tech text-[0.7rem] tracking-[0.06em] text-vermillion">
@@ -289,10 +289,65 @@ function HoverReadout({
           </p>
         </div>
       ) : (
-        <span className="rounded-full border border-ink/10 bg-paper/90 px-4 py-1.5 font-mono-tech text-[0.7rem] tracking-[0.08em] text-muted-foreground backdrop-blur-md">
+        <span className="rounded-full border border-ink/10 bg-paper/90 px-4 py-1.5 font-mono-tech text-[0.7rem] tracking-[0.08em] text-muted-foreground">
           {dynastyName} · 拖拽旋转 滚轮缩放 点选分区展开或折叠属官
         </span>
       )}
+    </div>
+  );
+}
+
+/**
+ * 舞台左下的图注：整段制度说明收成一枚小 chip，点开才浮出完整文字——
+ * 不再常驻占掉塔基一角（同一句话在「全景」详情的读图提示里也能看到）。
+ * 点外部 / Escape 关闭，键盘可达。
+ */
+function NoteChip({ note }: { note: string }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="pointer-events-none absolute bottom-9 left-3 z-20" ref={containerRef}>
+      {open ? (
+        <div className="pointer-events-auto mb-2 w-[min(320px,calc(100vw-6rem))] rounded-xl border border-ink/12 bg-paper/95 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground shadow-[0_12px_32px_hsl(var(--ink)/0.16)]">
+          {note}
+        </div>
+      ) : null}
+      <button
+        aria-expanded={open}
+        className={cn(
+          "pointer-events-auto rounded-full border bg-paper/90 px-3 py-1 font-mono-tech text-[0.65rem] tracking-[0.18em] uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          open
+            ? "border-vermillion/40 text-vermillion"
+            : "border-ink/12 text-muted-foreground hover:border-vermillion/30 hover:text-ink",
+        )}
+        onClick={() => setOpen((previous) => !previous)}
+        type="button"
+      >
+        图注
+      </button>
     </div>
   );
 }
@@ -338,7 +393,7 @@ function StageMenu({
       aria-label="舞台菜单"
       className="pointer-events-none absolute left-3 top-3 z-20 flex max-h-[calc(100%-1.5rem)] max-w-[min(280px,calc(100%-1.5rem))]"
     >
-      <div className="pointer-events-auto flex min-h-0 w-full flex-col gap-2 overflow-y-auto rounded-2xl border border-ink/12 bg-paper/85 p-2.5 shadow-[0_12px_32px_hsl(var(--ink)/0.12)] backdrop-blur-xl">
+      <div className="pointer-events-auto flex min-h-0 w-full flex-col gap-2 overflow-y-auto rounded-2xl border border-ink/12 bg-paper/95 p-2.5 shadow-[0_12px_32px_hsl(var(--ink)/0.12)] ">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className={eyebrow}>从属 · 视角</span>
           <button
@@ -705,7 +760,7 @@ function OfficeDetailDrawer({
       aria-hidden={open ? undefined : true}
       aria-label="官制详情"
       className={cn(
-        "absolute z-30 flex flex-col overflow-hidden border-ink/15 bg-paper/90 shadow-[0_18px_48px_hsl(var(--ink)/0.16)] backdrop-blur-xl transition-transform duration-300",
+        "absolute z-30 flex flex-col overflow-hidden border-ink/15 bg-paper/90 shadow-[0_18px_48px_hsl(var(--ink)/0.16)] transition-transform duration-300",
         "inset-x-0 bottom-0 max-h-[58%] rounded-t-2xl border-t",
         "lg:inset-x-auto lg:bottom-0 lg:right-0 lg:top-0 lg:max-h-none lg:w-[360px] lg:rounded-l-2xl lg:border-l lg:border-t-0",
         open
@@ -770,7 +825,7 @@ function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: bool
     <section
       aria-label="层级刻度"
       className={cn(
-        "pointer-events-none absolute right-3 top-3 z-20 hidden w-[196px] rounded-xl border border-ink/12 bg-paper/85 px-3 py-2.5 shadow-[0_12px_32px_hsl(var(--ink)/0.12)] backdrop-blur-xl transition-opacity lg:block",
+        "pointer-events-none absolute right-3 top-3 z-20 hidden w-[196px] rounded-xl border border-ink/12 bg-paper/95 px-3 py-2.5 shadow-[0_12px_32px_hsl(var(--ink)/0.12)] transition-opacity lg:block",
         hidden ? "lg:opacity-0" : null,
       )}
     >
@@ -935,13 +990,11 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
             </span>
           </div>
         ) : null}
-        {/* 底部再留出一行给页级题注条（原头部第二行），故 readout 与 hierarchyNote 上移。 */}
+        {/* 底部再留出一行给页级题注条（原头部第二行），故 readout 与图注 chip 上移。 */}
         <div className="absolute inset-x-0 bottom-9">
           <HoverReadout dynastyName={atlas.name} hover={hover} />
         </div>
-        <p className="absolute bottom-9 left-3 hidden max-w-[220px] text-[0.65rem] leading-relaxed text-muted-foreground md:block">
-          {atlas.hierarchyNote}
-        </p>
+        <NoteChip note={atlas.hierarchyNote} />
       </div>
 
       <LevelScale layout={clippedLayout} hidden={Boolean(detail)} />

@@ -200,6 +200,24 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(within(scale).queryByText("点分区展开")).toBeNull();
   });
 
+  it("folds the stage footnote into a toggleable note chip instead of a resident paragraph", () => {
+    mocks.create.mockReturnValue(mocks.scene);
+    renderAt();
+
+    // 图注默认收纳：不常驻整段文字，点开才浮出。
+    const chip = screen.getByRole("button", { name: "图注" });
+    expect(chip).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/此树复现/)).toBeNull();
+
+    fireEvent.click(chip);
+    expect(chip).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(/此树复现/)).toBeInTheDocument();
+
+    fireEvent.click(chip);
+    expect(chip).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/此树复现/)).toBeNull();
+  });
+
   it("opens the right-side detail drawer on an office pick and closes it", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();

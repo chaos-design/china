@@ -362,6 +362,12 @@ export function createOfficeTreeScene(
   let dragging = false;
   let pointerDown: { x: number; y: number } | null = null;
   let colorFrame = 0;
+  // 脏标记渲染：静止帧不再全速 render（自转 / 补间 / 生长 / 悬浮 / 相机移动才重画）。
+  let needsRender = true;
+  // 选中环呼吸的截止时刻：呼吸只持续一阵，之后静息。
+  let pulseUntil = 0;
+  // 画布 CSS 高度缓存（resize 时更新），避免逐帧读 clientHeight 触发布局查询。
+  let canvasHeight = 1;
   let hover: OfficeTreePick | null = null;
   let layoutNodes: readonly OfficeTreeNode[] | null = null;
   let highlighted: ReadonlySet<string> | null = null;
@@ -426,6 +432,10 @@ export function createOfficeTreeScene(
       controls.autoRotate = false;
       handlers.onAutoRotateChange?.(false);
     }
+  });
+  // 相机每被动一次（含阻尼收敛与自转）都标记重画；静止时脏标记保持 false，跳过 render。
+  controls.addEventListener("change", () => {
+    needsRender = true;
   });
 
   renderer.setClearAlpha(0);
@@ -596,11 +606,13 @@ export function createOfficeTreeScene(
     tag.sprite.userData.px = { h: height, w: width };
     tag.sprite.position.set(x, y, z);
     tag.sprite.visible = true;
+    needsRender = true;
   }
 
   function hideHoverTag() {
-    if (hoverTag) {
+    if (hoverTag?.sprite.visible) {
       hoverTag.sprite.visible = false;
+      needsRender = true;
     }
   }
 
@@ -633,6 +645,7 @@ export function createOfficeTreeScene(
     if (!id || !node) {
       if (ring) {
         ring.visible = false;
+        needsRender = true;
       }
       return;
     }
@@ -642,6 +655,8 @@ export function createOfficeTreeScene(
     ring!.position.set(node.x, node.y - radius * 0.8, node.z);
     ring!.rotation.x = -Math.PI / 2;
     ring!.visible = true;
+    pulseUntil = performance.now() + 2600;
+    needsRender = true;
   }
 
   function rebuild(layout: OfficeTreeLayout, atlas: DynastyAtlas) {
@@ -1033,6 +1048,7 @@ export function createOfficeTreeScene(
           growNodes = [];
           growStems = [];
           growLabels = [];
+          needsRender = true;
         },
         GROW_MS + Math.max(0, maxCount - 1) * GROW_STAGGER_MS + 120,
       );
@@ -1074,6 +1090,7 @@ export function createOfficeTreeScene(
       hover = null;
       handlers.onHover(null);
     }
+    needsRender = true;
   }
 
   function setFilter(ids: readonly string[] | null) {
@@ -1104,6 +1121,7 @@ export function createOfficeTreeScene(
     for (const mesh of pickMeshes) {
       if (mesh.userData.pick.id === id) {
         mesh.scale.setScalar(scale);
+        needsRender = true;
       }
     }
   }
@@ -1198,6 +1216,8 @@ export function createOfficeTreeScene(
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
+    canvasHeight = height;
+    needsRender = true;
     // 首次 fit 可能发生在画布布局稳定之前，取景用错纵横比（tree 缩成一角）。
     // 纵横比变化且用户尚未手动操作时自动重新取景；用户一旦交互即不再打扰。
     if (!userAdjusted && fittedAspect > 0 && Math.abs(camera.aspect - fittedAspect) > 0.02) {
@@ -1229,39 +1249,52 @@ export function createOfficeTreeScene(
     }
     controls.update();
     // 生长动画：新节点 / 枝干 / 标签按错峰时刻表长到位，展开与入场不再硬切。
+    let animating = false;
     const growProgress = (delay: number) =>
       Math.min(1, Math.max(0, (now - growStart - delay) / GROW_MS));
     for (let index = growNodes.length - 1; index >= 0; index -= 1) {
       const item = growNodes[index]!;
       const progress = growProgress(item.delay);
       if (progress <= 0) {
+        animating = true;
         continue;
       }
       item.mesh.scale.setScalar(Math.max(0.001, easeOutBack(progress)));
       if (progress >= 1) {
         growNodes.splice(index, 1);
+        needsRender = true;
+      } else {
+        animating = true;
       }
     }
     for (let index = growStems.length - 1; index >= 0; index -= 1) {
       const item = growStems[index]!;
       const progress = growProgress(item.delay);
       if (progress <= 0) {
+        animating = true;
         continue;
       }
       (item.stem.material as THREE.MeshBasicMaterial).opacity = 0.82 * progress;
       if (progress >= 1) {
         growStems.splice(index, 1);
+        needsRender = true;
+      } else {
+        animating = true;
       }
     }
     for (let index = growLabels.length - 1; index >= 0; index -= 1) {
       const item = growLabels[index]!;
       const progress = growProgress(item.delay);
       if (progress <= 0) {
+        animating = true;
         continue;
       }
       (item.label.material as THREE.SpriteMaterial).opacity = Math.min(1, progress);
       if (progress >= 1) {
         growLabels.splice(index, 1);
+        needsRender = true;
+      } else {
+        animating = true;
       }
     }
     // 悬浮凸起的平滑插值：凸起不是瞬跳，移开由 snap 归位。
@@ -1270,12 +1303,21 @@ export function createOfficeTreeScene(
       hoverLerp.mesh.scale.setScalar(hoverLerp.value);
       if (Math.abs(hoverLerp.value - 1.35) < 0.01) {
         hoverLerp = null;
+        needsRender = true;
+      } else {
+        animating = true;
       }
     }
-    // 选中环缓慢呼吸：点选永远有回应。
+    // 选中环缓慢呼吸：点选永远有回应；呼吸只持续一阵，之后静息省电。
     if (selectionRing?.visible) {
-      const base = (selectionRing.userData.baseScale as number) || 1;
-      selectionRing.scale.setScalar(base * (1 + Math.sin(now * 0.004) * 0.07));
+      if (now < pulseUntil) {
+        const base = (selectionRing.userData.baseScale as number) || 1;
+        selectionRing.scale.setScalar(base * (1 + Math.sin(now * 0.004) * 0.07));
+        animating = true;
+      } else {
+        const base = (selectionRing.userData.baseScale as number) || 1;
+        selectionRing.scale.setScalar(base);
+      }
     }
     // 首次 fit 可能发生在画布布局稳定之前（ResizeObserver 在部分嵌入环境不触发）：
     // 纵横比变化且用户尚未手动操作时逐帧兜底重取景；用户一旦交互即不再打扰。
@@ -1283,26 +1325,39 @@ export function createOfficeTreeScene(
       fittedAspect = camera.aspect;
       applyCamera(fittedAngles.azimuth, fittedAngles.polar, fitDistance(), contentCenter());
     }
-    // 屏幕等比标签：按相机到标签的距离换算世界尺寸，任何缩放下保持恒定屏幕大小；
-    // 包围框的跨度标注只在拉近镜头时显示（折叠总览下由左菜单标注跨度，避免压住组标签）。
-    const canvasHeight = renderer.domElement.clientHeight || 1;
-    const halfTan = Math.tan((camera.fov * Math.PI) / 360);
-    const showHudLabels = camera.position.distanceTo(controls.target) <= BRACKET_LABEL_DISTANCE;
-    const sprites = hoverTag?.sprite.visible
-      ? [...nodeLabels, ...hudLabels, hoverTag.sprite]
-      : [...nodeLabels, ...hudLabels];
-    for (const label of sprites) {
-      const px = label.userData.px as { h: number; w: number } | undefined;
-      if (px) {
-        const distance = camera.position.distanceTo(label.position);
-        const worldPerPx = (2 * halfTan * distance) / canvasHeight;
-        label.scale.set(px.w * worldPerPx, px.h * worldPerPx, 1);
-      }
-      if (label.userData.isHudLabel) {
-        label.visible = showHudLabels;
-      }
+    // 脏标记渲染：自转 / 补间 / 生长 / 悬浮 / 呼吸 / 相机移动才重画，
+    // 静止帧不再全速 render——关掉自转后空闲功耗接近零。
+    if (animating) {
+      needsRender = true;
     }
-    renderer.render(scene, camera);
+    if (needsRender) {
+      // 屏幕等比标签：按相机到标签的距离换算世界尺寸，任何缩放下保持恒定屏幕大小；
+      // 包围框的跨度标注只在拉近镜头时显示（折叠总览下由左菜单标注跨度，避免压住组标签）。
+      const halfTan = Math.tan((camera.fov * Math.PI) / 360);
+      const showHudLabels = camera.position.distanceTo(controls.target) <= BRACKET_LABEL_DISTANCE;
+      const updateLabel = (label: THREE.Sprite) => {
+        const px = label.userData.px as { h: number; w: number } | undefined;
+        if (px) {
+          const distance = camera.position.distanceTo(label.position);
+          const worldPerPx = (2 * halfTan * distance) / canvasHeight;
+          label.scale.set(px.w * worldPerPx, px.h * worldPerPx, 1);
+        }
+        if (label.userData.isHudLabel) {
+          label.visible = showHudLabels;
+        }
+      };
+      for (const label of nodeLabels) {
+        updateLabel(label);
+      }
+      for (const label of hudLabels) {
+        updateLabel(label);
+      }
+      if (hoverTag?.sprite.visible) {
+        updateLabel(hoverTag.sprite);
+      }
+      renderer.render(scene, camera);
+      needsRender = false;
+    }
   }
 
   const onContextLost = (event: Event) => {
@@ -1313,6 +1368,7 @@ export function createOfficeTreeScene(
     // 只跟标签页可见性走。IntersectionObserver 在部分嵌入环境（IAB）会先报
     // not-intersecting 且不再更新，把整条渲染循环吞成空画布——单屏沉浸页
     // 画布始终在视口内，不做离屏暂停。
+    needsRender = true;
   };
 
   renderer.domElement.addEventListener("pointerdown", onPointerDown);
@@ -1379,6 +1435,7 @@ export function createOfficeTreeScene(
       }
       // 边的实际颜色由 applyHighlight 按 baseColor × 高亮系数算出，主题切换后需重算一次。
       applyHighlight();
+      needsRender = true;
     });
   });
   themeObserver.observe(document.documentElement, {
@@ -1435,6 +1492,7 @@ export function createOfficeTreeScene(
     setAutoRotate(on: boolean) {
       autoRotate = on;
       controls.autoRotate = on;
+      needsRender = true;
     },
     setFilter,
   };
