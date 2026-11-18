@@ -61,7 +61,7 @@ const FONT_STACK =
 const LABEL_WORLD_PER_PX = 0.02;
 
 /** 相机距目标超过该距离（折叠总览镜头）时隐藏包围框的跨度标注，左菜单已标注跨度。 */
-const BRACKET_LABEL_DISTANCE = 60;
+const BRACKET_LABEL_DISTANCE = 18;
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 const NODE_RADIUS: Record<OfficeNodeKind, number> = {
   branch: 0.55,
@@ -95,10 +95,31 @@ function stemColor(colors: OfficeTreeColors, kind: OfficeTreeEdge["kind"]): THRE
   }
 }
 
+/** 每种节点一套几何语言：本源六棱宝座、荣衔菱形印、分区四方官印、属官圆珠。 */
+function createNodeGeometry(kind: OfficeNodeKind, radius: number): THREE.BufferGeometry {
+  switch (kind) {
+    case "root":
+      return new THREE.CylinderGeometry(radius * 0.72, radius, radius * 0.85, 6);
+    case "honorary":
+      return new THREE.OctahedronGeometry(radius, 0);
+    case "branch":
+      return new THREE.CylinderGeometry(radius * 0.92, radius * 0.92, radius, 4);
+    case "office":
+      return new THREE.SphereGeometry(radius * 0.85, 12, 8);
+  }
+}
+
+const NODE_FINISH: Record<OfficeNodeKind, { metalness: number; roughness: number }> = {
+  root: { metalness: 0.42, roughness: 0.28 },
+  honorary: { metalness: 0.3, roughness: 0.36 },
+  branch: { metalness: 0.22, roughness: 0.42 },
+  office: { metalness: 0.12, roughness: 0.55 },
+};
+
 const PRESET_ANGLES: Record<OfficeTreeCameraPreset, { azimuth: number; polar: number }> = {
   // 略高的俯角才看得见 y 的分层与 z 的纵深；平视会把树压成一条标签带。
-  "three-quarter": { azimuth: 0.42, polar: 0.5 },
-  front: { azimuth: 0, polar: 0.42 },
+  "three-quarter": { azimuth: 0.42, polar: 0.6 },
+  front: { azimuth: 0, polar: 0.5 },
 };
 
 /** 读取页面主题 token，让 3D 配色跟随水墨纸色与朱砂强调色。 */
@@ -143,7 +164,7 @@ function nodeKindColor(colors: OfficeTreeColors, kind: OfficeNodeKind): THREE.Co
     case "branch":
       return new THREE.Color(colors.vermillion);
     case "honorary":
-      return new THREE.Color(colors.ochre).lerp(new THREE.Color(colors.paper), 0.4);
+      return new THREE.Color(colors.ochre).lerp(new THREE.Color(colors.paper), 0.12);
     case "office":
       return new THREE.Color(colors.blueprint);
   }
@@ -204,7 +225,7 @@ function createLabelSprite(
   context.scale(pixelRatio, pixelRatio);
 
   if (options.background !== false) {
-    context.fillStyle = colorCss(colors.paper, 0.9);
+    context.fillStyle = colorCss(colors.paper, 0.84);
     const radius = 6;
     context.beginPath();
     context.moveTo(radius, 0);
@@ -297,7 +318,7 @@ export function createOfficeTreeScene(
   let colors = initialColors;
   let content: THREE.Group | null = null;
   let atlasName = "";
-  let bounds = { maxX: 6, maxY: 10, minX: -6, minY: -10 };
+  let bounds = { maxX: 6, maxY: 10, minX: -6, minY: -10, minZ: -6, maxZ: 6 };
   let pickMeshes: THREE.Object3D[] = [];
   let tween: {
     duration: number;
@@ -368,10 +389,13 @@ export function createOfficeTreeScene(
   function fitDistance(): number {
     const height = Math.max(1, bounds.maxY - bounds.minY);
     const width = Math.max(1, bounds.maxX - bounds.minX);
+    // 环形布局的 z 纵深会投影到屏幕，取景必须把它算进去，否则前后排节点出画。
+    const depth = Math.max(1, bounds.maxZ - bounds.minZ);
     const halfFov = (camera.fov * Math.PI) / 360;
     const distanceV = height / 2 / Math.tan(halfFov);
     const distanceH = width / 2 / (Math.tan(halfFov) * Math.max(0.4, camera.aspect));
-    return Math.max(distanceV, distanceH) * 1.18 + 2;
+    const distanceD = (depth / 2 / Math.tan(halfFov)) * 0.75;
+    return Math.max(distanceV, distanceH, distanceD) * 1.14 + 2;
   }
 
   function applyCamera(azimuth: number, polar: number, distance: number, target: THREE.Vector3) {
@@ -485,28 +509,42 @@ export function createOfficeTreeScene(
     }
 
     for (const node of layout.nodes) {
-      // 越深的层级节点越小、自发光越弱：用体积与明度再编码一次层级，
-      // 即使不看连线也能分出「本源 > 分区 > 属官」。
+      // 越深的层级节点越小、自发光越弱；配合四种独立造型，层级一眼可辨。
       const depthFade = 1 / (1 + node.depth * 0.18);
       const radius = NODE_RADIUS[node.kind] * depthFade;
       const emissiveBase = node.kind === "root" ? 0.5 : Math.max(0.12, 0.34 - node.depth * 0.06);
+      const finish = NODE_FINISH[node.kind];
       const mesh = new THREE.Mesh(
-        new THREE.OctahedronGeometry(radius, 0),
+        createNodeGeometry(node.kind, radius),
         new THREE.MeshStandardMaterial({
           color: nodeKindColor(colors, node.kind),
           emissive: nodeKindColor(colors, node.kind),
           emissiveIntensity: emissiveBase,
-          flatShading: true,
-          metalness: 0.18,
-          roughness: 0.45,
+          flatShading: node.kind !== "office",
+          metalness: finish.metalness,
+          roughness: finish.roughness,
           transparent: true,
         }),
       );
       mesh.userData.emissiveBase = emissiveBase;
       mesh.position.set(node.x, node.y, node.z);
-      if (node.kind === "root" || node.kind === "branch") {
-        mesh.rotation.y = Math.PI / 4;
+      if (node.kind === "branch") {
+        mesh.rotation.y = Math.PI / 4; // 四棱柱转 45° 成菱形俯视，像一枚官印
       }
+      // 底座光环：平放的一圈淡色，给每枚「原子」一个落点，强化空间定位。
+      const halo = new THREE.Mesh(
+        new THREE.RingGeometry(radius * 1.3, radius * 1.75, 28),
+        new THREE.MeshBasicMaterial({
+          color: nodeKindColor(colors, node.kind),
+          transparent: true,
+          opacity: node.kind === "office" ? 0.16 : 0.28,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        }),
+      );
+      halo.rotation.x = -Math.PI / 2;
+      halo.position.y = -radius * 0.85;
+      mesh.add(halo);
       mesh.userData.pick = {
         id: node.id,
         kind: node.kind,
@@ -521,8 +559,7 @@ export function createOfficeTreeScene(
       if (node.kind === "office") {
         continue;
       }
-      // 标签压住节点是「信息扁平」的另一来源：缩小到只标注层级入口，让枝干与节点露出来。
-      const labelSize = node.kind === "root" ? 24 : node.kind === "honorary" ? 17 : 19;
+      const labelSize = node.kind === "root" ? 20 : node.kind === "honorary" ? 14 : 16;
       const label = createLabelSprite(
         colors,
         [{ size: labelSize, text: node.title, weight: 700 }],
@@ -530,7 +567,11 @@ export function createOfficeTreeScene(
           ? { accent: colorCss(colors.vermillion, 0.9) }
           : { accent: colorCss(colors.ochre, 0.8) },
       );
-      label.position.set(node.x, node.y + radius + 0.5, node.z);
+      // 标签沿椭圆径向朝外挪开，而不是压在节点正上方——这是消除同层重叠的关键。
+      const radial = Math.hypot(node.x, node.z);
+      const outwardX = radial > 0.01 ? node.x / radial : 0;
+      const outwardZ = radial > 0.01 ? node.z / radial : 1;
+      label.position.set(node.x + outwardX * 1.15, node.y + radius + 0.7, node.z + outwardZ * 1.15);
       label.userData.nodeId = node.id;
       content.add(label);
       nodeLabels.push(label);
@@ -561,7 +602,8 @@ export function createOfficeTreeScene(
       const maxX = Math.max(...members.map((member) => member.x)) + padX;
       const minY = Math.min(...members.map((member) => member.y)) - 1.1;
       const maxY = Math.max(...members.map((member) => member.y)) + 2.2;
-      const z = Math.min(...members.map((member) => member.z)) - 0.5;
+      // 环形布局下同一分区的成员 z 相近但不等；取均值让包围框贴住这一簇而不是飘在后方。
+      const z = members.reduce((sum, member) => sum + member.z, 0) / members.length;
       const corners: [number, number][] = [
         [minX, minY],
         [maxX, minY],
@@ -597,10 +639,12 @@ export function createOfficeTreeScene(
     }
 
     bounds = {
-      maxX: layout.maxX + 4,
-      maxY: layout.maxY + 4,
-      minX: layout.minX - 4,
-      minY: layout.minY - 4,
+      maxX: layout.maxX + 3,
+      maxY: layout.maxY + 3,
+      minX: layout.minX - 3,
+      minY: layout.minY - 3,
+      minZ: layout.minZ - 3,
+      maxZ: layout.maxZ + 3,
     };
 
     const angles = PRESET_ANGLES["three-quarter"];
@@ -838,6 +882,14 @@ export function createOfficeTreeScene(
             const material = (mesh as THREE.Mesh).material as THREE.MeshStandardMaterial;
             material.color = nodeKindColor(colors, node.kind);
             material.emissive = nodeKindColor(colors, node.kind);
+            for (const child of mesh.children) {
+              const childMaterial = (child as THREE.Mesh).material as
+                | THREE.MeshBasicMaterial
+                | undefined;
+              if (childMaterial) {
+                childMaterial.color = nodeKindColor(colors, node.kind);
+              }
+            }
           }
         }
       }

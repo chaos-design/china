@@ -72,23 +72,23 @@ describe("layoutOfficeTree", () => {
     expect(layout.width).toBeCloseTo(layout.maxX - layout.minX);
   });
 
-  it("keeps a stable crown depth in both the collapsed view and the full tree", () => {
+  it("spreads each level over the x/z plane instead of collapsing into one parabola", () => {
     const qing = getDynastyAtlas("qing")!;
     const full = layoutOfficeTree(qing);
     const collapsed = filterOfficeTreeLayout(full, visibleNodeIds(full, new Set()));
-    const crown = OFFICE_TREE_GEOMETRY.crownDepth;
-    const depthOf = (layout: typeof full) =>
-      Math.max(...layout.nodes.map((node) => Math.abs(node.z)));
+    const ring = full.nodes.filter((node) => node.depth === 1);
+    const geometry = OFFICE_TREE_GEOMETRY;
 
-    // 归一化后的纵深与树宽解耦：全树最外沿恰好是一只碗的深度，折叠视图也有可观纵深。
-    expect(depthOf(full)).toBeCloseTo(crown, 5);
-    expect(depthOf(collapsed)).toBeGreaterThan(crown * 0.3);
-    expect(depthOf(collapsed)).toBeLessThanOrEqual(crown + 1e-9);
-
-    // 中轴节点在前、外沿向后弯，旋转时才有立体层次而非一张平面图。
-    const center = full.nodes.reduce((a, b) => (Math.abs(a.x) < Math.abs(b.x) ? a : b));
-    const edge = full.nodes.reduce((a, b) => (Math.abs(a.x) > Math.abs(b.x) ? a : b));
-    expect(center.z).toBeGreaterThan(edge.z);
+    const xSpan = Math.max(...ring.map((node) => node.x)) - Math.min(...ring.map((node) => node.x));
+    const zSpan = Math.max(...ring.map((node) => node.z)) - Math.min(...ring.map((node) => node.z));
+    // 同层必须在 x 与 z 两个方向都铺开；退化成一条线时其中一个跨度会接近 0。
+    expect(xSpan).toBeGreaterThan(geometry.ringRadiusX);
+    expect(zSpan).toBeGreaterThan(geometry.ringRadiusZ);
+    // 折叠视图坐标取自全量布局：纵深仍覆盖整只环，节点不重排。
+    expect(collapsed.maxZ - collapsed.minZ).toBeGreaterThan(geometry.ringRadiusZ);
+    expect(collapsed.nodes.find((node) => node.id === "assistant")!.x).toBe(
+      full.nodes.find((node) => node.id === "assistant")!.x,
+    );
   });
 });
 

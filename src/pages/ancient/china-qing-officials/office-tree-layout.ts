@@ -6,9 +6,10 @@ import type { AtlasOfficeNode, DynastyAtlas } from "./data";
  * 摊成一棵可绘制的三维径向下降树。
  *
  * 与 rank-tree-layout 的「品级分层」不同，这里是一棵真正的从属树：
- * 节点父子随数据嵌套，叶子按序分配横向槽位（tidy tree），
- * 内节点取子代中轴；纵向按深度下沉；再叠一条抛物 z 弧，
- * 让树冠有纵深、旋转时呈「立体」而非平面的观感。
+ * 皇权居中在上，直属子节点沿椭圆环铺开（x / z 皆独立变化，不是一条曲线），
+ * 属官再挂靠各自父节点向下、向前垂落。纵向按深度下沉。
+ * 环布局让同一层的节点真正在三维空间里错开，前后有远近、旋转有纵深，
+ * 而不是旧版那样把 10 个分区压在一条抛物线上、标签首尾相接。
  */
 
 export type OfficeNodeKind = "root" | "honorary" | "branch" | "office";
@@ -47,27 +48,29 @@ export interface OfficeTreeLayout {
   maxX: number;
   minY: number;
   maxY: number;
+  minZ: number;
+  maxZ: number;
   width: number;
   /** 根节点（皇权）位置，画布取景中心参考。 */
 }
 
 export const OFFICE_TREE_GEOMETRY = {
-  /** 每层深度对应的纵向间距：太小会让折叠视图的 10 个分区挤成一条横线。 */
-  levelGap: 5,
-  /** 相邻叶子的横向间距（越大标签越不易互相覆盖）。 */
-  slotGap: 1.6,
+  /** 每一级向下的纵向间距。 */
+  levelGap: 4.2,
+  /** 属官在父节点周围展开的横向步长。 */
+  slotGap: 1.5,
   /**
-   * 树冠纵深：外沿相对中轴的后弯量（世界单位）。按 x/halfWidth 归一化而非 x²，
-   * 使 11 节点的折叠视图与 96 节点的全树拥有同一只「碗」——否则前者近乎全平、
-   * 后者远端被透视压扁，层级空间感在两种状态下都不稳定。
+   * 直属子节点环绕皇权的椭圆半径（x 横向 / z 纵深）。关键的结构变化：
+   * 旧版把 10 个分区排在一条抛物线上（x 与 z 都是 x 的函数），本质上是一条 1D 曲线，
+   * 从任何视角看都是「一条线」，标签首尾相接且层级被压平。改成椭圆环后，
+   * 同一层的节点真正在 x/z 平面铺开，前后错落，层级与纵深同时可见。
    */
-  crownDepth: 5.5,
-  /** 外沿下沉：同层节点从横线变成穹顶，与 z 的后弯一起把「层」读成三维。 */
-  crownDroop: 2.2,
-  /** 根节点向相机前凸：作为「本源」站在枝干最前方，不被直属下一层的标签盖住。 */
-  rootForward: 2.5,
-  /** 根节点高于最高层的距离。 */
-  rootLift: 1.6,
+  ringRadiusX: 10,
+  ringRadiusZ: 6.5,
+  /** 属官每层在父节点基础上继续向前偏移，形成向前垂落的枝。 */
+  branchForward: 1.6,
+  /** 根节点高于直属子节点层的距离。 */
+  rootLift: 1.8,
 } as const;
 
 /** 把朝代数据摊成一棵以皇权为根的从属树（尚未定位坐标）。 */
@@ -81,8 +84,6 @@ interface RawNode {
   title: string;
   depth: number;
   children: string[];
-  /** 该叶子占用的槽位数（荣衔封号标签更宽，占多槽防相邻标签重叠）。 */
-  slotWeight?: number;
 }
 
 const ROOT_ID = "office-root";
@@ -134,9 +135,7 @@ export function buildOfficeTree(atlas: DynastyAtlas): RawNode[] {
     register(groupRaw);
     root.children.push(group.id);
     for (const child of group.children ?? []) {
-      const childRaw = rawFromOfficeNode(group.id, 2, child);
-      childRaw.slotWeight = 5;
-      register(childRaw);
+      register(rawFromOfficeNode(group.id, 2, child));
       groupRaw.children.push(child.id);
     }
   }
@@ -171,74 +170,49 @@ export function buildOfficeTree(atlas: DynastyAtlas): RawNode[] {
   return raws;
 }
 
-/** tidy tree：叶子按序占横向槽位，内节点居中于子代。 */
-function assignSlots(raws: RawNode[]): Map<string, number> {
-  const slots = new Map<string, number>();
-  const childOf = new Map<string, string[]>();
-  for (const raw of raws) {
-    if (raw.parent !== null) {
-      const siblings = childOf.get(raw.parent) ?? [];
-      siblings.push(raw.id);
-      childOf.set(raw.parent, siblings);
-    }
-  }
-
-  let cursor = 0;
-  const weightOf = new Map(raws.map((raw) => [raw.id, raw.slotWeight ?? 1]));
-  const layout = (id: string): number => {
-    const kids = childOf.get(id) ?? [];
-    if (kids.length === 0) {
-      slots.set(id, cursor);
-      const slot = cursor;
-      cursor += weightOf.get(id) ?? 1;
-      return slot;
-    }
-    let first = Number.POSITIVE_INFINITY;
-    let last = Number.NEGATIVE_INFINITY;
-    for (const kid of kids) {
-      const slot = layout(kid);
-      first = Math.min(first, slot);
-      last = Math.max(last, slot);
-    }
-    const slot = (first + last) / 2;
-    slots.set(id, slot);
-    return slot;
-  };
-
-  const root = raws.find((candidate) => candidate.parent === null)!;
-  layout(root.id);
-  return slots;
-}
-
 export function layoutOfficeTree(atlas: DynastyAtlas): OfficeTreeLayout {
   const raws = buildOfficeTree(atlas);
-  const slots = assignSlots(raws);
 
-  // 以槽位中心为 0，让树在 x 轴对称，z 弧才呈中轴对称的碗状纵深。
-  const slotX = raws.map((raw) => (slots.get(raw.id) ?? 0) * OFFICE_TREE_GEOMETRY.slotGap);
-  const rawMinX = slotX.reduce((least, value) => Math.min(least, value), Number.POSITIVE_INFINITY);
-  const rawMaxX = slotX.reduce((most, value) => Math.max(most, value), Number.NEGATIVE_INFINITY);
-  const centerX = (rawMinX + rawMaxX) / 2;
-  const halfWidth = Math.max(1, (rawMaxX - rawMinX) / 2);
+  // 按父分组：直属子节点用分组顺序铺满椭圆环，属官用兄弟序号在父节点周围局部展开。
+  const childrenOf = new Map<string, RawNode[]>();
+  for (const raw of raws) {
+    if (raw.parent === null) {
+      continue;
+    }
+    const siblings = childrenOf.get(raw.parent) ?? [];
+    siblings.push(raw);
+    childrenOf.set(raw.parent, siblings);
+  }
+  const ring = childrenOf.get(ROOT_ID) ?? [];
 
-  const nodes: OfficeTreeNode[] = raws.map((raw, index) => {
-    const x = slotX[index]! - centerX;
-    const edgeRatio = x / halfWidth;
-    const y =
-      -(raw.depth * OFFICE_TREE_GEOMETRY.levelGap) +
-      OFFICE_TREE_GEOMETRY.rootLift -
-      OFFICE_TREE_GEOMETRY.crownDroop * edgeRatio ** 2;
-    const z =
-      -OFFICE_TREE_GEOMETRY.crownDepth * edgeRatio ** 2 +
-      (raw.depth === 0 ? OFFICE_TREE_GEOMETRY.rootForward : 0);
-    return {
-      ...raw,
-      children: raw.children,
-      x,
-      y,
-      z,
-    };
-  });
+  // raws 是父先子后的前序：父节点坐标必已落定，子节点直接挂靠父节点。
+  const placed = new Map<string, OfficeTreeNode>();
+  const nodes: OfficeTreeNode[] = [];
+  for (const raw of raws) {
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    if (raw.depth === 0) {
+      y = OFFICE_TREE_GEOMETRY.rootLift;
+    } else if (raw.depth === 1) {
+      const index = ring.findIndex((node) => node.id === raw.id);
+      const theta = Math.PI / 2 + (index / Math.max(1, ring.length)) * Math.PI * 2;
+      x = Math.cos(theta) * OFFICE_TREE_GEOMETRY.ringRadiusX;
+      z = Math.sin(theta) * OFFICE_TREE_GEOMETRY.ringRadiusZ;
+      y = OFFICE_TREE_GEOMETRY.rootLift - OFFICE_TREE_GEOMETRY.levelGap;
+    } else {
+      const parent = placed.get(raw.parent!)!;
+      const siblings = childrenOf.get(raw.parent!) ?? [];
+      const index = siblings.findIndex((node) => node.id === raw.id);
+      const offset = index - (siblings.length - 1) / 2;
+      x = parent.x + offset * OFFICE_TREE_GEOMETRY.slotGap;
+      z = parent.z + (raw.depth - 1) * OFFICE_TREE_GEOMETRY.branchForward + offset * 0.6;
+      y = parent.y - OFFICE_TREE_GEOMETRY.levelGap;
+    }
+    const node: OfficeTreeNode = { ...raw, children: raw.children, x, y, z };
+    placed.set(raw.id, node);
+    nodes.push(node);
+  }
 
   const root = nodes.find((candidate) => candidate.parent === null)!;
   const edges: OfficeTreeEdge[] = nodes
@@ -253,11 +227,15 @@ export function layoutOfficeTree(atlas: DynastyAtlas): OfficeTreeLayout {
   const maxX = nodes.reduce((most, node) => Math.max(most, node.x), Number.NEGATIVE_INFINITY);
   const minY = nodes.reduce((least, node) => Math.min(least, node.y), Number.POSITIVE_INFINITY);
   const maxY = nodes.reduce((most, node) => Math.max(most, node.y), Number.NEGATIVE_INFINITY);
+  const minZ = nodes.reduce((least, node) => Math.min(least, node.z), Number.POSITIVE_INFINITY);
+  const maxZ = nodes.reduce((most, node) => Math.max(most, node.z), Number.NEGATIVE_INFINITY);
 
   return {
     edges,
     minX,
     minY,
+    minZ,
+    maxZ,
     nodes,
     root,
     rootId: ROOT_ID,
@@ -308,10 +286,14 @@ export function filterOfficeTreeLayout(
   const maxX = nodes.reduce((most, node) => Math.max(most, node.x), Number.NEGATIVE_INFINITY);
   const minY = nodes.reduce((least, node) => Math.min(least, node.y), Number.POSITIVE_INFINITY);
   const maxY = nodes.reduce((most, node) => Math.max(most, node.y), Number.NEGATIVE_INFINITY);
+  const minZ = nodes.reduce((least, node) => Math.min(least, node.z), Number.POSITIVE_INFINITY);
+  const maxZ = nodes.reduce((most, node) => Math.max(most, node.z), Number.NEGATIVE_INFINITY);
   return {
     edges,
     minX,
     minY,
+    minZ,
+    maxZ,
     nodes,
     root,
     rootId: layout.rootId,
