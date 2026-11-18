@@ -8,6 +8,7 @@ import {
   layoutOfficeTree,
   type OfficeTreeLayout,
   type OfficeTreeNode,
+  parseRankLabels,
   visibleNodeIds,
 } from "./office-tree-layout";
 import type { OfficeTreeHover, OfficeTreePick } from "./office-tree-scene";
@@ -35,6 +36,20 @@ const KIND_LABEL: Record<OfficeTreeNode["kind"], string> = {
   office: "属官衙署",
   root: "权力本源",
 };
+
+/**
+ * 把节点的品级括注对位到本朝品秩谱（九品十八级 / 秩石等）的数据行，
+ * 取出顶戴、朝服、岁俸与同品职官——详情面板因此能看到「具体的东西」，
+ * 而不是只复读节点自带的括注。对不上的加衔类文字返回空。
+ */
+function matchRankLevels(atlas: DynastyAtlas, rank?: string) {
+  if (!rank) {
+    return [];
+  }
+  return parseRankLabels(rank)
+    .map((label) => atlas.levels.find((level) => level.label === label) ?? null)
+    .filter((level): level is DynastyAtlas["levels"][number] => level !== null);
+}
 
 /** 收集根节点及其全部后代，作为从属筛选的高亮集合。 */
 function subtreeIds(layout: OfficeTreeLayout, roots: readonly string[]): string[] {
@@ -446,10 +461,12 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 }
 
 function OfficeNodeDetail({
+  atlas,
   dynastyName,
   layout,
   node,
 }: {
+  atlas: DynastyAtlas;
   dynastyName: string;
   layout: OfficeTreeLayout;
   node: OfficeTreeNode;
@@ -464,6 +481,21 @@ function OfficeNodeDetail({
   const children = node.children
     .map((id) => byId.get(id)?.title)
     .filter((title): title is string => Boolean(title));
+  const siblingTitles =
+    node.parent === null
+      ? []
+      : (byId.get(node.parent)?.children ?? [])
+          .filter((id) => id !== node.id)
+          .map((id) => byId.get(id)?.title)
+          .filter((title): title is string => Boolean(title));
+  const countDescendants = (id: string): number =>
+    (byId.get(id)?.children ?? []).reduce((sum, child) => sum + 1 + countDescendants(child), 0);
+  const descendantCount = countDescendants(node.id);
+  const rankLevels = matchRankLevels(atlas, node.rank);
+  let ancestor = node.parent ? byId.get(node.parent) : undefined;
+  while (ancestor && ancestor.depth > 1) {
+    ancestor = ancestor.parent ? byId.get(ancestor.parent) : undefined;
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -480,10 +512,56 @@ function OfficeNodeDetail({
       </div>
       <dl className="flex flex-col gap-3">
         <DetailRow label="从属路径">{path.join(" / ")}</DetailRow>
-        {children.length > 0 ? <DetailRow label="直属下属">{children.join("、")}</DetailRow> : null}
+        {rankLevels.length > 0 ? (
+          <DetailRow label="品级实档（据本朝品秩谱）">
+            <div className="flex flex-col gap-2">
+              {rankLevels.map((level) => (
+                <div
+                  className="flex flex-col gap-1 rounded-lg border border-ink/10 bg-paper/60 px-2.5 py-2"
+                  key={level.label}
+                >
+                  <div className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="font-mono-tech text-xs tracking-[0.06em] text-vermillion">
+                      {level.label}
+                    </span>
+                    <span className="text-[0.7rem] leading-snug text-muted-foreground">
+                      {level.offices}
+                    </span>
+                  </div>
+                  {level.hat || level.robe || level.salaryLabel ? (
+                    <p className="text-xs leading-relaxed text-foreground/85">
+                      {level.hat ? `顶戴 ${level.hat}` : "顶戴 —"}
+                      {level.hatBeads ? `（${level.hatBeads}）` : ""}
+                      {level.robe ? ` · 朝服 ${level.robe}` : ""}
+                      {level.salaryLabel ? ` · 岁俸 ${level.salaryLabel}` : ""}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </DetailRow>
+        ) : null}
         {node.note ? <DetailRow label="职掌说明">{node.note}</DetailRow> : null}
+        {children.length > 0 ? (
+          <DetailRow label="直属下属">
+            {children.join("、")}
+            {descendantCount > children.length ? `（含下级共 ${descendantCount} 署）` : ""}
+          </DetailRow>
+        ) : null}
+        {siblingTitles.length > 0 ? (
+          <DetailRow label="同级衙署">{siblingTitles.join("、")}</DetailRow>
+        ) : null}
+        {ancestor && node.depth > 1 && ancestor.depth === 1 ? (
+          <DetailRow label="所在分区">
+            {ancestor.title}
+            {ancestor.note ? ` — ${ancestor.note}` : ""}
+          </DetailRow>
+        ) : null}
         <DetailRow label="所属朝代">{dynastyName}</DetailRow>
       </dl>
+      <p className="border-ink/10 border-t pt-3 font-mono-tech text-[0.65rem] tracking-[0.06em] text-muted-foreground">
+        {atlas.name} · {atlas.system} ｜ 据 {atlas.source}
+      </p>
     </div>
   );
 }
@@ -509,6 +587,20 @@ function RelationDetail({
         : (byId.get(item.id)?.children ?? [])
             .map((id) => byId.get(id)?.title)
             .filter((title): title is string => Boolean(title));
+  // 名录取自布局本体（含品级括注）：左菜单聚焦哪个分区，右面板就把这个分区的
+  // 衙署与品级一条条列出来——「看得到具体的东西」，而不是只给一句规模数字。
+  const roster: { rank?: string; title: string }[] =
+    item.id === "honorary"
+      ? atlas.honorary.flatMap((group) => [
+          { rank: group.rank, title: group.title },
+          ...(group.children ?? []).map((child) => ({ rank: child.rank, title: child.title })),
+        ])
+      : item.id === "all"
+        ? []
+        : (byId.get(item.id)?.children ?? []).flatMap((id) => {
+            const child = byId.get(id);
+            return child ? [{ rank: child.rank, title: child.title }] : [];
+          });
 
   return (
     <div className="flex flex-col gap-4">
@@ -529,6 +621,44 @@ function RelationDetail({
       <dl className="flex flex-col gap-3">
         <DetailRow label="说明">{item.detail}</DetailRow>
         <DetailRow label="聚焦规模">{ids.length > 0 ? `${ids.length} 个节点` : "完整树"}</DetailRow>
+        {item.id === "all" ? (
+          <DetailRow label="分区概览">
+            <ul className="flex flex-col gap-1.5">
+              {atlas.branches.map((entry) => (
+                <li className="flex items-baseline gap-2" key={entry.id}>
+                  <span
+                    aria-hidden="true"
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-vermillion/25 bg-vermillion/10 font-brush text-[0.7rem] text-vermillion"
+                  >
+                    {entry.mark}
+                  </span>
+                  <span className="text-foreground/90">{entry.title}</span>
+                  <span className="ml-auto shrink-0 font-mono-tech text-[0.65rem] text-muted-foreground">
+                    {subtreeIds(layout, [entry.id]).length - 1} 署
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </DetailRow>
+        ) : roster.length > 0 ? (
+          <DetailRow label="衙署名录">
+            <ul className="flex flex-col gap-1">
+              {roster.map((entry) => (
+                <li
+                  className="flex items-baseline justify-between gap-2 border-ink/10 border-b pb-1 text-xs last:border-b-0"
+                  key={`${entry.title}·${entry.rank ?? ""}`}
+                >
+                  <span className="text-foreground/90">{entry.title}</span>
+                  {entry.rank ? (
+                    <span className="shrink-0 font-mono-tech text-[0.65rem] tracking-[0.04em] text-vermillion">
+                      {entry.rank}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </DetailRow>
+        ) : null}
         {mainStem.length > 0 ? <DetailRow label="主干">{mainStem.join("、")}</DetailRow> : null}
         {item.id === "all" ? <DetailRow label="读图提示">{atlas.hierarchyNote}</DetailRow> : null}
       </dl>
@@ -583,7 +713,12 @@ function OfficeDetailDrawer({
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {detail?.type === "node" ? (
-          <OfficeNodeDetail dynastyName={atlas.name} layout={layout} node={detail.node} />
+          <OfficeNodeDetail
+            atlas={atlas}
+            dynastyName={atlas.name}
+            layout={layout}
+            node={detail.node}
+          />
         ) : detail?.type === "filter" ? (
           <RelationDetail atlas={atlas} highlight={highlight} item={detail.item} layout={layout} />
         ) : null}

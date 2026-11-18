@@ -3,13 +3,13 @@ import type { AtlasOfficeNode, DynastyAtlas } from "./data";
 /**
  * 官制图谱立体树的布局计算（纯函数，不碰 DOM / WebGL）：
  * 把 DynastyAtlas 的「皇权 → 荣衔 → 六类官署分区 → 属官」层级关系
- * 摊成一棵可绘制的三维径向下降树。
+ * 摊成一棵可绘制的三维径向整齐树（tidy radial tree）。
  *
  * 与 rank-tree-layout 的「品级分层」不同，这里是一棵真正的从属树：
- * 皇权居中在上，直属子节点沿椭圆环铺开（x / z 皆独立变化，不是一条曲线），
- * 属官再挂靠各自父节点向下、向前垂落。纵向按深度下沉。
- * 环布局让同一层的节点真正在三维空间里错开，前后有远近、旋转有纵深，
- * 而不是旧版那样把 10 个分区压在一条抛物线上、标签首尾相接。
+ * 皇权居中在上，直属子节点按「叶子数占比」分得第一道椭圆环上的扇区，
+ * 属官按深度落到逐层外扩的同心环上（一圈一代人），角度取后代叶子的均值——
+ * 子代聚拢在父代角附近，纵向再按深度下沉。扇区随族大小伸缩、角度槽两两错开，
+ * 从任何视角都不是一条线，也保证不了任何两枚节点落到同一点。
  */
 
 export type OfficeNodeKind = "root" | "honorary" | "branch" | "office";
@@ -57,21 +57,27 @@ export interface OfficeTreeLayout {
 export const OFFICE_TREE_GEOMETRY = {
   /** 每一级向下的纵向间距。 */
   levelGap: 4.2,
-  /** 属官在父节点周围展开的横向步长。 */
-  slotGap: 1.5,
   /**
-   * 直属子节点环绕皇权的椭圆半径（x 横向 / z 纵深）。关键的结构变化：
-   * 旧版把 10 个分区排在一条抛物线上（x 与 z 都是 x 的函数），本质上是一条 1D 曲线，
-   * 从任何视角看都是「一条线」，标签首尾相接且层级被压平。改成椭圆环后，
-   * 同一层的节点真正在 x/z 平面铺开，前后错落，层级与纵深同时可见。
+   * 同心深度环：depth d 的节点落在椭圆环 (ringRadiusX + (d-1)·ringStepX,
+   * ringRadiusZ + (d-1)·ringStepZ) 上。皇权居中在上，直属子节点铺第一道环，
+   * 属官按深度落到更外圈——「一圈一代人」，俯视即见同心圆层级。
    */
-  ringRadiusX: 10,
-  ringRadiusZ: 6.5,
-  /** 属官每层在父节点基础上继续向前偏移，形成向前垂落的枝。 */
-  branchForward: 1.6,
-  /** 根节点高于直属子节点层的距离。 */
+  ringRadiusX: 11,
+  ringRadiusZ: 7.2,
+  /** 每深一层，环向外扩的步长。 */
+  ringStepX: 3.1,
+  ringStepZ: 2.2,
+  /**
+   * 族扇区平滑项：每个直属子族（荣衔组 / 官署分区）按「叶子数 + sectorSmooth」
+   * 分得环上的弧长——衙署多的分区自动拿到更宽的弧，避免族内拥挤。
+   */
+  sectorSmooth: 3,
+  /** 根节点高于第一道环的距离。 */
   rootLift: 1.8,
 } as const;
+
+/** 第一族在环上的起始角（正后方），族沿逆时针依次铺开。 */
+const START_ANGLE = -Math.PI / 2;
 
 /** 把朝代数据摊成一棵以皇权为根的从属树（尚未定位坐标）。 */
 interface RawNode {
@@ -173,7 +179,6 @@ export function buildOfficeTree(atlas: DynastyAtlas): RawNode[] {
 export function layoutOfficeTree(atlas: DynastyAtlas): OfficeTreeLayout {
   const raws = buildOfficeTree(atlas);
 
-  // 按父分组：直属子节点用分组顺序铺满椭圆环，属官用兄弟序号在父节点周围局部展开。
   const childrenOf = new Map<string, RawNode[]>();
   for (const raw of raws) {
     if (raw.parent === null) {
@@ -183,10 +188,53 @@ export function layoutOfficeTree(atlas: DynastyAtlas): OfficeTreeLayout {
     siblings.push(raw);
     childrenOf.set(raw.parent, siblings);
   }
-  const ring = childrenOf.get(ROOT_ID) ?? [];
+  const index = new Map(raws.map((raw) => [raw.id, raw]));
 
-  // raws 是父先子后的前序：父节点坐标必已落定，子节点直接挂靠父节点。
-  const placed = new Map<string, OfficeTreeNode>();
+  // —— 角度：径向整齐树（tidy radial tree）——
+  // 直属子族（荣衔组 / 官署分区）按「叶子数 + sectorSmooth」分得椭圆环上的扇区，
+  // 族内叶子按序铺满扇区（角度槽两两错开），内部节点取全部后代叶子的角度均值：
+  // 子代永远聚拢在父代角附近，衙署多的分区自动拿到更宽的弧，
+  // 任何两枚节点都不会落到同一点。旧版按兄弟序号沿 x 轴排开再向 +z「向前垂落」，
+  // 环后侧的子代反而被推进环内与中心相撞，且同层横向跨度挤爆扇区。
+  const leafCount = (id: string): number => {
+    const raw = index.get(id);
+    if (!raw || raw.children.length === 0) {
+      return 1;
+    }
+    return raw.children.reduce((sum, child) => sum + leafCount(child), 0);
+  };
+  const families = childrenOf.get(ROOT_ID) ?? [];
+  const totalWeight = families.reduce(
+    (sum, family) => sum + leafCount(family.id) + OFFICE_TREE_GEOMETRY.sectorSmooth,
+    0,
+  );
+  const angleOf = new Map<string, number>();
+  let familyStart = START_ANGLE;
+  for (const family of families) {
+    const leaves = leafCount(family.id);
+    const span =
+      ((leaves + OFFICE_TREE_GEOMETRY.sectorSmooth) / Math.max(1, totalWeight)) * Math.PI * 2;
+    const step = span / Math.max(1, leaves);
+    let leafCursor = familyStart;
+    const assign = (raw: RawNode): number => {
+      if (raw.children.length === 0) {
+        const angle = leafCursor + step / 2;
+        leafCursor += step;
+        angleOf.set(raw.id, angle);
+        return angle;
+      }
+      const childAngles = raw.children.map((childId) => assign(index.get(childId)!));
+      const angle = childAngles.reduce((sum, angle) => sum + angle, 0) / childAngles.length;
+      angleOf.set(raw.id, angle);
+      return angle;
+    };
+    angleOf.set(family.id, assign(family));
+    familyStart += span;
+  }
+
+  // —— 坐标：同心深度环 ——
+  // depth d 的节点落在椭圆环 (ringRadiusX + (d-1)·ringStepX, ringRadiusZ + (d-1)·ringStepZ)
+  // 上，纵向每层再下沉 levelGap：俯视一圈即一代，侧视呈瀑布式下沉，层级一眼可辨。
   const nodes: OfficeTreeNode[] = [];
   for (const raw of raws) {
     let x = 0;
@@ -194,23 +242,18 @@ export function layoutOfficeTree(atlas: DynastyAtlas): OfficeTreeLayout {
     let z = 0;
     if (raw.depth === 0) {
       y = OFFICE_TREE_GEOMETRY.rootLift;
-    } else if (raw.depth === 1) {
-      const index = ring.findIndex((node) => node.id === raw.id);
-      const theta = Math.PI / 2 + (index / Math.max(1, ring.length)) * Math.PI * 2;
-      x = Math.cos(theta) * OFFICE_TREE_GEOMETRY.ringRadiusX;
-      z = Math.sin(theta) * OFFICE_TREE_GEOMETRY.ringRadiusZ;
-      y = OFFICE_TREE_GEOMETRY.rootLift - OFFICE_TREE_GEOMETRY.levelGap;
     } else {
-      const parent = placed.get(raw.parent!)!;
-      const siblings = childrenOf.get(raw.parent!) ?? [];
-      const index = siblings.findIndex((node) => node.id === raw.id);
-      const offset = index - (siblings.length - 1) / 2;
-      x = parent.x + offset * OFFICE_TREE_GEOMETRY.slotGap;
-      z = parent.z + (raw.depth - 1) * OFFICE_TREE_GEOMETRY.branchForward + offset * 0.6;
-      y = parent.y - OFFICE_TREE_GEOMETRY.levelGap;
+      const ring = raw.depth - 1;
+      const angle = angleOf.get(raw.id) ?? START_ANGLE;
+      x =
+        Math.cos(angle) *
+        (OFFICE_TREE_GEOMETRY.ringRadiusX + ring * OFFICE_TREE_GEOMETRY.ringStepX);
+      z =
+        Math.sin(angle) *
+        (OFFICE_TREE_GEOMETRY.ringRadiusZ + ring * OFFICE_TREE_GEOMETRY.ringStepZ);
+      y = OFFICE_TREE_GEOMETRY.rootLift - raw.depth * OFFICE_TREE_GEOMETRY.levelGap;
     }
     const node: OfficeTreeNode = { ...raw, children: raw.children, x, y, z };
-    placed.set(raw.id, node);
     nodes.push(node);
   }
 
@@ -326,15 +369,27 @@ interface RankHit {
   order: number;
 }
 
-function parseRankHits(rank: string): RankHit[] {
-  const hits: RankHit[] = [];
+/**
+ * 从品级括注里解析出标准品级标签（「正一品」「从三品」「未入流」），
+ * 供品级跨度汇总与详情面板的「品级实档」对位共用。
+ * 复合括注（如「尚书 从一品 · 侍郎 正二品」）解析出全部命中，加衔类文字返回空。
+ */
+export function parseRankLabels(rank: string): string[] {
+  const labels: string[] = [];
   if (BOTTOM_RANK.test(rank)) {
-    hits.push({ label: "未入流", order: 10 });
+    labels.push("未入流");
   }
   for (const match of rank.matchAll(RANK_MATCH)) {
-    hits.push({ label: `${match[1] ?? ""}${match[2]}品`, order: RANK_ORDER[match[2]!] ?? 0 });
+    labels.push(`${match[1] ?? ""}${match[2]}品`);
   }
-  return hits;
+  return labels;
+}
+
+function parseRankHits(rank: string): RankHit[] {
+  return parseRankLabels(rank).map((label) => ({
+    label,
+    order: label === "未入流" ? 10 : (RANK_ORDER[label.slice(1, 2)] ?? 0),
+  }));
 }
 
 function walkRanks(node: AtlasOfficeNode, hits: RankHit[]): void {

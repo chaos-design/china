@@ -4,6 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import type { DynastyAtlas } from "./data";
 import {
   branchRankSpans,
+  OFFICE_TREE_GEOMETRY,
   type OfficeNodeKind,
   type OfficeTreeEdge,
   type OfficeTreeLayout,
@@ -61,7 +62,7 @@ const FONT_STACK =
 const LABEL_WORLD_PER_PX = 0.02;
 
 /** 相机距目标超过该距离（折叠总览镜头）时隐藏包围框的跨度标注，左菜单已标注跨度。 */
-const BRACKET_LABEL_DISTANCE = 18;
+const BRACKET_LABEL_DISTANCE = 26;
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 const NODE_RADIUS: Record<OfficeNodeKind, number> = {
   branch: 0.55,
@@ -117,9 +118,9 @@ const NODE_FINISH: Record<OfficeNodeKind, { metalness: number; roughness: number
 };
 
 const PRESET_ANGLES: Record<OfficeTreeCameraPreset, { azimuth: number; polar: number }> = {
-  // 略高的俯角才看得见 y 的分层与 z 的纵深；平视会把树压成一条标签带。
-  "three-quarter": { azimuth: 0.42, polar: 0.6 },
-  front: { azimuth: 0, polar: 0.5 },
+  // 更高的俯角让同心深度环呈现为椭圆轨道、y 的下沉与 z 的纵深同时可见；平视会把环压成一条线。
+  "three-quarter": { azimuth: 0.5, polar: 0.68 },
+  front: { azimuth: 0, polar: 0.38 },
 };
 
 /** 读取页面主题 token，让 3D 配色跟随水墨纸色与朱砂强调色。 */
@@ -262,12 +263,16 @@ function createLabelSprite(
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
   const material = new THREE.SpriteMaterial({
-    depthTest: true,
+    // 关闭深度测试：标签永远浮在节点与枝干之上，不被几何体遮挡吞掉；
+    // 关闭雾：远处标签保持全对比度，文字永远可读。
+    depthTest: false,
     depthWrite: false,
+    fog: false,
     map: texture,
     transparent: true,
   });
   const sprite = new THREE.Sprite(material);
+  sprite.renderOrder = 20;
   sprite.scale.set(width * LABEL_WORLD_PER_PX, height * LABEL_WORLD_PER_PX, 1);
   // 屏幕等比标注：tick 每帧按相机到标签的距离换算世界尺寸，缩放时保持恒定屏幕大小。
   sprite.userData.px = { h: height, w: width };
@@ -287,8 +292,18 @@ function disposeObject(root: THREE.Object3D): void {
   });
 }
 
+const KIND_NOUN: Record<OfficeNodeKind, string> = {
+  branch: "官署分区",
+  honorary: "荣衔封号",
+  office: "属官衙署",
+  root: "权力本源",
+};
+
 function describeNode(node: OfficeTreeNode, atlasName: string) {
-  const detail = node.note ?? node.title;
+  const noun = KIND_NOUN[node.kind];
+  const detail =
+    node.note ??
+    (node.rank ? `${node.rank} · ${noun}，点选查看品级实档与从属` : `${noun} · 点选查看职掌与从属`);
   const subtitle = node.rank
     ? `${atlasName} · ${node.title} · ${node.rank}`
     : `${atlasName} · ${node.title}`;
@@ -343,6 +358,8 @@ export function createOfficeTreeScene(
   // 层级关系会退化成一层几乎看不见的细丝，这是「信息扁平」的主因。
   let edgeStems: THREE.Mesh[] = [];
   let bracketMaterials: THREE.LineBasicMaterial[] = [];
+  // 深度环参考线与落地垂线的材质：主题切换时随 ink 重着色。
+  let guideMaterials: THREE.LineBasicMaterial[] = [];
   const hudLabels: THREE.Sprite[] = [];
   // 取景状态：fit 时的纵横比与预设视角。用户手动旋转/缩放后不再自动重取景。
   let userAdjusted = false;
@@ -350,6 +367,10 @@ export function createOfficeTreeScene(
   let fittedAngles = PRESET_ANGLES["three-quarter"];
 
   const scene = new THREE.Scene();
+  // 雾是纵深线索：远处的节点与枝干渐隐进纸色，旋转时前后排一眼可分。
+  // 近远距在 rebuild 里按取景距离重算，保证折叠 / 展开两种规模下都是轻淡的一层。
+  const fog = new THREE.Fog(initialColors.paper, 32, 82);
+  scene.fog = fog;
   const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 500);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.autoRotateSpeed = 1.2;
@@ -372,18 +393,26 @@ export function createOfficeTreeScene(
     "position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;";
   container.appendChild(renderer.domElement);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.92));
-  const keyLight = new THREE.DirectionalLight(0xfff6e8, 0.62);
-  keyLight.position.set(9, 18, 12);
+  // 光比即立体感：环境光压低、主光加重并配冷暖双侧光，四棱柱与棱面才有明暗转折。
+  // 旧版环境光 0.92 几乎抹平了几何体的一切棱面，是「贴片感」的主因。
+  scene.add(new THREE.AmbientLight(0xffffff, 0.58));
+  const keyLight = new THREE.DirectionalLight(0xfff3e0, 1.05);
+  keyLight.position.set(10, 18, 11);
   scene.add(keyLight);
-  const rimLight = new THREE.DirectionalLight(0xdfe9ff, 0.3);
-  rimLight.position.set(-10, 8, -12);
+  const rimLight = new THREE.DirectionalLight(0xdfe9ff, 0.5);
+  rimLight.position.set(-11, 7, -13);
   scene.add(rimLight);
+  const fillLight = new THREE.DirectionalLight(0xffe3bd, 0.34);
+  fillLight.position.set(-6, 3, 14);
+  scene.add(fillLight);
 
   function contentCenter(): THREE.Vector3 {
     const midX = (bounds.minX + bounds.maxX) / 2;
     const midY = (bounds.minY + bounds.maxY) / 2;
-    return new THREE.Vector3(midX, midY, 0);
+    // 底部有 hover 读出与页级题注条占位：取景中心略向下偏，整树在屏幕上随之抬高，
+    // 前排节点不滑进底部覆盖层。偏移随树高缩放，折叠 / 展开两种规模都成立。
+    const bias = (bounds.maxY - bounds.minY) * 0.1;
+    return new THREE.Vector3(midX, midY - bias, 0);
   }
 
   function fitDistance(): number {
@@ -395,7 +424,7 @@ export function createOfficeTreeScene(
     const distanceV = height / 2 / Math.tan(halfFov);
     const distanceH = width / 2 / (Math.tan(halfFov) * Math.max(0.4, camera.aspect));
     const distanceD = (depth / 2 / Math.tan(halfFov)) * 0.75;
-    return Math.max(distanceV, distanceH, distanceD) * 1.14 + 2;
+    return Math.max(distanceV, distanceH, distanceD) * 1.3 + 2;
   }
 
   function applyCamera(azimuth: number, polar: number, distance: number, target: THREE.Vector3) {
@@ -456,6 +485,7 @@ export function createOfficeTreeScene(
     nodeLabels = [];
     edgeStems = [];
     bracketMaterials = [];
+    guideMaterials = [];
     // hudLabels 是复用数组：不清空会随每次重建累积，旧朝代的跨度标注泄漏到新树。
     hudLabels.length = 0;
     atlasName = atlas.name;
@@ -486,8 +516,9 @@ export function createOfficeTreeScene(
         continue;
       }
       const baseColor = stemColor(colors, edge.kind);
+      // 顶略细于底的圆锥台：枝干有了「从粗到细生长」的方向感，父子链读起来更像枝而非杆。
       const stem = new THREE.Mesh(
-        new THREE.CylinderGeometry(1, 1, 1, 6, 1),
+        new THREE.CylinderGeometry(0.72, 1, 1, 6, 1),
         new THREE.MeshBasicMaterial({
           color: baseColor.clone(),
           transparent: true,
@@ -509,10 +540,11 @@ export function createOfficeTreeScene(
     }
 
     for (const node of layout.nodes) {
-      // 越深的层级节点越小、自发光越弱；配合四种独立造型，层级一眼可辨。
+      // 越深的层级节点越小、自发光略弱；配合四种独立造型，层级一眼可辨。
+      // 自发光下限不能压太低：属官球体在纸色底上会灰得像没渲染。
       const depthFade = 1 / (1 + node.depth * 0.18);
       const radius = NODE_RADIUS[node.kind] * depthFade;
-      const emissiveBase = node.kind === "root" ? 0.5 : Math.max(0.12, 0.34 - node.depth * 0.06);
+      const emissiveBase = node.kind === "root" ? 0.5 : Math.max(0.22, 0.4 - node.depth * 0.05);
       const finish = NODE_FINISH[node.kind];
       const mesh = new THREE.Mesh(
         createNodeGeometry(node.kind, radius),
@@ -571,11 +603,57 @@ export function createOfficeTreeScene(
       const radial = Math.hypot(node.x, node.z);
       const outwardX = radial > 0.01 ? node.x / radial : 0;
       const outwardZ = radial > 0.01 ? node.z / radial : 1;
-      label.position.set(node.x + outwardX * 1.15, node.y + radius + 0.7, node.z + outwardZ * 1.15);
+      label.position.set(node.x + outwardX * 1.5, node.y + radius + 0.95, node.z + outwardZ * 1.5);
       label.userData.nodeId = node.id;
       content.add(label);
       nodeLabels.push(label);
     }
+
+    // 深度环参考线：每个可见深度一圈椭圆「轨道」，一圈即一代——
+    // 层级不再只靠节点大小暗示，俯视时同心轨道就是显式的层级刻度。
+    const depths = [...new Set(layout.nodes.map((node) => node.depth))].sort((a, b) => a - b);
+    for (const depth of depths) {
+      if (depth === 0) {
+        continue;
+      }
+      const ring = depth - 1;
+      const rx = OFFICE_TREE_GEOMETRY.ringRadiusX + ring * OFFICE_TREE_GEOMETRY.ringStepX;
+      const rz = OFFICE_TREE_GEOMETRY.ringRadiusZ + ring * OFFICE_TREE_GEOMETRY.ringStepZ;
+      const y = OFFICE_TREE_GEOMETRY.rootLift - depth * OFFICE_TREE_GEOMETRY.levelGap;
+      const points: number[] = [];
+      for (let step = 0; step <= 128; step += 1) {
+        const theta = (step / 128) * Math.PI * 2;
+        points.push(Math.cos(theta) * rx, y, Math.sin(theta) * rz);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
+      const material = new THREE.LineBasicMaterial({
+        color: colors.ink,
+        transparent: true,
+        opacity: depth === 1 ? 0.16 : 0.1,
+        depthWrite: false,
+      });
+      guideMaterials.push(material);
+      content.add(new THREE.Line(geometry, material));
+    }
+
+    // 落地垂线：每枚节点向树底平面投一根细线——悬浮的原子有了可锚定的落点，
+    // 旋转视角时节点的前后远近由垂线的长短与交点直接给出。
+    const groundY = layout.minY - 1.6;
+    const dropPoints: number[] = [];
+    for (const node of layout.nodes) {
+      dropPoints.push(node.x, node.y - 0.15, node.z, node.x, groundY, node.z);
+    }
+    const dropGeometry = new THREE.BufferGeometry();
+    dropGeometry.setAttribute("position", new THREE.Float32BufferAttribute(dropPoints, 3));
+    const dropMaterial = new THREE.LineBasicMaterial({
+      color: colors.ink,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false,
+    });
+    guideMaterials.push(dropMaterial);
+    content.add(new THREE.LineSegments(dropGeometry, dropMaterial));
 
     // 分区包围框：可见节点 ≥ 2 的官署分区（与荣衔簇）画一圈包围矩形，
     // 框顶标注该区品级跨度（「哪一层是哪个品级」）。框只作视觉分组，不进拾取集合。
@@ -618,10 +696,11 @@ export function createOfficeTreeScene(
       }
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute("position", new THREE.Float32BufferAttribute(segmentPoints, 3));
+      // 环形布局下簇是楔形，轴对齐包围框彼此交叠：压得更淡，只作若隐若现的分组提示。
       const material = new THREE.LineBasicMaterial({
         color: colors.ochre,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.28,
       });
       bracketMaterials.push(material);
       content.add(new THREE.LineSegments(geometry, material));
@@ -646,6 +725,11 @@ export function createOfficeTreeScene(
       minZ: layout.minZ - 3,
       maxZ: layout.maxZ + 3,
     };
+
+    // 雾距随取景规模缩放：最近节点保持全彩，最远排渐隐进纸色（纵深线索）。
+    const fit = fitDistance();
+    fog.near = fit * 1.05;
+    fog.far = fit * 2.2;
 
     const angles = PRESET_ANGLES["three-quarter"];
     fittedAngles = angles;
@@ -896,6 +980,10 @@ export function createOfficeTreeScene(
       for (const material of bracketMaterials) {
         material.color = new THREE.Color(colors.ochre);
       }
+      for (const material of guideMaterials) {
+        material.color = new THREE.Color(colors.ink);
+      }
+      fog.color.set(colors.paper);
       for (const stem of edgeStems) {
         const meta = stem.userData.stem as StemMeta;
         meta.baseColor = stemColor(colors, meta.kind);

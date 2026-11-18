@@ -205,6 +205,11 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(within(drawer).getByText("左都御史 · 正一品")).toBeInTheDocument();
     expect(within(drawer).getByText("属官衙署")).toBeInTheDocument();
     expect(within(drawer).getByText(/皇帝 \/ .*都察院/)).toBeInTheDocument();
+    // 品级实档：正一品括注对位到本朝品秩谱，落出顶戴 / 朝服 / 岁俸实档。
+    expect(within(drawer).getByText(/品级实档/)).toBeInTheDocument();
+    expect(within(drawer).getByText(/红宝石顶/)).toBeInTheDocument();
+    expect(within(drawer).getByText(/石青色绣金/)).toBeInTheDocument();
+    expect(within(drawer).getByText(/180 两/)).toBeInTheDocument();
 
     fireEvent.click(within(drawer).getByRole("button", { name: "关闭详情" }));
     expect(drawer).toHaveAttribute("aria-hidden", "true");
@@ -233,6 +238,10 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(within(drawer).getByRole("heading", { name: "中枢部" })).toBeInTheDocument();
     expect(within(drawer).getByText("官署分区")).toBeInTheDocument();
     expect(within(drawer).getByText(/个节点/)).toBeInTheDocument();
+    // 衙署名录：聚焦的分区把属官与品级一条条列出来。
+    expect(within(drawer).getByText("衙署名录")).toBeInTheDocument();
+    expect(within(drawer).getByText("军机处")).toBeInTheDocument();
+    expect(within(drawer).getByText("议政王大臣会议")).toBeInTheDocument();
 
     fireEvent.click(within(menu).getByRole("button", { name: "清除" }));
     expect(

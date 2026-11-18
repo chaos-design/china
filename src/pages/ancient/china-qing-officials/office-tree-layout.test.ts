@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { getDynastyAtlas } from "./data";
+import { DYNASTY_ATLASES, getDynastyAtlas } from "./data";
 import {
   branchRankSpans,
   buildOfficeTree,
   filterOfficeTreeLayout,
   layoutOfficeTree,
   OFFICE_TREE_GEOMETRY,
+  parseRankLabels,
   visibleNodeIds,
 } from "./office-tree-layout";
 
@@ -89,6 +90,65 @@ describe("layoutOfficeTree", () => {
     expect(collapsed.nodes.find((node) => node.id === "assistant")!.x).toBe(
       full.nodes.find((node) => node.id === "assistant")!.x,
     );
+  });
+
+  it("places every non-root depth on its own concentric ring", () => {
+    const layout = layoutOfficeTree(getDynastyAtlas("qing")!);
+    const geometry = OFFICE_TREE_GEOMETRY;
+
+    for (const node of layout.nodes) {
+      if (node.depth === 0) {
+        expect(node.x).toBe(0);
+        expect(node.z).toBe(0);
+        continue;
+      }
+      const ring = node.depth - 1;
+      const rx = geometry.ringRadiusX + ring * geometry.ringStepX;
+      const rz = geometry.ringRadiusZ + ring * geometry.ringStepZ;
+      // 一圈一代人：每个节点都精确落在该深度的椭圆轨道上。
+      expect((node.x / rx) ** 2 + (node.z / rz) ** 2).toBeCloseTo(1, 5);
+      expect(node.y).toBe(geometry.rootLift - node.depth * geometry.levelGap);
+    }
+  });
+
+  it("keeps same-depth nodes apart and children clustered around their parents", () => {
+    for (const atlas of DYNASTY_ATLASES) {
+      const layout = layoutOfficeTree(atlas);
+      const byId = new Map(layout.nodes.map((node) => [node.id, node]));
+
+      // 同深度的任意两枚节点不重叠（最小官署直径约 0.6）。
+      const depths = [...new Set(layout.nodes.map((node) => node.depth))];
+      for (const depth of depths) {
+        const group = layout.nodes.filter((node) => node.depth === depth);
+        for (let i = 0; i < group.length; i += 1) {
+          for (let j = i + 1; j < group.length; j += 1) {
+            const distance = Math.hypot(
+              group[i]!.x - group[j]!.x,
+              group[i]!.y - group[j]!.y,
+              group[i]!.z - group[j]!.z,
+            );
+            expect(distance).toBeGreaterThan(0.6);
+          }
+        }
+      }
+
+      // 子代聚拢在父代所在扇区（根居中除外）。叶子多的族扇区可以很宽
+      //（小朝代一个分区可占近半环），端部子代离父代均值可达五六十度，
+      // 这里只锁「子代不绕到父代对侧」这一构造保证：父子 xz 同向。
+      for (const node of layout.nodes) {
+        if (node.depth === 0) {
+          continue;
+        }
+        const magnitude = Math.hypot(node.x, node.z);
+        for (const childId of node.children) {
+          const child = byId.get(childId)!;
+          const childMagnitude = Math.hypot(child.x, child.z);
+          const dot =
+            (node.x * child.x + node.z * child.z) / Math.max(1e-6, magnitude * childMagnitude);
+          expect(dot).toBeGreaterThan(0.2);
+        }
+      }
+    }
   });
 });
 
@@ -173,5 +233,21 @@ describe("branchRankSpans", () => {
     const spans = branchRankSpans(stripped);
 
     expect(spans.get("local")).toBe("无定品");
+  });
+});
+
+describe("parseRankLabels", () => {
+  it("extracts standard grade labels from single and compound annotations", () => {
+    expect(parseRankLabels("正一品")).toEqual(["正一品"]);
+    expect(parseRankLabels("左都御史 · 正一品")).toEqual(["正一品"]);
+    expect(parseRankLabels("尚书 从一品 · 侍郎 正二品")).toEqual(["从一品", "正二品"]);
+    expect(parseRankLabels("正三品至正六品")).toEqual(["正三品", "正六品"]);
+  });
+
+  it("maps 未入流 and returns nothing for honorary-style remarks", () => {
+    expect(parseRankLabels("典史 · 未入流")).toEqual(["未入流"]);
+    expect(parseRankLabels("加衔无定品")).toEqual([]);
+    expect(parseRankLabels("议政处")).toEqual([]);
+    expect(parseRankLabels("宗令 · 亲王郡王兼领")).toEqual([]);
   });
 });
