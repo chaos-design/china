@@ -5,6 +5,7 @@ import type { DynastyAtlas } from "./data";
 import {
   branchRankSpans,
   type OfficeNodeKind,
+  type OfficeTreeEdge,
   type OfficeTreeLayout,
   type OfficeTreeNode,
 } from "./office-tree-layout";
@@ -63,15 +64,41 @@ const LABEL_WORLD_PER_PX = 0.02;
 const BRACKET_LABEL_DISTANCE = 60;
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 const NODE_RADIUS: Record<OfficeNodeKind, number> = {
-  branch: 0.4,
-  honorary: 0.46,
-  office: 0.3,
-  root: 0.62,
+  branch: 0.55,
+  honorary: 0.6,
+  office: 0.38,
+  root: 0.95,
 };
 
+/** 从属枝干的粗细：皇权直出的分区最粗，逐级收细，粗细本身就是层级编码。 */
+const STEM_RADIUS: Record<OfficeTreeEdge["kind"], number> = {
+  branch: 0.17,
+  honorary: 0.13,
+  office: 0.085,
+};
+
+interface StemMeta {
+  from: string;
+  to: string;
+  kind: OfficeTreeEdge["kind"];
+  baseColor: THREE.Color;
+}
+
+function stemColor(colors: OfficeTreeColors, kind: OfficeTreeEdge["kind"]): THREE.Color {
+  switch (kind) {
+    case "branch":
+      return new THREE.Color(colors.vermillion);
+    case "honorary":
+      return new THREE.Color(colors.ochre);
+    case "office":
+      return new THREE.Color(colors.blueprint);
+  }
+}
+
 const PRESET_ANGLES: Record<OfficeTreeCameraPreset, { azimuth: number; polar: number }> = {
-  "three-quarter": { azimuth: 0.32, polar: 0.32 },
-  front: { azimuth: 0, polar: 0.3 },
+  // 略高的俯角才看得见 y 的分层与 z 的纵深；平视会把树压成一条标签带。
+  "three-quarter": { azimuth: 0.42, polar: 0.5 },
+  front: { azimuth: 0, polar: 0.42 },
 };
 
 /** 读取页面主题 token，让 3D 配色跟随水墨纸色与朱砂强调色。 */
@@ -291,9 +318,9 @@ export function createOfficeTreeScene(
   let highlighted: ReadonlySet<string> | null = null;
   let nodeMeshes: THREE.Mesh[] = [];
   let nodeLabels: THREE.Sprite[] = [];
-  let edgeLines: THREE.LineSegments | null = null;
-  let edgeBaseColors: number[] = [];
-  let edgeEnds: { from: string; to: string }[] = [];
+  // 从属枝干用有体积的圆柱而非 1px 线段：WebGL 下线宽恒为 1px，
+  // 层级关系会退化成一层几乎看不见的细丝，这是「信息扁平」的主因。
+  let edgeStems: THREE.Mesh[] = [];
   let bracketMaterials: THREE.LineBasicMaterial[] = [];
   const hudLabels: THREE.Sprite[] = [];
   // 取景状态：fit 时的纵横比与预设视角。用户手动旋转/缩放后不再自动重取景。
@@ -403,10 +430,10 @@ export function createOfficeTreeScene(
     pickMeshes = [];
     nodeMeshes = [];
     nodeLabels = [];
-    edgeLines = null;
-    edgeBaseColors = [];
-    edgeEnds = [];
+    edgeStems = [];
     bracketMaterials = [];
+    // hudLabels 是复用数组：不清空会随每次重建累积，旧朝代的跨度标注泄漏到新树。
+    hudLabels.length = 0;
     atlasName = atlas.name;
 
     content = new THREE.Group();
@@ -414,50 +441,68 @@ export function createOfficeTreeScene(
 
     const byId = new Map(layout.nodes.map((node) => [node.id, node]));
 
-    const positions: number[] = [];
-    const edgeColors: number[] = [];
-    const branchColor = new THREE.Color(colors.vermillion);
-    const officeColor = new THREE.Color(colors.blueprint);
+    const up = new THREE.Vector3(0, 1, 0);
+    const fromVec = new THREE.Vector3();
+    const toVec = new THREE.Vector3();
+    const direction = new THREE.Vector3();
 
-    // 先画父子连线（枝干），再画节点，保证节点盖在线上。
+    // 先画从属枝干，再画节点，保证节点盖在枝干端点上。每条边是一根有体积的圆柱：
+    // 皇权直出最粗、属官最细，父子链在旋转视角下也读得出「谁生谁」。
     for (const edge of layout.edges) {
       const from = byId.get(edge.from);
       const to = byId.get(edge.to);
       if (!from || !to) {
         continue;
       }
-      const color = edge.kind === "branch" ? branchColor : officeColor;
-      positions.push(from.x, from.y, from.z, to.x, to.y, to.z);
-      edgeColors.push(color.r, color.g, color.b, color.r, color.g, color.b);
-      edgeEnds.push({ from: edge.from, to: edge.to });
+      fromVec.set(from.x, from.y, from.z);
+      toVec.set(to.x, to.y, to.z);
+      direction.subVectors(toVec, fromVec);
+      const length = direction.length();
+      if (length < 1e-4) {
+        continue;
+      }
+      const baseColor = stemColor(colors, edge.kind);
+      const stem = new THREE.Mesh(
+        new THREE.CylinderGeometry(1, 1, 1, 6, 1),
+        new THREE.MeshBasicMaterial({
+          color: baseColor.clone(),
+          transparent: true,
+          opacity: 0.82,
+          depthWrite: false,
+        }),
+      );
+      stem.position.copy(fromVec).add(toVec).multiplyScalar(0.5);
+      stem.quaternion.setFromUnitVectors(up, direction.divideScalar(length));
+      stem.scale.set(STEM_RADIUS[edge.kind], length, STEM_RADIUS[edge.kind]);
+      stem.userData.stem = {
+        from: edge.from,
+        to: edge.to,
+        kind: edge.kind,
+        baseColor,
+      } satisfies StemMeta;
+      content.add(stem);
+      edgeStems.push(stem);
     }
 
-    const edgeGeometry = new THREE.BufferGeometry();
-    edgeGeometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-    edgeGeometry.setAttribute("color", new THREE.Float32BufferAttribute(edgeColors, 3));
-    const edgeMaterial = new THREE.LineBasicMaterial({
-      opacity: 0.55,
-      transparent: true,
-      vertexColors: true,
-    });
-    edgeLines = new THREE.LineSegments(edgeGeometry, edgeMaterial);
-    edgeBaseColors = edgeColors;
-    content.add(edgeLines);
-
     for (const node of layout.nodes) {
-      const radius = NODE_RADIUS[node.kind];
+      // 越深的层级节点越小、自发光越弱：用体积与明度再编码一次层级，
+      // 即使不看连线也能分出「本源 > 分区 > 属官」。
+      const depthFade = 1 / (1 + node.depth * 0.18);
+      const radius = NODE_RADIUS[node.kind] * depthFade;
+      const emissiveBase = node.kind === "root" ? 0.5 : Math.max(0.12, 0.34 - node.depth * 0.06);
       const mesh = new THREE.Mesh(
         new THREE.OctahedronGeometry(radius, 0),
         new THREE.MeshStandardMaterial({
           color: nodeKindColor(colors, node.kind),
           emissive: nodeKindColor(colors, node.kind),
-          emissiveIntensity: node.kind === "root" ? 0.45 : 0.3,
+          emissiveIntensity: emissiveBase,
           flatShading: true,
           metalness: 0.18,
           roughness: 0.45,
           transparent: true,
         }),
       );
+      mesh.userData.emissiveBase = emissiveBase;
       mesh.position.set(node.x, node.y, node.z);
       if (node.kind === "root" || node.kind === "branch") {
         mesh.rotation.y = Math.PI / 4;
@@ -476,7 +521,8 @@ export function createOfficeTreeScene(
       if (node.kind === "office") {
         continue;
       }
-      const labelSize = node.kind === "root" ? 30 : node.kind === "honorary" ? 22 : 26;
+      // 标签压住节点是「信息扁平」的另一来源：缩小到只标注层级入口，让枝干与节点露出来。
+      const labelSize = node.kind === "root" ? 24 : node.kind === "honorary" ? 17 : 19;
       const label = createLabelSprite(
         colors,
         [{ size: labelSize, text: node.title, weight: 700 }],
@@ -576,24 +622,19 @@ export function createOfficeTreeScene(
       const on = isOn(pick.id);
       const material = mesh.material as THREE.MeshStandardMaterial;
       material.opacity = on ? 1 : 0.12;
-      material.emissiveIntensity = on ? (pick.kind === "root" ? 0.45 : 0.3) : 0.03;
+      material.emissiveIntensity = on ? ((mesh.userData.emissiveBase as number) ?? 0.3) : 0.03;
     }
     for (const label of nodeLabels) {
       (label.material as THREE.SpriteMaterial).opacity = isOn(label.userData.nodeId as string)
         ? 1
         : 0.16;
     }
-    if (edgeLines) {
-      const attribute = edgeLines.geometry.getAttribute("color") as THREE.BufferAttribute;
-      for (let index = 0; index < edgeEnds.length; index += 1) {
-        const { from, to } = edgeEnds[index]!;
-        const factor = isOn(from) && isOn(to) ? 1 : isOn(from) || isOn(to) ? 0.45 : 0.12;
-        const offset = index * 6;
-        for (let channel = 0; channel < 6; channel += 1) {
-          attribute.setX(offset + channel, (edgeBaseColors[offset + channel] ?? 0) * factor);
-        }
-      }
-      attribute.needsUpdate = true;
+    for (const stem of edgeStems) {
+      const { from, to, baseColor } = stem.userData.stem as StemMeta;
+      const factor = isOn(from) && isOn(to) ? 1 : isOn(from) || isOn(to) ? 0.4 : 0.1;
+      const material = stem.material as THREE.MeshBasicMaterial;
+      material.color.copy(baseColor).multiplyScalar(factor);
+      material.opacity = 0.82 * factor;
     }
     pickMeshes = active
       ? nodeMeshes.filter((mesh) => active.has((mesh.userData.pick as OfficeTreePick).id))
@@ -803,6 +844,12 @@ export function createOfficeTreeScene(
       for (const material of bracketMaterials) {
         material.color = new THREE.Color(colors.ochre);
       }
+      for (const stem of edgeStems) {
+        const meta = stem.userData.stem as StemMeta;
+        meta.baseColor = stemColor(colors, meta.kind);
+      }
+      // 边的实际颜色由 applyHighlight 按 baseColor × 高亮系数算出，主题切换后需重算一次。
+      applyHighlight();
     });
   });
   themeObserver.observe(document.documentElement, {
@@ -842,9 +889,7 @@ export function createOfficeTreeScene(
       pickMeshes = [];
       nodeMeshes = [];
       nodeLabels = [];
-      edgeLines = null;
-      edgeBaseColors = [];
-      edgeEnds = [];
+      edgeStems = [];
     },
     resetView,
     setAtlas,

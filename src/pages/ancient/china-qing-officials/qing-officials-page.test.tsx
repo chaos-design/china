@@ -175,6 +175,24 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(lastLayout().nodes).toHaveLength(96);
   });
 
+  it("marks the collapsed third tier on the level scale and updates it on expansion", () => {
+    mocks.create.mockReturnValue(mocks.scene);
+    renderAt();
+
+    const scale = screen.getByLabelText("层级刻度");
+    expect(within(scale).getByText("权力本源")).toBeInTheDocument();
+    expect(within(scale).getByText("官署分区 · 荣衔")).toBeInTheDocument();
+    expect(within(scale).getByText("属官衙署")).toBeInTheDocument();
+    // 默认折叠到分区：第三层还没有属官可见，显式提示可展开。
+    expect(within(scale).getByText("点分区展开")).toBeInTheDocument();
+
+    act(() => {
+      sceneHandlers().onPick({ id: "assistant", kind: "branch", title: "佐理部" });
+    });
+    expect(within(scale).getByText("8 节点")).toBeInTheDocument();
+    expect(within(scale).queryByText("点分区展开")).toBeNull();
+  });
+
   it("opens the right-side detail drawer on an office pick and closes it", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();

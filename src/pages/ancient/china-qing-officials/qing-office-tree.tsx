@@ -592,6 +592,57 @@ function OfficeDetailDrawer({
   );
 }
 
+const LEVEL_LABELS = ["权力本源", "官署分区 · 荣衔", "属官衙署", "分属机构", "分支属官"] as const;
+const LEVEL_NUMERALS = ["壹", "贰", "叁", "肆", "伍"] as const;
+
+/**
+ * 舞台右上的层级刻度：把「从属树分几层、每层是什么」从 3D 场景里抽出来显式呈现。
+ * 默认折叠到分区时画布只有两层，第三层以「点分区展开」占位——观众落地即知
+ * 这是一棵三层树，而不是把下面还有层级这件事藏在交互背后。
+ */
+function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: boolean }) {
+  const rows = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const node of layout.nodes) {
+      counts.set(node.depth, (counts.get(node.depth) ?? 0) + 1);
+    }
+    const maxDepth = Math.max(2, ...counts.keys());
+    return Array.from({ length: maxDepth + 1 }, (_, depth) => ({
+      count: counts.get(depth) ?? 0,
+      depth,
+      label: LEVEL_LABELS[depth] ?? `第 ${depth + 1} 层`,
+      numeral: LEVEL_NUMERALS[depth] ?? String(depth + 1),
+    }));
+  }, [layout]);
+
+  return (
+    <section
+      aria-label="层级刻度"
+      className={cn(
+        "pointer-events-none absolute right-3 top-3 z-20 hidden w-[196px] rounded-xl border border-ink/12 bg-paper/85 px-3 py-2.5 shadow-[0_12px_32px_hsl(var(--ink)/0.12)] backdrop-blur-xl transition-opacity lg:block",
+        hidden ? "lg:opacity-0" : null,
+      )}
+    >
+      <p className="font-mono-tech text-[0.65rem] tracking-[0.18em] text-ochre uppercase">
+        层级刻度
+      </p>
+      <ol className="mt-2 flex flex-col gap-1.5">
+        {rows.map((row) => (
+          <li className="flex items-baseline justify-between gap-2" key={row.depth}>
+            <span className="flex min-w-0 items-baseline gap-1.5">
+              <span className="font-mono-tech text-[0.7rem] text-vermillion">{row.numeral}</span>
+              <span className="truncate font-body text-xs text-ink/80">{row.label}</span>
+            </span>
+            <span className="shrink-0 font-mono-tech text-[0.7rem] text-muted-foreground">
+              {row.count > 0 ? `${row.count} 节点` : "点分区展开"}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 /** 图一：官制层级，呈现为一棵可旋转缩放的三维从属立体树；WebGL 不可用时回落到 2D 卡片镜像。 */
 export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
   const fullLayout = useMemo(() => layoutOfficeTree(atlas), [atlas]);
@@ -728,6 +779,8 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
           {atlas.hierarchyNote}
         </p>
       </div>
+
+      <LevelScale layout={clippedLayout} hidden={Boolean(detail)} />
 
       <StageMenu
         activeId={filterId}

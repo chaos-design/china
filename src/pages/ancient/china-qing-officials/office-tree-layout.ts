@@ -52,12 +52,20 @@ export interface OfficeTreeLayout {
 }
 
 export const OFFICE_TREE_GEOMETRY = {
-  /** 每层深度对应的纵向间距（越大越像图二那种高瘦层级树）。 */
-  levelGap: 3.2,
+  /** 每层深度对应的纵向间距：太小会让折叠视图的 10 个分区挤成一条横线。 */
+  levelGap: 5,
   /** 相邻叶子的横向间距（越大标签越不易互相覆盖）。 */
   slotGap: 1.6,
-  /** z 弧强度：树冠外沿向后的弯曲程度（随树宽放大需调小，避免远端被透视压扁）。 */
-  zCurve: 0.0012,
+  /**
+   * 树冠纵深：外沿相对中轴的后弯量（世界单位）。按 x/halfWidth 归一化而非 x²，
+   * 使 11 节点的折叠视图与 96 节点的全树拥有同一只「碗」——否则前者近乎全平、
+   * 后者远端被透视压扁，层级空间感在两种状态下都不稳定。
+   */
+  crownDepth: 5.5,
+  /** 外沿下沉：同层节点从横线变成穹顶，与 z 的后弯一起把「层」读成三维。 */
+  crownDroop: 2.2,
+  /** 根节点向相机前凸：作为「本源」站在枝干最前方，不被直属下一层的标签盖住。 */
+  rootForward: 2.5,
   /** 根节点高于最高层的距离。 */
   rootLift: 1.6,
 } as const;
@@ -211,11 +219,18 @@ export function layoutOfficeTree(atlas: DynastyAtlas): OfficeTreeLayout {
   const rawMinX = slotX.reduce((least, value) => Math.min(least, value), Number.POSITIVE_INFINITY);
   const rawMaxX = slotX.reduce((most, value) => Math.max(most, value), Number.NEGATIVE_INFINITY);
   const centerX = (rawMinX + rawMaxX) / 2;
+  const halfWidth = Math.max(1, (rawMaxX - rawMinX) / 2);
 
   const nodes: OfficeTreeNode[] = raws.map((raw, index) => {
     const x = slotX[index]! - centerX;
-    const y = -(raw.depth * OFFICE_TREE_GEOMETRY.levelGap) + OFFICE_TREE_GEOMETRY.rootLift;
-    const z = -OFFICE_TREE_GEOMETRY.zCurve * x * x;
+    const edgeRatio = x / halfWidth;
+    const y =
+      -(raw.depth * OFFICE_TREE_GEOMETRY.levelGap) +
+      OFFICE_TREE_GEOMETRY.rootLift -
+      OFFICE_TREE_GEOMETRY.crownDroop * edgeRatio ** 2;
+    const z =
+      -OFFICE_TREE_GEOMETRY.crownDepth * edgeRatio ** 2 +
+      (raw.depth === 0 ? OFFICE_TREE_GEOMETRY.rootForward : 0);
     return {
       ...raw,
       children: raw.children,

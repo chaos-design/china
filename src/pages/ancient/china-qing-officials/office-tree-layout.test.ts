@@ -6,6 +6,7 @@ import {
   buildOfficeTree,
   filterOfficeTreeLayout,
   layoutOfficeTree,
+  OFFICE_TREE_GEOMETRY,
   visibleNodeIds,
 } from "./office-tree-layout";
 
@@ -69,6 +70,25 @@ describe("layoutOfficeTree", () => {
     expect(layout.minX).toBeLessThan(layout.maxX);
     expect(layout.minY).toBeLessThan(layout.maxY);
     expect(layout.width).toBeCloseTo(layout.maxX - layout.minX);
+  });
+
+  it("keeps a stable crown depth in both the collapsed view and the full tree", () => {
+    const qing = getDynastyAtlas("qing")!;
+    const full = layoutOfficeTree(qing);
+    const collapsed = filterOfficeTreeLayout(full, visibleNodeIds(full, new Set()));
+    const crown = OFFICE_TREE_GEOMETRY.crownDepth;
+    const depthOf = (layout: typeof full) =>
+      Math.max(...layout.nodes.map((node) => Math.abs(node.z)));
+
+    // 归一化后的纵深与树宽解耦：全树最外沿恰好是一只碗的深度，折叠视图也有可观纵深。
+    expect(depthOf(full)).toBeCloseTo(crown, 5);
+    expect(depthOf(collapsed)).toBeGreaterThan(crown * 0.3);
+    expect(depthOf(collapsed)).toBeLessThanOrEqual(crown + 1e-9);
+
+    // 中轴节点在前、外沿向后弯，旋转时才有立体层次而非一张平面图。
+    const center = full.nodes.reduce((a, b) => (Math.abs(a.x) < Math.abs(b.x) ? a : b));
+    const edge = full.nodes.reduce((a, b) => (Math.abs(a.x) > Math.abs(b.x) ? a : b));
+    expect(center.z).toBeGreaterThan(edge.z);
   });
 });
 
