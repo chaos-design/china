@@ -57,6 +57,8 @@ export interface AtlasLadderGroup {
   label: string;
   note: string;
   orders: readonly number[];
+  /** 组内正/从筛选（同品序正从分行的阶梯用；缺省不过滤）。 */
+  grade?: AtlasRankLevel["grade"];
 }
 
 export interface AtlasRankNotes {

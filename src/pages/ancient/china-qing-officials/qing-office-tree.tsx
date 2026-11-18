@@ -2,7 +2,14 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { cn } from "../../../lib/utils";
 import type { DynastyAtlas } from "./data";
-import { layoutOfficeTree, type OfficeTreeLayout, type OfficeTreeNode } from "./office-tree-layout";
+import {
+  branchRankSpans,
+  filterOfficeTreeLayout,
+  layoutOfficeTree,
+  type OfficeTreeLayout,
+  type OfficeTreeNode,
+  visibleNodeIds,
+} from "./office-tree-layout";
 import type { OfficeTreeHover, OfficeTreePick } from "./office-tree-scene";
 import { useOfficeTreeScene } from "./use-office-tree-scene";
 
@@ -13,6 +20,8 @@ interface RelationFilterItem {
   detail: string;
   id: string;
   mark?: string;
+  /** 该分区 / 荣衔簇的品级跨度（如「正一品—正五品」）。 */
+  span?: string;
   title: string;
 }
 
@@ -47,7 +56,11 @@ function subtreeIds(layout: OfficeTreeLayout, roots: readonly string[]): string[
 }
 
 /** 从属关系筛选：全树 / 权力本源 / 荣衔 / 各官署分区，均为从属树的顶层入口。 */
-function buildRelationFilters(atlas: DynastyAtlas, layout: OfficeTreeLayout) {
+function buildRelationFilters(
+  atlas: DynastyAtlas,
+  layout: OfficeTreeLayout,
+  rankSpans: ReadonlyMap<string, string>,
+) {
   const honoraryRoots = layout.nodes
     .filter((node) => node.kind === "honorary" && node.parent === layout.rootId)
     .map((node) => node.id);
@@ -71,6 +84,7 @@ function buildRelationFilters(atlas: DynastyAtlas, layout: OfficeTreeLayout) {
       caption: "荣衔 · 加官",
       detail: atlas.honorary.map((group) => group.title).join("、"),
       id: "honorary",
+      span: rankSpans.get("honorary"),
       title: "荣衔封号",
     });
   }
@@ -80,6 +94,7 @@ function buildRelationFilters(atlas: DynastyAtlas, layout: OfficeTreeLayout) {
       detail: branch.summary,
       id: branch.id,
       mark: branch.mark,
+      span: rankSpans.get(branch.id),
       title: branch.title,
     });
   }
@@ -237,30 +252,6 @@ function OfficeTree2DFallback({ atlas }: { atlas: DynastyAtlas }) {
   );
 }
 
-function ViewControls({
-  onPreset,
-  onReset,
-}: {
-  onPreset: (preset: "three-quarter" | "front") => void;
-  onReset: () => void;
-}) {
-  const base =
-    "rounded-full border border-ink/15 bg-card/80 px-2.5 py-1 font-body text-[0.7rem] text-muted-foreground backdrop-blur-md transition-colors hover:border-vermillion/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
-  return (
-    <div className="pointer-events-auto flex flex-col gap-1.5">
-      <button className={base} onClick={() => onPreset("three-quarter")} type="button">
-        斜视
-      </button>
-      <button className={base} onClick={() => onPreset("front")} type="button">
-        正视
-      </button>
-      <button className={base} onClick={onReset} type="button">
-        重置视角
-      </button>
-    </div>
-  );
-}
-
 function HoverReadout({
   hover,
   dynastyName,
@@ -284,39 +275,53 @@ function HoverReadout({
         </div>
       ) : (
         <span className="rounded-full border border-ink/10 bg-paper/90 px-4 py-1.5 font-mono-tech text-[0.7rem] tracking-[0.08em] text-muted-foreground backdrop-blur-md">
-          {dynastyName} · 拖拽旋转 滚轮缩放 点选节点或左侧从属入口看详情
+          {dynastyName} · 拖拽旋转 滚轮缩放 点选分区展开或折叠属官
         </span>
       )}
     </div>
   );
 }
 
-/** 悬浮在 3D 舞台内部的从属关系筛选：容器透传指针，只有控件本身可点，不挡画布拖拽。 */
-function RelationFilterPanel({
+/**
+ * 舞台左上的合并菜单：从属入口（每行标注品级跨度）+ 属官展开控制 + 视角预设。
+ * 容器透传指针，只有控件本身可点，不挡画布拖拽；max-h 钳高 + 内部滚动防吞画布中部。
+ */
+function StageMenu({
   activeId,
+  canCollapseAll,
+  canExpandAll,
   items,
   onClear,
+  onCollapseAll,
+  onExpandAll,
+  onPreset,
+  onReset,
   onSelect,
 }: {
   activeId: string;
+  canCollapseAll: boolean;
+  canExpandAll: boolean;
   items: readonly RelationFilterItem[];
   onClear: () => void;
+  onCollapseAll: () => void;
+  onExpandAll: () => void;
+  onPreset: (preset: "three-quarter" | "front") => void;
+  onReset: () => void;
   onSelect: (item: RelationFilterItem) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
-  const chip =
-    "rounded-full border px-2.5 py-1 font-body text-[0.7rem] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+  const eyebrow = "font-mono-tech text-[0.65rem] tracking-[0.18em] text-ochre uppercase";
+  const tool =
+    "rounded-full border border-ink/15 bg-card/70 px-2.5 py-1 font-body text-[0.7rem] text-muted-foreground transition-colors hover:border-vermillion/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-45 whitespace-nowrap";
 
   return (
-    <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-[min(280px,calc(100%-1.5rem))]">
-      <section
-        aria-label="从属关系筛选"
-        className="pointer-events-auto flex flex-col gap-2 rounded-2xl border border-ink/12 bg-paper/85 p-2.5 shadow-[0_12px_32px_hsl(var(--ink)/0.12)] backdrop-blur-xl"
-      >
+    <section
+      aria-label="舞台菜单"
+      className="pointer-events-none absolute left-3 top-3 z-20 flex max-h-[calc(100%-1.5rem)] max-w-[min(280px,calc(100%-1.5rem))]"
+    >
+      <div className="pointer-events-auto flex min-h-0 w-full flex-col gap-2 overflow-y-auto rounded-2xl border border-ink/12 bg-paper/85 p-2.5 shadow-[0_12px_32px_hsl(var(--ink)/0.12)] backdrop-blur-xl">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-mono-tech text-[0.65rem] tracking-[0.18em] text-ochre uppercase">
-            从属关系
-          </span>
+          <span className={eyebrow}>从属 · 视角</span>
           <button
             aria-expanded={expanded}
             aria-label={expanded ? "收起从属筛选" : "展开从属筛选"}
@@ -337,27 +342,95 @@ function RelationFilterPanel({
           ) : null}
         </div>
         {expanded ? (
-          <div className="flex flex-wrap gap-1">
-            {items.map((item) => (
-              <button
-                aria-pressed={item.id === activeId}
-                className={cn(
-                  chip,
-                  item.id === activeId
-                    ? "border-vermillion/45 bg-vermillion/15 text-vermillion"
-                    : "border-ink/12 bg-card/70 text-foreground/80 hover:border-vermillion/30 hover:text-ink",
-                )}
-                key={item.id}
-                onClick={() => onSelect(item)}
-                type="button"
-              >
-                {item.title}
-              </button>
-            ))}
-          </div>
+          <>
+            <section aria-label="从属关系筛选" className="flex flex-col gap-1">
+              {items.map((item) => {
+                const active = item.id === activeId;
+                return (
+                  <button
+                    aria-pressed={active}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                      active
+                        ? "border-vermillion/45 bg-vermillion/10"
+                        : "border-transparent hover:border-vermillion/25 hover:bg-vermillion/5",
+                    )}
+                    key={item.id}
+                    onClick={() => onSelect(item)}
+                    type="button"
+                  >
+                    {item.mark ? (
+                      <span
+                        aria-hidden="true"
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-vermillion/30 bg-vermillion/10 font-brush text-xs text-vermillion"
+                      >
+                        {item.mark}
+                      </span>
+                    ) : null}
+                    <span
+                      className={cn(
+                        "font-body text-xs",
+                        active ? "text-vermillion" : "text-foreground/85",
+                      )}
+                    >
+                      {item.title}
+                    </span>
+                    {item.span ? (
+                      <span className="ml-auto shrink-0 font-mono-tech text-[0.65rem] tracking-[0.04em] text-muted-foreground">
+                        {item.span}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </section>
+            <section aria-label="属官展开" className="flex flex-col gap-1">
+              <span className={eyebrow}>属官展开</span>
+              <div className="flex gap-1">
+                <button
+                  className={cn(tool, "flex-1")}
+                  disabled={!canExpandAll}
+                  onClick={onExpandAll}
+                  type="button"
+                >
+                  展开全部
+                </button>
+                <button
+                  className={cn(tool, "flex-1")}
+                  disabled={!canCollapseAll}
+                  onClick={onCollapseAll}
+                  type="button"
+                >
+                  收起全部
+                </button>
+              </div>
+            </section>
+            <section aria-label="视角控制" className="flex flex-col gap-1">
+              <span className={eyebrow}>视角</span>
+              <div className="flex gap-1">
+                <button
+                  className={cn(tool, "flex-1")}
+                  onClick={() => onPreset("three-quarter")}
+                  type="button"
+                >
+                  斜视
+                </button>
+                <button
+                  className={cn(tool, "flex-1")}
+                  onClick={() => onPreset("front")}
+                  type="button"
+                >
+                  正视
+                </button>
+                <button className={cn(tool, "flex-1")} onClick={onReset} type="button">
+                  复位
+                </button>
+              </div>
+            </section>
+          </>
         ) : null}
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -521,69 +594,104 @@ function OfficeDetailDrawer({
 
 /** 图一：官制层级，呈现为一棵可旋转缩放的三维从属立体树；WebGL 不可用时回落到 2D 卡片镜像。 */
 export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
-  const layout = useMemo(() => layoutOfficeTree(atlas), [atlas]);
-  const relation = useMemo(() => buildRelationFilters(atlas, layout), [atlas, layout]);
+  const fullLayout = useMemo(() => layoutOfficeTree(atlas), [atlas]);
+  const relation = useMemo(
+    () => buildRelationFilters(atlas, fullLayout, branchRankSpans(atlas)),
+    [atlas, fullLayout],
+  );
   const [filterId, setFilterId] = useState("all");
   const [detail, setDetail] = useState<OfficeDetail | null>(null);
   const [hover, setHover] = useState<OfficeTreeHover | null>(null);
+  // 默认折叠到分区：expanded 为空集时只画皇帝 + 荣衔组 + 官署分区。
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+
+  // 折叠视图 = 全量布局的可见子图：坐标稳定，展开 / 折叠不重排，只改取景。
+  const clippedLayout = useMemo(
+    () => filterOfficeTreeLayout(fullLayout, visibleNodeIds(fullLayout, expanded)),
+    [fullLayout, expanded],
+  );
+  const expandableIds = useMemo(
+    () =>
+      new Set(
+        fullLayout.nodes
+          .filter((node) => node.children.length > 0 && node.id !== fullLayout.rootId)
+          .map((node) => node.id),
+      ),
+    [fullLayout],
+  );
 
   const callbacks = useMemo(
     () => ({
       onHover: (next: OfficeTreeHover | null) => setHover(next),
       onPick: (pick: OfficeTreePick | null) => {
-        const node = pick ? (layout.nodes.find((item) => item.id === pick.id) ?? null) : null;
+        const node = pick ? (fullLayout.nodes.find((item) => item.id === pick.id) ?? null) : null;
+        if (node && expandableIds.has(node.id)) {
+          setExpanded((previous) => {
+            const next = new Set(previous);
+            if (next.has(node.id)) {
+              next.delete(node.id);
+            } else {
+              next.add(node.id);
+            }
+            return next;
+          });
+        }
         setDetail(node ? { type: "node", node } : null);
       },
       onUnavailable: () => undefined,
     }),
-    [layout],
+    [expandableIds, fullLayout],
   );
 
-  const scene = useOfficeTreeScene(atlas, layout, callbacks);
+  const scene = useOfficeTreeScene(atlas, clippedLayout, callbacks);
 
   // 筛选只改变场景的高亮集合，不重建 WebGL 场景。
   useEffect(() => {
     scene.setFilter(relation.highlight.get(filterId) ?? null);
   }, [filterId, relation, scene]);
 
-  // 切朝代时清掉上一朝的点选、hover 与筛选，避免残留。
+  // 切朝代时清掉上一朝的点选、hover、筛选与展开状态，避免残留。
   const [prevAtlas, setPrevAtlas] = useState(atlas);
   if (prevAtlas !== atlas) {
     setPrevAtlas(atlas);
     setDetail(null);
     setHover(null);
     setFilterId("all");
+    setExpanded(new Set());
   }
 
   if (scene.failed) {
     return (
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-3 rounded-lg border border-ochre/30 bg-paper/70 px-4 py-3">
-          <p aria-live="polite" className="text-xs leading-relaxed text-muted-foreground">
-            当前浏览器未能启用 WebGL，立体树无法绘制，已显示 2D 层级镜像。
-          </p>
-          <button
-            className="w-fit rounded-full border border-ink/15 bg-card/70 px-3 py-1 font-body text-xs text-muted-foreground transition-colors hover:border-vermillion/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            onClick={scene.retry}
-            type="button"
-          >
-            重试立体树
-          </button>
+      // 页面本体不滚动，2D 镜像在自身列内滚动。
+      <div className="h-full min-h-0 overflow-y-auto pr-1 lg:pr-2">
+        <div className="flex flex-col gap-6 pb-2">
+          <div className="flex flex-col gap-3 rounded-lg border border-ochre/30 bg-paper/70 px-4 py-3">
+            <p aria-live="polite" className="text-xs leading-relaxed text-muted-foreground">
+              当前浏览器未能启用 WebGL，立体树无法绘制，已显示 2D 层级镜像。
+            </p>
+            <button
+              className="w-fit rounded-full border border-ink/15 bg-card/70 px-3 py-1 font-body text-xs text-muted-foreground transition-colors hover:border-vermillion/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={scene.retry}
+              type="button"
+            >
+              重试立体树
+            </button>
+          </div>
+          <OfficeTree2DFallback atlas={atlas} />
+          <p className="text-xs leading-relaxed text-muted-foreground">{atlas.hierarchyNote}</p>
         </div>
-        <OfficeTree2DFallback atlas={atlas} />
-        <p className="text-xs leading-relaxed text-muted-foreground">{atlas.hierarchyNote}</p>
       </div>
     );
   }
 
-  const canvasLabel = `${atlas.name}官制立体树：${layout.nodes.length} 个节点、${
-    atlas.branches.length
-  } 类官署分区与${atlas.honorary.length} 组荣衔。拖拽旋转、滚轮缩放、点击节点或左侧从属入口查看右侧详情。`;
+  const canvasLabel = `${atlas.name}官制立体树：可见 ${clippedLayout.nodes.length} 个节点（全树 ${
+    fullLayout.nodes.length
+  } 个）、${atlas.branches.length} 类官署分区与${atlas.honorary.length} 组荣衔。拖拽旋转、滚轮缩放、点选分区展开或折叠属官，查看右侧详情。`;
 
   return (
     <figure
       aria-label="官制立体树"
-      className="relative isolate h-[560px] min-h-[520px] w-full overflow-hidden rounded-2xl border border-ink/12 bg-[radial-gradient(ellipse_at_50%_42%,hsl(var(--ink)/0.06),transparent_70%)] shadow-[0_18px_48px_hsl(var(--ink)/0.06)] sm:h-[680px] lg:h-[760px]"
+      className="relative isolate h-full w-full overflow-hidden rounded-2xl border border-ink/12 bg-[radial-gradient(ellipse_at_50%_42%,hsl(var(--ink)/0.06),transparent_70%)] shadow-[0_18px_48px_hsl(var(--ink)/0.06)]"
     >
       <div
         aria-label={canvasLabel}
@@ -620,28 +728,30 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
         </p>
       </div>
 
-      <RelationFilterPanel
+      <StageMenu
         activeId={filterId}
+        canCollapseAll={expanded.size > 0}
+        canExpandAll={expandableIds.size > expanded.size}
         items={relation.items}
         onClear={() => {
           setFilterId("all");
           setDetail(null);
         }}
+        onCollapseAll={() => setExpanded(new Set())}
+        onExpandAll={() => setExpanded(expandableIds)}
+        onPreset={scene.applyPreset}
+        onReset={scene.resetView}
         onSelect={(item) => {
           setFilterId(item.id);
           setDetail({ type: "filter", item });
         }}
       />
 
-      <div className="absolute right-3 top-3 z-20 sm:left-1/2 sm:right-auto sm:-translate-x-1/2">
-        <ViewControls onPreset={scene.applyPreset} onReset={scene.resetView} />
-      </div>
-
       <OfficeDetailDrawer
         atlas={atlas}
         detail={detail}
         highlight={relation.highlight}
-        layout={layout}
+        layout={fullLayout}
         onClose={() => setDetail(null)}
       />
     </figure>

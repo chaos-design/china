@@ -54,10 +54,10 @@ export interface OfficeTreeLayout {
 export const OFFICE_TREE_GEOMETRY = {
   /** 每层深度对应的纵向间距（越大越像图二那种高瘦层级树）。 */
   levelGap: 3.2,
-  /** 相邻叶子的横向间距（越小树越窄，配合 z 弧呈立体扇面）。 */
-  slotGap: 0.6,
-  /** z 弧强度：树冠外沿向后的弯曲程度（越小越平、越易读）。 */
-  zCurve: 0.006,
+  /** 相邻叶子的横向间距（越大标签越不易互相覆盖）。 */
+  slotGap: 1.6,
+  /** z 弧强度：树冠外沿向后的弯曲程度（随树宽放大需调小，避免远端被透视压扁）。 */
+  zCurve: 0.0012,
   /** 根节点高于最高层的距离。 */
   rootLift: 1.6,
 } as const;
@@ -73,6 +73,8 @@ interface RawNode {
   title: string;
   depth: number;
   children: string[];
+  /** 该叶子占用的槽位数（荣衔封号标签更宽，占多槽防相邻标签重叠）。 */
+  slotWeight?: number;
 }
 
 const ROOT_ID = "office-root";
@@ -125,6 +127,7 @@ export function buildOfficeTree(atlas: DynastyAtlas): RawNode[] {
     root.children.push(group.id);
     for (const child of group.children ?? []) {
       const childRaw = rawFromOfficeNode(group.id, 2, child);
+      childRaw.slotWeight = 5;
       register(childRaw);
       groupRaw.children.push(child.id);
     }
@@ -173,12 +176,13 @@ function assignSlots(raws: RawNode[]): Map<string, number> {
   }
 
   let cursor = 0;
+  const weightOf = new Map(raws.map((raw) => [raw.id, raw.slotWeight ?? 1]));
   const layout = (id: string): number => {
     const kids = childOf.get(id) ?? [];
     if (kids.length === 0) {
       slots.set(id, cursor);
       const slot = cursor;
-      cursor += 1;
+      cursor += weightOf.get(id) ?? 1;
       return slot;
     }
     let first = Number.POSITIVE_INFINITY;
@@ -246,4 +250,133 @@ export function layoutOfficeTree(atlas: DynastyAtlas): OfficeTreeLayout {
     maxX,
     maxY,
   };
+}
+
+/**
+ * 折叠 / 展开的可见节点集合：根恒可见，子代仅当父为根或父已展开时可见。
+ * expanded 为空集时恰好是「皇帝 + 荣衔组 + 官署分区」共 11 个节点的折叠到分区视图。
+ * 坐标始终取自全量布局——展开 / 折叠不重排，只改可见性与镜头取景。
+ */
+export function visibleNodeIds(
+  layout: OfficeTreeLayout,
+  expanded: ReadonlySet<string>,
+): Set<string> {
+  const byId = new Map(layout.nodes.map((node) => [node.id, node]));
+  const visible = new Set<string>();
+  const stack = [layout.rootId];
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (visible.has(id)) {
+      continue;
+    }
+    visible.add(id);
+    const node = byId.get(id);
+    if (!node) {
+      continue;
+    }
+    if (id === layout.rootId || expanded.has(id)) {
+      stack.push(...node.children);
+    }
+  }
+  return visible;
+}
+
+/** 从全量布局里筛出可见子图：坐标不变（展开 / 折叠不重排），边界取可见范围供镜头取景。 */
+export function filterOfficeTreeLayout(
+  layout: OfficeTreeLayout,
+  ids: ReadonlySet<string>,
+): OfficeTreeLayout {
+  const nodes = layout.nodes.filter((node) => ids.has(node.id));
+  const edges = layout.edges.filter((edge) => ids.has(edge.from) && ids.has(edge.to));
+  const root = nodes.find((node) => node.parent === null) ?? layout.root;
+  const minX = nodes.reduce((least, node) => Math.min(least, node.x), Number.POSITIVE_INFINITY);
+  const maxX = nodes.reduce((most, node) => Math.max(most, node.x), Number.NEGATIVE_INFINITY);
+  const minY = nodes.reduce((least, node) => Math.min(least, node.y), Number.POSITIVE_INFINITY);
+  const maxY = nodes.reduce((most, node) => Math.max(most, node.y), Number.NEGATIVE_INFINITY);
+  return {
+    edges,
+    minX,
+    minY,
+    nodes,
+    root,
+    rootId: layout.rootId,
+    width: maxX - minX,
+    maxX,
+    maxY,
+  };
+}
+
+/* 品级跨度：从 rank 括注字符串里解析品级，汇总成「从某品—至某品」的跨度文本，
+   供左侧菜单的分区行与 3D 场景包围框标注「哪一层是哪个品级」。 */
+
+const RANK_ORDER: Record<string, number> = {
+  一: 1,
+  二: 2,
+  三: 3,
+  四: 4,
+  五: 5,
+  六: 6,
+  七: 7,
+  八: 8,
+  九: 9,
+};
+
+const RANK_MATCH = /(正|从)?([一二三四五六七八九])品/g;
+const BOTTOM_RANK = /未入流|流外/;
+
+interface RankHit {
+  label: string;
+  order: number;
+}
+
+function parseRankHits(rank: string): RankHit[] {
+  const hits: RankHit[] = [];
+  if (BOTTOM_RANK.test(rank)) {
+    hits.push({ label: "未入流", order: 10 });
+  }
+  for (const match of rank.matchAll(RANK_MATCH)) {
+    hits.push({ label: `${match[1] ?? ""}${match[2]}品`, order: RANK_ORDER[match[2]!] ?? 0 });
+  }
+  return hits;
+}
+
+function walkRanks(node: AtlasOfficeNode, hits: RankHit[]): void {
+  if (node.rank) {
+    hits.push(...parseRankHits(node.rank));
+  }
+  for (const child of node.children ?? []) {
+    walkRanks(child, hits);
+  }
+}
+
+function spanText(hits: RankHit[]): string {
+  if (hits.length === 0) {
+    return "无定品";
+  }
+  const min = hits.reduce((least, hit) => (hit.order < least.order ? hit : least));
+  const max = hits.reduce((greatest, hit) => (hit.order > greatest.order ? hit : greatest));
+  return min.order === max.order ? min.label : `${min.label}—${max.label}`;
+}
+
+/** 每个官署分区（id = 分区 id）与荣衔簇（id = "honorary"）的品级跨度。 */
+export function branchRankSpans(atlas: DynastyAtlas): Map<string, string> {
+  const spans = new Map<string, string>();
+  const honoraryHits: RankHit[] = [];
+  for (const group of atlas.honorary) {
+    if (group.rank) {
+      honoraryHits.push(...parseRankHits(group.rank));
+    }
+    for (const child of group.children ?? []) {
+      walkRanks(child, honoraryHits);
+    }
+  }
+  spans.set("honorary", spanText(honoraryHits));
+  for (const entry of atlas.branches) {
+    const hits: RankHit[] = [];
+    for (const node of entry.nodes) {
+      walkRanks(node, hits);
+    }
+    spans.set(entry.id, spanText(hits));
+  }
+  return spans;
 }

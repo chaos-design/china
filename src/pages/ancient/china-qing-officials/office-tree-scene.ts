@@ -2,7 +2,12 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 import type { DynastyAtlas } from "./data";
-import type { OfficeNodeKind, OfficeTreeLayout, OfficeTreeNode } from "./office-tree-layout";
+import {
+  branchRankSpans,
+  type OfficeNodeKind,
+  type OfficeTreeLayout,
+  type OfficeTreeNode,
+} from "./office-tree-layout";
 
 /**
  * 官制图谱立体树的 Three.js 场景层。
@@ -53,6 +58,9 @@ export interface OfficeTreeScene {
 const FONT_STACK =
   '"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif';
 const LABEL_WORLD_PER_PX = 0.02;
+
+/** 相机距目标超过该距离（折叠总览镜头）时隐藏包围框的跨度标注，左菜单已标注跨度。 */
+const BRACKET_LABEL_DISTANCE = 60;
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 const NODE_RADIUS: Record<OfficeNodeKind, number> = {
   branch: 0.4,
@@ -112,6 +120,28 @@ function nodeKindColor(colors: OfficeTreeColors, kind: OfficeNodeKind): THREE.Co
     case "office":
       return new THREE.Color(colors.blueprint);
   }
+}
+
+/** 收集布局里一组根节点的可见后代（折叠视图中子节点可能不在布局里）。 */
+function collectClusterNodes(layout: OfficeTreeLayout, roots: readonly string[]): OfficeTreeNode[] {
+  const byId = new Map(layout.nodes.map((node) => [node.id, node]));
+  const found: OfficeTreeNode[] = [];
+  const seen = new Set<string>();
+  const stack = [...roots];
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (seen.has(id)) {
+      continue;
+    }
+    const node = byId.get(id);
+    if (!node) {
+      continue;
+    }
+    seen.add(id);
+    found.push(node);
+    stack.push(...node.children);
+  }
+  return found;
 }
 
 function createLabelSprite(
@@ -191,6 +221,8 @@ function createLabelSprite(
   });
   const sprite = new THREE.Sprite(material);
   sprite.scale.set(width * LABEL_WORLD_PER_PX, height * LABEL_WORLD_PER_PX, 1);
+  // 屏幕等比标注：tick 每帧按相机到标签的距离换算世界尺寸，缩放时保持恒定屏幕大小。
+  sprite.userData.px = { h: height, w: width };
   return sprite;
 }
 
@@ -262,6 +294,12 @@ export function createOfficeTreeScene(
   let edgeLines: THREE.LineSegments | null = null;
   let edgeBaseColors: number[] = [];
   let edgeEnds: { from: string; to: string }[] = [];
+  let bracketMaterials: THREE.LineBasicMaterial[] = [];
+  const hudLabels: THREE.Sprite[] = [];
+  // 取景状态：fit 时的纵横比与预设视角。用户手动旋转/缩放后不再自动重取景。
+  let userAdjusted = false;
+  let fittedAspect = 0;
+  let fittedAngles = PRESET_ANGLES["three-quarter"];
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 500);
@@ -276,6 +314,9 @@ export function createOfficeTreeScene(
   controls.minPolarAngle = 0.08;
   controls.rotateSpeed = 0.7;
   controls.zoomSpeed = 0.8;
+  controls.addEventListener("start", () => {
+    userAdjusted = true;
+  });
 
   renderer.setClearAlpha(0);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -342,6 +383,8 @@ export function createOfficeTreeScene(
 
   function applyPreset(preset: OfficeTreeCameraPreset) {
     const angles = PRESET_ANGLES[preset];
+    fittedAngles = angles;
+    fittedAspect = camera.aspect;
     tweenCamera(contentCenter(), fitDistance(), angles.azimuth, angles.polar);
   }
 
@@ -363,6 +406,7 @@ export function createOfficeTreeScene(
     edgeLines = null;
     edgeBaseColors = [];
     edgeEnds = [];
+    bracketMaterials = [];
     atlasName = atlas.name;
 
     content = new THREE.Group();
@@ -427,25 +471,83 @@ export function createOfficeTreeScene(
       nodeMeshes.push(mesh);
       pickMeshes.push(mesh);
 
-      const lines: { muted?: boolean; size: number; text: string; weight?: number }[] = [];
-      const labelSize = node.kind === "root" ? 30 : node.kind === "branch" ? 26 : 20;
-      lines.push({ size: labelSize, text: node.title, weight: node.kind === "office" ? 500 : 700 });
-      if (node.rank) {
-        lines.push({ muted: true, size: 15, text: node.rank });
+      // 只有皇帝 / 荣衔组 / 官署分区挂常驻标签（屏幕等比）；属官不挂牌，
+      // 名字经底部 hover 读出与右侧详情面板呈现，避免 96 个标签互相覆盖。
+      if (node.kind === "office") {
+        continue;
       }
+      const labelSize = node.kind === "root" ? 30 : node.kind === "honorary" ? 22 : 26;
       const label = createLabelSprite(
         colors,
-        lines,
+        [{ size: labelSize, text: node.title, weight: 700 }],
         node.kind === "root"
           ? { accent: colorCss(colors.vermillion, 0.9) }
-          : node.kind === "branch"
-            ? { accent: colorCss(colors.ochre, 0.8) }
-            : undefined,
+          : { accent: colorCss(colors.ochre, 0.8) },
       );
       label.position.set(node.x, node.y + radius + 0.5, node.z);
       label.userData.nodeId = node.id;
       content.add(label);
       nodeLabels.push(label);
+    }
+
+    // 分区包围框：可见节点 ≥ 2 的官署分区（与荣衔簇）画一圈包围矩形，
+    // 框顶标注该区品级跨度（「哪一层是哪个品级」）。框只作视觉分组，不进拾取集合。
+    const rankSpans = branchRankSpans(atlas);
+    const honoraryGroupIds = layout.nodes
+      .filter((node) => node.kind === "honorary" && node.parent === layout.rootId)
+      .map((node) => node.id);
+    const clusters: { id: string; roots: string[]; title?: string }[] = [];
+    if (honoraryGroupIds.length > 0) {
+      clusters.push({ id: "honorary", roots: honoraryGroupIds, title: "荣衔封号" });
+    }
+    for (const node of layout.nodes) {
+      if (node.kind === "branch") {
+        clusters.push({ id: node.id, roots: [node.id] });
+      }
+    }
+    for (const cluster of clusters) {
+      const members = collectClusterNodes(layout, cluster.roots);
+      if (members.length < 2) {
+        continue;
+      }
+      const padX = 1.3;
+      const minX = Math.min(...members.map((member) => member.x)) - padX;
+      const maxX = Math.max(...members.map((member) => member.x)) + padX;
+      const minY = Math.min(...members.map((member) => member.y)) - 1.1;
+      const maxY = Math.max(...members.map((member) => member.y)) + 2.2;
+      const z = Math.min(...members.map((member) => member.z)) - 0.5;
+      const corners: [number, number][] = [
+        [minX, minY],
+        [maxX, minY],
+        [maxX, maxY],
+        [minX, maxY],
+      ];
+      const segmentPoints: number[] = [];
+      for (let index = 0; index < corners.length; index += 1) {
+        const [ax, ay] = corners[index]!;
+        const [bx, by] = corners[(index + 1) % corners.length]!;
+        segmentPoints.push(ax, ay, z, bx, by, z);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.Float32BufferAttribute(segmentPoints, 3));
+      const material = new THREE.LineBasicMaterial({
+        color: colors.ochre,
+        transparent: true,
+        opacity: 0.5,
+      });
+      bracketMaterials.push(material);
+      content.add(new THREE.LineSegments(geometry, material));
+
+      const span = rankSpans.get(cluster.id);
+      if (span) {
+        const bracketLabel = createLabelSprite(colors, [
+          { muted: true, size: 14, text: cluster.title ? `${cluster.title} · ${span}` : span },
+        ]);
+        bracketLabel.position.set(minX + 2.2, maxY - 0.55, z);
+        bracketLabel.userData.isHudLabel = true;
+        content.add(bracketLabel);
+        hudLabels.push(bracketLabel);
+      }
     }
 
     bounds = {
@@ -456,6 +558,8 @@ export function createOfficeTreeScene(
     };
 
     const angles = PRESET_ANGLES["three-quarter"];
+    fittedAngles = angles;
+    fittedAspect = camera.aspect;
     applyCamera(angles.azimuth, angles.polar, fitDistance(), contentCenter());
     applyHighlight();
   }
@@ -605,6 +709,12 @@ export function createOfficeTreeScene(
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
+    // 首次 fit 可能发生在画布布局稳定之前，取景用错纵横比（tree 缩成一角）。
+    // 纵横比变化且用户尚未手动操作时自动重新取景；用户一旦交互即不再打扰。
+    if (!userAdjusted && fittedAspect > 0 && Math.abs(camera.aspect - fittedAspect) > 0.02) {
+      fittedAspect = camera.aspect;
+      applyCamera(fittedAngles.azimuth, fittedAngles.polar, fitDistance(), contentCenter());
+    }
   }
 
   function tick(now: number) {
@@ -626,6 +736,22 @@ export function createOfficeTreeScene(
       }
     }
     controls.update();
+    // 屏幕等比标签：按相机到标签的距离换算世界尺寸，任何缩放下保持恒定屏幕大小；
+    // 包围框的跨度标注只在拉近镜头时显示（折叠总览下由左菜单标注跨度，避免压住组标签）。
+    const canvasHeight = renderer.domElement.clientHeight || 1;
+    const halfTan = Math.tan((camera.fov * Math.PI) / 360);
+    const showHudLabels = camera.position.distanceTo(controls.target) <= BRACKET_LABEL_DISTANCE;
+    for (const label of [...nodeLabels, ...hudLabels]) {
+      const px = label.userData.px as { h: number; w: number } | undefined;
+      if (px) {
+        const distance = camera.position.distanceTo(label.position);
+        const worldPerPx = (2 * halfTan * distance) / canvasHeight;
+        label.scale.set(px.w * worldPerPx, px.h * worldPerPx, 1);
+      }
+      if (label.userData.isHudLabel) {
+        label.visible = showHudLabels;
+      }
+    }
     renderer.render(scene, camera);
   }
 
@@ -673,6 +799,9 @@ export function createOfficeTreeScene(
             material.emissive = nodeKindColor(colors, node.kind);
           }
         }
+      }
+      for (const material of bracketMaterials) {
+        material.color = new THREE.Color(colors.ochre);
       }
     });
   });

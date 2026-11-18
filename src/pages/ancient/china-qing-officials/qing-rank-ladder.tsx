@@ -1,34 +1,21 @@
+import type { CSSProperties } from "react";
 import { useState } from "react";
 
 import { cn } from "../../../lib/utils";
-import type { AtlasRankLevel, DynastyAtlas } from "./data";
+import type { DynastyAtlas } from "./data";
+import { HatGlyph, QingRankSpectrum, RobeGlyph } from "./qing-rank-spectrum";
 
-function HatGlyph({ level }: { level: AtlasRankLevel }) {
-  return (
-    <span aria-hidden="true" className="flex flex-col items-center gap-0.5">
-      <span
-        className="h-3 w-3 rounded-full border border-ink/25 shadow-[inset_0_-2px_3px_hsl(var(--ink)/0.2)]"
-        style={{ backgroundColor: level.hatColor ?? "#8a8a8a" }}
-      />
-      <span className="h-1.5 w-9 rounded-[50%] border border-ink/30 bg-ink/70" />
-    </span>
-  );
+/* 阶梯金字塔化：首行最窄、末行占满，宽度随分组序号线性放宽（图二的塔形轮廓）。 */
+function pyramidWidth(index: number, count: number): string {
+  if (count <= 1) return "100%";
+  return `${Math.round(52 + (48 * index) / (count - 1))}%`;
 }
 
-function RobeGlyph({ level }: { level: AtlasRankLevel }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-block h-7 w-5 rounded-t-[40%] rounded-b-md border border-ink/25 shadow-[inset_0_0_0_2px_hsl(var(--paper)/0.25)]"
-      style={{ backgroundColor: level.robeColor ?? "#6a6a6a" }}
-    />
-  );
-}
-
-/** 图二：品秩阶梯。点选一级，下方联动顶戴 / 朝服 / 俸禄 / 职官。 */
+/** 图二：品秩阶梯（金字塔）＋ 选中级档案卡 ＋ 顶戴 / 朝服 / 俸禄全谱。 */
 export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
   const [selectedLabel, setSelectedLabel] = useState(atlas.levels[0]?.label ?? "");
   const selected = atlas.levels.find((item) => item.label === selectedLabel) ?? atlas.levels[0]!;
+  const groupCount = atlas.ladderGroups.length;
 
   return (
     <div className="flex flex-col gap-5">
@@ -37,10 +24,14 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
         <p className="text-xs leading-relaxed text-muted-foreground">{atlas.rankIntro}</p>
       </div>
 
-      {/* 阶梯：以分组为行，行内按品级从高到低排布，越往下档位越宽。 */}
+      {/* 阶梯：以分组为行，行内按品级从高到低排布，行宽自上而下放宽成塔形。 */}
       <section aria-label="品级阶梯" className="flex flex-col gap-2">
         {atlas.ladderGroups.map((entry, index) => (
-          <div className="flex items-stretch gap-2" key={entry.label}>
+          <div
+            className="flex items-stretch gap-2 sm:mx-auto sm:w-[var(--row-w)]"
+            key={entry.label}
+            style={{ "--row-w": pyramidWidth(index, groupCount) } as CSSProperties}
+          >
             <span className="flex w-20 shrink-0 items-center font-brush text-base text-ink sm:w-28 sm:text-lg">
               {entry.label}
             </span>
@@ -51,7 +42,11 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
               )}
             >
               {atlas.levels
-                .filter((item) => entry.orders.includes(item.order))
+                .filter(
+                  (item) =>
+                    entry.orders.includes(item.order) &&
+                    (!entry.grade || item.grade === entry.grade),
+                )
                 .map((item) => {
                   const active = item.label === selectedLabel;
                   return (
@@ -141,6 +136,9 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
           </p>
         </div>
       </section>
+
+      {/* 全谱条带：顶戴 / 朝服 / 俸禄一次看全 */}
+      <QingRankSpectrum atlas={atlas} selectedLabel={selectedLabel} onSelect={setSelectedLabel} />
     </div>
   );
 }

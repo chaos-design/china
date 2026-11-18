@@ -126,10 +126,10 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
 
     expect(screen.getByLabelText("官制立体树")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /清官制立体树/ })).toBeInTheDocument();
-    // 视图控件（斜视 / 正视 / 重置视角）
+    // 视图控件（斜视 / 正视 / 复位，均为单行两字文案）
     expect(screen.getByRole("button", { name: "斜视" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "正视" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "重置视角" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "复位" })).toBeInTheDocument();
     // 场景同步拿到布局：调用过一次 setAtlas
     expect(mocks.scene.setAtlas).toHaveBeenCalledTimes(1);
     // WebGL 可用时不再有加载态与降级提示
@@ -145,6 +145,34 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     fireEvent.click(within(picker).getByRole("button", { name: "秦" }));
     expect(mocks.scene.setAtlas).toHaveBeenCalledTimes(2);
     expect(screen.getByRole("img", { name: /秦官制立体树/ })).toBeInTheDocument();
+  });
+
+  it("starts collapsed to branches and toggles expansion via picks and menu controls", () => {
+    mocks.create.mockReturnValue(mocks.scene);
+    renderAt();
+
+    // 默认折叠到分区：皇帝 + 4 组荣衔 + 6 类官署分区 = 11 个节点。
+    const lastLayout = () =>
+      mocks.scene.setAtlas.mock.calls[mocks.scene.setAtlas.mock.calls.length - 1]?.[1] as {
+        nodes: unknown[];
+      };
+    expect(lastLayout().nodes).toHaveLength(11);
+
+    // 点分区节点展开属官：佐理部出现 8 个衙署，再点六部展开 6 部。
+    act(() => {
+      sceneHandlers().onPick({ id: "assistant", kind: "branch", title: "佐理部" });
+    });
+    expect(lastLayout().nodes).toHaveLength(19);
+    act(() => {
+      sceneHandlers().onPick({ id: "six-boards", kind: "office", title: "六部" });
+    });
+    expect(lastLayout().nodes).toHaveLength(25);
+
+    const menu = screen.getByLabelText("舞台菜单");
+    fireEvent.click(within(menu).getByRole("button", { name: "收起全部" }));
+    expect(lastLayout().nodes).toHaveLength(11);
+    fireEvent.click(within(menu).getByRole("button", { name: "展开全部" }));
+    expect(lastLayout().nodes).toHaveLength(96);
   });
 
   it("opens the right-side detail drawer on an office pick and closes it", () => {
@@ -169,9 +197,11 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();
 
-    const filter = screen.getByLabelText("从属关系筛选");
-    const branch = within(filter).getByRole("button", { name: /中枢部/ });
+    const menu = screen.getByLabelText("舞台菜单");
+    const branch = within(menu).getByRole("button", { name: /中枢部/ });
     expect(branch).toHaveAttribute("aria-pressed", "false");
+    // 左菜单分区行标注品级跨度（哪一层是哪个品级）。
+    expect(within(branch).getByText("正一品—正五品")).toBeInTheDocument();
 
     fireEvent.click(branch);
     expect(branch).toHaveAttribute("aria-pressed", "true");
@@ -186,7 +216,7 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(within(drawer).getByText("官署分区")).toBeInTheDocument();
     expect(within(drawer).getByText(/个节点/)).toBeInTheDocument();
 
-    fireEvent.click(within(filter).getByRole("button", { name: "清除" }));
+    fireEvent.click(within(menu).getByRole("button", { name: "清除" }));
     expect(
       mocks.scene.setFilter.mock.calls[mocks.scene.setFilter.mock.calls.length - 1]?.[0],
     ).toBeNull();
@@ -212,11 +242,11 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();
 
-    const filter = screen.getByLabelText("从属关系筛选");
-    fireEvent.click(within(filter).getByRole("button", { name: "收起从属筛选" }));
-    expect(within(filter).queryByRole("button", { name: /中枢部/ })).toBeNull();
-    fireEvent.click(within(filter).getByRole("button", { name: "展开从属筛选" }));
-    expect(within(filter).getByRole("button", { name: /中枢部/ })).toBeInTheDocument();
+    const menu = screen.getByLabelText("舞台菜单");
+    fireEvent.click(within(menu).getByRole("button", { name: "收起从属筛选" }));
+    expect(within(menu).queryByRole("button", { name: /中枢部/ })).toBeNull();
+    fireEvent.click(within(menu).getByRole("button", { name: "展开从属筛选" }));
+    expect(within(menu).getByRole("button", { name: /中枢部/ })).toBeInTheDocument();
     expect(mocks.scene.setAtlas).toHaveBeenCalledTimes(1);
   });
 
@@ -251,7 +281,33 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     fireEvent.click(fifth);
     expect(fifth).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByLabelText("正五品档案")).toHaveTextContent("水晶顶");
-    expect(screen.getByLabelText("正五品档案")).toHaveTextContent("绿色");
+    expect(screen.getByLabelText("正五品档案")).toHaveTextContent("青色");
+  });
+
+  it("renders the full-spectrum strips and the six essentials in the rank view", () => {
+    renderAt();
+    fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
+
+    // 顶戴全谱：18 枚可点选，点选联动档案卡。
+    const hats = screen.getByLabelText("顶戴全谱");
+    expect(within(hats).getAllByRole("button")).toHaveLength(18);
+    fireEvent.click(within(hats).getByRole("button", { name: /正一品/ }));
+    expect(screen.getByLabelText("正一品档案")).toBeInTheDocument();
+
+    // 朝服全谱：绣金 / 绣银分列。
+    const robes = screen.getByLabelText("朝服全谱");
+    expect(robes).toHaveTextContent("石青色绣金");
+    expect(robes).toHaveTextContent("石青色绣银");
+
+    // 俸禄阶梯：柱高相对示意，标注岁俸实数。
+    const salary = screen.getByLabelText("俸禄阶梯");
+    expect(salary).toHaveTextContent("180 两");
+    expect(salary).toHaveTextContent("33 两");
+
+    // 六项要义：notes 六口径全部落图。
+    const essentials = screen.getByLabelText("六项要义");
+    expect(essentials).toHaveTextContent("九品十八级");
+    expect(essentials).toHaveTextContent("养廉银");
   });
 
   it("shows badges for Qing and an explanatory note for dynasties without them", () => {

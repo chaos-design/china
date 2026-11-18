@@ -18,6 +18,8 @@ const VIEWS: readonly { id: OfficialsView; label: string; note: string }[] = [
  * 官制图谱：按朝代拆分的数据层驱动的独立信息图页。
  *
  * 朝代由 URL 查询参数 ?dynasty=<id> 决定，可直接分享与刷新；未知 id 降级到默认朝（清）。
+ * 页面为单屏沉浸结构（仿品级纵横）：紧凑顶条一行收纳页题、朝代与视图切换，
+ * 图谱本体撑满剩余可视高度——官职制度是全高立体树舞台，品级礼制在自身列内滚动。
  * 两视图切换只换正文，各自内部状态（展开节点 / 选中品级）在挂载期间保留；
  * 切换朝代会同时重置到图一，避免残留上一朝的选中态。
  */
@@ -35,94 +37,89 @@ export function QingOfficialsPage() {
   };
 
   return (
-    <article className="bg-paper paper-backdrop min-h-full px-4 py-8 sm:px-8 lg:px-12">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <header className="flex flex-col gap-3 border-ink/10 border-b pb-5">
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-            <h1 className="font-brush text-4xl text-ink sm:text-5xl">官制图谱</h1>
-            <span className="rounded-full border border-ink/15 bg-paper/80 px-3 py-0.5 font-body text-xs tracking-widest text-muted-foreground">
+    <article className="bg-paper paper-backdrop flex h-full min-h-0 flex-col overflow-hidden px-4 py-4 sm:px-6 lg:px-8">
+      <header className="flex flex-col gap-2 border-ink/10 border-b pb-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-baseline gap-x-3">
+            <h1 className="font-brush text-2xl text-ink sm:text-3xl">官制图谱</h1>
+            <span className="hidden rounded-full border border-ink/15 bg-paper/80 px-3 py-0.5 font-body text-xs tracking-widest text-muted-foreground md:inline">
               职官 · 品级 · 央地结构
             </span>
-            <span className="font-body text-xs font-medium tracking-[0.3em] text-vermillion">
-              {atlas.name}帝国 · 行政体系示意
-            </span>
           </div>
-          <p className="max-w-3xl text-sm leading-relaxed text-ink/85">{atlas.intro}</p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono-tech text-[0.7rem] tracking-[0.14em] text-muted-foreground">
-            <span>{atlas.period}</span>
-            <span>{atlas.system}</span>
-            <span>{atlas.source}</span>
-          </div>
-        </header>
-
-        <fieldset aria-label="朝代选择" className="flex flex-wrap gap-2">
-          {DYNASTY_ATLASES.map((entry) => {
-            const activeDynasty = entry.id === atlas.id;
-            return (
+          <fieldset aria-label="朝代选择" className="flex flex-wrap items-center gap-1.5">
+            {DYNASTY_ATLASES.map((entry) => {
+              const activeDynasty = entry.id === atlas.id;
+              return (
+                <button
+                  aria-pressed={activeDynasty}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 font-brush text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    activeDynasty
+                      ? "border-vermillion/40 bg-vermillion/15 text-vermillion"
+                      : "border-ink/15 bg-card/70 text-ink hover:border-vermillion/30 hover:bg-vermillion/5",
+                  )}
+                  key={entry.id}
+                  onClick={() => chooseDynasty(entry.id)}
+                  type="button"
+                >
+                  {entry.name}
+                </button>
+              );
+            })}
+          </fieldset>
+          <div aria-label="图谱视图" className="flex items-center gap-1.5" role="tablist">
+            {VIEWS.map((entry) => (
               <button
-                aria-pressed={activeDynasty}
+                aria-selected={entry.id === view}
                 className={cn(
-                  "rounded-full border px-3.5 py-1.5 font-brush text-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                  activeDynasty
-                    ? "border-vermillion/40 bg-vermillion/15 text-vermillion"
-                    : "border-ink/15 bg-card/70 text-ink hover:border-vermillion/30 hover:bg-vermillion/5",
+                  "rounded-full border px-3 py-1 font-body text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  entry.id === view
+                    ? "border-vermillion/45 bg-vermillion/15 text-vermillion"
+                    : "border-ink/15 bg-card/70 text-muted-foreground hover:border-vermillion/30",
                 )}
                 key={entry.id}
-                onClick={() => chooseDynasty(entry.id)}
+                onClick={() => setView(entry.id)}
+                role="tab"
                 type="button"
               >
-                {entry.name}
+                {entry.label}
               </button>
-            );
-          })}
-        </fieldset>
-
-        {unknownDynasty ? (
-          <p
-            aria-live="polite"
-            className="rounded-lg border border-ochre/30 bg-paper/70 px-4 py-2 text-xs leading-relaxed text-muted-foreground"
-          >
-            未收录该朝代，已显示默认朝代「{atlas.name}」的图谱。
-          </p>
-        ) : null}
-
-        <div aria-label="图谱视图" className="flex flex-wrap gap-2" role="tablist">
-          {VIEWS.map((entry) => (
-            <button
-              aria-selected={entry.id === view}
-              className={cn(
-                "rounded-full border px-4 py-1.5 font-body text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                entry.id === view
-                  ? "border-vermillion/45 bg-vermillion/15 text-vermillion"
-                  : "border-ink/15 bg-card/70 text-muted-foreground hover:border-vermillion/30",
-              )}
-              key={entry.id}
-              onClick={() => setView(entry.id)}
-              role="tab"
-              type="button"
-            >
-              {entry.label}
-            </button>
-          ))}
+            ))}
+          </div>
         </div>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs leading-relaxed text-muted-foreground">
+          <p className="min-w-0 flex-1 basis-full line-clamp-1 sm:basis-auto">{atlas.intro}</p>
+          <span className="font-mono-tech text-[0.7rem] tracking-[0.14em]">{atlas.period}</span>
+          <span className="font-mono-tech text-[0.7rem] tracking-[0.14em]">{atlas.system}</span>
+          <span className="font-mono-tech text-[0.7rem] tracking-[0.14em]">{atlas.source}</span>
+          <span className="font-mono-tech text-[0.7rem] tracking-[0.14em] text-vermillion">
+            {atlas.name} · {active.note}
+          </span>
+        </div>
+      </header>
 
-        <p className="font-mono-tech text-[0.7rem] tracking-[0.14em] text-muted-foreground">
-          {atlas.name} · {active.note}
+      {unknownDynasty ? (
+        <p
+          aria-live="polite"
+          className="mt-2 rounded-lg border border-ochre/30 bg-paper/70 px-4 py-2 text-xs leading-relaxed text-muted-foreground"
+        >
+          未收录该朝代，已显示默认朝代「{atlas.name}」的图谱。
         </p>
+      ) : null}
 
-        <div aria-label={active.label} role="tabpanel">
-          {view === "chart" ? <QingOfficeTree atlas={atlas} /> : null}
-          {view === "ranks" ? (
-            <div className="flex flex-col gap-8">
+      <div aria-label={active.label} className="flex min-h-0 flex-1 flex-col pt-3" role="tabpanel">
+        {view === "chart" ? <QingOfficeTree atlas={atlas} /> : null}
+        {view === "ranks" ? (
+          <div className="h-full min-h-0 overflow-y-auto pr-1 lg:pr-2">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-4 pt-1">
               <QingRankLadder atlas={atlas} />
               <QingRegalia atlas={atlas} />
+              <p className="border-ink/10 border-t pt-4 text-xs leading-relaxed text-muted-foreground">
+                {atlas.footnote}
+              </p>
             </div>
-          ) : null}
-        </div>
-
-        <p className="border-ink/10 border-t pt-4 text-xs leading-relaxed text-muted-foreground">
-          {atlas.footnote}
-        </p>
+          </div>
+        ) : null}
       </div>
     </article>
   );

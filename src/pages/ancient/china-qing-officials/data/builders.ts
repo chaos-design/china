@@ -56,7 +56,12 @@ export function badges(animals: readonly string[]): readonly AtlasBadge[] {
   return animals.map((animal, index) => ({ animal, order: index + 1 }));
 }
 
-/** 阶梯分组：把连续品序合并成图中标注的一段。 */
-export function ladder(label: string, note: string, orders: readonly number[]): AtlasLadderGroup {
-  return { label, note, orders };
+/** 阶梯分组：把连续品序合并成图中标注的一段；grade 可选，用来把同品序的正/从分行。 */
+export function ladder(
+  label: string,
+  note: string,
+  orders: readonly number[],
+  grade?: AtlasLadderGroup["grade"],
+): AtlasLadderGroup {
+  return { label, note, orders, ...(grade ? { grade } : {}) };
 }

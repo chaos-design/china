@@ -1,9 +1,11 @@
+import type { ReactNode } from "react";
+
 import type { AtlasBadge, DynastyAtlas } from "./data";
 
 const BADGE_NAMES = ["一", "二", "三", "四", "五", "六", "七", "八", "九"];
 
-/** 补子纹样占位图：以对称符号示意飞禽 / 走兽，避免引入未经授权的图片。 */
-function BadgeGlyph({ kind }: { kind: "civil" | "military" }) {
+/** 补子纹样占位图：方补框内居中动物名示意，避免引入未经授权的图片。 */
+function BadgeGlyph({ kind, animal }: { kind: "civil" | "military"; animal: string }) {
   return (
     <span
       aria-hidden="true"
@@ -11,11 +13,11 @@ function BadgeGlyph({ kind }: { kind: "civil" | "military" }) {
     >
       <span className="absolute inset-1 border border-ochre/30" />
       <span
-        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-brush text-2xl text-ink/70 ${
-          kind === "civil" ? "rotate-[-8deg]" : "rotate-[8deg]"
+        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-brush text-base leading-none text-ink/75 ${
+          kind === "civil" ? "-rotate-3" : "rotate-3"
         }`}
       >
-        {kind === "civil" ? "羽" : "兽"}
+        {animal}
       </span>
     </span>
   );
@@ -44,7 +46,7 @@ function BadgeGrid({
             className="flex flex-col items-center gap-1.5 rounded-lg border border-ink/10 bg-paper/60 p-2 text-center"
             key={`${kind}-${badge.order}`}
           >
-            <BadgeGlyph kind={kind} />
+            <BadgeGlyph animal={badge.animal} kind={kind} />
             <span className="font-mono-tech text-[0.7rem] text-vermillion tracking-[0.1em]">
               {BADGE_NAMES[badge.order - 1] ?? badge.order}品
             </span>
@@ -56,7 +58,90 @@ function BadgeGrid({
   );
 }
 
-/** 图二：文武补子（明清才有）与礼序。 */
+/* 六项要义小字形装饰（图二底部条带的对应物），纯静态、aria-hidden。 */
+function essentialsGlyphs(): Record<string, ReactNode> {
+  return {
+    rank: (
+      <span aria-hidden="true" className="flex items-end gap-0.5">
+        <span className="h-2 w-2 bg-ink/45" />
+        <span className="h-3 w-2 bg-ink/55" />
+        <span className="h-4 w-2 bg-ink/70" />
+      </span>
+    ),
+    badge: (
+      <span
+        aria-hidden="true"
+        className="flex h-4 w-5 items-center justify-center border border-ochre/60 bg-[#e8dcc3]"
+      >
+        <span className="h-2 w-3 border border-ochre/50" />
+      </span>
+    ),
+    hat: (
+      <span aria-hidden="true" className="flex flex-col items-center gap-0.5">
+        <span className="h-2 w-2 rounded-full bg-vermillion/70" />
+        <span className="h-1 w-6 rounded-[50%] border border-ink/30 bg-ink/70" />
+      </span>
+    ),
+    robe: (
+      <span
+        aria-hidden="true"
+        className="inline-block h-4 w-3 rounded-t-[40%] rounded-b-sm border border-ink/30 bg-ink/55"
+      />
+    ),
+    salary: (
+      <span aria-hidden="true" className="flex items-end">
+        <span className="h-5 w-2.5 rounded-t-sm bg-vermillion/65" />
+      </span>
+    ),
+    ritual: (
+      <span aria-hidden="true" className="flex items-end gap-0.5">
+        <span className="h-2 w-3 rounded-t-sm bg-ink/40" />
+        <span className="h-3 w-3 rounded-t-sm bg-ink/55" />
+        <span className="h-4 w-3 rounded-t-sm bg-ink/70" />
+      </span>
+    ),
+  };
+}
+
+const ESSENTIALS: readonly { key: keyof DynastyAtlas["notes"]; title: string }[] = [
+  { key: "rank", title: "品级" },
+  { key: "badge", title: "补子" },
+  { key: "hat", title: "顶戴" },
+  { key: "robe", title: "朝服" },
+  { key: "salary", title: "俸禄" },
+  { key: "ritual", title: "礼序" },
+];
+
+/** 六项要义：品级 / 补子 / 顶戴 / 朝服 / 俸禄 / 礼序 的口径一览（图二底部条带）。 */
+function EssentialsStrip({ atlas }: { atlas: DynastyAtlas }) {
+  const glyphs = essentialsGlyphs();
+  return (
+    <section aria-label="六项要义" className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h3 className="font-brush text-xl text-ink">六项要义</h3>
+        <span className="font-mono-tech text-[0.7rem] tracking-[0.14em] text-muted-foreground">
+          品级决定一切的一图速览
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {ESSENTIALS.map(({ key, title }) => (
+          <div
+            className="flex flex-col items-center gap-1.5 rounded-lg border border-ink/10 bg-paper/60 px-2 py-3 text-center"
+            key={key}
+          >
+            {glyphs[key]}
+            <span className="font-brush text-base text-ink">{title}</span>
+            <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
+              {atlas.notes[key]}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** 图二：文武补子（明清才有）、礼序与六项要义。 */
 export function QingRegalia({ atlas }: { atlas: DynastyAtlas }) {
   return (
     <div className="flex flex-col gap-4">
@@ -105,6 +190,8 @@ export function QingRegalia({ atlas }: { atlas: DynastyAtlas }) {
           </div>
         </div>
       </section>
+
+      <EssentialsStrip atlas={atlas} />
     </div>
   );
 }
