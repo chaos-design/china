@@ -298,11 +298,12 @@ function HoverReadout({
 }
 
 /**
- * 舞台左上的合并菜单：从属入口（每行标注品级跨度）+ 属官展开控制 + 视角预设。
+ * 舞台左上的合并菜单：从属入口（每行标注品级跨度）+ 属官展开控制 + 视角预设与自转。
  * 容器透传指针，只有控件本身可点，不挡画布拖拽；max-h 钳高 + 内部滚动防吞画布中部。
  */
 function StageMenu({
   activeId,
+  autoRotate,
   canCollapseAll,
   canExpandAll,
   items,
@@ -312,8 +313,10 @@ function StageMenu({
   onPreset,
   onReset,
   onSelect,
+  onToggleRotate,
 }: {
   activeId: string;
+  autoRotate: boolean;
   canCollapseAll: boolean;
   canExpandAll: boolean;
   items: readonly RelationFilterItem[];
@@ -323,6 +326,7 @@ function StageMenu({
   onPreset: (preset: "three-quarter" | "front") => void;
   onReset: () => void;
   onSelect: (item: RelationFilterItem) => void;
+  onToggleRotate: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const eyebrow = "font-mono-tech text-[0.65rem] tracking-[0.18em] text-ochre uppercase";
@@ -436,6 +440,18 @@ function StageMenu({
                   type="button"
                 >
                   正视
+                </button>
+                <button
+                  aria-pressed={autoRotate}
+                  className={cn(
+                    tool,
+                    "flex-1",
+                    autoRotate ? "border-vermillion/40 text-vermillion" : null,
+                  )}
+                  onClick={onToggleRotate}
+                  type="button"
+                >
+                  旋转
                 </button>
                 <button className={cn(tool, "flex-1")} onClick={onReset} type="button">
                   复位
@@ -790,6 +806,12 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
   const [hover, setHover] = useState<OfficeTreeHover | null>(null);
   // 默认折叠到分区：expanded 为空集时只画皇帝 + 荣衔组 + 官署分区。
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  // 慢速自转默认开（reduce-motion 时关）；用户拖拽画布会让场景自动关掉并回调同步。
+  const [autoRotate, setAutoRotateUi] = useState(
+    () =>
+      typeof window.matchMedia !== "function" ||
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
 
   // 折叠视图 = 全量布局的可见子图：坐标稳定，展开 / 折叠不重排，只改取景。
   const clippedLayout = useMemo(
@@ -824,6 +846,8 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
         }
         setDetail(node ? { type: "node", node } : null);
       },
+      // 用户拖拽画布时场景自行停转，这里同步按钮状态。
+      onAutoRotateChange: (on: boolean) => setAutoRotateUi(on),
       onUnavailable: () => undefined,
     }),
     [expandableIds, fullLayout],
@@ -835,6 +859,11 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
   useEffect(() => {
     scene.setFilter(relation.highlight.get(filterId) ?? null);
   }, [filterId, relation, scene]);
+
+  // 自转开关同步到场景（retry 重建场景后也会重新落上）。
+  useEffect(() => {
+    scene.setAutoRotate(autoRotate);
+  }, [autoRotate, scene]);
 
   // 切朝代时清掉上一朝的点选、hover、筛选与展开状态，避免残留。
   const [prevAtlas, setPrevAtlas] = useState(atlas);
@@ -919,6 +948,7 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
 
       <StageMenu
         activeId={filterId}
+        autoRotate={autoRotate}
         canCollapseAll={expanded.size > 0}
         canExpandAll={expandableIds.size > expanded.size}
         items={relation.items}
@@ -934,6 +964,7 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
           setFilterId(item.id);
           setDetail({ type: "filter", item });
         }}
+        onToggleRotate={() => setAutoRotateUi((previous) => !previous)}
       />
 
       <OfficeDetailDrawer

@@ -45,6 +45,8 @@ export interface OfficeTreePick {
 export interface OfficeTreeSceneHandlers {
   onHover: (hover: OfficeTreeHover | null) => void;
   onPick: (pick: OfficeTreePick | null) => void;
+  /** 用户拖拽打断自转时回调（false），让 React 侧的「旋转」按钮状态同步。 */
+  onAutoRotateChange?: (on: boolean) => void;
   onUnavailable?: () => void;
 }
 
@@ -55,11 +57,16 @@ export interface OfficeTreeScene {
   setAtlas: (atlas: DynastyAtlas, layout: OfficeTreeLayout) => void;
   /** 按节点 id 高亮子树；null 表示清除筛选、恢复整树。 */
   setFilter: (ids: readonly string[] | null) => void;
+  /** 慢速自转开关；用户拖拽会自动关掉并经 onAutoRotateChange 通知。 */
+  setAutoRotate: (on: boolean) => void;
 }
 
 const FONT_STACK =
   '"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif';
 const LABEL_WORLD_PER_PX = 0.02;
+/** 新节点 / 新枝干的生长动画时长与逐枚错峰步长。 */
+const GROW_MS = 460;
+const GROW_STAGGER_MS = 16;
 
 /** 相机距目标超过该距离（折叠总览镜头）时隐藏包围框的跨度标注，左菜单已标注跨度。 */
 const BRACKET_LABEL_DISTANCE = 26;
@@ -67,7 +74,7 @@ const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 const NODE_RADIUS: Record<OfficeNodeKind, number> = {
   branch: 0.55,
   honorary: 0.6,
-  office: 0.38,
+  office: 0.44,
   root: 0.95,
 };
 
@@ -152,6 +159,13 @@ function colorCss(value: string, alpha = 1): string {
 
 function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+}
+
+/** 带轻微过冲的收尾缓动：新节点「长出来」时有一点弹性，不再硬切。 */
+function easeOutBack(t: number): number {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2;
 }
 
 function prefersReducedMotion(): boolean {
@@ -344,7 +358,6 @@ export function createOfficeTreeScene(
     toTarget: THREE.Vector3;
   } | null = null;
   let raf = 0;
-  let visible = true;
   let disposed = false;
   let dragging = false;
   let pointerDown: { x: number; y: number } | null = null;
@@ -360,7 +373,28 @@ export function createOfficeTreeScene(
   let bracketMaterials: THREE.LineBasicMaterial[] = [];
   // 深度环参考线与落地垂线的材质：主题切换时随 ink 重着色。
   let guideMaterials: THREE.LineBasicMaterial[] = [];
+  // 金字塔平台 / 中轴 / 基座：主题切换时随纸墨 token 重着色。
+  let platformMaterials: THREE.MeshStandardMaterial[] = [];
+  let spineMaterial: THREE.MeshStandardMaterial | null = null;
+  let baseMaterial: THREE.MeshBasicMaterial | null = null;
   const hudLabels: THREE.Sprite[] = [];
+  // 生长动画：展开 / 切朝代时新出现的节点错峰「长出来」，不再整树硬切。
+  let growNodes: { mesh: THREE.Mesh; delay: number }[] = [];
+  let growStems: { stem: THREE.Mesh; delay: number }[] = [];
+  let growLabels: { label: THREE.Sprite; delay: number }[] = [];
+  let growStart = 0;
+  let previousIds: ReadonlySet<string> | null = null;
+  let previousAtlasId: string | null = null;
+  // 悬浮读数的平滑放大与属官浮签、选中呼吸环（三者都挂在 scene 上，重建不销毁）。
+  let hoverLerp: { mesh: THREE.Mesh; value: number } | null = null;
+  let hoverTag: {
+    canvas: HTMLCanvasElement;
+    context: CanvasRenderingContext2D;
+    sprite: THREE.Sprite;
+    texture: THREE.CanvasTexture;
+  } | null = null;
+  let selectionRing: THREE.Mesh | null = null;
+  let autoRotate = !prefersReducedMotion();
   // 取景状态：fit 时的纵横比与预设视角。用户手动旋转/缩放后不再自动重取景。
   let userAdjusted = false;
   let fittedAspect = 0;
@@ -373,7 +407,9 @@ export function createOfficeTreeScene(
   scene.fog = fog;
   const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 500);
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.autoRotateSpeed = 1.2;
+  // 慢速自转让画面默认就是活的；用户一拖拽即让位给手动视角。
+  controls.autoRotate = autoRotate;
+  controls.autoRotateSpeed = 0.5;
   controls.dampingFactor = 0.075;
   controls.enableDamping = true;
   controls.enablePan = false;
@@ -385,6 +421,11 @@ export function createOfficeTreeScene(
   controls.zoomSpeed = 0.8;
   controls.addEventListener("start", () => {
     userAdjusted = true;
+    if (autoRotate) {
+      autoRotate = false;
+      controls.autoRotate = false;
+      handlers.onAutoRotateChange?.(false);
+    }
   });
 
   renderer.setClearAlpha(0);
@@ -472,6 +513,137 @@ export function createOfficeTreeScene(
     applyPreset("three-quarter");
   }
 
+  /** 当前相机的方位/俯角：展开 / 收起只补间距离与中心，不把用户转好的视角拽回预设。 */
+  function currentAngles(): { azimuth: number; polar: number } {
+    const offset = camera.position.clone().sub(controls.target);
+    const radius = Math.max(0.001, offset.length());
+    return {
+      azimuth: Math.atan2(offset.x, offset.z),
+      polar: Math.min(
+        Math.max(Math.acos(THREE.MathUtils.clamp(offset.y / radius, -1, 1)), 0.09),
+        1.46,
+      ),
+    };
+  }
+
+  // —— 属官浮签：属官不挂常驻标签，hover 时在节点正上方浮出名牌（屏幕等比、置顶渲染）——
+  function ensureHoverTag() {
+    if (hoverTag) {
+      return hoverTag;
+    }
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return null;
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    const material = new THREE.SpriteMaterial({
+      depthTest: false,
+      depthWrite: false,
+      fog: false,
+      map: texture,
+      transparent: true,
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.renderOrder = 22;
+    sprite.visible = false;
+    scene.add(sprite);
+    hoverTag = { canvas, context, sprite, texture };
+    return hoverTag;
+  }
+
+  function showHoverTag(text: string, x: number, y: number, z: number) {
+    const tag = ensureHoverTag();
+    if (!tag) {
+      return;
+    }
+    const pixelRatio = 2;
+    const padX = 12;
+    const padY = 6;
+    const size = 15;
+    tag.context.font = `700 ${size}px ${FONT_STACK}`;
+    const width = tag.context.measureText(text).width + padX * 2;
+    const height = size * 1.16 + padY * 2;
+    tag.canvas.width = Math.max(1, Math.ceil(width * pixelRatio));
+    tag.canvas.height = Math.max(1, Math.ceil(height * pixelRatio));
+    tag.context.scale(pixelRatio, pixelRatio);
+    tag.context.fillStyle = colorCss(colors.paper, 0.92);
+    const corner = 6;
+    tag.context.beginPath();
+    tag.context.moveTo(corner, 0);
+    tag.context.lineTo(width - corner, 0);
+    tag.context.quadraticCurveTo(width, 0, width, corner);
+    tag.context.lineTo(width, height - corner);
+    tag.context.quadraticCurveTo(width, height, width - corner, height);
+    tag.context.lineTo(corner, height);
+    tag.context.quadraticCurveTo(0, height, 0, height - corner);
+    tag.context.lineTo(0, corner);
+    tag.context.quadraticCurveTo(0, 0, corner, 0);
+    tag.context.closePath();
+    tag.context.fill();
+    tag.context.strokeStyle = colorCss(colors.ink, 0.24);
+    tag.context.lineWidth = 1;
+    tag.context.stroke();
+    tag.context.fillStyle = colorCss(colors.vermillion, 0.9);
+    tag.context.fillRect(0, 0, 3.5, height);
+    tag.context.font = `700 ${size}px ${FONT_STACK}`;
+    tag.context.textBaseline = "middle";
+    tag.context.fillStyle = colorCss(colors.ink, 1);
+    tag.context.fillText(text, padX, height / 2);
+    tag.texture.needsUpdate = true;
+    tag.sprite.userData.px = { h: height, w: width };
+    tag.sprite.position.set(x, y, z);
+    tag.sprite.visible = true;
+  }
+
+  function hideHoverTag() {
+    if (hoverTag) {
+      hoverTag.sprite.visible = false;
+    }
+  }
+
+  // —— 选中呼吸环：朱色椭圆环在选中节点脚下缓慢呼吸，点选永远有回应 ——
+  function ensureSelectionRing() {
+    if (selectionRing) {
+      return selectionRing;
+    }
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.82, 1, 44),
+      new THREE.MeshBasicMaterial({
+        color: colors.vermillion,
+        transparent: true,
+        opacity: 0.55,
+        side: THREE.DoubleSide,
+        depthTest: false,
+        depthWrite: false,
+      }),
+    );
+    ring.renderOrder = 18;
+    ring.visible = false;
+    scene.add(ring);
+    selectionRing = ring;
+    return ring;
+  }
+
+  function setSelected(id: string | null) {
+    const ring = ensureSelectionRing();
+    const node = id ? layoutNodes?.find((candidate) => candidate.id === id) : null;
+    if (!id || !node) {
+      if (ring) {
+        ring.visible = false;
+      }
+      return;
+    }
+    const radius = NODE_RADIUS[node.kind] / (1 + node.depth * 0.18);
+    ring!.scale.setScalar(radius * 1.9);
+    ring!.userData.baseScale = radius * 1.9;
+    ring!.position.set(node.x, node.y - radius * 0.8, node.z);
+    ring!.rotation.x = -Math.PI / 2;
+    ring!.visible = true;
+  }
+
   function rebuild(layout: OfficeTreeLayout, atlas: DynastyAtlas) {
     if (disposed) {
       return;
@@ -486,9 +658,23 @@ export function createOfficeTreeScene(
     edgeStems = [];
     bracketMaterials = [];
     guideMaterials = [];
+    platformMaterials = [];
+    spineMaterial = null;
+    baseMaterial = null;
+    growNodes = [];
+    growStems = [];
+    growLabels = [];
+    hoverLerp = null;
+    hideHoverTag();
+    setSelected(null);
     // hudLabels 是复用数组：不清空会随每次重建累积，旧朝代的跨度标注泄漏到新树。
     hudLabels.length = 0;
     atlasName = atlas.name;
+    const sameTree = previousAtlasId === atlas.id;
+    const reducedMotion = prefersReducedMotion();
+    const previous = sameTree ? previousIds : null;
+    // 首建 / 切朝代视为全部新节点（整树错峰入场）；同树重建只生长真正新增的节点。
+    const isNewNode = (id: string) => !(previous?.has(id) ?? false);
 
     content = new THREE.Group();
     scene.add(content);
@@ -529,6 +715,11 @@ export function createOfficeTreeScene(
       stem.position.copy(fromVec).add(toVec).multiplyScalar(0.5);
       stem.quaternion.setFromUnitVectors(up, direction.divideScalar(length));
       stem.scale.set(STEM_RADIUS[edge.kind], length, STEM_RADIUS[edge.kind]);
+      // 新挂出的枝干淡入；首建 / 切朝代时整片枝干一起错峰浮现。
+      if (!reducedMotion && (isNewNode(edge.from) || isNewNode(edge.to))) {
+        (stem.material as THREE.MeshBasicMaterial).opacity = 0.001;
+        growStems.push({ delay: growStems.length * GROW_STAGGER_MS, stem });
+      }
       stem.userData.stem = {
         from: edge.from,
         to: edge.to,
@@ -544,7 +735,7 @@ export function createOfficeTreeScene(
       // 自发光下限不能压太低：属官球体在纸色底上会灰得像没渲染。
       const depthFade = 1 / (1 + node.depth * 0.18);
       const radius = NODE_RADIUS[node.kind] * depthFade;
-      const emissiveBase = node.kind === "root" ? 0.5 : Math.max(0.22, 0.4 - node.depth * 0.05);
+      const emissiveBase = node.kind === "root" ? 0.5 : Math.max(0.32, 0.44 - node.depth * 0.05);
       const finish = NODE_FINISH[node.kind];
       const mesh = new THREE.Mesh(
         createNodeGeometry(node.kind, radius),
@@ -560,6 +751,11 @@ export function createOfficeTreeScene(
       );
       mesh.userData.emissiveBase = emissiveBase;
       mesh.position.set(node.x, node.y, node.z);
+      // 新出现的节点错峰「长出来」（带一点弹性过冲），展开不再是整树硬切。
+      if (!reducedMotion && isNewNode(node.id)) {
+        mesh.scale.setScalar(0.001);
+        growNodes.push({ delay: growNodes.length * GROW_STAGGER_MS, mesh });
+      }
       if (node.kind === "branch") {
         mesh.rotation.y = Math.PI / 4; // 四棱柱转 45° 成菱形俯视，像一枚官印
       }
@@ -605,13 +801,20 @@ export function createOfficeTreeScene(
       const outwardZ = radial > 0.01 ? node.z / radial : 1;
       label.position.set(node.x + outwardX * 1.5, node.y + radius + 0.95, node.z + outwardZ * 1.5);
       label.userData.nodeId = node.id;
+      if (!reducedMotion && isNewNode(node.id)) {
+        (label.material as THREE.SpriteMaterial).opacity = 0.001;
+        growLabels.push({ delay: growLabels.length * GROW_STAGGER_MS, label });
+      }
       content.add(label);
       nodeLabels.push(label);
     }
 
-    // 深度环参考线：每个可见深度一圈椭圆「轨道」，一圈即一代——
-    // 层级不再只靠节点大小暗示，俯视时同心轨道就是显式的层级刻度。
+    // 金字塔平台：每个可见深度一块半透明椭圆平台，层层叠出阶梯金字塔——
+    // 皇帝居塔尖、分区在首层、属官落到更宽的下一层，「层级 = 一层塔」有实体可指。
+    // 平台顶缘保留一圈细线（旧轨道参考线的角色），基座是中轴 + 淡墨渐变的落地。
     const depths = [...new Set(layout.nodes.map((node) => node.depth))].sort((a, b) => a - b);
+    let maxRingX: number = OFFICE_TREE_GEOMETRY.ringRadiusX;
+    let maxRingZ: number = OFFICE_TREE_GEOMETRY.ringRadiusZ;
     for (const depth of depths) {
       if (depth === 0) {
         continue;
@@ -619,18 +822,36 @@ export function createOfficeTreeScene(
       const ring = depth - 1;
       const rx = OFFICE_TREE_GEOMETRY.ringRadiusX + ring * OFFICE_TREE_GEOMETRY.ringStepX;
       const rz = OFFICE_TREE_GEOMETRY.ringRadiusZ + ring * OFFICE_TREE_GEOMETRY.ringStepZ;
+      maxRingX = Math.max(maxRingX, rx);
+      maxRingZ = Math.max(maxRingZ, rz);
       const y = OFFICE_TREE_GEOMETRY.rootLift - depth * OFFICE_TREE_GEOMETRY.levelGap;
+      const platform = new THREE.Mesh(
+        new THREE.CylinderGeometry(1, 1, 1, 72),
+        new THREE.MeshStandardMaterial({
+          color: new THREE.Color(colors.paper).lerp(new THREE.Color(colors.ink), 0.07),
+          metalness: 0.05,
+          roughness: 0.9,
+          transparent: true,
+          opacity: 0.4,
+          depthWrite: false,
+        }),
+      );
+      platform.scale.set(rx + 1.4, 0.16, rz + 1.4);
+      platform.position.y = y - 0.42;
+      content.add(platform);
+      platformMaterials.push(platform.material as THREE.MeshStandardMaterial);
+      // 平台顶缘细线：一圈即一代的显式刻度。
       const points: number[] = [];
       for (let step = 0; step <= 128; step += 1) {
         const theta = (step / 128) * Math.PI * 2;
-        points.push(Math.cos(theta) * rx, y, Math.sin(theta) * rz);
+        points.push(Math.cos(theta) * (rx + 1.4), y - 0.34, Math.sin(theta) * (rz + 1.4));
       }
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
       const material = new THREE.LineBasicMaterial({
         color: colors.ink,
         transparent: true,
-        opacity: depth === 1 ? 0.16 : 0.1,
+        opacity: depth === 1 ? 0.2 : 0.12,
         depthWrite: false,
       });
       guideMaterials.push(material);
@@ -654,6 +875,54 @@ export function createOfficeTreeScene(
     });
     guideMaterials.push(dropMaterial);
     content.add(new THREE.LineSegments(dropGeometry, dropMaterial));
+
+    // 皇权中轴：一根下粗上细的立柱从基座直通皇帝——金字塔有了可读的中轴，
+    // 落地垂线全部收拢到这根轴上，整座塔是从大地里长出来的而不是悬空贴图。
+    const spineHeight = OFFICE_TREE_GEOMETRY.rootLift - groundY;
+    const spine = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.16, 0.34, 1, 12),
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color(colors.ink).lerp(new THREE.Color(colors.paper), 0.35),
+        metalness: 0.1,
+        roughness: 0.75,
+        transparent: true,
+        opacity: 0.6,
+        depthWrite: false,
+      }),
+    );
+    spine.scale.set(1, spineHeight, 1);
+    spine.position.y = groundY + spineHeight / 2;
+    content.add(spine);
+    spineMaterial = spine.material as THREE.MeshStandardMaterial;
+
+    // 基座：淡墨径向渐变（白图 + ink 着色，主题切换只换 color），塔立在地上。
+    const baseCanvas = document.createElement("canvas");
+    baseCanvas.width = 256;
+    baseCanvas.height = 256;
+    const baseContext = baseCanvas.getContext("2d");
+    if (baseContext) {
+      const gradient = baseContext.createRadialGradient(128, 128, 8, 128, 128, 128);
+      gradient.addColorStop(0, "rgba(255,255,255,0.18)");
+      gradient.addColorStop(0.55, "rgba(255,255,255,0.08)");
+      gradient.addColorStop(1, "rgba(255,255,255,0)");
+      baseContext.fillStyle = gradient;
+      baseContext.fillRect(0, 0, 256, 256);
+      const baseTexture = new THREE.CanvasTexture(baseCanvas);
+      const base = new THREE.Mesh(
+        new THREE.PlaneGeometry(2, 2),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color(colors.ink),
+          map: baseTexture,
+          transparent: true,
+          depthWrite: false,
+        }),
+      );
+      base.rotation.x = -Math.PI / 2;
+      base.scale.set(maxRingX + 5.5, maxRingZ + 5.5, 1);
+      base.position.y = groundY - 0.05;
+      content.add(base);
+      baseMaterial = base.material as THREE.MeshBasicMaterial;
+    }
 
     // 分区包围框：可见节点 ≥ 2 的官署分区（与荣衔簇）画一圈包围矩形，
     // 框顶标注该区品级跨度（「哪一层是哪个品级」）。框只作视觉分组，不进拾取集合。
@@ -731,10 +1000,43 @@ export function createOfficeTreeScene(
     fog.near = fit * 1.05;
     fog.far = fit * 2.2;
 
-    const angles = PRESET_ANGLES["three-quarter"];
+    // 取景：首建 / 切朝代**立即**落到预设镜头——补间的起点若是原点（rAF 受限的嵌入
+    // 环境里 tick 可能迟迟不来），controls.update() 会把半径钳到 minDistance、把镜头
+    // 顶到目标正上方贴脸。入场感交给节点生长动画；同树展开 / 收起才走镜头补间，
+    // 只动距离与中心、保留用户已转好的方位。
+    const angles = sameTree ? currentAngles() : PRESET_ANGLES["three-quarter"];
     fittedAngles = angles;
     fittedAspect = camera.aspect;
-    applyCamera(angles.azimuth, angles.polar, fitDistance(), contentCenter());
+    if (sameTree && !reducedMotion) {
+      tweenCamera(contentCenter(), fitDistance(), angles.azimuth, angles.polar);
+    } else {
+      applyCamera(angles.azimuth, angles.polar, fitDistance(), contentCenter());
+    }
+    previousIds = new Set(layout.nodes.map((node) => node.id));
+    previousAtlasId = atlas.id;
+    growStart = performance.now();
+    // 生长动画兜底：rAF 受限的嵌入环境里 tick 可能长时间不来，用定时器把动画
+    // 直接推到终态（正常情况下数组早已清空，这里是空操作）。
+    if (!reducedMotion && (growNodes.length > 0 || growStems.length > 0 || growLabels.length > 0)) {
+      const maxCount = Math.max(growNodes.length, growStems.length, growLabels.length);
+      window.setTimeout(
+        () => {
+          for (const item of growNodes) {
+            item.mesh.scale.setScalar(1);
+          }
+          for (const item of growStems) {
+            (item.stem.material as THREE.MeshBasicMaterial).opacity = 0.82;
+          }
+          for (const item of growLabels) {
+            (item.label.material as THREE.SpriteMaterial).opacity = 1;
+          }
+          growNodes = [];
+          growStems = [];
+          growLabels = [];
+        },
+        GROW_MS + Math.max(0, maxCount - 1) * GROW_STAGGER_MS + 120,
+      );
+    }
     applyHighlight();
   }
 
@@ -808,9 +1110,11 @@ export function createOfficeTreeScene(
 
   function onPointerMove(event: PointerEvent) {
     if (pointerDown) {
-      const moved = Math.hypot(event.clientX - pointerDown.x, pointerDown.y - pointerDown.y);
+      const moved = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
       if (moved > 6 && !dragging) {
         dragging = true;
+        hoverLerp = null;
+        hideHoverTag();
         if (hover) {
           setHoverScale(hover.id, 1);
           hover = null;
@@ -828,11 +1132,23 @@ export function createOfficeTreeScene(
     }
     setHoverScale(hover?.id ?? null, 1);
     hover = pick;
-    if (pick) {
-      setHoverScale(pick.id, 1.35);
-      const node = layoutNodes?.find((candidate) => candidate.id === pick.id);
-      handlers.onHover(node ? describeNode(node, atlasName) : null);
+    const node = pick ? (layoutNodes?.find((candidate) => candidate.id === pick.id) ?? null) : null;
+    if (pick && node) {
+      // 悬浮放大改为逐帧插值的平滑凸起；属官没有常驻标签，hover 时浮出一枚名牌补位。
+      const mesh = pickMeshes.find(
+        (candidate) => (candidate.userData.pick as OfficeTreePick).id === pick.id,
+      ) as THREE.Mesh | undefined;
+      hoverLerp = mesh ? { mesh, value: 1 } : null;
+      const radius = NODE_RADIUS[node.kind] / (1 + node.depth * 0.18);
+      if (node.kind === "office") {
+        showHoverTag(node.title, node.x, node.y + radius + 1.15, node.z);
+      } else {
+        hideHoverTag();
+      }
+      handlers.onHover(describeNode(node, atlasName));
     } else {
+      hoverLerp = null;
+      hideHoverTag();
       handlers.onHover(null);
     }
   }
@@ -854,10 +1170,14 @@ export function createOfficeTreeScene(
     if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) {
       return;
     }
-    handlers.onPick(pickAt(event));
+    const pick = pickAt(event);
+    setSelected(pick?.id ?? null);
+    handlers.onPick(pick);
   }
 
   function onPointerLeave() {
+    hoverLerp = null;
+    hideHoverTag();
     if (hover) {
       setHoverScale(hover.id, 1);
       hover = null;
@@ -886,14 +1206,17 @@ export function createOfficeTreeScene(
     }
   }
 
-  function tick(now: number) {
+  function tick() {
     if (disposed) {
       return;
     }
     raf = requestAnimationFrame(tick);
-    if (!visible || document.hidden) {
+    if (document.hidden) {
       return;
     }
+    // 动画时钟用 performance.now() 而不是 rAF 时间戳：部分嵌入环境（IAB iframe 等）
+    // 的 rAF 时间戳不推进，所有补间 / 生长动画会永远冻在第一帧。
+    const now = performance.now();
     if (tween) {
       const elapsed = now - tween.start;
       const progress = Math.min(1, elapsed / tween.duration);
@@ -905,12 +1228,70 @@ export function createOfficeTreeScene(
       }
     }
     controls.update();
+    // 生长动画：新节点 / 枝干 / 标签按错峰时刻表长到位，展开与入场不再硬切。
+    const growProgress = (delay: number) =>
+      Math.min(1, Math.max(0, (now - growStart - delay) / GROW_MS));
+    for (let index = growNodes.length - 1; index >= 0; index -= 1) {
+      const item = growNodes[index]!;
+      const progress = growProgress(item.delay);
+      if (progress <= 0) {
+        continue;
+      }
+      item.mesh.scale.setScalar(Math.max(0.001, easeOutBack(progress)));
+      if (progress >= 1) {
+        growNodes.splice(index, 1);
+      }
+    }
+    for (let index = growStems.length - 1; index >= 0; index -= 1) {
+      const item = growStems[index]!;
+      const progress = growProgress(item.delay);
+      if (progress <= 0) {
+        continue;
+      }
+      (item.stem.material as THREE.MeshBasicMaterial).opacity = 0.82 * progress;
+      if (progress >= 1) {
+        growStems.splice(index, 1);
+      }
+    }
+    for (let index = growLabels.length - 1; index >= 0; index -= 1) {
+      const item = growLabels[index]!;
+      const progress = growProgress(item.delay);
+      if (progress <= 0) {
+        continue;
+      }
+      (item.label.material as THREE.SpriteMaterial).opacity = Math.min(1, progress);
+      if (progress >= 1) {
+        growLabels.splice(index, 1);
+      }
+    }
+    // 悬浮凸起的平滑插值：凸起不是瞬跳，移开由 snap 归位。
+    if (hoverLerp) {
+      hoverLerp.value += (1.35 - hoverLerp.value) * 0.16;
+      hoverLerp.mesh.scale.setScalar(hoverLerp.value);
+      if (Math.abs(hoverLerp.value - 1.35) < 0.01) {
+        hoverLerp = null;
+      }
+    }
+    // 选中环缓慢呼吸：点选永远有回应。
+    if (selectionRing?.visible) {
+      const base = (selectionRing.userData.baseScale as number) || 1;
+      selectionRing.scale.setScalar(base * (1 + Math.sin(now * 0.004) * 0.07));
+    }
+    // 首次 fit 可能发生在画布布局稳定之前（ResizeObserver 在部分嵌入环境不触发）：
+    // 纵横比变化且用户尚未手动操作时逐帧兜底重取景；用户一旦交互即不再打扰。
+    if (!userAdjusted && fittedAspect > 0 && Math.abs(camera.aspect - fittedAspect) > 0.02) {
+      fittedAspect = camera.aspect;
+      applyCamera(fittedAngles.azimuth, fittedAngles.polar, fitDistance(), contentCenter());
+    }
     // 屏幕等比标签：按相机到标签的距离换算世界尺寸，任何缩放下保持恒定屏幕大小；
     // 包围框的跨度标注只在拉近镜头时显示（折叠总览下由左菜单标注跨度，避免压住组标签）。
     const canvasHeight = renderer.domElement.clientHeight || 1;
     const halfTan = Math.tan((camera.fov * Math.PI) / 360);
     const showHudLabels = camera.position.distanceTo(controls.target) <= BRACKET_LABEL_DISTANCE;
-    for (const label of [...nodeLabels, ...hudLabels]) {
+    const sprites = hoverTag?.sprite.visible
+      ? [...nodeLabels, ...hudLabels, hoverTag.sprite]
+      : [...nodeLabels, ...hudLabels];
+    for (const label of sprites) {
       const px = label.userData.px as { h: number; w: number } | undefined;
       if (px) {
         const distance = camera.position.distanceTo(label.position);
@@ -929,7 +1310,9 @@ export function createOfficeTreeScene(
     handlers.onUnavailable?.();
   };
   const onVisibility = () => {
-    visible = !document.hidden;
+    // 只跟标签页可见性走。IntersectionObserver 在部分嵌入环境（IAB）会先报
+    // not-intersecting 且不再更新，把整条渲染循环吞成空画布——单屏沉浸页
+    // 画布始终在视口内，不做离屏暂停。
   };
 
   renderer.domElement.addEventListener("pointerdown", onPointerDown);
@@ -942,14 +1325,6 @@ export function createOfficeTreeScene(
   const resizeObserver =
     typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => resize());
   resizeObserver?.observe(container);
-
-  let intersectionObserver: IntersectionObserver | null = null;
-  if (typeof IntersectionObserver !== "undefined") {
-    intersectionObserver = new IntersectionObserver((records) => {
-      visible = records.some((record) => record.isIntersecting);
-    });
-    intersectionObserver.observe(container);
-  }
 
   const themeObserver = new MutationObserver(() => {
     if (colorFrame) {
@@ -983,6 +1358,20 @@ export function createOfficeTreeScene(
       for (const material of guideMaterials) {
         material.color = new THREE.Color(colors.ink);
       }
+      for (const material of platformMaterials) {
+        material.color = new THREE.Color(colors.paper).lerp(new THREE.Color(colors.ink), 0.07);
+      }
+      if (spineMaterial) {
+        spineMaterial.color = new THREE.Color(colors.ink).lerp(new THREE.Color(colors.paper), 0.35);
+      }
+      if (baseMaterial) {
+        baseMaterial.color = new THREE.Color(colors.ink);
+      }
+      if (selectionRing) {
+        (selectionRing.material as THREE.MeshBasicMaterial).color = new THREE.Color(
+          colors.vermillion,
+        );
+      }
       fog.color.set(colors.paper);
       for (const stem of edgeStems) {
         const meta = stem.userData.stem as StemMeta;
@@ -1009,7 +1398,6 @@ export function createOfficeTreeScene(
         cancelAnimationFrame(colorFrame);
       }
       resizeObserver?.disconnect();
-      intersectionObserver?.disconnect();
       themeObserver.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
@@ -1023,6 +1411,17 @@ export function createOfficeTreeScene(
         scene.remove(content);
         content = null;
       }
+      // 浮签与选中环挂在 scene 上（不随 content 重建），销毁时单独释放。
+      if (hoverTag) {
+        disposeObject(hoverTag.sprite);
+        scene.remove(hoverTag.sprite);
+        hoverTag = null;
+      }
+      if (selectionRing) {
+        disposeObject(selectionRing);
+        scene.remove(selectionRing);
+        selectionRing = null;
+      }
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
@@ -1033,6 +1432,10 @@ export function createOfficeTreeScene(
     },
     resetView,
     setAtlas,
+    setAutoRotate(on: boolean) {
+      autoRotate = on;
+      controls.autoRotate = on;
+    },
     setFilter,
   };
 }

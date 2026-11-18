@@ -34,6 +34,8 @@ export interface OfficeTreeSceneController {
   resetView: () => void;
   /** 从属筛选高亮（null 恢复全树）。 */
   setFilter: (ids: readonly string[] | null) => void;
+  /** 慢速自转开关（用户拖拽会在场景内部自动关闭并回调）。 */
+  setAutoRotate: (on: boolean) => void;
 }
 
 export function useOfficeTreeScene(
@@ -116,8 +118,12 @@ export function useOfficeTreeScene(
     sceneRef.current?.setFilter(ids);
   }, []);
 
+  const setAutoRotate = useCallback((on: boolean) => {
+    sceneRef.current?.setAutoRotate(on);
+  }, []);
+
   return useMemo(
-    () => ({ hostRef, ready, failed, retry, applyPreset, resetView, setFilter }),
-    [ready, failed, retry, applyPreset, resetView, setFilter],
+    () => ({ hostRef, ready, failed, retry, applyPreset, resetView, setFilter, setAutoRotate }),
+    [ready, failed, retry, applyPreset, resetView, setFilter, setAutoRotate],
   );
 }

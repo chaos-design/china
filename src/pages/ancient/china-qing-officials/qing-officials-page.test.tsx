@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => {
     dispose: vi.fn(),
     resetView: vi.fn(),
     setAtlas: vi.fn(),
+    setAutoRotate: vi.fn(),
     setFilter: vi.fn(),
   };
   return {
@@ -126,10 +127,16 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
 
     expect(screen.getByLabelText("官制立体树")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /清官制立体树/ })).toBeInTheDocument();
-    // 视图控件（斜视 / 正视 / 复位，均为单行两字文案）
+    // 视图控件（斜视 / 正视 / 旋转 / 复位，均为单行两字文案）
     expect(screen.getByRole("button", { name: "斜视" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "正视" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "复位" })).toBeInTheDocument();
+    // 慢速自转默认开启（reduce-motion 由场景侧判定），按钮为同步开关
+    expect(screen.getByRole("button", { name: "旋转" })).toHaveAttribute("aria-pressed", "true");
+    expect(mocks.scene.setAutoRotate).toHaveBeenCalledWith(true);
+    fireEvent.click(screen.getByRole("button", { name: "旋转" }));
+    expect(screen.getByRole("button", { name: "旋转" })).toHaveAttribute("aria-pressed", "false");
+    expect(mocks.scene.setAutoRotate).toHaveBeenLastCalledWith(false);
     // 场景同步拿到布局：调用过一次 setAtlas
     expect(mocks.scene.setAtlas).toHaveBeenCalledTimes(1);
     // WebGL 可用时不再有加载态与降级提示
