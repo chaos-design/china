@@ -720,10 +720,11 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
             </span>
           </div>
         ) : null}
-        <div className="absolute inset-x-0 bottom-3">
+        {/* 底部再留出一行给页级题注条（原头部第二行），故 readout 与 hierarchyNote 上移。 */}
+        <div className="absolute inset-x-0 bottom-9">
           <HoverReadout dynastyName={atlas.name} hover={hover} />
         </div>
-        <p className="absolute bottom-3 left-3 hidden max-w-[220px] text-[0.65rem] leading-relaxed text-muted-foreground md:block">
+        <p className="absolute bottom-9 left-3 hidden max-w-[220px] text-[0.65rem] leading-relaxed text-muted-foreground md:block">
           {atlas.hierarchyNote}
         </p>
       </div>
