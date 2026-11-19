@@ -1,27 +1,14 @@
 import { cn } from "../../../lib/utils";
 import { ArchiveSectionHead } from "./content-primitives";
 import type { AtlasRankLevel, DynastyAtlas } from "./data";
+import { HatIllustration, RobeIllustration } from "./rank-illustrations";
 
 export function HatGlyph({ level }: { level: AtlasRankLevel }) {
-  return (
-    <span aria-hidden="true" className="flex flex-col items-center gap-0.5">
-      <span
-        className="h-3 w-3 rounded-full border border-ink/25 shadow-[inset_0_-2px_3px_hsl(var(--ink)/0.2)]"
-        style={{ backgroundColor: level.hatColor ?? "#8a8a8a" }}
-      />
-      <span className="h-1.5 w-9 rounded-[50%] border border-ink/30 bg-ink/70" />
-    </span>
-  );
+  return <HatIllustration level={level} />;
 }
 
 export function RobeGlyph({ level }: { level: AtlasRankLevel }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-block h-7 w-5 rounded-t-[40%] rounded-b-md border border-ink/25 shadow-[inset_0_0_0_2px_hsl(var(--paper)/0.25)]"
-      style={{ backgroundColor: level.robeColor ?? "#6a6a6a" }}
-    />
-  );
+  return <RobeIllustration level={level} />;
 }
 
 function SectionHead({ mark, title, note }: { mark: string; title: string; note?: string }) {

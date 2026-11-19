@@ -2,26 +2,13 @@ import type { ReactNode } from "react";
 
 import { ArchiveSectionHead } from "./content-primitives";
 import type { AtlasBadge, DynastyAtlas } from "./data";
+import { BadgeIllustration } from "./rank-illustrations";
 
 const BADGE_NAMES = ["一", "二", "三", "四", "五", "六", "七", "八", "九"];
 
-/** 补子纹样占位图：方补框内居中动物名示意，避免引入未经授权的图片。 */
+/** 补子纹样：方补内写意飞禽 / 走兽手绘图，动物名退为图下小注。 */
 function BadgeGlyph({ kind, animal }: { kind: "civil" | "military"; animal: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="relative block h-10 w-14 overflow-hidden rounded-sm border border-ochre/40 bg-[#e8dcc3]"
-    >
-      <span className="absolute inset-1 border border-ochre/30" />
-      <span
-        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-brush text-base leading-none text-ink/75 ${
-          kind === "civil" ? "-rotate-3" : "rotate-3"
-        }`}
-      >
-        {animal}
-      </span>
-    </span>
-  );
+  return <BadgeIllustration animal={animal} kind={kind} />;
 }
 
 function BadgeGrid({

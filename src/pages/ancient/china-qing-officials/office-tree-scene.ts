@@ -71,11 +71,15 @@ const GROW_STAGGER_MS = 16;
 /** 相机距目标超过该距离（折叠总览镜头）时隐藏包围框的跨度标注，左菜单已标注跨度。 */
 const BRACKET_LABEL_DISTANCE = 26;
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+/**
+ * 节点体量即尊卑：皇权独占一个数量级的尺度，分区、荣衔、属官依次收小。
+ * 旧版 root 0.95 / office 0.44 只差 2 倍，又经 depthFade 抹平，视觉上分不出主次。
+ */
 const NODE_RADIUS: Record<OfficeNodeKind, number> = {
-  branch: 0.55,
+  branch: 0.68,
   honorary: 0.6,
-  office: 0.44,
-  root: 0.95,
+  office: 0.4,
+  root: 2.05,
 };
 
 /** 属官视觉球随深度缩到 ~0.37，直接点小球命中率太低：共享一枚不可见的稍大代理球扩大命中区。 */
@@ -106,26 +110,104 @@ function stemColor(colors: OfficeTreeColors, kind: OfficeTreeEdge["kind"]): THRE
   }
 }
 
-/** 每种节点一套几何语言：本源六棱宝座、荣衔菱形印、分区四方官印、属官圆珠。 */
+/**
+ * 每种节点一套几何语言，体量与棱面共同编码尊卑：
+ * 皇权 = 八棱宝座（上层叠收，如御座），荣衔 = 双锥晶印，分区 = 四方官印，属官 = 圆珠。
+ */
 function createNodeGeometry(kind: OfficeNodeKind, radius: number): THREE.BufferGeometry {
   switch (kind) {
     case "root":
-      return new THREE.CylinderGeometry(radius * 0.72, radius, radius * 0.85, 6);
+      return new THREE.CylinderGeometry(radius * 0.62, radius, radius * 1.15, 8);
     case "honorary":
       return new THREE.OctahedronGeometry(radius, 0);
     case "branch":
-      return new THREE.CylinderGeometry(radius * 0.92, radius * 0.92, radius, 4);
+      return new THREE.CylinderGeometry(radius * 0.92, radius, radius * 1.1, 4);
     case "office":
       return new THREE.SphereGeometry(radius * 0.85, 12, 8);
   }
 }
 
 const NODE_FINISH: Record<OfficeNodeKind, { metalness: number; roughness: number }> = {
-  root: { metalness: 0.42, roughness: 0.28 },
-  honorary: { metalness: 0.3, roughness: 0.36 },
-  branch: { metalness: 0.22, roughness: 0.42 },
-  office: { metalness: 0.12, roughness: 0.55 },
+  root: { metalness: 0.72, roughness: 0.2 },
+  honorary: { metalness: 0.46, roughness: 0.3 },
+  branch: { metalness: 0.3, roughness: 0.4 },
+  office: { metalness: 0.14, roughness: 0.56 },
 };
+
+/**
+ * 皇权专属徽记：御座之下的三层须弥台 + 顶上的日轮华盖 + 一圈垂旒。
+ * 全部作为子节点挂在皇帝 mesh 上，随节点缩放与主题着色，不进拾取集合。
+ * 金色来自 imperialGold，朱色取自 vermillion——尊卑由「独有装饰 + 独有配色」双重表达。
+ */
+function createImperialRegalia(colors: OfficeTreeColors, radius: number): THREE.Group {
+  const group = new THREE.Group();
+  const gold = imperialGold(colors);
+  const goldMaterial = () => {
+    const material = new THREE.MeshStandardMaterial({
+      color: gold,
+      emissive: gold,
+      emissiveIntensity: 0.34,
+      metalness: 0.8,
+      roughness: 0.22,
+      transparent: true,
+      opacity: 0.92,
+    });
+    material.userData.regalia = "gold";
+    return material;
+  };
+  const vermillionMaterial = () => {
+    const material = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(colors.vermillion),
+      transparent: true,
+      opacity: 0.9,
+    });
+    material.userData.regalia = "vermillion";
+    return material;
+  };
+
+  // 三层须弥台：越往下越宽，御座如从阶上托起。
+  for (let tier = 0; tier < 3; tier += 1) {
+    const width = radius * (1.5 - tier * 0.16);
+    const dais = new THREE.Mesh(
+      new THREE.CylinderGeometry(width * 0.94, width, radius * 0.14, 8),
+      goldMaterial(),
+    );
+    dais.position.y = -radius * (0.72 - tier * 0.22);
+    dais.renderOrder = -0.5;
+    group.add(dais);
+  }
+
+  // 日轮华盖：悬于御座顶部的一轮薄金盘 + 外圈朱环，正面朝上，俯视清晰可辨。
+  const disc = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 0.52, radius * 0.52, radius * 0.06, 24),
+    goldMaterial(),
+  );
+  disc.position.y = radius * 1.0;
+  group.add(disc);
+  const crownRing = new THREE.Mesh(
+    new THREE.TorusGeometry(radius * 0.66, radius * 0.045, 8, 32),
+    vermillionMaterial(),
+  );
+  crownRing.rotation.x = Math.PI / 2;
+  crownRing.position.y = radius * 1.02;
+  group.add(crownRing);
+
+  // 垂旒：自华盖垂下的一圈朱色短珠，强化「冠冕」意象。
+  for (let index = 0; index < 12; index += 1) {
+    const angle = (index / 12) * Math.PI * 2;
+    const bead = new THREE.Mesh(
+      new THREE.SphereGeometry(radius * 0.045, 6, 5),
+      vermillionMaterial(),
+    );
+    bead.position.set(
+      Math.cos(angle) * radius * 0.66,
+      radius * 0.82,
+      Math.sin(angle) * radius * 0.66,
+    );
+    group.add(bead);
+  }
+  return group;
+}
 
 const PRESET_ANGLES: Record<OfficeTreeCameraPreset, { azimuth: number; polar: number }> = {
   // 更高的俯角让同心深度环呈现为椭圆轨道、y 的下沉与 z 的纵深同时可见；平视会把环压成一条线。
@@ -175,14 +257,19 @@ function prefersReducedMotion(): boolean {
   return typeof window.matchMedia === "function" && window.matchMedia(REDUCED_MOTION).matches;
 }
 
+/** 御金：赭石提亮混向暖白，是皇权专用的色阶，与臣属的朱、黛彻底区分。 */
+function imperialGold(colors: OfficeTreeColors): THREE.Color {
+  return new THREE.Color(colors.ochre).lerp(new THREE.Color(0xfff0c0), 0.42);
+}
+
 function nodeKindColor(colors: OfficeTreeColors, kind: OfficeNodeKind): THREE.Color {
   switch (kind) {
     case "root":
-      return new THREE.Color(colors.ochre);
+      return imperialGold(colors);
+    case "honorary":
+      return new THREE.Color(colors.ochre).lerp(new THREE.Color(colors.paper), 0.1);
     case "branch":
       return new THREE.Color(colors.vermillion);
-    case "honorary":
-      return new THREE.Color(colors.ochre).lerp(new THREE.Color(colors.paper), 0.12);
     case "office":
       return new THREE.Color(colors.blueprint);
   }
@@ -369,8 +456,9 @@ export function createOfficeTreeScene(
   let needsRender = true;
   // 选中环呼吸的截止时刻：呼吸只持续一阵，之后静息。
   let pulseUntil = 0;
-  // 画布 CSS 高度缓存（resize 时更新），避免逐帧读 clientHeight 触发布局查询。
+  // 画布 CSS 尺寸缓存（resize 时更新），避免逐帧读 clientWidth/Height 触发布局查询。
   let canvasHeight = 1;
+  let canvasWidth = 1;
   let hover: OfficeTreePick | null = null;
   let layoutNodes: readonly OfficeTreeNode[] | null = null;
   let highlighted: ReadonlySet<string> | null = null;
@@ -805,6 +893,9 @@ export function createOfficeTreeScene(
       halo.rotation.x = -Math.PI / 2;
       halo.position.y = -radius * 0.85;
       mesh.add(halo);
+      if (node.kind === "root") {
+        mesh.add(createImperialRegalia(colors, radius));
+      }
       mesh.userData.pick = {
         id: node.id,
         kind: node.kind,
@@ -822,25 +913,38 @@ export function createOfficeTreeScene(
         pickMeshes.push(proxy);
       }
 
-      // 只有皇帝 / 荣衔组 / 官署分区挂常驻标签（屏幕等比）；属官不挂牌，
-      // 名字经底部 hover 读出与右侧详情面板呈现，避免 96 个标签互相覆盖。
-      if (node.kind === "office") {
-        continue;
-      }
-      const labelSize = node.kind === "root" ? 20 : node.kind === "honorary" ? 14 : 16;
+      // 每一枚节点都挂标注（含属官），满足「每个原子都有标注」；属官字号更小。
+      // 屏幕空间的重叠交给定于 tick 的贪心避让处理：按层级与远近择优显示，绝不互相压盖。
+      const labelSize =
+        node.kind === "root"
+          ? 20
+          : node.kind === "office"
+            ? 12
+            : node.kind === "honorary"
+              ? 14
+              : 16;
       const label = createLabelSprite(
         colors,
-        [{ size: labelSize, text: node.title, weight: 700 }],
+        [{ size: labelSize, text: node.title, weight: node.kind === "office" ? 500 : 700 }],
         node.kind === "root"
           ? { accent: colorCss(colors.vermillion, 0.9) }
-          : { accent: colorCss(colors.ochre, 0.8) },
+          : node.kind === "office"
+            ? { accent: colorCss(colors.blueprint, 0.7) }
+            : { accent: colorCss(colors.ochre, 0.8) },
       );
       // 标签沿椭圆径向朝外挪开，而不是压在节点正上方——这是消除同层重叠的关键。
       const radial = Math.hypot(node.x, node.z);
       const outwardX = radial > 0.01 ? node.x / radial : 0;
       const outwardZ = radial > 0.01 ? node.z / radial : 1;
-      label.position.set(node.x + outwardX * 1.5, node.y + radius + 0.95, node.z + outwardZ * 1.5);
+      const labelOut = node.kind === "office" ? 1.15 : 1.5;
+      label.position.set(
+        node.x + outwardX * labelOut,
+        node.y + radius + (node.kind === "office" ? 0.6 : 0.95),
+        node.z + outwardZ * labelOut,
+      );
       label.userData.nodeId = node.id;
+      label.userData.kind = node.kind;
+      label.userData.depth = node.depth;
       // 标签同权可点选：点击标签等同点击它标注的节点（展开 / 详情 / 选中一致）。
       label.userData.pick = {
         id: node.id,
@@ -1173,7 +1277,10 @@ export function createOfficeTreeScene(
     raycaster.setFromCamera(pointer, camera);
     // 标签永远置顶渲染（depthTest: false），点击也优先命中标签：
     // 指针落在看得见的标签文字上时，选中的一定是标签标注的节点。
-    const labelHit = raycaster.intersectObjects(labelPickMeshes, false)[0];
+    // 只拾取屏幕上真正可见的标签；被避让隐藏的标签不应截获点击。
+    const labelHit = raycaster
+      .intersectObjects(labelPickMeshes, false)
+      .find((hit) => hit.object.visible);
     if (labelHit) {
       return labelHit.object.userData.pick as OfficeTreePick;
     }
@@ -1278,6 +1385,68 @@ export function createOfficeTreeScene(
     rebuild(layout, atlas);
   }
 
+  // —— 标注避让：默认全展开后上百枚标签挤在画面里，用屏幕空间贪心放置消除重叠 ——
+  const labelProjection = new THREE.Vector3();
+  interface LabelBox {
+    cx: number;
+    cy: number;
+    halfW: number;
+    halfH: number;
+  }
+  const KIND_PRIORITY: Record<OfficeNodeKind, number> = {
+    root: 0,
+    branch: 1,
+    honorary: 2,
+    office: 3,
+  };
+  function avoidLabelOverlap() {
+    const placed: LabelBox[] = [];
+    const pad = 4;
+    // 排序：层级尊者优先、离相机近者优先，保证被让位的是低层远景标签。
+    const ranked = [...nodeLabels].sort((a, b) => {
+      const kindDelta =
+        KIND_PRIORITY[a.userData.kind as OfficeNodeKind] -
+        KIND_PRIORITY[b.userData.kind as OfficeNodeKind];
+      if (kindDelta !== 0) {
+        return kindDelta;
+      }
+      return (
+        camera.position.distanceToSquared(a.position) -
+        camera.position.distanceToSquared(b.position)
+      );
+    });
+    for (const label of ranked) {
+      // 被 hover / 选中的节点标签优先占位，只见其名不见遮挡。
+      const id = label.userData.nodeId as string;
+      const pinned = hover?.id === id;
+      labelProjection.copy(label.position).project(camera);
+      const behind = labelProjection.z > 1;
+      const px = label.userData.px as { h: number; w: number } | undefined;
+      const halfW = ((px?.w ?? 60) / 2) * 1.06;
+      const halfH = ((px?.h ?? 22) / 2) * 1.06;
+      const cx = (labelProjection.x * 0.5 + 0.5) * canvasWidth;
+      const cy = (-labelProjection.y * 0.5 + 0.5) * canvasHeight;
+      const box: LabelBox = { cx, cy, halfW, halfH };
+      let collides = false;
+      if (!pinned && !behind) {
+        for (const other of placed) {
+          if (
+            Math.abs(cx - other.cx) < halfW + other.halfW + pad &&
+            Math.abs(cy - other.cy) < halfH + other.halfH + pad
+          ) {
+            collides = true;
+            break;
+          }
+        }
+      }
+      // 屏幕外或已被占据的标签隐藏；其余保持可见并占位。
+      label.visible = !behind && !collides;
+      if (label.visible) {
+        placed.push(box);
+      }
+    }
+  }
+
   function resize() {
     const rect = container.getBoundingClientRect();
     const width = Math.max(1, Math.floor(rect.width));
@@ -1286,6 +1455,7 @@ export function createOfficeTreeScene(
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
     canvasHeight = height;
+    canvasWidth = width;
     needsRender = true;
     // 首次 fit 可能发生在画布布局稳定之前，取景用错纵横比（tree 缩成一角）。
     // 纵横比变化且用户尚未手动操作时自动重新取景；用户一旦交互即不再打扰。
@@ -1418,6 +1588,8 @@ export function createOfficeTreeScene(
       for (const label of nodeLabels) {
         updateLabel(label);
       }
+      // 先按屏幕矩形择优剔除重叠标注，再渲染——每个节点都有标注，但同屏只见不冲突的那些。
+      avoidLabelOverlap();
       for (const label of hudLabels) {
         updateLabel(label);
       }
@@ -1467,11 +1639,29 @@ export function createOfficeTreeScene(
             material.color = nodeKindColor(colors, node.kind);
             material.emissive = nodeKindColor(colors, node.kind);
             for (const child of mesh.children) {
-              const childMaterial = (child as THREE.Mesh).material as
-                | THREE.MeshBasicMaterial
-                | undefined;
-              if (childMaterial) {
-                childMaterial.color = nodeKindColor(colors, node.kind);
+              // 皇权徽记是一整个 Group，逐层展开其中的材质分别重着色。
+              const descendants: THREE.Object3D[] = [child];
+              while (descendants.length > 0) {
+                const object = descendants.pop()!;
+                descendants.push(...object.children);
+                const childMaterial = (object as THREE.Mesh).material as
+                  | THREE.MeshBasicMaterial
+                  | undefined;
+                if (!childMaterial) {
+                  continue;
+                }
+                const regalia = childMaterial.userData.regalia as string | undefined;
+                if (regalia === "gold") {
+                  childMaterial.color = imperialGold(colors);
+                  const standard = childMaterial as THREE.Material & { emissive?: THREE.Color };
+                  if (standard.emissive) {
+                    standard.emissive = imperialGold(colors);
+                  }
+                } else if (regalia === "vermillion") {
+                  childMaterial.color = new THREE.Color(colors.vermillion);
+                } else {
+                  childMaterial.color = nodeKindColor(colors, node.kind);
+                }
               }
             }
           }

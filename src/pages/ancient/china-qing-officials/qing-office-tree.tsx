@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "../../../lib/utils";
 import { ArchiveSectionHead, SealBadge } from "./content-primitives";
 import type { DynastyAtlas } from "./data";
+import { getOfficeDuty } from "./office-duties";
 import {
   branchRankSpans,
   filterOfficeTreeLayout,
@@ -590,6 +591,8 @@ function OfficeNodeDetail({
       </div>
       <dl className="flex flex-col gap-3">
         <DetailRow label="从属路径">{path.join(" / ")}</DetailRow>
+        <DetailRow label="职权范围">{getOfficeDuty(node).scope}</DetailRow>
+        <DetailRow label="职能">{getOfficeDuty(node).function}</DetailRow>
         {rankLevels.length > 0 ? (
           <DetailRow label="品级实档（据本朝品秩谱）">
             <div className="flex flex-col gap-2">
@@ -876,8 +879,18 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
   const [filterId, setFilterId] = useState("all");
   const [detail, setDetail] = useState<OfficeDetail | null>(null);
   const [hover, setHover] = useState<OfficeTreeHover | null>(null);
-  // 默认折叠到分区：expanded 为空集时只画皇帝 + 荣衔组 + 官署分区。
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const expandableIds = useMemo(
+    () =>
+      new Set(
+        fullLayout.nodes
+          .filter((node) => node.children.length > 0 && node.id !== fullLayout.rootId)
+          .map((node) => node.id),
+      ),
+    [fullLayout],
+  );
+  // 默认全展开：落地即见完整从属树与每一枚属官；重叠标注由场景的屏幕避让处理。
+  // 用户仍可用舞台菜单「收起全部」回到分区总览。
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set(expandableIds));
   // 慢速自转默认开（reduce-motion 时关）；用户拖拽画布会让场景自动关掉并回调同步。
   const [autoRotate, setAutoRotateUi] = useState(
     () =>
@@ -889,15 +902,6 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
   const clippedLayout = useMemo(
     () => filterOfficeTreeLayout(fullLayout, visibleNodeIds(fullLayout, expanded)),
     [fullLayout, expanded],
-  );
-  const expandableIds = useMemo(
-    () =>
-      new Set(
-        fullLayout.nodes
-          .filter((node) => node.children.length > 0 && node.id !== fullLayout.rootId)
-          .map((node) => node.id),
-      ),
-    [fullLayout],
   );
 
   const callbacks = useMemo(
@@ -944,7 +948,7 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
     setDetail(null);
     setHover(null);
     setFilterId("all");
-    setExpanded(new Set());
+    setExpanded(new Set(expandableIds));
   }
 
   if (scene.failed) {

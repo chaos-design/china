@@ -154,26 +154,26 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(screen.getByRole("img", { name: /秦官制立体树/ })).toBeInTheDocument();
   });
 
-  it("starts collapsed to branches and toggles expansion via picks and menu controls", () => {
+  it("starts fully expanded and toggles expansion via picks and menu controls", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();
 
-    // 默认折叠到分区：皇帝 + 4 组荣衔 + 6 类官署分区 = 11 个节点。
+    // 默认全展开：一落地即见完整从属树（96 节点），每枚属官都有标注（重叠交由场景避让）。
     const lastLayout = () =>
       mocks.scene.setAtlas.mock.calls[mocks.scene.setAtlas.mock.calls.length - 1]?.[1] as {
         nodes: unknown[];
       };
-    expect(lastLayout().nodes).toHaveLength(11);
+    expect(lastLayout().nodes).toHaveLength(96);
 
-    // 点分区节点展开属官：佐理部出现 8 个衙署，再点六部展开 6 部。
+    // 点已展开的分区节点会收起其子树：佐理部收起后从 96 减去其可见后代。
     act(() => {
       sceneHandlers().onPick({ id: "assistant", kind: "branch", title: "佐理部" });
     });
-    expect(lastLayout().nodes).toHaveLength(19);
+    expect(lastLayout().nodes.length).toBeLessThan(96);
     act(() => {
-      sceneHandlers().onPick({ id: "six-boards", kind: "office", title: "六部" });
+      sceneHandlers().onPick({ id: "assistant", kind: "branch", title: "佐理部" });
     });
-    expect(lastLayout().nodes).toHaveLength(25);
+    expect(lastLayout().nodes).toHaveLength(96);
 
     const menu = screen.getByLabelText("舞台菜单");
     fireEvent.click(within(menu).getByRole("button", { name: "收起全部" }));
@@ -182,7 +182,7 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(lastLayout().nodes).toHaveLength(96);
   });
 
-  it("marks the collapsed third tier on the level scale and updates it on expansion", () => {
+  it("shows each tier's node count on the level scale with the full tree expanded", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();
 
@@ -190,14 +190,14 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(within(scale).getByText("权力本源")).toBeInTheDocument();
     expect(within(scale).getByText("官署分区 · 荣衔")).toBeInTheDocument();
     expect(within(scale).getByText("属官衙署")).toBeInTheDocument();
-    // 默认折叠到分区：第三层还没有属官可见，显式提示可展开。
-    expect(within(scale).getByText("点分区展开")).toBeInTheDocument();
-
-    act(() => {
-      sceneHandlers().onPick({ id: "assistant", kind: "branch", title: "佐理部" });
-    });
-    expect(within(scale).getByText("8 节点")).toBeInTheDocument();
+    // 默认全展开：第三层属官可见，刻度显示节点数而不是「点分区展开」。
     expect(within(scale).queryByText("点分区展开")).toBeNull();
+    expect(within(scale).getAllByText(/节点/).length).toBeGreaterThan(0);
+
+    // 收起全部后回到折叠态，刻度重新提示第三层可展开。
+    const menu = screen.getByLabelText("舞台菜单");
+    fireEvent.click(within(menu).getByRole("button", { name: "收起全部" }));
+    expect(within(scale).getByText("点分区展开")).toBeInTheDocument();
   });
 
   it("folds the stage footnote into a toggleable note chip instead of a resident paragraph", () => {
