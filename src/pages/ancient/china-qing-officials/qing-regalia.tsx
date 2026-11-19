@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { ArchiveSectionHead } from "./content-primitives";
 import type { AtlasBadge, DynastyAtlas } from "./data";
 
 const BADGE_NAMES = ["一", "二", "三", "四", "五", "六", "七", "八", "九"];
@@ -37,9 +38,11 @@ function BadgeGrid({
       aria-label={title}
       className="flex flex-col gap-3 rounded-xl border border-ink/15 bg-card/70 p-4"
     >
-      <div className="flex flex-col gap-1">
-        <h3 className="font-brush text-xl text-ink">{title}</h3>
-      </div>
+      <ArchiveSectionHead
+        mark={kind === "civil" ? "文" : "武"}
+        title={title}
+        note={kind === "civil" ? "飞禽 · 文阶" : "走兽 · 武阶"}
+      />
       <ol className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-3 xl:grid-cols-5">
         {badges.map((badge) => (
           <li
@@ -117,12 +120,7 @@ function EssentialsStrip({ atlas }: { atlas: DynastyAtlas }) {
   const glyphs = essentialsGlyphs();
   return (
     <section aria-label="六项要义" className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h3 className="font-brush text-xl text-ink">六项要义</h3>
-        <span className="font-mono-tech text-[0.7rem] tracking-[0.14em] text-muted-foreground">
-          品级决定一切的一图速览
-        </span>
-      </div>
+      <ArchiveSectionHead mark="要" title="六项要义" note="品级决定一切的一图速览" />
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {ESSENTIALS.map(({ key, title }) => (
           <div

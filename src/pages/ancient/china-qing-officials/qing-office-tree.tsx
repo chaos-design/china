@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "../../../lib/utils";
+import { ArchiveSectionHead, SealBadge } from "./content-primitives";
 import type { DynastyAtlas } from "./data";
 import {
   branchRankSpans,
@@ -228,8 +229,8 @@ function OfficeTree2DFallback({ atlas }: { atlas: DynastyAtlas }) {
         <span className="text-xs leading-relaxed text-muted-foreground">{atlas.root.note}</span>
       </div>
 
-      <section aria-label="历代荣衔" className="flex flex-col gap-2">
-        <h3 className="font-brush text-xl text-ink">荣衔 · 三公三孤与东宫官</h3>
+      <section aria-label="历代荣衔" className="flex flex-col gap-3">
+        <ArchiveSectionHead mark="荣" title="荣衔 · 三公三孤与东宫官" />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {atlas.honorary.map((group) => (
             <section
@@ -277,19 +278,21 @@ function HoverReadout({
   return (
     <div className="pointer-events-none flex justify-center">
       {hover ? (
-        <div className="max-w-[min(420px,calc(100%-1.5rem))] rounded-xl border border-ink/10 bg-paper/90 px-4 py-2.5 text-center shadow-[0_12px_32px_hsl(var(--ink)/0.14)]">
-          <div className="flex flex-wrap items-baseline justify-center gap-x-2">
+        <div className="relative max-w-[min(460px,calc(100%-1.5rem))] overflow-hidden rounded-lg border border-ink/12 bg-paper/95 px-4 py-2.5 text-left shadow-[0_12px_32px_hsl(var(--ink)/0.14)]">
+          <span aria-hidden="true" className="absolute inset-y-0 left-0 w-[3px] bg-vermillion/85" />
+          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 pl-1.5">
             <span className="font-brush text-lg text-ink">{hover.title}</span>
             <span className="font-mono-tech text-[0.7rem] tracking-[0.06em] text-vermillion">
               {hover.subtitle}
             </span>
           </div>
-          <p className="mt-0.5 line-clamp-2 text-muted-foreground text-xs leading-relaxed">
+          <p className="mt-0.5 line-clamp-2 pl-1.5 text-muted-foreground text-xs leading-relaxed">
             {hover.detail}
           </p>
         </div>
       ) : (
-        <span className="rounded-full border border-ink/10 bg-paper/90 px-4 py-1.5 font-mono-tech text-[0.7rem] tracking-[0.08em] text-muted-foreground">
+        <span className="inline-flex items-center gap-2 rounded-full border border-ink/12 bg-paper/90 px-4 py-1.5 font-mono-tech text-[0.7rem] tracking-[0.08em] text-muted-foreground">
+          <SealBadge mark="阅" className="h-5 w-5 text-[0.6rem]" />
           {dynastyName} · 拖拽旋转 滚轮缩放 点选节点或标签展开详情
         </span>
       )}
@@ -522,7 +525,11 @@ function StageMenu({
 
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="relative flex flex-col gap-1 border-l border-vermillion/20 pl-3">
+      <span
+        aria-hidden="true"
+        className="absolute -left-[3px] top-1.5 h-1.5 w-1.5 rounded-sm bg-vermillion/60"
+      />
       <dt className="font-mono-tech text-[0.65rem] tracking-[0.18em] text-ochre uppercase">
         {label}
       </dt>
@@ -769,7 +776,8 @@ function OfficeDetailDrawer({
       )}
       inert={!open || undefined}
     >
-      <header className="flex items-center gap-3 border-ink/10 border-b px-4 py-3">
+      <header className="flex items-center gap-3 border-ink/10 border-b bg-paper/60 px-4 py-3">
+        <SealBadge mark="详" className="h-6 w-6 text-xs" />
         <span className="font-mono-tech text-[0.65rem] tracking-[0.2em] text-ochre uppercase">
           从属详解
         </span>
@@ -829,14 +837,23 @@ function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: bool
         hidden ? "lg:opacity-0" : null,
       )}
     >
-      <p className="font-mono-tech text-[0.65rem] tracking-[0.18em] text-ochre uppercase">
-        层级刻度
-      </p>
-      <ol className="mt-2 flex flex-col gap-1.5">
+      <div className="flex items-center gap-2">
+        <SealBadge mark="层" className="h-5 w-5 text-[0.6rem]" />
+        <p className="font-mono-tech text-[0.65rem] tracking-[0.18em] text-ochre uppercase">
+          层级刻度
+        </p>
+      </div>
+      <ol className="mt-2 flex flex-col gap-1.5 border-l border-vermillion/20 pl-3">
         {rows.map((row) => (
-          <li className="flex items-baseline justify-between gap-2" key={row.depth}>
+          <li className="relative flex items-baseline justify-between gap-2" key={row.depth}>
+            <span
+              aria-hidden="true"
+              className="absolute -left-[17px] top-2 h-1 w-1 rounded-full bg-vermillion/60"
+            />
             <span className="flex min-w-0 items-baseline gap-1.5">
-              <span className="font-mono-tech text-[0.7rem] text-vermillion">{row.numeral}</span>
+              <span className="font-brush text-[0.8rem] leading-none text-vermillion">
+                {row.numeral}
+              </span>
               <span className="truncate font-body text-xs text-ink/80">{row.label}</span>
             </span>
             <span className="shrink-0 font-mono-tech text-[0.7rem] text-muted-foreground">
@@ -961,8 +978,25 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
   return (
     <figure
       aria-label="官制立体树"
-      className="relative isolate h-full w-full overflow-hidden rounded-2xl border border-ink/12 bg-[radial-gradient(ellipse_at_50%_42%,hsl(var(--ink)/0.06),transparent_70%)] shadow-[0_18px_48px_hsl(var(--ink)/0.06)]"
+      className="relative isolate h-full w-full overflow-hidden rounded-2xl border border-ink/12 bg-[radial-gradient(ellipse_at_50%_42%,hsl(var(--ink)/0.06),transparent_70%),radial-gradient(ellipse_at_50%_100%,hsl(var(--vermillion)/0.045),transparent_60%)] shadow-[0_18px_48px_hsl(var(--ink)/0.06)]"
     >
+      {/* 四角套准标记 + 经纬淡格：仿舆图绢本的装裱感，纯装饰不拦截指针。 */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute left-3 top-3 h-4 w-4 border-l border-t border-ink/15"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3 top-3 h-4 w-4 border-r border-t border-ink/15"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 border-b border-l border-ink/15"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-3 right-3 h-4 w-4 border-b border-r border-ink/15"
+      />
       <div
         aria-label={canvasLabel}
         className={cn(

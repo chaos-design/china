@@ -1,4 +1,5 @@
 import { cn } from "../../../lib/utils";
+import { ArchiveSectionHead } from "./content-primitives";
 import type { AtlasRankLevel, DynastyAtlas } from "./data";
 
 export function HatGlyph({ level }: { level: AtlasRankLevel }) {
@@ -23,17 +24,8 @@ export function RobeGlyph({ level }: { level: AtlasRankLevel }) {
   );
 }
 
-function SectionHead({ title, note }: { title: string; note?: string }) {
-  return (
-    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <h3 className="font-brush text-xl text-ink">{title}</h3>
-      {note ? (
-        <span className="font-mono-tech text-[0.7rem] tracking-[0.14em] text-muted-foreground">
-          {note}
-        </span>
-      ) : null}
-    </div>
-  );
+function SectionHead({ mark, title, note }: { mark: string; title: string; note?: string }) {
+  return <ArchiveSectionHead mark={mark} title={title} note={note} />;
 }
 
 /** 顶戴全谱：每级一枚，点选与阶梯 / 档案卡联动。 */
@@ -48,7 +40,7 @@ function HatSpectrum({
 }) {
   return (
     <section aria-label="顶戴全谱" className="flex flex-col gap-3">
-      <SectionHead title="顶戴 · 全谱" note={atlas.notes.hat} />
+      <SectionHead mark="冠" title="顶戴 · 全谱" note={atlas.notes.hat} />
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 xl:grid-cols-9">
         {atlas.levels.map((item) => {
           const active = item.label === selectedLabel;
@@ -97,7 +89,7 @@ function RobeSpectrum({ atlas }: { atlas: DynastyAtlas }) {
   }
   return (
     <section aria-label="朝服全谱" className="flex flex-col gap-3">
-      <SectionHead title="朝服 · 全谱" note={atlas.notes.robe} />
+      <SectionHead mark="服" title="朝服 · 全谱" note={atlas.notes.robe} />
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
         {groups.map((group) => (
           <div
@@ -132,7 +124,7 @@ function SalarySpectrum({
 }) {
   return (
     <section aria-label="俸禄阶梯" className="flex flex-col gap-3">
-      <SectionHead title="俸禄 · 阶梯" note="柱高为相对示意" />
+      <SectionHead mark="俸" title="俸禄 · 阶梯" note="柱高为相对示意" />
       <div className="overflow-x-auto pb-1">
         <div className="flex min-w-[40rem] items-end gap-1.5">
           {atlas.levels.map((item) => {

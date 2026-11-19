@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { useState } from "react";
 
 import { cn } from "../../../lib/utils";
+import { ArchiveSectionHead } from "./content-primitives";
 import type { DynastyAtlas } from "./data";
 import { HatGlyph, QingRankSpectrum, RobeGlyph } from "./qing-rank-spectrum";
 
@@ -25,7 +26,8 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
       </div>
 
       {/* 阶梯：以分组为行，行内按品级从高到低排布，行宽自上而下放宽成塔形。 */}
-      <section aria-label="品级阶梯" className="flex flex-col gap-2">
+      <section aria-label="品级阶梯" className="flex flex-col gap-3">
+        <ArchiveSectionHead mark="阶" title="品秩阶梯" note="自上而下 · 品级由高至低" />
         {atlas.ladderGroups.map((entry, index) => (
           <div
             className="flex items-stretch gap-2 sm:mx-auto sm:w-[var(--row-w)]"
@@ -87,53 +89,62 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
       {/* 选中级的完整档案 */}
       <section
         aria-label={`${selected.label}档案`}
-        className="grid gap-3 rounded-xl border border-ink/15 bg-card/75 p-4 sm:grid-cols-2 lg:grid-cols-4"
+        className="flex flex-col gap-4 rounded-xl border border-ink/15 bg-card/75 p-4"
       >
-        <div className="flex flex-col items-center gap-1.5 text-center">
-          <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
-            顶戴 · 章服
-          </span>
-          <HatGlyph level={selected} />
-          <span className="font-brush text-lg text-ink">{selected.hat ?? "未详"}</span>
-          {selected.hatBeads ? (
-            <span className="text-xs text-muted-foreground">{selected.hatBeads}</span>
-          ) : null}
-          <p className="text-[0.7rem] leading-relaxed text-muted-foreground">{atlas.notes.hat}</p>
-        </div>
-        <div className="flex flex-col items-center gap-1.5 text-center">
-          <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
-            朝服
-          </span>
-          <RobeGlyph level={selected} />
-          <span className="font-brush text-lg text-ink">{selected.robe ?? "未详"}</span>
-          <p className="text-[0.7rem] leading-relaxed text-muted-foreground">{atlas.notes.robe}</p>
-        </div>
-        <div className="flex flex-col items-center gap-1.5 text-center">
-          <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
-            俸禄 · 参考
-          </span>
-          <div className="flex h-12 w-full items-end justify-center">
-            <span
-              className="w-10 rounded-t-sm bg-vermillion/65"
-              style={{ height: `${Math.max(8, selected.salary)}%` }}
-            />
+        <ArchiveSectionHead
+          mark="档"
+          title={`${selected.label} · 本级档案`}
+          note="顶戴 · 朝服 · 俸禄 · 职官"
+        />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
+              顶戴 · 章服
+            </span>
+            <HatGlyph level={selected} />
+            <span className="font-brush text-lg text-ink">{selected.hat ?? "未详"}</span>
+            {selected.hatBeads ? (
+              <span className="text-xs text-muted-foreground">{selected.hatBeads}</span>
+            ) : null}
+            <p className="text-[0.7rem] leading-relaxed text-muted-foreground">{atlas.notes.hat}</p>
           </div>
-          <span className="font-brush text-lg text-ink">
-            {selected.salaryLabel ?? `${selected.salary} 等`}
-          </span>
-          <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
-            {atlas.notes.salary}
-          </p>
-        </div>
-        <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-1">
-          <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
-            本级职官
-          </span>
-          <span className="font-brush text-base leading-snug text-ink">{selected.label}</span>
-          <p className="text-xs leading-relaxed text-foreground/85">{selected.offices}</p>
-          <p className="border-ink/10 border-t pt-1.5 text-[0.7rem] text-muted-foreground">
-            制度口径：{atlas.rankSystemLabel}
-          </p>
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
+              朝服
+            </span>
+            <RobeGlyph level={selected} />
+            <span className="font-brush text-lg text-ink">{selected.robe ?? "未详"}</span>
+            <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
+              {atlas.notes.robe}
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
+              俸禄 · 参考
+            </span>
+            <div className="flex h-12 w-full items-end justify-center">
+              <span
+                className="w-10 rounded-t-sm bg-vermillion/65"
+                style={{ height: `${Math.max(8, selected.salary)}%` }}
+              />
+            </div>
+            <span className="font-brush text-lg text-ink">
+              {selected.salaryLabel ?? `${selected.salary} 等`}
+            </span>
+            <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
+              {atlas.notes.salary}
+            </p>
+          </div>
+          <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-1">
+            <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
+              本级职官
+            </span>
+            <span className="font-brush text-base leading-snug text-ink">{selected.label}</span>
+            <p className="text-xs leading-relaxed text-foreground/85">{selected.offices}</p>
+            <p className="border-ink/10 border-t pt-1.5 text-[0.7rem] text-muted-foreground">
+              制度口径：{atlas.rankSystemLabel}
+            </p>
+          </div>
         </div>
       </section>
 
