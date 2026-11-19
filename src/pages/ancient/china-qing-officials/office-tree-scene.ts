@@ -942,6 +942,10 @@ export function createOfficeTreeScene(
         node.y + radius + (node.kind === "office" ? 0.6 : 0.95),
         node.z + outwardZ * labelOut,
       );
+      // 避让用的原位与环切线 / 径向：候选位只在节点近旁微调，标签始终认得出属于谁。
+      label.userData.home = label.position.clone();
+      label.userData.radialOut = new THREE.Vector3(outwardX, 0, outwardZ);
+      label.userData.tangent = new THREE.Vector3(-outwardZ, 0, outwardX);
       label.userData.nodeId = node.id;
       label.userData.kind = node.kind;
       label.userData.depth = node.depth;
@@ -1385,7 +1389,11 @@ export function createOfficeTreeScene(
     rebuild(layout, atlas);
   }
 
-  // —— 标注避让：默认全展开后上百枚标签挤在画面里，用屏幕空间贪心放置消除重叠 ——
+  // —— 标注避让：默认全展开后上百枚标签挤在画面里 ——
+  // 只做「重叠就隐藏」会让层级最低的属官几乎全军覆没：上级常驻名先占好位，
+  // 属官标签一撞上就被藏掉，于是「只有上面的固定名字，下面的看不见」。
+  // 改为在节点近旁试几个候选位：原位 → 上下 / 环切线 / 径向微调，
+  // 尽量让每枚原子都挂着看得见的文字；只有所有候选都挤满才隐藏，且绝不互相压盖。
   const labelProjection = new THREE.Vector3();
   interface LabelBox {
     cx: number;
@@ -1399,9 +1407,62 @@ export function createOfficeTreeScene(
     honorary: 2,
     office: 3,
   };
+  /** 候选位相对原位的偏移 [环切线, 上下, 径向外]；都限制在节点近旁，标签仍认得出属于谁。 */
+  const LABEL_CANDIDATES: ReadonlyArray<readonly [number, number, number]> = [
+    [0, 0, 0],
+    [0, 1.5, 0],
+    [0, -1.5, 0],
+    [-2.1, 0.8, 0],
+    [2.1, 0.8, 0],
+    [-3.6, -0.6, 0],
+    [3.6, -0.6, 0],
+    [0, 2.8, 1.2],
+    [0, -2.8, 1.2],
+  ];
+  function placeLabel(label: THREE.Sprite, pinned: boolean, placed: LabelBox[], pad: number) {
+    const px = label.userData.px as { h: number; w: number } | undefined;
+    const halfW = ((px?.w ?? 60) / 2) * 1.02;
+    const halfH = ((px?.h ?? 22) / 2) * 1.02;
+    const home = label.userData.home as THREE.Vector3 | undefined;
+    const radialOut = label.userData.radialOut as THREE.Vector3 | undefined;
+    const tangent = label.userData.tangent as THREE.Vector3 | undefined;
+    // 极端兜底（canvas 上下文缺失时标签无原位）：沿用当前位置，只做一次碰撞判定。
+    const candidates =
+      pinned || !home || !radialOut || !tangent ? LABEL_CANDIDATES.slice(0, 1) : LABEL_CANDIDATES;
+    for (const [alongTangent, up, alongRadial] of candidates) {
+      if (home && radialOut && tangent) {
+        label.position.copy(home);
+        label.position.addScaledVector(tangent, alongTangent);
+        label.position.addScaledVector(radialOut, alongRadial);
+        label.position.y += up;
+      }
+      labelProjection.copy(label.position).project(camera);
+      if (labelProjection.z > 1) {
+        continue;
+      }
+      const box: LabelBox = {
+        cx: (labelProjection.x * 0.5 + 0.5) * canvasWidth,
+        cy: (-labelProjection.y * 0.5 + 0.5) * canvasHeight,
+        halfW,
+        halfH,
+      };
+      const collides = placed.some(
+        (other) =>
+          Math.abs(box.cx - other.cx) < box.halfW + other.halfW + pad &&
+          Math.abs(box.cy - other.cy) < box.halfH + other.halfH + pad,
+      );
+      // 被 hover 的节点标签直接占位；其余取第一个不与已放标签重叠的候选位。
+      if (!collides || pinned) {
+        label.visible = true;
+        placed.push(box);
+        return;
+      }
+    }
+    label.visible = false;
+  }
   function avoidLabelOverlap() {
     const placed: LabelBox[] = [];
-    const pad = 4;
+    const pad = 2;
     // 排序：层级尊者优先、离相机近者优先，保证被让位的是低层远景标签。
     const ranked = [...nodeLabels].sort((a, b) => {
       const kindDelta =
@@ -1410,40 +1471,13 @@ export function createOfficeTreeScene(
       if (kindDelta !== 0) {
         return kindDelta;
       }
-      return (
-        camera.position.distanceToSquared(a.position) -
-        camera.position.distanceToSquared(b.position)
-      );
+      const aHome = (a.userData.home as THREE.Vector3 | undefined) ?? a.position;
+      const bHome = (b.userData.home as THREE.Vector3 | undefined) ?? b.position;
+      return camera.position.distanceToSquared(aHome) - camera.position.distanceToSquared(bHome);
     });
     for (const label of ranked) {
-      // 被 hover / 选中的节点标签优先占位，只见其名不见遮挡。
       const id = label.userData.nodeId as string;
-      const pinned = hover?.id === id;
-      labelProjection.copy(label.position).project(camera);
-      const behind = labelProjection.z > 1;
-      const px = label.userData.px as { h: number; w: number } | undefined;
-      const halfW = ((px?.w ?? 60) / 2) * 1.06;
-      const halfH = ((px?.h ?? 22) / 2) * 1.06;
-      const cx = (labelProjection.x * 0.5 + 0.5) * canvasWidth;
-      const cy = (-labelProjection.y * 0.5 + 0.5) * canvasHeight;
-      const box: LabelBox = { cx, cy, halfW, halfH };
-      let collides = false;
-      if (!pinned && !behind) {
-        for (const other of placed) {
-          if (
-            Math.abs(cx - other.cx) < halfW + other.halfW + pad &&
-            Math.abs(cy - other.cy) < halfH + other.halfH + pad
-          ) {
-            collides = true;
-            break;
-          }
-        }
-      }
-      // 屏幕外或已被占据的标签隐藏；其余保持可见并占位。
-      label.visible = !behind && !collides;
-      if (label.visible) {
-        placed.push(box);
-      }
+      placeLabel(label, hover?.id === id, placed, pad);
     }
   }
 
@@ -1585,11 +1619,11 @@ export function createOfficeTreeScene(
           label.visible = showHudLabels;
         }
       };
+      // 先定好标签的最终位置（避开重叠），再按该位置换算屏幕等比尺寸。
+      avoidLabelOverlap();
       for (const label of nodeLabels) {
         updateLabel(label);
       }
-      // 先按屏幕矩形择优剔除重叠标注，再渲染——每个节点都有标注，但同屏只见不冲突的那些。
-      avoidLabelOverlap();
       for (const label of hudLabels) {
         updateLabel(label);
       }
