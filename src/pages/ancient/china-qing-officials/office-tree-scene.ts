@@ -78,6 +78,9 @@ const NODE_RADIUS: Record<OfficeNodeKind, number> = {
   root: 0.95,
 };
 
+/** 属官视觉球随深度缩到 ~0.37，直接点小球命中率太低：共享一枚不可见的稍大代理球扩大命中区。 */
+const OFFICE_PICK_RADIUS = 0.62;
+
 /** 从属枝干的粗细：皇权直出的分区最粗，逐级收细，粗细本身就是层级编码。 */
 const STEM_RADIUS: Record<OfficeTreeEdge["kind"], number> = {
   branch: 0.17,
@@ -373,6 +376,10 @@ export function createOfficeTreeScene(
   let highlighted: ReadonlySet<string> | null = null;
   let nodeMeshes: THREE.Mesh[] = [];
   let nodeLabels: THREE.Sprite[] = [];
+  // 属官的不可见拾取代理球：与 nodeMeshes 同步过滤，筛选后命中区不缩水。
+  let nodeProxies: THREE.Mesh[] = [];
+  // 可点选的常驻标签：标签置顶渲染，点击也优先命中标签（点标签 = 点它标注的节点）。
+  let labelPickMeshes: THREE.Sprite[] = [];
   // 从属枝干用有体积的圆柱而非 1px 线段：WebGL 下线宽恒为 1px，
   // 层级关系会退化成一层几乎看不见的细丝，这是「信息扁平」的主因。
   let edgeStems: THREE.Mesh[] = [];
@@ -670,6 +677,8 @@ export function createOfficeTreeScene(
     pickMeshes = [];
     nodeMeshes = [];
     nodeLabels = [];
+    nodeProxies = [];
+    labelPickMeshes = [];
     edgeStems = [];
     bracketMaterials = [];
     guideMaterials = [];
@@ -695,6 +704,11 @@ export function createOfficeTreeScene(
     scene.add(content);
 
     const byId = new Map(layout.nodes.map((node) => [node.id, node]));
+
+    // 属官拾取代理：整棵树共享一枚不可见的稍大球体，挂在属官 mesh 下随其缩放，
+    // 小球难点中的问题由更大的命中区解决（visible: false 只跳过渲染，射线照常命中）。
+    const pickProxyGeometry = new THREE.SphereGeometry(OFFICE_PICK_RADIUS, 10, 8);
+    const pickProxyMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
     const up = new THREE.Vector3(0, 1, 0);
     const fromVec = new THREE.Vector3();
@@ -730,6 +744,9 @@ export function createOfficeTreeScene(
       stem.position.copy(fromVec).add(toVec).multiplyScalar(0.5);
       stem.quaternion.setFromUnitVectors(up, direction.divideScalar(length));
       stem.scale.set(STEM_RADIUS[edge.kind], length, STEM_RADIUS[edge.kind]);
+      // 绘制分层：平台(-3) → 垂线(-2) → 枝干(-1) → 节点(0)。塔台与垂线先画且不写
+      // 深度，节点后画——金字塔只作底座铺垫，绝不盖住任何连线与节点。
+      stem.renderOrder = -1;
       // 新挂出的枝干淡入；首建 / 切朝代时整片枝干一起错峰浮现。
       if (!reducedMotion && (isNewNode(edge.from) || isNewNode(edge.to))) {
         (stem.material as THREE.MeshBasicMaterial).opacity = 0.001;
@@ -796,6 +813,14 @@ export function createOfficeTreeScene(
       content.add(mesh);
       nodeMeshes.push(mesh);
       pickMeshes.push(mesh);
+      if (node.kind === "office") {
+        // 属官挂代理球扩大命中区；代理随父 mesh 缩放（生长 / 悬浮），不参与渲染。
+        const proxy = new THREE.Mesh(pickProxyGeometry, pickProxyMaterial);
+        proxy.userData.pick = mesh.userData.pick;
+        mesh.add(proxy);
+        nodeProxies.push(proxy);
+        pickMeshes.push(proxy);
+      }
 
       // 只有皇帝 / 荣衔组 / 官署分区挂常驻标签（屏幕等比）；属官不挂牌，
       // 名字经底部 hover 读出与右侧详情面板呈现，避免 96 个标签互相覆盖。
@@ -816,12 +841,19 @@ export function createOfficeTreeScene(
       const outwardZ = radial > 0.01 ? node.z / radial : 1;
       label.position.set(node.x + outwardX * 1.5, node.y + radius + 0.95, node.z + outwardZ * 1.5);
       label.userData.nodeId = node.id;
+      // 标签同权可点选：点击标签等同点击它标注的节点（展开 / 详情 / 选中一致）。
+      label.userData.pick = {
+        id: node.id,
+        kind: node.kind,
+        title: node.title,
+      } satisfies OfficeTreePick;
       if (!reducedMotion && isNewNode(node.id)) {
         (label.material as THREE.SpriteMaterial).opacity = 0.001;
         growLabels.push({ delay: growLabels.length * GROW_STAGGER_MS, label });
       }
       content.add(label);
       nodeLabels.push(label);
+      labelPickMeshes.push(label);
     }
 
     // 金字塔平台：每个可见深度一块半透明椭圆平台，层层叠出阶梯金字塔——
@@ -840,21 +872,39 @@ export function createOfficeTreeScene(
       maxRingX = Math.max(maxRingX, rx);
       maxRingZ = Math.max(maxRingZ, rz);
       const y = OFFICE_TREE_GEOMETRY.rootLift - depth * OFFICE_TREE_GEOMETRY.levelGap;
-      const platform = new THREE.Mesh(
-        new THREE.CylinderGeometry(1, 1, 1, 72),
-        new THREE.MeshStandardMaterial({
-          color: new THREE.Color(colors.paper).lerp(new THREE.Color(colors.ink), 0.07),
-          metalness: 0.05,
-          roughness: 0.9,
-          transparent: true,
-          opacity: 0.4,
-          depthWrite: false,
-        }),
-      );
+      // 塔层两色材质：顶面淡、侧沿（阶梯立面）略深，「一层塔」的台阶感更实。
+      // renderOrder 置底（先于一切内容绘制、不写深度）：节点 / 连线 / 标签永远画在
+      // 平台之上，金字塔只作底座铺垫，绝不遮挡任何内容。
+      const tintTop = 0.07;
+      const tintSide = 0.18;
+      const platformTop = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(colors.paper).lerp(new THREE.Color(colors.ink), tintTop),
+        metalness: 0.05,
+        roughness: 0.9,
+        transparent: true,
+        opacity: 0.16,
+        depthWrite: false,
+      });
+      platformTop.userData.tint = tintTop;
+      const platformSide = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(colors.paper).lerp(new THREE.Color(colors.ink), tintSide),
+        metalness: 0.05,
+        roughness: 0.9,
+        transparent: true,
+        opacity: 0.3,
+        depthWrite: false,
+      });
+      platformSide.userData.tint = tintSide;
+      const platform = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 72), [
+        platformSide,
+        platformTop,
+        platformTop,
+      ]);
+      platform.renderOrder = -3;
       platform.scale.set(rx + 1.4, 0.16, rz + 1.4);
       platform.position.y = y - 0.42;
       content.add(platform);
-      platformMaterials.push(platform.material as THREE.MeshStandardMaterial);
+      platformMaterials.push(platformTop, platformSide);
       // 平台顶缘细线：一圈即一代的显式刻度。
       const points: number[] = [];
       for (let step = 0; step <= 128; step += 1) {
@@ -866,11 +916,13 @@ export function createOfficeTreeScene(
       const material = new THREE.LineBasicMaterial({
         color: colors.ink,
         transparent: true,
-        opacity: depth === 1 ? 0.2 : 0.12,
+        opacity: depth === 1 ? 0.22 : 0.14,
         depthWrite: false,
       });
       guideMaterials.push(material);
-      content.add(new THREE.Line(geometry, material));
+      const rim = new THREE.Line(geometry, material);
+      rim.renderOrder = -3;
+      content.add(rim);
     }
 
     // 落地垂线：每枚节点向树底平面投一根细线——悬浮的原子有了可锚定的落点，
@@ -889,7 +941,9 @@ export function createOfficeTreeScene(
       depthWrite: false,
     });
     guideMaterials.push(dropMaterial);
-    content.add(new THREE.LineSegments(dropGeometry, dropMaterial));
+    const drops = new THREE.LineSegments(dropGeometry, dropMaterial);
+    drops.renderOrder = -2;
+    content.add(drops);
 
     // 皇权中轴：一根下粗上细的立柱从基座直通皇帝——金字塔有了可读的中轴，
     // 落地垂线全部收拢到这根轴上，整座塔是从大地里长出来的而不是悬空贴图。
@@ -907,6 +961,7 @@ export function createOfficeTreeScene(
     );
     spine.scale.set(1, spineHeight, 1);
     spine.position.y = groundY + spineHeight / 2;
+    spine.renderOrder = -4;
     content.add(spine);
     spineMaterial = spine.material as THREE.MeshStandardMaterial;
 
@@ -935,6 +990,7 @@ export function createOfficeTreeScene(
       base.rotation.x = -Math.PI / 2;
       base.scale.set(maxRingX + 5.5, maxRingZ + 5.5, 1);
       base.position.y = groundY - 0.05;
+      base.renderOrder = -5;
       content.add(base);
       baseMaterial = base.material as THREE.MeshBasicMaterial;
     }
@@ -1083,8 +1139,14 @@ export function createOfficeTreeScene(
       material.opacity = 0.82 * factor;
     }
     pickMeshes = active
-      ? nodeMeshes.filter((mesh) => active.has((mesh.userData.pick as OfficeTreePick).id))
-      : [...nodeMeshes];
+      ? [
+          ...nodeMeshes.filter((mesh) => active.has((mesh.userData.pick as OfficeTreePick).id)),
+          ...nodeProxies.filter((proxy) => active.has((proxy.userData.pick as OfficeTreePick).id)),
+        ]
+      : [...nodeMeshes, ...nodeProxies];
+    labelPickMeshes = active
+      ? nodeLabels.filter((label) => active.has(label.userData.nodeId as string))
+      : [...nodeLabels];
     if (hover && active && !active.has(hover.id)) {
       setHoverScale(hover.id, 1);
       hover = null;
@@ -1109,6 +1171,12 @@ export function createOfficeTreeScene(
     pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
+    // 标签永远置顶渲染（depthTest: false），点击也优先命中标签：
+    // 指针落在看得见的标签文字上时，选中的一定是标签标注的节点。
+    const labelHit = raycaster.intersectObjects(labelPickMeshes, false)[0];
+    if (labelHit) {
+      return labelHit.object.userData.pick as OfficeTreePick;
+    }
     const hits = raycaster.intersectObjects(pickMeshes, false);
     const pick = hits[0]?.object.userData.pick as OfficeTreePick | undefined;
     return pick ?? null;
@@ -1118,7 +1186,8 @@ export function createOfficeTreeScene(
     if (!id) {
       return;
     }
-    for (const mesh of pickMeshes) {
+    // 只缩放节点本体：标签的 scale 由 tick 按屏幕等比逐帧接管，不能被悬浮缩放污染。
+    for (const mesh of nodeMeshes) {
       if (mesh.userData.pick.id === id) {
         mesh.scale.setScalar(scale);
         needsRender = true;
@@ -1153,7 +1222,7 @@ export function createOfficeTreeScene(
     const node = pick ? (layoutNodes?.find((candidate) => candidate.id === pick.id) ?? null) : null;
     if (pick && node) {
       // 悬浮放大改为逐帧插值的平滑凸起；属官没有常驻标签，hover 时浮出一枚名牌补位。
-      const mesh = pickMeshes.find(
+      const mesh = nodeMeshes.find(
         (candidate) => (candidate.userData.pick as OfficeTreePick).id === pick.id,
       ) as THREE.Mesh | undefined;
       hoverLerp = mesh ? { mesh, value: 1 } : null;
@@ -1415,7 +1484,11 @@ export function createOfficeTreeScene(
         material.color = new THREE.Color(colors.ink);
       }
       for (const material of platformMaterials) {
-        material.color = new THREE.Color(colors.paper).lerp(new THREE.Color(colors.ink), 0.07);
+        // 顶面 / 侧沿各有深浅：tint 存在材质上，主题切换按各自档位重混纸墨。
+        material.color = new THREE.Color(colors.paper).lerp(
+          new THREE.Color(colors.ink),
+          (material.userData.tint as number) ?? 0.07,
+        );
       }
       if (spineMaterial) {
         spineMaterial.color = new THREE.Color(colors.ink).lerp(new THREE.Color(colors.paper), 0.35);
@@ -1485,6 +1558,8 @@ export function createOfficeTreeScene(
       pickMeshes = [];
       nodeMeshes = [];
       nodeLabels = [];
+      nodeProxies = [];
+      labelPickMeshes = [];
       edgeStems = [];
     },
     resetView,

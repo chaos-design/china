@@ -290,7 +290,7 @@ function HoverReadout({
         </div>
       ) : (
         <span className="rounded-full border border-ink/10 bg-paper/90 px-4 py-1.5 font-mono-tech text-[0.7rem] tracking-[0.08em] text-muted-foreground">
-          {dynastyName} · 拖拽旋转 滚轮缩放 点选分区展开或折叠属官
+          {dynastyName} · 拖拽旋转 滚轮缩放 点选节点或标签展开详情
         </span>
       )}
     </div>
@@ -956,7 +956,7 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
 
   const canvasLabel = `${atlas.name}官制立体树：可见 ${clippedLayout.nodes.length} 个节点（全树 ${
     fullLayout.nodes.length
-  } 个）、${atlas.branches.length} 类官署分区与${atlas.honorary.length} 组荣衔。拖拽旋转、滚轮缩放、点选分区展开或折叠属官，查看右侧详情。`;
+  } 个）、${atlas.branches.length} 类官署分区与${atlas.honorary.length} 组荣衔。拖拽旋转、滚轮缩放、点选节点或标签展开属官并查看详情。`;
 
   return (
     <figure
