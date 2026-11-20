@@ -464,6 +464,8 @@ export function createOfficeTreeScene(
   let highlighted: ReadonlySet<string> | null = null;
   let nodeMeshes: THREE.Mesh[] = [];
   let nodeLabels: THREE.Sprite[] = [];
+  // 标签避让后偏离本体的，用一根细引线连回节点——文字再挪也不至于看着像别的原子的名字。
+  let labelLeaders: THREE.LineSegments | null = null;
   // 属官的不可见拾取代理球：与 nodeMeshes 同步过滤，筛选后命中区不缩水。
   let nodeProxies: THREE.Mesh[] = [];
   // 可点选的常驻标签：标签置顶渲染，点击也优先命中标签（点标签 = 点它标注的节点）。
@@ -765,6 +767,7 @@ export function createOfficeTreeScene(
     pickMeshes = [];
     nodeMeshes = [];
     nodeLabels = [];
+    labelLeaders = null;
     nodeProxies = [];
     labelPickMeshes = [];
     edgeStems = [];
@@ -942,8 +945,10 @@ export function createOfficeTreeScene(
         node.y + radius + (node.kind === "office" ? 0.6 : 0.95),
         node.z + outwardZ * labelOut,
       );
-      // 避让用的原位与环切线 / 径向：候选位只在节点近旁微调，标签始终认得出属于谁。
+      // 避让用的原位、环切线 / 径向与本体锚点：候选位只在节点近旁微调，
+      // 偏离时由引线连回锚点，文字永远认得出属于哪枚原子。
       label.userData.home = label.position.clone();
+      label.userData.nodeAnchor = new THREE.Vector3(node.x, node.y, node.z);
       label.userData.radialOut = new THREE.Vector3(outwardX, 0, outwardZ);
       label.userData.tangent = new THREE.Vector3(-outwardZ, 0, outwardX);
       label.userData.nodeId = node.id;
@@ -963,6 +968,29 @@ export function createOfficeTreeScene(
       nodeLabels.push(label);
       labelPickMeshes.push(label);
     }
+
+    // 标签引线：避让挪位后仍有一根极淡的线连回本体，文字不会被误认成邻近原子的名字。
+    // 预分配一条线一段、按 drawRange 决定实际画几条；每帧只改 buffer，不重建几何。
+    const leaderGeometry = new THREE.BufferGeometry();
+    leaderGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(new Float32Array(nodeLabels.length * 6), 3),
+    );
+    leaderGeometry.setDrawRange(0, 0);
+    const leaderMaterial = new THREE.LineBasicMaterial({
+      color: colors.ink,
+      transparent: true,
+      opacity: 0.34,
+      depthTest: false,
+      depthWrite: false,
+      fog: false,
+    });
+    guideMaterials.push(leaderMaterial);
+    labelLeaders = new THREE.LineSegments(leaderGeometry, leaderMaterial);
+    // 标签 renderOrder 20：引线 19 画在其下、但在塔台与节点之上，线一直看得见又不压字。
+    labelLeaders.renderOrder = 19;
+    labelLeaders.visible = false;
+    content.add(labelLeaders);
 
     // 金字塔平台：每个可见深度一块半透明椭圆平台，层层叠出阶梯金字塔——
     // 皇帝居塔尖、分区在首层、属官落到更宽的下一层，「层级 = 一层塔」有实体可指。
@@ -1392,8 +1420,10 @@ export function createOfficeTreeScene(
   // —— 标注避让：默认全展开后上百枚标签挤在画面里 ——
   // 只做「重叠就隐藏」会让层级最低的属官几乎全军覆没：上级常驻名先占好位，
   // 属官标签一撞上就被藏掉，于是「只有上面的固定名字，下面的看不见」。
-  // 改为在节点近旁试几个候选位：原位 → 上下 / 环切线 / 径向微调，
+  // 改为在节点近旁试几个候选位：原位 → 上方 / 环切线 / 径向微调，
   // 尽量让每枚原子都挂着看得见的文字；只有所有候选都挤满才隐藏，且绝不互相压盖。
+  // 候选一律不往下走——标签压进塔台会「穿模」，看着像别的原子的名字；
+  // 偏离原位的由一根引线连回本体，文字与原子的归属始终明确。
   const labelProjection = new THREE.Vector3();
   interface LabelBox {
     cx: number;
@@ -1407,17 +1437,18 @@ export function createOfficeTreeScene(
     honorary: 2,
     office: 3,
   };
-  /** 候选位相对原位的偏移 [环切线, 上下, 径向外]；都限制在节点近旁，标签仍认得出属于谁。 */
+  /** 候选位相对原位的偏移 [环切线, 上下, 径向外]；纵向一律 ≥ 0，绝不往下穿进塔台。 */
   const LABEL_CANDIDATES: ReadonlyArray<readonly [number, number, number]> = [
     [0, 0, 0],
-    [0, 1.5, 0],
-    [0, -1.5, 0],
-    [-2.1, 0.8, 0],
-    [2.1, 0.8, 0],
-    [-3.6, -0.6, 0],
-    [3.6, -0.6, 0],
-    [0, 2.8, 1.2],
-    [0, -2.8, 1.2],
+    [0, 0.9, 0],
+    [0, 1.8, 0],
+    [-1.3, 0.4, 0],
+    [1.3, 0.4, 0],
+    [-2.2, 1.0, 0],
+    [2.2, 1.0, 0],
+    [0, 1.2, 0.8],
+    [-1.6, 1.8, 0.6],
+    [1.6, 1.8, 0.6],
   ];
   function placeLabel(label: THREE.Sprite, pinned: boolean, placed: LabelBox[], pad: number) {
     const px = label.userData.px as { h: number; w: number } | undefined;
@@ -1475,9 +1506,36 @@ export function createOfficeTreeScene(
       const bHome = (b.userData.home as THREE.Vector3 | undefined) ?? b.position;
       return camera.position.distanceToSquared(aHome) - camera.position.distanceToSquared(bHome);
     });
+    const leaders = labelLeaders;
+    const leaderAttr = leaders?.geometry.getAttribute("position") as
+      | THREE.BufferAttribute
+      | undefined;
+    const leaderArray = leaderAttr?.array as Float32Array | undefined;
+    let leaderCount = 0;
     for (const label of ranked) {
       const id = label.userData.nodeId as string;
       placeLabel(label, hover?.id === id, placed, pad);
+      if (!leaders || !leaderAttr || !leaderArray || !label.visible) {
+        continue;
+      }
+      const anchor = label.userData.nodeAnchor as THREE.Vector3 | undefined;
+      const home = label.userData.home as THREE.Vector3 | undefined;
+      // 只在明显偏离原位时画引线：贴着本体的标签不用画，避免满屏细丝。
+      if (anchor && home && label.position.distanceToSquared(home) > 0.16) {
+        const offset = leaderCount * 6;
+        leaderArray[offset] = anchor.x;
+        leaderArray[offset + 1] = anchor.y;
+        leaderArray[offset + 2] = anchor.z;
+        leaderArray[offset + 3] = label.position.x;
+        leaderArray[offset + 4] = label.position.y;
+        leaderArray[offset + 5] = label.position.z;
+        leaderCount += 1;
+      }
+    }
+    if (leaders && leaderAttr) {
+      leaders.geometry.setDrawRange(0, leaderCount * 2);
+      leaderAttr.needsUpdate = true;
+      leaders.visible = leaderCount > 0;
     }
   }
 
