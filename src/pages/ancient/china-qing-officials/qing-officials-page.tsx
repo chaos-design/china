@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { cn } from "../../../lib/utils";
@@ -30,6 +30,14 @@ export function QingOfficialsPage() {
   const unknownDynasty = Boolean(requestedId && !getDynastyAtlas(requestedId));
   const [view, setView] = useState<OfficialsView>("chart");
   const active = VIEWS.find((entry) => entry.id === view) ?? VIEWS[0]!;
+
+  // 朝代经 URL 直达 / 前进后退变化时（不经过 chooseDynasty），同样重置回图一，
+  // 避免带着上一朝代的品级选中态读新一朝的礼制。
+  useEffect(() => {
+    // 显式读取一次，声明「朝代变化」是这次重置的触发条件。
+    void atlas.id;
+    setView("chart");
+  }, [atlas.id]);
 
   const chooseDynasty = (id: string) => {
     setSearchParams({ dynasty: id });

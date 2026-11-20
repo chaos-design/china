@@ -134,22 +134,16 @@ function SalarySpectrum({
                   {item.salaryLabel ?? `${item.salary} 等`}
                 </span>
                 <span className="flex h-24 w-full items-end justify-center sm:h-28">
-                  <span className="relative block">
-                    <span
-                      aria-hidden="true"
-                      className="absolute inset-y-0 -right-1.5 w-1.5 origin-left -skew-y-45 bg-vermillion/20"
-                    />
-                    <span
-                      aria-hidden="true"
-                      className="absolute -top-1 left-0 h-1.5 w-full -skew-x-45 bg-vermillion/25"
-                    />
-                    <span
-                      className={cn(
-                        "relative block w-5 rounded-t-sm shadow-[2px_-2px_0_hsl(var(--vermillion)/0.16)]",
-                        active ? "bg-vermillion" : "bg-vermillion/60",
-                      )}
-                      style={{ height: `${Math.max(8, item.salary)}%` }}
-                    />
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "relative block w-5 rounded-t-sm shadow-[2px_-2px_0_hsl(var(--vermillion)/0.16)]",
+                      active ? "bg-vermillion" : "bg-vermillion/60",
+                    )}
+                    style={{ height: `${Math.max(8, item.salary)}%` }}
+                  >
+                    <span className="absolute inset-y-0 -right-1.5 w-1.5 origin-left -skew-y-45 bg-vermillion/20" />
+                    <span className="absolute -top-1 left-0 h-1.5 w-full -skew-x-45 bg-vermillion/25" />
                   </span>
                 </span>
                 <span

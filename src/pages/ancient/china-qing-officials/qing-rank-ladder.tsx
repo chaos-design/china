@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { useState } from "react";
 
 import { cn } from "../../../lib/utils";
-import { ArchiveSectionHead, TierPlane } from "./content-primitives";
+import { ArchiveSectionHead } from "./content-primitives";
 import type { DynastyAtlas } from "./data";
 import { HatGlyph, QingRankSpectrum, RobeGlyph } from "./qing-rank-spectrum";
 
@@ -28,16 +28,21 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
       {/* 阶梯：以分组为行，行内按品级从高到低排布，行宽自上而下放宽成塔形。 */}
       <section aria-label="品级阶梯" className="flex flex-col gap-3">
         <ArchiveSectionHead mark="阶" title="品秩阶梯" note="自上而下 · 品级由高至低" />
-        {/* 透视轴与面片共用 x=20；每往下一级倾角略增，读出等级由高到低的纵深。 */}
-        <div className="relative flex flex-col gap-3 pl-11">
+        {/* 透视轴与圆点共用同一中心（left-[15.5px] + w-px ⇒ 中轴 x=16），
+            圆点即顶珠形制，与顶戴图标同源；行宽自上而下放宽成塔形。 */}
+        <div className="relative flex flex-col gap-3 pl-8">
           <span
             aria-hidden="true"
-            className="absolute bottom-3 left-[19.5px] top-3 w-px bg-[linear-gradient(180deg,hsl(var(--vermillion)/0.08),hsl(var(--vermillion)/0.4)_50%,hsl(var(--vermillion)/0.08))]"
+            className="absolute bottom-3 left-[15.5px] top-3 w-px bg-[linear-gradient(180deg,hsl(var(--vermillion)/0.08),hsl(var(--vermillion)/0.4)_50%,hsl(var(--vermillion)/0.08))]"
           />
           {atlas.ladderGroups.map((entry, index) => (
             <div className="relative" key={entry.label}>
-              <span aria-hidden="true" className="absolute left-0 top-1/2 -translate-y-1/2">
-                <TierPlane count={groupCount} depth={index} />
+              <span
+                aria-hidden="true"
+                className="absolute left-[-16px] top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2"
+              >
+                <span className="absolute inset-0 rounded-full bg-vermillion/85 shadow-[0_1px_2px_hsl(var(--ink)/0.25)] ring-2 ring-paper" />
+                <span className="absolute left-[20%] top-[16%] h-1 w-1 rounded-full bg-paper/85" />
               </span>
               <span
                 aria-hidden="true"
@@ -105,7 +110,7 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
             </div>
           ))}
         </div>
-        <p className="pl-11 font-mono-tech text-[0.6rem] tracking-[0.1em] text-muted-foreground">
+        <p className="pl-8 font-mono-tech text-[0.6rem] tracking-[0.1em] text-muted-foreground">
           上层品秩高而窄 · 下层所辖广而深
         </p>
       </section>
@@ -118,9 +123,9 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
         <ArchiveSectionHead
           mark="档"
           title={`${selected.label} · 本级档案`}
-          note="顶戴 · 朝服 · 俸禄 · 职官"
+          note="顶戴 · 朝服 · 俸禄"
         />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="flex flex-col items-center gap-1.5 text-center">
             <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
               顶戴 · 章服
@@ -159,7 +164,7 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
               {atlas.notes.salary}
             </p>
           </div>
-          <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-1">
+          <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
             <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
               本级职官
             </span>
