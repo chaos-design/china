@@ -1,8 +1,6 @@
-import type { ReactNode } from "react";
-
 import { ArchiveSectionHead } from "./content-primitives";
 import type { AtlasBadge, DynastyAtlas } from "./data";
-import { BadgeIllustration } from "./rank-illustrations";
+import { BadgeIllustration, EssentialIllustration, type EssentialName } from "./rank-illustrations";
 
 const BADGE_NAMES = ["一", "二", "三", "四", "五", "六", "七", "八", "九"];
 
@@ -48,52 +46,7 @@ function BadgeGrid({
   );
 }
 
-/* 六项要义小字形装饰（图二底部条带的对应物），纯静态、aria-hidden。 */
-function essentialsGlyphs(): Record<string, ReactNode> {
-  return {
-    rank: (
-      <span aria-hidden="true" className="flex items-end gap-0.5">
-        <span className="h-2 w-2 bg-ink/45" />
-        <span className="h-3 w-2 bg-ink/55" />
-        <span className="h-4 w-2 bg-ink/70" />
-      </span>
-    ),
-    badge: (
-      <span
-        aria-hidden="true"
-        className="flex h-4 w-5 items-center justify-center border border-ochre/60 bg-[#e8dcc3]"
-      >
-        <span className="h-2 w-3 border border-ochre/50" />
-      </span>
-    ),
-    hat: (
-      <span aria-hidden="true" className="flex flex-col items-center gap-0.5">
-        <span className="h-2 w-2 rounded-full bg-vermillion/70" />
-        <span className="h-1 w-6 rounded-[50%] border border-ink/30 bg-ink/70" />
-      </span>
-    ),
-    robe: (
-      <span
-        aria-hidden="true"
-        className="inline-block h-4 w-3 rounded-t-[40%] rounded-b-sm border border-ink/30 bg-ink/55"
-      />
-    ),
-    salary: (
-      <span aria-hidden="true" className="flex items-end">
-        <span className="h-5 w-2.5 rounded-t-sm bg-vermillion/65" />
-      </span>
-    ),
-    ritual: (
-      <span aria-hidden="true" className="flex items-end gap-0.5">
-        <span className="h-2 w-3 rounded-t-sm bg-ink/40" />
-        <span className="h-3 w-3 rounded-t-sm bg-ink/55" />
-        <span className="h-4 w-3 rounded-t-sm bg-ink/70" />
-      </span>
-    ),
-  };
-}
-
-const ESSENTIALS: readonly { key: keyof DynastyAtlas["notes"]; title: string }[] = [
+const ESSENTIALS: readonly { key: EssentialName; title: string }[] = [
   { key: "rank", title: "品级" },
   { key: "badge", title: "补子" },
   { key: "hat", title: "顶戴" },
@@ -104,7 +57,6 @@ const ESSENTIALS: readonly { key: keyof DynastyAtlas["notes"]; title: string }[]
 
 /** 六项要义：品级 / 补子 / 顶戴 / 朝服 / 俸禄 / 礼序 的口径一览（图二底部条带）。 */
 function EssentialsStrip({ atlas }: { atlas: DynastyAtlas }) {
-  const glyphs = essentialsGlyphs();
   return (
     <section aria-label="六项要义" className="flex flex-col gap-3">
       <ArchiveSectionHead mark="要" title="六项要义" note="品级决定一切的一图速览" />
@@ -114,7 +66,7 @@ function EssentialsStrip({ atlas }: { atlas: DynastyAtlas }) {
             className="flex flex-col items-center gap-1.5 rounded-lg border border-ink/10 bg-paper/60 px-2 py-3 text-center"
             key={key}
           >
-            {glyphs[key]}
+            <EssentialIllustration name={key} />
             <span className="font-brush text-base text-ink">{title}</span>
             <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
               {atlas.notes[key]}
@@ -151,14 +103,24 @@ export function QingRegalia({ atlas }: { atlas: DynastyAtlas }) {
         aria-label="礼序"
         className="flex flex-col gap-3 rounded-xl border border-ochre/25 bg-paper/65 p-5 sm:flex-row sm:items-center sm:gap-6"
       >
-        <div aria-hidden="true" className="flex shrink-0 items-end gap-1.5">
-          {[3, 4, 5, 6, 5, 4, 3].map((height, index) => (
-            <span
-              className="w-3 rounded-t-sm bg-ink/45"
-              key={index}
-              style={{ height: `${height * 6}px` }}
-            />
-          ))}
+        <div aria-hidden="true" className="flex shrink-0 flex-col items-center">
+          <div className="flex items-end gap-1.5">
+            {[3, 4, 5, 6, 5, 4, 3].map((height, index) => {
+              const distance = Math.abs(index - 3);
+              return (
+                <span
+                  className="relative block w-3 rounded-t-sm bg-ink/45 shadow-[2px_-2px_0_hsl(var(--ink)/0.07)]"
+                  key={index}
+                  style={{
+                    height: `${height * 6}px`,
+                    transform: `perspective(420px) rotateY(${(index - 3) * 6}deg) scale(${1 - distance * 0.07})`,
+                    transformOrigin: "bottom center",
+                  }}
+                />
+              );
+            })}
+          </div>
+          <span className="mt-1 h-2 w-32 rounded-[50%] border border-vermillion/20 bg-vermillion/[0.04]" />
         </div>
         <div className="flex flex-col gap-1.5">
           <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">

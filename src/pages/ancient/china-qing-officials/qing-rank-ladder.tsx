@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { useState } from "react";
 
 import { cn } from "../../../lib/utils";
-import { ArchiveSectionHead } from "./content-primitives";
+import { ArchiveSectionHead, TierPlane } from "./content-primitives";
 import type { DynastyAtlas } from "./data";
 import { HatGlyph, QingRankSpectrum, RobeGlyph } from "./qing-rank-spectrum";
 
@@ -28,62 +28,86 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
       {/* 阶梯：以分组为行，行内按品级从高到低排布，行宽自上而下放宽成塔形。 */}
       <section aria-label="品级阶梯" className="flex flex-col gap-3">
         <ArchiveSectionHead mark="阶" title="品秩阶梯" note="自上而下 · 品级由高至低" />
-        {atlas.ladderGroups.map((entry, index) => (
-          <div
-            className="flex items-stretch gap-2 sm:mx-auto sm:w-[var(--row-w)]"
-            key={entry.label}
-            style={{ "--row-w": pyramidWidth(index, groupCount) } as CSSProperties}
-          >
-            <span className="flex w-20 shrink-0 items-center font-brush text-base text-ink sm:w-28 sm:text-lg">
-              {entry.label}
-            </span>
-            <div
-              className={cn(
-                "flex flex-1 flex-wrap gap-1.5 rounded-lg border border-ink/12 bg-paper/55 p-2",
-                index >= 3 && "bg-paper/70",
-              )}
-            >
-              {atlas.levels
-                .filter(
-                  (item) =>
-                    entry.orders.includes(item.order) &&
-                    (!entry.grade || item.grade === entry.grade),
-                )
-                .map((item) => {
-                  const active = item.label === selectedLabel;
-                  return (
-                    <button
-                      aria-pressed={active}
-                      className={cn(
-                        "flex min-w-[4.5rem] flex-1 flex-col items-center gap-1 rounded-md border px-2 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                        active
-                          ? "border-vermillion/45 bg-vermillion/10"
-                          : "border-ink/10 bg-card/70 hover:border-vermillion/25",
-                      )}
-                      key={item.label}
-                      onClick={() => setSelectedLabel(item.label)}
-                      type="button"
-                    >
-                      <span
-                        className={cn(
-                          "font-brush text-sm",
-                          active ? "text-vermillion" : "text-ink",
-                        )}
-                      >
-                        {item.label}
-                      </span>
-                      <span className="font-mono-tech text-[0.7rem] text-muted-foreground">
-                        {item.salaryLabel ?? `${item.salary} 等`}
-                      </span>
-                    </button>
-                  );
-                })}
-              <span className="w-full font-body text-[0.7rem] text-muted-foreground sm:w-auto sm:flex-1 sm:self-center">
-                {entry.note}
+        {/* 透视轴与面片共用 x=20；每往下一级倾角略增，读出等级由高到低的纵深。 */}
+        <div className="relative flex flex-col gap-3 pl-11">
+          <span
+            aria-hidden="true"
+            className="absolute bottom-3 left-[19.5px] top-3 w-px bg-[linear-gradient(180deg,hsl(var(--vermillion)/0.08),hsl(var(--vermillion)/0.4)_50%,hsl(var(--vermillion)/0.08))]"
+          />
+          {atlas.ladderGroups.map((entry, index) => (
+            <div className="relative" key={entry.label}>
+              <span aria-hidden="true" className="absolute left-0 top-1/2 -translate-y-1/2">
+                <TierPlane count={groupCount} depth={index} />
               </span>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-2 bottom-0 h-2 rounded-b-lg bg-ink/[0.07] blur-[2px]"
+              />
+              <div
+                className="relative flex items-stretch gap-2 sm:mx-auto sm:w-[var(--row-w)]"
+                style={
+                  {
+                    "--row-w": pyramidWidth(index, groupCount),
+                    transform: `perspective(1100px) rotateX(${1.5 + index * 0.9}deg)`,
+                    transformOrigin: "center bottom",
+                  } as CSSProperties
+                }
+              >
+                <span className="flex w-20 shrink-0 items-center font-brush text-base text-ink sm:w-28 sm:text-lg">
+                  {entry.label}
+                </span>
+                <div
+                  className={cn(
+                    "flex flex-1 flex-wrap gap-1.5 rounded-lg border border-ink/12 bg-paper/55 p-2",
+                    index >= 3 && "bg-paper/70",
+                  )}
+                >
+                  {atlas.levels
+                    .filter(
+                      (item) =>
+                        entry.orders.includes(item.order) &&
+                        (!entry.grade || item.grade === entry.grade),
+                    )
+                    .map((item) => {
+                      const active = item.label === selectedLabel;
+                      return (
+                        <button
+                          aria-pressed={active}
+                          className={cn(
+                            "flex min-w-[4.5rem] flex-1 flex-col items-center gap-1 rounded-md border px-2 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            active
+                              ? "border-vermillion/45 bg-vermillion/10"
+                              : "border-ink/10 bg-card/70 hover:border-vermillion/25",
+                          )}
+                          key={item.label}
+                          onClick={() => setSelectedLabel(item.label)}
+                          type="button"
+                        >
+                          <span
+                            className={cn(
+                              "font-brush text-sm",
+                              active ? "text-vermillion" : "text-ink",
+                            )}
+                          >
+                            {item.label}
+                          </span>
+                          <span className="font-mono-tech text-[0.7rem] text-muted-foreground">
+                            {item.salaryLabel ?? `${item.salary} 等`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  <span className="w-full font-body text-[0.7rem] text-muted-foreground sm:w-auto sm:flex-1 sm:self-center">
+                    {entry.note}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <p className="pl-11 font-mono-tech text-[0.6rem] tracking-[0.1em] text-muted-foreground">
+          上层品秩高而窄 · 下层所辖广而深
+        </p>
       </section>
 
       {/* 选中级的完整档案 */}

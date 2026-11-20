@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "../../../lib/utils";
-import { ArchiveSectionHead, SealBadge } from "./content-primitives";
+import { ArchiveSectionHead, SealBadge, TierPlane } from "./content-primitives";
 import type { DynastyAtlas } from "./data";
 import { getOfficeDuty } from "./office-duties";
 import {
@@ -809,6 +809,32 @@ function OfficeDetailDrawer({
   );
 }
 
+/** 舞台纵深参考：向消失点收束的经线与逐层缩小的纬圈，给立体树一层可读的透视底稿。 */
+function StagePerspectiveGuides() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-[1] h-full w-full"
+      preserveAspectRatio="none"
+      viewBox="0 0 1000 600"
+    >
+      <g className="stroke-ink/[0.055]" fill="none" strokeWidth="1">
+        <path d="M80 600 L468 252 M920 600 L532 252 M300 600 L482 252 M700 600 L518 252" />
+        <ellipse cx="500" cy="556" rx="352" ry="34" />
+        <ellipse cx="500" cy="486" rx="278" ry="27" />
+        <ellipse cx="500" cy="416" rx="208" ry="20" />
+        <ellipse cx="500" cy="346" rx="142" ry="14" />
+      </g>
+      <g className="stroke-vermillion/[0.09]" fill="none" strokeWidth="1">
+        <path d="M500 556 L500 346" strokeDasharray="4 7" />
+        <path d="M148 556 C320 520 680 520 852 556" />
+        <path d="M222 486 C340 458 660 458 778 486" />
+        <path d="M292 416 C380 396 620 396 708 416" />
+      </g>
+    </svg>
+  );
+}
+
 const LEVEL_LABELS = ["权力本源", "官署分区 · 荣衔", "属官衙署", "分属机构", "分支属官"] as const;
 const LEVEL_NUMERALS = ["壹", "贰", "叁", "肆", "伍"] as const;
 
@@ -836,7 +862,7 @@ function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: bool
     <section
       aria-label="层级刻度"
       className={cn(
-        "pointer-events-none absolute right-3 top-3 z-20 hidden w-[196px] rounded-xl border border-ink/12 bg-paper/95 px-3 py-2.5 shadow-[0_12px_32px_hsl(var(--ink)/0.12)] transition-opacity lg:block",
+        "pointer-events-none absolute right-3 top-3 z-20 hidden w-[228px] rounded-xl border border-ink/12 bg-paper/95 px-3 py-2.5 shadow-[0_12px_32px_hsl(var(--ink)/0.12)] transition-opacity lg:block",
         hidden ? "lg:opacity-0" : null,
       )}
     >
@@ -846,14 +872,24 @@ function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: bool
           层级刻度
         </p>
       </div>
-      <ol className="mt-2 flex flex-col gap-1.5 border-l border-vermillion/20 pl-3">
+      {/*
+       * 竖线、面片与朱点共用 x=20：圆点不再靠负 margin 猜偏移（旧版左偏 2.5px），
+       * 层级越深面片越收敛，从属纵深直接落在刻度上。
+       */}
+      <ol className="relative mt-2 flex flex-col gap-1.5 pl-11">
+        <span
+          aria-hidden="true"
+          className="absolute bottom-2 left-[19.5px] top-2 w-px bg-[linear-gradient(180deg,hsl(var(--vermillion)/0.08),hsl(var(--vermillion)/0.4)_50%,hsl(var(--vermillion)/0.08))]"
+        />
         {rows.map((row) => (
-          <li className="relative flex items-baseline justify-between gap-2" key={row.depth}>
-            <span
-              aria-hidden="true"
-              className="absolute -left-[17px] top-2 h-1 w-1 rounded-full bg-vermillion/60"
-            />
-            <span className="flex min-w-0 items-baseline gap-1.5">
+          <li
+            className="relative flex min-h-[1.6rem] items-baseline justify-between gap-2"
+            key={row.depth}
+          >
+            <span aria-hidden="true" className="absolute left-0 top-1/2 -translate-y-1/2">
+              <TierPlane count={rows.length} depth={row.depth} />
+            </span>
+            <span className="flex min-w-0 items-baseline gap-1.5 pl-2">
               <span className="font-brush text-[0.8rem] leading-none text-vermillion">
                 {row.numeral}
               </span>
@@ -865,6 +901,9 @@ function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: bool
           </li>
         ))}
       </ol>
+      <p className="mt-2 pl-11 font-mono-tech text-[0.58rem] tracking-[0.1em] text-muted-foreground">
+        面片由近及远 · 层级越深越收敛
+      </p>
     </section>
   );
 }
@@ -1011,6 +1050,8 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
         ref={scene.hostRef}
         role="img"
       />
+
+      <StagePerspectiveGuides />
 
       <div className="pointer-events-none absolute inset-0 z-10">
         {!scene.ready ? (

@@ -83,9 +83,10 @@ function RobeSpectrum({ atlas }: { atlas: DynastyAtlas }) {
             className="flex flex-col items-center gap-1.5 rounded-lg border border-ink/10 bg-card/70 px-2 py-2.5 text-center"
             key={group.robe}
           >
+            <RobeIllustration level={group.members[0]!} />
             <span
               aria-hidden="true"
-              className="inline-block h-8 w-6 rounded-t-[40%] rounded-b-md border border-ink/25 shadow-[inset_0_0_0_2px_hsl(var(--paper)/0.25)]"
+              className="block h-1 w-8 rounded-full"
               style={{ backgroundColor: group.color }}
             />
             <span className="font-brush text-sm leading-snug text-ink">{group.robe}</span>
@@ -133,13 +134,23 @@ function SalarySpectrum({
                   {item.salaryLabel ?? `${item.salary} 等`}
                 </span>
                 <span className="flex h-24 w-full items-end justify-center sm:h-28">
-                  <span
-                    className={cn(
-                      "w-5 rounded-t-sm",
-                      active ? "bg-vermillion" : "bg-vermillion/60",
-                    )}
-                    style={{ height: `${Math.max(8, item.salary)}%` }}
-                  />
+                  <span className="relative block">
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-y-0 -right-1.5 w-1.5 origin-left -skew-y-45 bg-vermillion/20"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="absolute -top-1 left-0 h-1.5 w-full -skew-x-45 bg-vermillion/25"
+                    />
+                    <span
+                      className={cn(
+                        "relative block w-5 rounded-t-sm shadow-[2px_-2px_0_hsl(var(--vermillion)/0.16)]",
+                        active ? "bg-vermillion" : "bg-vermillion/60",
+                      )}
+                      style={{ height: `${Math.max(8, item.salary)}%` }}
+                    />
+                  </span>
                 </span>
                 <span
                   className={cn(
