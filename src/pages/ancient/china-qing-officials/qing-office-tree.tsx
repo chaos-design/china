@@ -1054,6 +1054,9 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
         onSelect={(item) => {
           setFilterId(item.id);
           setDetail({ type: "filter", item });
+          if (item.id !== "all") {
+            scene.focusNode(item.id);
+          }
         }}
         onToggleRotate={() => setAutoRotateUi((previous) => !previous)}
       />

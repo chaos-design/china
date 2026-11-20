@@ -52,6 +52,8 @@ export interface OfficeTreeSceneHandlers {
 
 export interface OfficeTreeScene {
   applyPreset: (preset: OfficeTreeCameraPreset) => void;
+  /** 把某枚原子补间到视野中央（选中的原子自动进入可视区）。 */
+  focusNode: (id: string) => void;
   dispose: () => void;
   resetView: () => void;
   setAtlas: (atlas: DynastyAtlas, layout: OfficeTreeLayout) => void;
@@ -736,6 +738,24 @@ export function createOfficeTreeScene(
     return ring;
   }
 
+  /** 选中的原子补间到视野中央：点画布节点或从菜单聚焦都能立刻看到它，不再留在画外。 */
+  function focusNode(id: string) {
+    const node =
+      layoutNodes?.find((candidate) => candidate.id === id) ??
+      (id === "honorary"
+        ? layoutNodes?.find((candidate) => candidate.kind === "honorary")
+        : undefined);
+    if (!node) {
+      return;
+    }
+    const angles = currentAngles();
+    const currentDistance = camera.position.distanceTo(controls.target);
+    // 只把镜头拉近到够看清这枚原子，不贴脸到看不出层级；保留用户转好的方位 / 俯角。
+    const distance = Math.min(currentDistance, Math.max(fitDistance() * 0.5, 12));
+    userAdjusted = true;
+    tweenCamera(new THREE.Vector3(node.x, node.y, node.z), distance, angles.azimuth, angles.polar);
+  }
+
   function setSelected(id: string | null) {
     const ring = ensureSelectionRing();
     const node = id ? layoutNodes?.find((candidate) => candidate.id === id) : null;
@@ -754,6 +774,7 @@ export function createOfficeTreeScene(
     ring!.visible = true;
     pulseUntil = performance.now() + 2600;
     needsRender = true;
+    focusNode(id);
   }
 
   function rebuild(layout: OfficeTreeLayout, atlas: DynastyAtlas) {
@@ -1425,6 +1446,7 @@ export function createOfficeTreeScene(
   // 候选一律不往下走——标签压进塔台会「穿模」，看着像别的原子的名字；
   // 偏离原位的由一根引线连回本体，文字与原子的归属始终明确。
   const labelProjection = new THREE.Vector3();
+  const anchorProjection = new THREE.Vector3();
   interface LabelBox {
     cx: number;
     cy: number;
@@ -1457,6 +1479,19 @@ export function createOfficeTreeScene(
     const home = label.userData.home as THREE.Vector3 | undefined;
     const radialOut = label.userData.radialOut as THREE.Vector3 | undefined;
     const tangent = label.userData.tangent as THREE.Vector3 | undefined;
+    const anchor = label.userData.nodeAnchor as THREE.Vector3 | undefined;
+    // 画面外的原子不挂名：既避免「错位的名称」飘在可视区边缘，也把占位名额让给真正看得见的节点。
+    if (anchor) {
+      anchorProjection.copy(anchor).project(camera);
+      if (
+        anchorProjection.z > 1 ||
+        Math.abs(anchorProjection.x) > 1.02 ||
+        Math.abs(anchorProjection.y) > 1.02
+      ) {
+        label.visible = false;
+        return;
+      }
+    }
     // 极端兜底（canvas 上下文缺失时标签无原位）：沿用当前位置，只做一次碰撞判定。
     const candidates =
       pinned || !home || !radialOut || !tangent ? LABEL_CANDIDATES.slice(0, 1) : LABEL_CANDIDATES;
@@ -1521,6 +1556,8 @@ export function createOfficeTreeScene(
       const anchor = label.userData.nodeAnchor as THREE.Vector3 | undefined;
       const home = label.userData.home as THREE.Vector3 | undefined;
       // 只在明显偏离原位时画引线：贴着本体的标签不用画，避免满屏细丝。
+      // 两端都取中心：起点是节点球心（anchor），终点是标签 sprite 的中心（position），
+      // 不接在光环边缘或文字框外沿——圆点与线从各自中心相连，归属才不会看着错开。
       if (anchor && home && label.position.distanceToSquared(home) > 0.16) {
         const offset = leaderCount * 6;
         leaderArray[offset] = anchor.x;
@@ -1803,6 +1840,7 @@ export function createOfficeTreeScene(
 
   return {
     applyPreset,
+    focusNode,
     dispose() {
       disposed = true;
       cancelAnimationFrame(raf);

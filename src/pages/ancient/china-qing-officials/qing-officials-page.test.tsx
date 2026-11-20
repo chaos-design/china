@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => {
   const scene = {
     applyPreset: vi.fn(),
+    focusNode: vi.fn(),
     dispose: vi.fn(),
     resetView: vi.fn(),
     setAtlas: vi.fn(),
@@ -258,6 +259,8 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     const ids = calls[calls.length - 1]?.[0] as string[] | null;
     expect(ids).toContain("central");
     expect(ids?.length).toBeGreaterThan(1);
+    // 选中的原子自动进入可视区：菜单聚焦同步把该分区补间到镜头中央。
+    expect(mocks.scene.focusNode).toHaveBeenLastCalledWith("central");
 
     const drawer = screen.getByLabelText("官制详情");
     expect(within(drawer).getByRole("heading", { name: "中枢部" })).toBeInTheDocument();
