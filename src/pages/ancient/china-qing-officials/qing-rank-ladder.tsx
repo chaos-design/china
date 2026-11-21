@@ -168,7 +168,10 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
             <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
               顶戴 · 章服
             </span>
-            <HatGlyph level={selected} />
+            {/* 三列共用固定高度媒体槽：图形底部对齐，正文起点一致 */}
+            <div className="flex h-24 w-full items-end justify-center">
+              <HatGlyph level={selected} />
+            </div>
             <span className="font-brush text-lg text-ink">{selected.hat ?? "未详"}</span>
             {selected.hatBeads ? (
               <span className="text-xs text-muted-foreground">{selected.hatBeads}</span>
@@ -179,7 +182,9 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
             <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
               朝服
             </span>
-            <RobeGlyph dynastyId={atlas.id} level={selected} />
+            <div className="flex h-24 w-full items-end justify-center">
+              <RobeGlyph dynastyId={atlas.id} level={selected} />
+            </div>
             <span className="font-brush text-lg text-ink">{selected.robe ?? "未详"}</span>
             <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
               {atlas.notes.robe}
@@ -189,16 +194,16 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
             <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
               俸禄 · 参考
             </span>
-            <div className="flex h-12 w-full items-end justify-center">
+            <div className="flex h-24 w-full items-end justify-center">
               <span
                 className="w-10 rounded-t-sm bg-vermillion/65"
-                style={{ height: `${Math.max(8, selected.salary)}%` }}
+                style={{ height: `${Math.max(6, Math.round(selected.salary * 0.62))}px` }}
               />
             </div>
             <span className="font-brush text-lg text-ink">
               {selected.salaryLabel ?? `${selected.salary} 等`}
             </span>
-            <span className="font-mono-tech text-xs tracking-wide text-vermillion">
+            <span className="rounded-full border border-vermillion/30 bg-vermillion/12 px-3 py-1 font-mono-tech text-sm font-semibold tracking-wide text-vermillion">
               约合 {formatCny(silverTaelsToCny(salary.taels, silverPrice))}
             </span>
             <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
