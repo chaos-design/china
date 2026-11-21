@@ -353,6 +353,24 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(screen.getByLabelText("俸禄阶梯")).toHaveTextContent("≈¥6.2万");
   });
 
+  it("recomputes salaries when the reader edits the silver price", () => {
+    renderAt();
+    fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
+
+    fireEvent.change(screen.getByLabelText("银价（元/克）"), { target: { value: "10" } });
+    expect(screen.getByLabelText("正一品档案")).toHaveTextContent("约合 ¥67,142");
+    expect(screen.getByLabelText("正一品档案")).toHaveTextContent("自定义");
+  });
+
+  it("folds salaries of non-silver dynasties into the same map", () => {
+    renderAt("/china/qing-officials?dynasty=han");
+    fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
+
+    const salary = screen.getByLabelText("俸禄阶梯");
+    expect(salary).toHaveTextContent("≈¥");
+    expect(salary).toHaveTextContent("等比折银");
+  });
+
   it("links the ladder to the detail card in the rank view", () => {
     renderAt();
     fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));

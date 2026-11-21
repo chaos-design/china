@@ -5,7 +5,15 @@ import { cn } from "../../../lib/utils";
 import { ArchiveSectionHead } from "./content-primitives";
 import type { DynastyAtlas } from "./data";
 import { HatGlyph, QingRankSpectrum, RobeGlyph } from "./qing-rank-spectrum";
-import { formatCny, parseSilverTaels, SILVER_NOTE, silverTaelsToCny } from "./silver-value";
+import {
+  fetchSilverPriceCnyPerGram,
+  formatCny,
+  SILVER_PRICE_DATE,
+  SILVER_PRICE_PER_GRAM_CNY,
+  salaryToTaels,
+  silverNote,
+  silverTaelsToCny,
+} from "./silver-value";
 
 /* 阶梯金字塔化：首行最窄、末行占满，宽度随分组序号线性放宽（图二的塔形轮廓）。 */
 function pyramidWidth(index: number, count: number): string {
@@ -18,7 +26,35 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
   const [selectedLabel, setSelectedLabel] = useState(atlas.levels[0]?.label ?? "");
   const selected = atlas.levels.find((item) => item.label === selectedLabel) ?? atlas.levels[0]!;
   const groupCount = atlas.ladderGroups.length;
-  const salaryTaels = parseSilverTaels(selected.salaryLabel);
+  const salary = salaryToTaels(selected.salary, selected.salaryLabel);
+  const [silverInput, setSilverInput] = useState(String(SILVER_PRICE_PER_GRAM_CNY));
+  const [silverPrice, setSilverPrice] = useState(SILVER_PRICE_PER_GRAM_CNY);
+  const [silverSource, setSilverSource] = useState(SILVER_PRICE_DATE);
+  const [fetchingSilver, setFetchingSilver] = useState(false);
+
+  const changeSilverPrice = (raw: string) => {
+    setSilverInput(raw);
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      setSilverPrice(parsed);
+      setSilverSource("自定义");
+    }
+  };
+
+  const refreshSilverPrice = async () => {
+    setFetchingSilver(true);
+    const live = await fetchSilverPriceCnyPerGram();
+    if (live) {
+      setSilverPrice(live.cnyPerGram);
+      setSilverInput(String(live.cnyPerGram));
+      setSilverSource(
+        `现查 · ${live.usdPerOunce.toFixed(2)} 美元/盎司 × ${live.usdCnyRate.toFixed(3)}`,
+      );
+    } else {
+      setSilverSource("查询失败，沿用当前价");
+    }
+    setFetchingSilver(false);
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -162,19 +198,15 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
             <span className="font-brush text-lg text-ink">
               {selected.salaryLabel ?? `${selected.salary} 等`}
             </span>
-            {salaryTaels === null ? null : (
-              <span className="font-mono-tech text-xs tracking-wide text-vermillion">
-                约合 {formatCny(silverTaelsToCny(salaryTaels))}
-              </span>
-            )}
+            <span className="font-mono-tech text-xs tracking-wide text-vermillion">
+              约合 {formatCny(silverTaelsToCny(salary.taels, silverPrice))}
+            </span>
             <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
               {atlas.notes.salary}
             </p>
-            {salaryTaels === null ? null : (
-              <p className="text-[0.65rem] leading-relaxed text-muted-foreground/80">
-                {SILVER_NOTE}
-              </p>
-            )}
+            <p className="text-[0.65rem] leading-relaxed text-muted-foreground/80">
+              {silverNote(silverPrice, silverSource, salary.exact)}
+            </p>
           </div>
           <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
             <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
@@ -190,7 +222,17 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
       </section>
 
       {/* 全谱条带：顶戴 / 朝服 / 俸禄一次看全 */}
-      <QingRankSpectrum atlas={atlas} selectedLabel={selectedLabel} onSelect={setSelectedLabel} />
+      <QingRankSpectrum
+        atlas={atlas}
+        fetchingSilver={fetchingSilver}
+        onFetchSilverPrice={refreshSilverPrice}
+        onSelect={setSelectedLabel}
+        onSilverInputChange={changeSilverPrice}
+        selectedLabel={selectedLabel}
+        silverInput={silverInput}
+        silverPrice={silverPrice}
+        silverSource={silverSource}
+      />
     </div>
   );
 }

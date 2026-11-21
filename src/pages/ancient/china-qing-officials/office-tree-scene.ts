@@ -75,6 +75,12 @@ const GROW_STAGGER_MS = 16;
 
 /** 相机距目标超过该距离（折叠总览镜头）时隐藏包围框的跨度标注，左菜单已标注跨度。 */
 const BRACKET_LABEL_DISTANCE = 26;
+/**
+ * 属官名牌只在接近正视时出现：斜视/俯视时环上标签会互相穿插，
+ * 只保留 root / 分区 / 荣衔这些骨架名称。滞回区间避免自转经过阈值时闪烁。
+ */
+const FRONT_LABEL_SHOW_AZIMUTH = 0.3;
+const FRONT_LABEL_HIDE_AZIMUTH = 0.46;
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 /**
  * 节点体量即尊卑：皇权独占一个数量级的尺度，分区、荣衔、属官依次收小。
@@ -469,6 +475,7 @@ export function createOfficeTreeScene(
   let highlighted: ReadonlySet<string> | null = null;
   let nodeMeshes: THREE.Mesh[] = [];
   let nodeLabels: THREE.Sprite[] = [];
+  let detailLabelsVisible = true;
   // 标签避让后偏离本体的，用一根细引线连回节点——文字再挪也不至于看着像别的原子的名字。
   let labelLeaders: THREE.LineSegments | null = null;
   // 属官的不可见拾取代理球：与 nodeMeshes 同步过滤，筛选后命中区不缩水。
@@ -1535,6 +1542,13 @@ export function createOfficeTreeScene(
     label.visible = false;
   }
   function avoidLabelOverlap() {
+    // 转正才展开属官名牌；滞回避免自转经过边界时反复显隐。
+    const azimuth = Math.abs(currentAngles().azimuth);
+    if (detailLabelsVisible && azimuth > FRONT_LABEL_HIDE_AZIMUTH) {
+      detailLabelsVisible = false;
+    } else if (!detailLabelsVisible && azimuth < FRONT_LABEL_SHOW_AZIMUTH) {
+      detailLabelsVisible = true;
+    }
     const placed: LabelBox[] = [];
     const pad = 2;
     // 排序：层级尊者优先、离相机近者优先，保证被让位的是低层远景标签。
@@ -1557,6 +1571,12 @@ export function createOfficeTreeScene(
     let leaderCount = 0;
     for (const label of ranked) {
       const id = label.userData.nodeId as string;
+      const depth = label.userData.depth as number | undefined;
+      if (!detailLabelsVisible && depth !== undefined && depth >= 2) {
+        // 斜视时只留下权力本源 / 分区 / 荣衔骨架，具体属官名称等转正后再出现。
+        label.visible = false;
+        continue;
+      }
       placeLabel(label, hover?.id === id, placed, pad);
       if (!leaders || !leaderAttr || !leaderArray || !label.visible) {
         continue;

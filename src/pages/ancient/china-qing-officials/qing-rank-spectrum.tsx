@@ -2,12 +2,7 @@ import { cn } from "../../../lib/utils";
 import { ArchiveSectionHead } from "./content-primitives";
 import type { AtlasRankLevel, DynastyAtlas } from "./data";
 import { HatIllustration, RobeIllustration } from "./rank-illustrations";
-import {
-  formatCnyCompact,
-  parseSilverTaels,
-  SILVER_PRICE_DATE,
-  silverTaelsToCny,
-} from "./silver-value";
+import { formatCnyCompact, salaryToTaels, silverNote, silverTaelsToCny } from "./silver-value";
 
 export function HatGlyph({ level }: { level: AtlasRankLevel }) {
   return <HatIllustration level={level} />;
@@ -109,25 +104,64 @@ function RobeSpectrum({ atlas }: { atlas: DynastyAtlas }) {
 /** 俸禄阶梯：每级一根柱，柱高为相对示意，标注岁俸实数（如有）。 */
 function SalarySpectrum({
   atlas,
-  selectedLabel,
+  fetchingSilver,
+  onFetchSilverPrice,
   onSelect,
+  onSilverInputChange,
+  selectedLabel,
+  silverInput,
+  silverPrice,
+  silverSource,
 }: {
   atlas: DynastyAtlas;
-  selectedLabel: string;
+  fetchingSilver: boolean;
+  onFetchSilverPrice: () => void;
   onSelect: (label: string) => void;
+  onSilverInputChange: (raw: string) => void;
+  selectedLabel: string;
+  silverInput: string;
+  silverPrice: number;
+  silverSource: string;
 }) {
+  const exact = salaryToTaels(atlas.levels[0]?.salary ?? 0, atlas.levels[0]?.salaryLabel).exact;
+
   return (
     <section aria-label="俸禄阶梯" className="flex flex-col gap-3">
-      <SectionHead
-        mark="俸"
-        title="俸禄 · 阶梯"
-        note={`柱高为相对示意 · 约合人民币按 ${SILVER_PRICE_DATE} 银价折算`}
-      />
+      <SectionHead mark="俸" title="俸禄 · 阶梯" note="柱高为相对示意 · 金额随银价折算" />
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-ink/12 bg-paper/60 px-3 py-2">
+        <label
+          className="font-mono-tech text-[0.65rem] tracking-[0.1em] text-muted-foreground"
+          htmlFor="silver-price-input"
+        >
+          银价 元/克
+        </label>
+        <input
+          aria-label="银价（元/克）"
+          className="w-24 rounded-md border border-ink/20 bg-card/80 px-2 py-1 font-mono-tech text-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          id="silver-price-input"
+          min="0.01"
+          onChange={(event) => onSilverInputChange(event.target.value)}
+          step="0.01"
+          type="number"
+          value={silverInput}
+        />
+        <button
+          className="rounded-full border border-vermillion/35 bg-vermillion/10 px-3 py-1 font-body text-[0.7rem] text-vermillion transition-colors hover:bg-vermillion/15 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          disabled={fetchingSilver}
+          onClick={onFetchSilverPrice}
+          type="button"
+        >
+          {fetchingSilver ? "查询中…" : "查询银价"}
+        </button>
+        <span className="font-mono-tech text-[0.62rem] text-muted-foreground">
+          {silverNote(silverPrice, silverSource, exact)}
+        </span>
+      </div>
       <div className="overflow-x-auto pb-1">
         <div className="flex min-w-[40rem] items-end gap-1.5">
           {atlas.levels.map((item) => {
             const active = item.label === selectedLabel;
-            const taels = parseSilverTaels(item.salaryLabel);
+            const salary = salaryToTaels(item.salary, item.salaryLabel);
             return (
               <button
                 aria-pressed={active}
@@ -144,11 +178,9 @@ function SalarySpectrum({
                 <span className="font-mono-tech text-[0.7rem] whitespace-nowrap text-muted-foreground">
                   {item.salaryLabel ?? `${item.salary} 等`}
                 </span>
-                {taels === null ? null : (
-                  <span className="font-mono-tech text-[0.62rem] leading-none text-vermillion/85">
-                    ≈{formatCnyCompact(silverTaelsToCny(taels))}
-                  </span>
-                )}
+                <span className="font-mono-tech text-[0.62rem] leading-none text-vermillion/85">
+                  ≈{formatCnyCompact(silverTaelsToCny(salary.taels, silverPrice))}
+                </span>
                 <span className="flex h-24 w-full items-end justify-center sm:h-28">
                   <span
                     aria-hidden="true"
@@ -182,18 +214,40 @@ function SalarySpectrum({
 /** 图二全谱条带：顶戴 / 朝服 / 俸禄一次看全，选中态与阶梯、档案卡共享。 */
 export function QingRankSpectrum({
   atlas,
-  selectedLabel,
+  fetchingSilver,
+  onFetchSilverPrice,
   onSelect,
+  onSilverInputChange,
+  selectedLabel,
+  silverInput,
+  silverPrice,
+  silverSource,
 }: {
   atlas: DynastyAtlas;
-  selectedLabel: string;
+  fetchingSilver: boolean;
+  onFetchSilverPrice: () => void;
   onSelect: (label: string) => void;
+  onSilverInputChange: (raw: string) => void;
+  selectedLabel: string;
+  silverInput: string;
+  silverPrice: number;
+  silverSource: string;
 }) {
   return (
     <div className="flex flex-col gap-5">
       <HatSpectrum atlas={atlas} selectedLabel={selectedLabel} onSelect={onSelect} />
       <RobeSpectrum atlas={atlas} />
-      <SalarySpectrum atlas={atlas} selectedLabel={selectedLabel} onSelect={onSelect} />
+      <SalarySpectrum
+        atlas={atlas}
+        fetchingSilver={fetchingSilver}
+        onFetchSilverPrice={onFetchSilverPrice}
+        onSelect={onSelect}
+        onSilverInputChange={onSilverInputChange}
+        selectedLabel={selectedLabel}
+        silverInput={silverInput}
+        silverPrice={silverPrice}
+        silverSource={silverSource}
+      />
     </div>
   );
 }

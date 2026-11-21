@@ -876,8 +876,8 @@ function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: bool
         </p>
       </div>
       {/*
-       * 竖线、面片与朱点共用 x=20：圆点不再靠负 margin 猜偏移（旧版左偏 2.5px），
-       * pl-8 把面片到文字的横向留白收紧；节点数量不进刻度，只保留层级名称。
+       * 竖线与面片朱点共用 x=20：li 因 pl-8 右移 32px，面片用 -32px 抵消，
+       * 否则朱点会落在竖线右侧；节点数量不进刻度，只保留层级名称。
        */}
       <ol className="relative mt-2 flex flex-col gap-1.5 pl-8">
         <span
@@ -886,7 +886,7 @@ function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: bool
         />
         {rows.map((row) => (
           <li className="relative flex min-h-[1.6rem] items-baseline" key={row.depth}>
-            <span aria-hidden="true" className="absolute left-0 top-1/2 -translate-y-1/2">
+            <span aria-hidden="true" className="absolute -left-8 top-1/2 -translate-y-1/2">
               <TierPlane count={rows.length} depth={row.depth} />
             </span>
             <span className="flex min-w-0 items-baseline gap-1.5 pl-1.5">
