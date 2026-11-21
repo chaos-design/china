@@ -170,10 +170,11 @@ function StagesSection() {
           })}
         </ol>
 
-        {/* 右：读书人晋身之路（漏斗） */}
+        {/* 右：读书人晋身之路（漏斗）——lg 下吸顶，不受七站链滚动影响；
+            高度不足时卡片内部滚动兜底 */}
         <aside
           aria-label="读书人晋身之路"
-          className="flex flex-col gap-3 rounded-xl border border-ink/15 bg-card/90 p-5"
+          className="flex flex-col gap-3 rounded-xl border border-ink/15 bg-card/90 p-5 lg:sticky lg:top-0 lg:max-h-[calc(100vh-18rem)] lg:overflow-y-auto"
         >
           <h3 className="font-brush text-ink text-xl">读书人晋身之路</h3>
           <p className="text-muted-foreground text-xs leading-relaxed">
@@ -305,7 +306,12 @@ function DynastiesSection() {
         <h2 className="font-brush text-3xl text-ink">历代官途：怎么做官，怎么晋升</h2>
       </div>
 
-      <fieldset aria-label="朝代选择" className="m-0 flex min-w-0 flex-wrap gap-2 border-0 p-0">
+      {/* 朝代选择吸顶：主滚动容器是 <main>（站点头占独立布局空间，top-0 即其下缘）；
+          背景带横负边距外扩，滚动时卡片不至于从 chips 缝隙里透出来 */}
+      <fieldset
+        aria-label="朝代选择"
+        className="sticky top-0 z-10 -mx-3 my-0 flex min-w-0 flex-wrap gap-2 border-0 bg-paper p-3 shadow-[0_1px_0_0_hsl(var(--ink)/0.08)]"
+      >
         {IMPERIAL_EXAM_DYNASTIES.map((dynasty) => {
           const isActive = dynasty.id === activeDynasty.id;
 

@@ -68,10 +68,13 @@ describe("<ImperialExamPage /> 登科之阶", () => {
     //（jsdom 不加载图片，只断言 DOM 存在）
     expect(ladder.querySelectorAll("img").length).toBeGreaterThanOrEqual(EXAM_STAGES.length);
 
-    // 右侧漏斗与底部节奏轴、图例
-    expect(
-      within(ladder).getByRole("complementary", { name: "读书人晋身之路" }),
-    ).toBeInTheDocument();
+    // 右侧漏斗（lg 吸顶）与底部节奏轴、图例
+    const funnel = within(ladder).getByRole("complementary", { name: "读书人晋身之路" });
+    expect(funnel).toBeInTheDocument();
+    // 吸顶：lg 下 sticky 钉在内容滚动容器顶部，超出高度时卡片内部滚动兜底
+    expect(funnel.className).toContain("lg:sticky");
+    expect(funnel.className).toContain("lg:top-0");
+    expect(funnel.className).toContain("lg:overflow-y-auto");
     expect(screen.getByText(/科举之路时间线 · 每三年一科/)).toBeInTheDocument();
     expect(within(ladder).getByText("第一年 · 八月")).toBeInTheDocument();
     expect(within(ladder).getByText("朝廷铨选，授以官职")).toBeInTheDocument();
@@ -101,6 +104,12 @@ describe("<ImperialExamPage /> 历代官途", () => {
     expect(within(panel).getByText("《史记·李斯列传》")).toBeInTheDocument();
     // 迁转链终点高亮为「将·相」
     expect(within(panel).getByText("将·相")).toBeInTheDocument();
+
+    // 朝代选择吸顶：滚动到长履历时 chips 钉在滚动容器顶部
+    const chips = screen.getByRole("group", { name: "朝代选择" });
+    expect(chips.className).toContain("sticky");
+    expect(chips.className).toContain("top-0");
+    expect(chips.className).toContain("bg-paper");
 
     expect(screen.getByRole("button", { name: "先秦" })).toHaveAttribute("aria-pressed", "true");
   });
