@@ -1,21 +1,75 @@
 import { useId } from "react";
 
+import { cn } from "../../../lib/utils";
 import type { AtlasRankLevel } from "./data";
+import { badgeImage, hatImage, type RankImage, robeImage } from "./rank-images";
 
 /**
- * 品秩写实图示：顶戴、朝服、补子与六项要义全部以内联 SVG 细绘。
- * 用丝绢 / 天鹅绒渐变、翎羽眼斑、金线绣边、海水江崖与禽兽特征替代简笔色块；
- * 顶珠与服色仍按数据里的真实色值着色，图形本身 aria-hidden，文字由相邻节点承担。
+ * 品秩图示：优先渲染 rank-images.ts 里的真实博物馆藏品照（Commons 公有领域 / CC0），
+ * 缺图条目回落到内联 SVG 细绘。SVG 用丝绢 / 天鹅绒渐变、翎羽眼斑、金线绣边、
+ * 海水江崖与禽兽特征绘图；顶珠与服色仍按数据里的真实色值着色。
+ * 图形本身 aria-hidden，文字由相邻节点承担；真实图片的出处由 RankImageCredits 落页脚。
  */
+
+/** 真实藏品照统一小图：圆角 + 细边，与卡片语言一致；title 带藏品说明。 */
+function RankImageTile({ className, image }: { className?: string; image: RankImage }) {
+  return (
+    <img
+      alt=""
+      aria-hidden="true"
+      className={cn("border border-ink/15 object-cover shadow-sm", className)}
+      loading="lazy"
+      src={image.src}
+      title={image.caption}
+    />
+  );
+}
+
+/** 页脚图源：逐条链接本节用到的 Commons 文件页（按出处去重）。 */
+export function RankImageCredits({ images }: { images: RankImage[] }) {
+  const seen = new Set<string>();
+  const unique = images.filter((image) => {
+    if (seen.has(image.source)) {
+      return false;
+    }
+    seen.add(image.source);
+    return true;
+  });
+  if (unique.length === 0) {
+    return null;
+  }
+  return (
+    <p className="font-mono-tech text-[0.62rem] leading-relaxed text-muted-foreground">
+      图源：
+      {unique.map((image, index) => (
+        <span key={image.source}>
+          {index > 0 ? " · " : null}
+          <a
+            className="underline decoration-dotted underline-offset-2 hover:text-vermillion"
+            href={image.source}
+            rel="noreferrer"
+            target="_blank"
+          >
+            {image.caption}
+          </a>
+        </span>
+      ))}
+    </p>
+  );
+}
 
 function shade(hex: string | undefined, fallback: string): string {
   return hex?.startsWith("#") ? hex : fallback;
 }
 
-/** 顶戴：暖帽盔 + 上翘帽檐 + 双孔雀翎 + 按品级着色的顶珠与金托。 */
+/** 顶戴：真实顶珠 / 印绶 / 冠帽藏品照优先，缺图回落手绘暖帽。 */
 export function HatIllustration({ level }: { level: AtlasRankLevel }) {
+  const image = hatImage(level.hat);
   const raw = useId();
   const uid = raw.replace(/:/g, "");
+  if (image) {
+    return <RankImageTile className="h-16 w-[4.5rem] rounded-md" image={image} />;
+  }
   const bead = shade(level.hatColor, "#b03a2e");
 
   return (
@@ -131,10 +185,20 @@ export function HatIllustration({ level }: { level: AtlasRankLevel }) {
   );
 }
 
-/** 朝服：石青补服正面——圆领右衽、箭袖、金线补子、腰带与海水江崖下摆。 */
-export function RobeIllustration({ level }: { level: AtlasRankLevel }) {
+/** 朝服：真实袍服 / 官员画像照优先（按 朝代:服色 查索引），缺图回落手绘补服。 */
+export function RobeIllustration({
+  dynastyId,
+  level,
+}: {
+  dynastyId: string;
+  level: AtlasRankLevel;
+}) {
+  const image = robeImage(dynastyId, level.robe);
   const raw = useId();
   const uid = raw.replace(/:/g, "");
+  if (image) {
+    return <RankImageTile className="h-20 w-16 rounded-md" image={image} />;
+  }
   const robe = shade(level.robeColor, "#263746");
 
   return (
@@ -327,7 +391,7 @@ function variantFor(animal: string, kind: "civil" | "military"): AnimalVariant {
   );
 }
 
-/** 补子：绫绢方补、金线双边框、云纹与按禽兽名着色的写实刺绣主体。 */
+/** 补子：真实刺绣藏品照优先，缺图回落绫绢方补手绘图。 */
 export function BadgeIllustration({
   animal,
   kind,
@@ -335,8 +399,12 @@ export function BadgeIllustration({
   animal: string;
   kind: "civil" | "military";
 }) {
+  const image = badgeImage(animal);
   const raw = useId();
   const uid = raw.replace(/:/g, "");
+  if (image) {
+    return <RankImageTile className="h-16 w-[4.5rem] rounded-md" image={image} />;
+  }
   const variant = variantFor(animal, kind);
 
   return (

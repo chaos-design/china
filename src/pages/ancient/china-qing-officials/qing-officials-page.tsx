@@ -9,9 +9,9 @@ import { QingRegalia } from "./qing-regalia";
 
 type OfficialsView = "chart" | "ranks";
 
-const VIEWS: readonly { id: OfficialsView; label: string; note: string }[] = [
-  { id: "chart", label: "官职制度", note: "图一 · 官署层级与从属关系" },
-  { id: "ranks", label: "品级礼制", note: "图二 · 品级决定服色、章服与礼序" },
+const VIEWS: readonly { id: OfficialsView; label: string }[] = [
+  { id: "chart", label: "官职制度" },
+  { id: "ranks", label: "品级礼制" },
 ];
 
 /**
@@ -103,28 +103,7 @@ export function QingOfficialsPage() {
         className="relative flex min-h-0 flex-1 flex-col pt-3"
         role="tabpanel"
       >
-        {view === "chart" ? (
-          <>
-            <QingOfficeTree atlas={atlas} />
-            {/* 原头部第二行收为舞台底部一行小字（内容不变，仅重排）：
-                朝代 · 年代 · 制度 · 出处 ｜ 总纲 ｜ 图注；朝代名只在行首出现一次。 */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
-              <p className="w-full truncate bg-paper/95 px-3 py-1 text-center font-mono-tech text-[0.7rem] tracking-[0.14em] text-muted-foreground">
-                {atlas.name}
-                {" · "}
-                {atlas.period}
-                {" · "}
-                {atlas.system}
-                {" · "}
-                {atlas.source}
-                {" ｜ "}
-                <span className="font-body tracking-normal text-ink/70">{atlas.intro}</span>
-                {" ｜ "}
-                {active.note}
-              </p>
-            </div>
-          </>
-        ) : null}
+        {view === "chart" ? <QingOfficeTree atlas={atlas} /> : null}
         {view === "ranks" ? (
           <div className="h-full min-h-0 overflow-y-auto pr-1 lg:pr-2">
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-4 pt-1">

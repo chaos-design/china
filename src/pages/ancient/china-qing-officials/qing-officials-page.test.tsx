@@ -83,7 +83,7 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
       "aria-pressed",
       "true",
     );
-    expect(screen.getByText(/秩石十六等/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "外朝 · 三公九卿" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 3, name: "军机处" })).toBeNull();
   });
 
@@ -213,8 +213,9 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();
 
-    // 读图气泡默认收纳：刻度上的口诀已移入这里作主句。
+    // 读图气泡默认收纳并落在舞台右侧：刻度上的口诀已移入这里作主句。
     const chip = screen.getByRole("button", { name: "读图" });
+    expect(chip.parentElement).toHaveClass("right-3");
     expect(chip).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByLabelText("读图说明")).toBeNull();
     expect(screen.queryByText("面片由近及远 · 层级越深越收敛")).toBeNull();
@@ -233,6 +234,14 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     fireEvent.click(within(bubble).getByRole("button", { name: "收起读图说明" }));
     expect(chip).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByLabelText("读图说明")).toBeNull();
+
+    // 抽屉展开时气泡自动收起，chip 让到抽屉左侧；层级高于抽屉，不被面板盖住。
+    fireEvent.click(chip);
+    act(() => {
+      sceneHandlers().onPick({ id: "censorate", kind: "office", title: "都察院" });
+    });
+    expect(screen.queryByLabelText("读图说明")).toBeNull();
+    expect(chip.parentElement).toHaveClass("lg:right-[calc(360px+0.75rem)]");
   });
 
   it("opens the right-side detail drawer on an office pick and closes it", () => {

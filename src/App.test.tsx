@@ -263,7 +263,7 @@ describe("<App /> routing", () => {
     renderAt("/china/qing-officials?dynasty=han");
 
     expect(await screen.findByRole("heading", { level: 1, name: "官制图谱" })).toBeInTheDocument();
-    expect(screen.getByText(/秩石十六等/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "汉" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("renders the not found page for unknown routes", async () => {

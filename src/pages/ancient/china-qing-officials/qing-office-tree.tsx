@@ -302,14 +302,21 @@ function HoverReadout({
 }
 
 /**
- * 舞台左下的「读图」气泡：默认只留一枚小 chip，点开浮出一份有层次的解说——
+ * 舞台右下的「读图」气泡：默认只留一枚小 chip，点开浮出一份有层次的解说——
  * 透视口诀、三步读法、本朝制度口径、可回查的文献依据、具体从属示例。
  * 层级刻度的那句口诀收在这里作主句；点外部 / Escape / 关闭键均可收起。
+ * 详情抽屉展开时自动收起并让位：移动端抬到底部抽屉之上，桌面端退到抽屉左侧。
  */
-function NoteChip({ atlas }: { atlas: DynastyAtlas }) {
+function NoteChip({ atlas, drawerOpen }: { atlas: DynastyAtlas; drawerOpen: boolean }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const guide = useMemo(() => getReadingGuide(atlas), [atlas]);
+
+  useEffect(() => {
+    if (drawerOpen) {
+      setOpen(false);
+    }
+  }, [drawerOpen]);
 
   useEffect(() => {
     if (!open) {
@@ -350,13 +357,21 @@ function NoteChip({ atlas }: { atlas: DynastyAtlas }) {
     {
       mark: "叁",
       title: "点细节",
-      body: "点节点或标签展开从属与职掌，左侧按分区筛选、视角与自转控制取景。",
+      body: "点节点或标签展开从属与职掌，左上按分区筛选、视角与自转控制取景。",
       depth: 2,
     },
   ];
 
   return (
-    <div className="pointer-events-none absolute bottom-9 left-3 z-20" ref={containerRef}>
+    <div
+      className={cn(
+        "pointer-events-none absolute z-40 flex flex-col items-end",
+        drawerOpen
+          ? "bottom-[calc(58%+1.25rem)] right-3 lg:bottom-9 lg:right-[calc(360px+0.75rem)]"
+          : "bottom-9 right-3",
+      )}
+      ref={containerRef}
+    >
       {open ? (
         <section
           aria-label="读图说明"
@@ -1119,7 +1134,7 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
   return (
     <figure
       aria-label="官制立体树"
-      className="relative isolate h-full w-full overflow-hidden rounded-2xl border border-ink/12 bg-[radial-gradient(ellipse_at_50%_42%,hsl(var(--ink)/0.06),transparent_70%),radial-gradient(ellipse_at_50%_100%,hsl(var(--vermillion)/0.045),transparent_60%)] shadow-[0_18px_48px_hsl(var(--ink)/0.06)]"
+      className="relative isolate h-full w-full overflow-hidden rounded-2xl bg-[radial-gradient(ellipse_at_50%_42%,hsl(var(--ink)/0.06),transparent_70%),radial-gradient(ellipse_at_50%_100%,hsl(var(--vermillion)/0.045),transparent_60%)] shadow-[0_18px_48px_hsl(var(--ink)/0.06)]"
     >
       {/* 四角套准标记 + 经纬淡格：仿舆图绢本的装裱感，纯装饰不拦截指针。 */}
       <span
@@ -1167,14 +1182,13 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
             </span>
           </div>
         ) : null}
-        {/* 底部再留出一行给页级题注条（原头部第二行），故 readout 与图注 chip 上移。 */}
         <div className="absolute inset-x-0 bottom-9">
           <HoverReadout dynastyName={atlas.name} hover={hover} />
         </div>
-        <NoteChip atlas={atlas} />
       </div>
 
       <LevelScale layout={clippedLayout} hidden={Boolean(detail)} />
+      <NoteChip atlas={atlas} drawerOpen={Boolean(detail)} />
 
       <StageMenu
         activeId={filterId}
