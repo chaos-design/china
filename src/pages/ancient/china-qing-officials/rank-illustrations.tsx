@@ -1,21 +1,75 @@
 import { useId } from "react";
 
+import { cn } from "../../../lib/utils";
 import type { AtlasRankLevel } from "./data";
+import { badgeImage, hatImage, type RankImage, robeImage } from "./rank-images";
 
 /**
- * 品秩写实图示：顶戴、朝服、补子与六项要义全部以内联 SVG 细绘。
- * 用丝绢 / 天鹅绒渐变、翎羽眼斑、金线绣边、海水江崖与禽兽特征替代简笔色块；
- * 顶珠与服色仍按数据里的真实色值着色，图形本身 aria-hidden，文字由相邻节点承担。
+ * 品秩图示：优先渲染 rank-images.ts 里的真实博物馆藏品照（Commons 公有领域 / CC0），
+ * 缺图条目回落到内联 SVG 细绘。SVG 用丝绢 / 天鹅绒渐变、翎羽眼斑、金线绣边、
+ * 海水江崖与禽兽特征绘图；顶珠与服色仍按数据里的真实色值着色。
+ * 图形本身 aria-hidden，文字由相邻节点承担；真实图片的出处由 RankImageCredits 落页脚。
  */
+
+/** 真实藏品照统一小图：圆角 + 细边，与卡片语言一致；title 带藏品说明。 */
+function RankImageTile({ className, image }: { className?: string; image: RankImage }) {
+  return (
+    <img
+      alt=""
+      aria-hidden="true"
+      className={cn("border border-ink/15 object-cover shadow-sm", className)}
+      loading="lazy"
+      src={image.src}
+      title={image.caption}
+    />
+  );
+}
+
+/** 页脚图源：逐条链接本节用到的 Commons 文件页（按出处去重）。 */
+export function RankImageCredits({ images }: { images: RankImage[] }) {
+  const seen = new Set<string>();
+  const unique = images.filter((image) => {
+    if (seen.has(image.source)) {
+      return false;
+    }
+    seen.add(image.source);
+    return true;
+  });
+  if (unique.length === 0) {
+    return null;
+  }
+  return (
+    <p className="font-mono-tech text-[0.62rem] leading-relaxed text-muted-foreground">
+      图源：
+      {unique.map((image, index) => (
+        <span key={image.source}>
+          {index > 0 ? " · " : null}
+          <a
+            className="underline decoration-dotted underline-offset-2 hover:text-vermillion"
+            href={image.source}
+            rel="noreferrer"
+            target="_blank"
+          >
+            {image.caption}
+          </a>
+        </span>
+      ))}
+    </p>
+  );
+}
 
 function shade(hex: string | undefined, fallback: string): string {
   return hex?.startsWith("#") ? hex : fallback;
 }
 
-/** 顶戴：暖帽盔 + 上翘帽檐 + 双孔雀翎 + 按品级着色的顶珠与金托。 */
+/** 顶戴：真实顶珠 / 印绶 / 冠帽藏品照优先，缺图回落手绘暖帽。 */
 export function HatIllustration({ level }: { level: AtlasRankLevel }) {
+  const image = hatImage(level.hat);
   const raw = useId();
   const uid = raw.replace(/:/g, "");
+  if (image) {
+    return <RankImageTile className="h-16 w-[4.5rem] rounded-md" image={image} />;
+  }
   const bead = shade(level.hatColor, "#b03a2e");
 
   return (
@@ -131,151 +185,38 @@ export function HatIllustration({ level }: { level: AtlasRankLevel }) {
   );
 }
 
-/** 朝服：石青补服正面——圆领右衽、箭袖、金线补子、腰带与海水江崖下摆。 */
-export function RobeIllustration({ level }: { level: AtlasRankLevel }) {
-  const raw = useId();
-  const uid = raw.replace(/:/g, "");
-  const robe = shade(level.robeColor, "#263746");
-
+/**
+ * 朝服：真实袍服 / 官员画像照优先（按 朝代:服色 查索引），缺图回落服色色样——
+ * 丝织光泽的纯色样片与照片并置比手绘补服更协调，也更贴近「色谱」的读法。
+ */
+export function RobeIllustration({
+  dynastyId,
+  level,
+}: {
+  dynastyId: string;
+  level: AtlasRankLevel;
+}) {
+  const image = robeImage(dynastyId, level.robe);
+  if (image) {
+    return <RankImageTile className="h-20 w-16 rounded-md" image={image} />;
+  }
+  const color = shade(level.robeColor, "#263746");
   return (
-    <svg
+    <span
       aria-hidden="true"
-      className="h-20 w-16"
-      fill="none"
-      viewBox="0 0 104 128"
-      xmlns="http://www.w3.org/2000/svg"
+      className="relative block h-20 w-16 overflow-hidden rounded-md border border-ink/15 shadow-sm"
+      style={{
+        background: `linear-gradient(135deg, ${color} 0%, ${color}E6 42%, ${color}B3 58%, ${color} 100%)`,
+      }}
     >
-      <defs>
-        <linearGradient id={`${uid}-silk`} x1="16" x2="88" y1="18" y2="118">
-          <stop stopColor="#ffffff" stopOpacity="0.2" />
-          <stop offset="0.24" stopColor={robe} />
-          <stop offset="0.72" stopColor={robe} />
-          <stop offset="1" stopColor="#000000" stopOpacity="0.45" />
-        </linearGradient>
-        <linearGradient id={`${uid}-sleeve`} x1="0" x2="1" y1="0" y2="1">
-          <stop stopColor="#ffffff" stopOpacity="0.16" />
-          <stop offset="0.55" stopColor={robe} />
-          <stop offset="1" stopColor="#000000" stopOpacity="0.4" />
-        </linearGradient>
-        <linearGradient id={`${uid}-gold`} x1="0" x2="1" y1="0" y2="1">
-          <stop stopColor="#f8e5ab" />
-          <stop offset="0.55" stopColor="#c7a03e" />
-          <stop offset="1" stopColor="#75551b" />
-        </linearGradient>
-        <linearGradient id={`${uid}-badge`} x1="0" x2="1" y1="0" y2="1">
-          <stop stopColor="#e9dfc6" />
-          <stop offset="1" stopColor="#c9b98f" />
-        </linearGradient>
-      </defs>
-
-      {/* 阔袖：袖口收窄，褶线随袖走向 */}
-      <path
-        d="M36 26 C26 29 14 40 4 56 L12 72 C22 60 31 52 39 48 Z"
-        fill={`url(#${uid}-sleeve)`}
-        stroke="#0a1018"
-        strokeWidth="0.8"
+      <span
+        className="absolute inset-0 opacity-25"
+        style={{
+          background:
+            "repeating-linear-gradient(115deg, transparent 0 7px, rgba(255,255,255,0.5) 7px 8px, transparent 8px 14px)",
+        }}
       />
-      <path
-        d="M68 26 C78 29 90 40 100 56 L92 72 C82 60 73 52 65 48 Z"
-        fill={`url(#${uid}-sleeve)`}
-        stroke="#0a1018"
-        strokeWidth="0.8"
-      />
-      <path
-        d="M7 58 L15 69 M13 54 L21 65 M97 58 L89 69 M91 54 L83 65"
-        stroke="#d8c88f"
-        strokeWidth="0.6"
-        opacity="0.55"
-      />
-
-      {/* 衣身：肩、腰、下摆一气贯穿 */}
-      <path
-        d="M38 22 C43 18 61 18 66 22 C72 30 74 44 73 62 L78 112 C62 117 42 117 26 112 L31 62 C30 44 32 30 38 22 Z"
-        fill={`url(#${uid}-silk)`}
-        stroke="#0a1018"
-        strokeWidth="0.9"
-      />
-      <g stroke="#ffffff" strokeWidth="0.6" opacity="0.16">
-        <path d="M40 30 L35 108 M52 34 L52 112 M64 30 L69 108" />
-      </g>
-
-      {/* 圆领与右衽：两道金线勾边 */}
-      <path
-        d="M38 22 C42 32 62 32 66 22"
-        stroke={`url(#${uid}-gold)`}
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-      <path d="M52 31 C45 48 44 66 46 84" stroke="#070d14" strokeWidth="2" opacity="0.45" />
-      <path
-        d="M53 31 C48 47 47 64 49 82"
-        stroke={`url(#${uid}-gold)`}
-        strokeWidth="0.7"
-        opacity="0.75"
-      />
-      <path d="M52 34 C60 46 66 52 70 55" stroke="#d8c88f" strokeWidth="0.7" opacity="0.5" />
-
-      {/* 胸前补子：金框绫地 + 写意飞禽 */}
-      <rect
-        x="40"
-        y="42"
-        width="24"
-        height="24"
-        rx="1"
-        fill={`url(#${uid}-badge)`}
-        stroke={`url(#${uid}-gold)`}
-        strokeWidth="1.4"
-      />
-      <rect x="42.5" y="44.5" width="19" height="19" rx="0.6" stroke="#8a6d2f" strokeWidth="0.6" />
-      <path d="M47 57 C47 52 51 49 54 50 C57 51 58 54 56 57 Z" fill="#2f3a44" />
-      <path
-        d="M47 54 C43 52 41 53 40 51 M56 54 C60 52 62 53 63 51"
-        stroke="#2f3a44"
-        strokeWidth="1.2"
-      />
-      <circle cx="53" cy="48" r="1.8" fill="#2f3a44" />
-      <path d="M50 58 l-1 3 M56 58 l1 3" stroke="#8a6d2f" strokeWidth="0.6" />
-      <path d="M45 64 L59 64" stroke="#a98a4a" strokeWidth="0.5" opacity="0.7" />
-
-      {/* 腰带与玉佩垂绦 */}
-      <path
-        d="M31 67 C45 71 59 71 73 67 L73 73 C59 77 45 77 31 73 Z"
-        fill={`url(#${uid}-gold)`}
-        stroke="#634815"
-        strokeWidth="0.6"
-      />
-      <path
-        d="M38 70 L45 71 M47 71 L54 72 M56 72 L63 71"
-        stroke="#fff0bd"
-        strokeWidth="0.6"
-        opacity="0.8"
-      />
-      <path d="M60 75 L60 90 M64 75 L64 87" stroke="#b5463a" strokeWidth="1" />
-      <circle cx="60" cy="91" r="1.7" fill="#e8e2d0" stroke="#b09a5e" strokeWidth="0.5" />
-      <circle cx="64" cy="88" r="1.4" fill="#e8e2d0" stroke="#b09a5e" strokeWidth="0.5" />
-
-      {/* 下摆开衩 + 海水江崖：清代朝服最具辨识度的纹样 */}
-      <path d="M52 84 L52 114" stroke="#000000" strokeWidth="1" opacity="0.28" />
-      <path d="M28 111 L35 107 M76 111 L69 107" stroke="#000000" strokeWidth="0.8" opacity="0.3" />
-      <path
-        d="M26 114 C38 108 45 119 52 113 C59 119 66 108 78 114"
-        stroke={`url(#${uid}-gold)`}
-        strokeWidth="1.2"
-        opacity="0.85"
-      />
-      <path
-        d="M26 119 C38 113 45 123 52 117 C59 123 66 113 78 119"
-        stroke="#e6d6a6"
-        strokeWidth="0.8"
-        opacity="0.65"
-      />
-      <path
-        d="M38 115 l4 -7 l4 7 M58 115 l5 -9 l5 9"
-        stroke="#c9a227"
-        strokeWidth="0.7"
-        opacity="0.7"
-      />
-    </svg>
+    </span>
   );
 }
 
@@ -327,7 +268,7 @@ function variantFor(animal: string, kind: "civil" | "military"): AnimalVariant {
   );
 }
 
-/** 补子：绫绢方补、金线双边框、云纹与按禽兽名着色的写实刺绣主体。 */
+/** 补子：真实刺绣藏品照优先，缺图回落绫绢方补手绘图。 */
 export function BadgeIllustration({
   animal,
   kind,
@@ -335,8 +276,12 @@ export function BadgeIllustration({
   animal: string;
   kind: "civil" | "military";
 }) {
+  const image = badgeImage(animal);
   const raw = useId();
   const uid = raw.replace(/:/g, "");
+  if (image) {
+    return <RankImageTile className="h-16 w-[4.5rem] rounded-md" image={image} />;
+  }
   const variant = variantFor(animal, kind);
 
   return (

@@ -1,15 +1,16 @@
 import { cn } from "../../../lib/utils";
 import { ArchiveSectionHead } from "./content-primitives";
 import type { AtlasRankLevel, DynastyAtlas } from "./data";
-import { HatIllustration, RobeIllustration } from "./rank-illustrations";
+import { HatIllustration, RankImageCredits, RobeIllustration } from "./rank-illustrations";
+import { hatImage, type RankImage, robeImage } from "./rank-images";
 import { formatCnyCompact, salaryToTaels, silverNote, silverTaelsToCny } from "./silver-value";
 
 export function HatGlyph({ level }: { level: AtlasRankLevel }) {
   return <HatIllustration level={level} />;
 }
 
-export function RobeGlyph({ level }: { level: AtlasRankLevel }) {
-  return <RobeIllustration level={level} />;
+export function RobeGlyph({ dynastyId, level }: { dynastyId: string; level: AtlasRankLevel }) {
+  return <RobeIllustration dynastyId={dynastyId} level={level} />;
 }
 
 function SectionHead({ mark, title, note }: { mark: string; title: string; note?: string }) {
@@ -26,6 +27,9 @@ function HatSpectrum({
   selectedLabel: string;
   onSelect: (label: string) => void;
 }) {
+  const images = atlas.levels
+    .map((item) => hatImage(item.hat))
+    .filter((image): image is RankImage => image !== undefined);
   return (
     <section aria-label="顶戴全谱" className="flex flex-col gap-3">
       <SectionHead mark="冠" title="顶戴 · 全谱" note={atlas.notes.hat} />
@@ -59,6 +63,7 @@ function HatSpectrum({
           );
         })}
       </div>
+      <RankImageCredits images={images} />
     </section>
   );
 }
@@ -75,6 +80,9 @@ function RobeSpectrum({ atlas }: { atlas: DynastyAtlas }) {
       groups.push({ robe, color: item.robeColor ?? "#6a6a6a", members: [item] });
     }
   }
+  const images = groups
+    .map((group) => robeImage(atlas.id, group.robe))
+    .filter((image): image is RankImage => image !== undefined);
   return (
     <section aria-label="朝服全谱" className="flex flex-col gap-3">
       <SectionHead mark="服" title="朝服 · 全谱" note={atlas.notes.robe} />
@@ -84,7 +92,7 @@ function RobeSpectrum({ atlas }: { atlas: DynastyAtlas }) {
             className="flex flex-col items-center gap-1.5 rounded-lg border border-ink/10 bg-card/70 px-2 py-2.5 text-center"
             key={group.robe}
           >
-            <RobeIllustration level={group.members[0]!} />
+            <RobeIllustration dynastyId={atlas.id} level={group.members[0]!} />
             <span
               aria-hidden="true"
               className="block h-1 w-8 rounded-full"
@@ -97,6 +105,7 @@ function RobeSpectrum({ atlas }: { atlas: DynastyAtlas }) {
           </div>
         ))}
       </div>
+      <RankImageCredits images={images} />
     </section>
   );
 }
