@@ -1,6 +1,12 @@
 import type { OfficialsDynastyId } from "../../china-officials/officials-data";
 
 /**
+ * 图谱朝代口径：八个与全站职官名录共用的 id，另加四套只在官制图谱里展开的朝代。
+ * 后者不进入「品级纵横」的名录数据，因此单独成类型，避免牵动别的页面。
+ */
+export type AtlasDynastyId = OfficialsDynastyId | "zhou" | "beiwei" | "wudai" | "liaojin";
+
+/**
  * 官制图谱的朝代数据层类型。
  *
  * 两棵树的语义固定：hierarchy 是《清朝官职制度》一图的「机构从属」，
@@ -71,7 +77,7 @@ export interface AtlasRankNotes {
 }
 
 export interface DynastyAtlas {
-  id: OfficialsDynastyId;
+  id: AtlasDynastyId;
   name: string;
   period: string;
   system: string;

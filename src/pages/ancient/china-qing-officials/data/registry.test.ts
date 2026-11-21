@@ -13,18 +13,22 @@ function collectIds(nodes: readonly AtlasOfficeNode[]): string[] {
 }
 
 describe("官制图谱数据层", () => {
-  it("registers exactly the eight dynasties in canonical order", () => {
+  it("registers all twelve dynasties in canonical order", () => {
     expect(DYNASTY_ATLASES.map((atlas) => atlas.id)).toEqual([
+      "zhou",
       "qin",
       "han",
       "weijin",
+      "beiwei",
       "suitang",
       "song",
+      "wudai",
       "yuan",
+      "liaojin",
       "ming",
       "qing",
     ]);
-    expect(new Set(DYNASTY_ATLASES.map((atlas) => atlas.id)).size).toBe(8);
+    expect(new Set(DYNASTY_ATLASES.map((atlas) => atlas.id)).size).toBe(12);
   });
 
   it("resolves every dynasty by id and falls back safely", () => {
@@ -42,7 +46,7 @@ describe("官制图谱数据层", () => {
   )("%s has coherent hierarchy and rank data", (_id, atlas) => {
     expect(atlas.name.length).toBeGreaterThan(0);
     expect(atlas.period).toMatch(/—/);
-    expect(atlas.root.title).toBe("皇帝");
+    expect(["皇帝", "周王"]).toContain(atlas.root.title);
     expect(atlas.honorary.length).toBeGreaterThan(0);
     expect(atlas.branches.length).toBeGreaterThanOrEqual(3);
 

@@ -1,3 +1,5 @@
+export type { ReadingCitation, ReadingGuide } from "./reading-guide";
+export { getReadingGuide } from "./reading-guide";
 export {
   DEFAULT_DYNASTY_ID,
   DYNASTY_ATLASES,

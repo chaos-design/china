@@ -68,11 +68,11 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     }
   });
 
-  it("lists all eight dynasties and switches the atlas content", () => {
+  it("lists all twelve dynasties and switches the atlas content", () => {
     renderAt();
 
     const picker = screen.getByLabelText("朝代选择");
-    expect(within(picker).getAllByRole("button")).toHaveLength(8);
+    expect(within(picker).getAllByRole("button")).toHaveLength(DYNASTY_ATLASES.length);
     expect(within(picker).getByRole("button", { name: "清" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -94,7 +94,7 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     const picker = screen.getByLabelText("朝代选择");
     expect(within(picker).getByRole("button", { name })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("heading", { level: 1, name: "官制图谱" })).toBeInTheDocument();
-    expect(screen.getByText("皇帝")).toBeInTheDocument();
+    expect(screen.getByText(id === "zhou" ? "周王" : "皇帝")).toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 3 }).length).toBeGreaterThan(0);
   });
 
@@ -209,22 +209,30 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(within(scale).queryByText(/节点/)).toBeNull();
   });
 
-  it("folds the stage footnote into a toggleable note chip instead of a resident paragraph", () => {
+  it("folds the reading guide into a toggleable chip with a structured bubble", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();
 
-    // 图注默认收纳：不常驻整段文字，点开才浮出。
-    const chip = screen.getByRole("button", { name: "图注" });
+    // 读图气泡默认收纳：刻度上的口诀已移入这里作主句。
+    const chip = screen.getByRole("button", { name: "读图" });
     expect(chip).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText(/此树复现/)).toBeNull();
+    expect(screen.queryByLabelText("读图说明")).toBeNull();
+    expect(screen.queryByText("面片由近及远 · 层级越深越收敛")).toBeNull();
 
     fireEvent.click(chip);
     expect(chip).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText(/此树复现/)).toBeInTheDocument();
+    const bubble = screen.getByLabelText("读图说明");
+    expect(within(bubble).getByText("面片由近及远 · 层级越深越收敛")).toBeInTheDocument();
+    expect(within(bubble).getByText("看面片")).toBeInTheDocument();
+    expect(within(bubble).getByText("循层级")).toBeInTheDocument();
+    expect(within(bubble).getByText("点细节")).toBeInTheDocument();
+    expect(within(bubble).getByLabelText("本朝制度口径")).toHaveTextContent("军机处");
+    expect(within(bubble).getByLabelText("文献依据")).toHaveTextContent("清史稿");
+    expect(within(bubble).getByLabelText("读图示例")).toHaveTextContent("军机处");
 
-    fireEvent.click(chip);
+    fireEvent.click(within(bubble).getByRole("button", { name: "收起读图说明" }));
     expect(chip).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText(/此树复现/)).toBeNull();
+    expect(screen.queryByLabelText("读图说明")).toBeNull();
   });
 
   it("opens the right-side detail drawer on an office pick and closes it", () => {

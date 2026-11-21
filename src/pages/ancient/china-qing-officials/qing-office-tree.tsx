@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "../../../lib/utils";
 import { ArchiveSectionHead, SealBadge, TierPlane } from "./content-primitives";
-import type { DynastyAtlas } from "./data";
+import { type DynastyAtlas, getReadingGuide } from "./data";
 import { getOfficeDuty } from "./office-duties";
 import {
   branchRankSpans,
@@ -302,13 +302,14 @@ function HoverReadout({
 }
 
 /**
- * 舞台左下的图注：整段制度说明收成一枚小 chip，点开才浮出完整文字——
- * 不再常驻占掉塔基一角（同一句话在「全景」详情的读图提示里也能看到）。
- * 点外部 / Escape 关闭，键盘可达。
+ * 舞台左下的「读图」气泡：默认只留一枚小 chip，点开浮出一份有层次的解说——
+ * 透视口诀、三步读法、本朝制度口径、可回查的文献依据、具体从属示例。
+ * 层级刻度的那句口诀收在这里作主句；点外部 / Escape / 关闭键均可收起。
  */
-function NoteChip({ note }: { note: string }) {
+function NoteChip({ atlas }: { atlas: DynastyAtlas }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const guide = useMemo(() => getReadingGuide(atlas), [atlas]);
 
   useEffect(() => {
     if (!open) {
@@ -332,12 +333,114 @@ function NoteChip({ note }: { note: string }) {
     };
   }, [open]);
 
+  const eyebrow = "font-mono-tech text-[0.6rem] tracking-[0.18em] text-ochre uppercase";
+  const readingSteps = [
+    {
+      mark: "壹",
+      title: "看面片",
+      body: "近大远小、近厚远薄：越靠近观众的层片越大，越深的层片越收敛。",
+      depth: 0,
+    },
+    {
+      mark: "贰",
+      title: "循层级",
+      body: "从权力本源出发，逐层读官署分区、属官衙署与分属机构；右侧刻度列出每层名称。",
+      depth: 1,
+    },
+    {
+      mark: "叁",
+      title: "点细节",
+      body: "点节点或标签展开从属与职掌，左侧按分区筛选、视角与自转控制取景。",
+      depth: 2,
+    },
+  ];
+
   return (
     <div className="pointer-events-none absolute bottom-9 left-3 z-20" ref={containerRef}>
       {open ? (
-        <div className="pointer-events-auto mb-2 w-[min(320px,calc(100vw-6rem))] rounded-xl border border-ink/12 bg-paper/95 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground shadow-[0_12px_32px_hsl(var(--ink)/0.16)]">
-          {note}
-        </div>
+        <section
+          aria-label="读图说明"
+          className="pointer-events-auto mb-2 flex max-h-[min(68vh,440px)] w-[min(430px,calc(100vw-3rem))] flex-col overflow-hidden rounded-xl border border-ink/12 bg-paper/95 shadow-[0_12px_32px_hsl(var(--ink)/0.16)]"
+        >
+          <header className="flex shrink-0 items-center gap-2 border-ink/10 border-b bg-paper/80 px-3 py-2">
+            <SealBadge mark="读" className="h-6 w-6 text-xs" />
+            <span className={eyebrow}>读图法 · HOW TO READ</span>
+            <button
+              aria-label="收起读图说明"
+              className="ml-auto rounded-full border border-ink/15 bg-card/70 px-2 py-0.5 font-body text-[0.65rem] text-muted-foreground transition-colors hover:border-vermillion/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              onClick={() => setOpen(false)}
+              type="button"
+            >
+              收起
+            </button>
+          </header>
+          <div className="min-h-0 overflow-y-auto px-3.5 py-3">
+            <p className="font-brush text-lg leading-snug text-ink">
+              面片由近及远 · 层级越深越收敛
+            </p>
+            <p className="mt-0.5 font-mono-tech text-[0.65rem] tracking-[0.06em] text-muted-foreground">
+              {atlas.name} · {atlas.system} · {atlas.period}
+            </p>
+
+            <ol className="mt-3 flex flex-col gap-2">
+              {readingSteps.map((step) => (
+                <li className="flex items-start gap-2" key={step.mark}>
+                  <span aria-hidden="true" className="mt-0.5 w-9 shrink-0 text-center">
+                    <TierPlane count={3} depth={step.depth} className="mx-auto h-4 w-9" />
+                    <span className="mt-0.5 block font-brush text-[0.65rem] leading-none text-vermillion">
+                      {step.mark}
+                    </span>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-body text-xs text-ink">{step.title}</span>
+                    <span className="block text-[0.7rem] leading-relaxed text-muted-foreground">
+                      {step.body}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+
+            <section aria-label="本朝制度口径" className="mt-3 border-ink/10 border-t pt-2.5">
+              <p className={eyebrow}>本朝制度口径</p>
+              <h4 className="mt-1 font-brush text-base text-ink">{guide.institution.title}</h4>
+              <p className="mt-1 text-xs leading-relaxed text-foreground/85">
+                {guide.institution.body}
+              </p>
+            </section>
+
+            <section aria-label="文献依据" className="mt-3 border-ink/10 border-t pt-2.5">
+              <p className={eyebrow}>文献依据 · 可回查</p>
+              <ul className="mt-1.5 flex flex-col gap-2">
+                {guide.citations.map((citation) => (
+                  <li
+                    className="border-l border-vermillion/25 pl-2 text-[0.7rem] leading-relaxed text-muted-foreground"
+                    key={citation.source}
+                  >
+                    <span className="font-brush text-xs text-vermillion">{citation.source}</span>
+                    {citation.quote ? (
+                      <span className="mt-0.5 block text-foreground/85">「{citation.quote}」</span>
+                    ) : null}
+                    <span className="mt-0.5 block">{citation.note}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section aria-label="读图示例" className="mt-3 border-ink/10 border-t pt-2.5">
+              <p className={eyebrow}>读图示例</p>
+              <p className="mt-1 font-mono-tech text-[0.7rem] tracking-[0.04em] text-vermillion">
+                {guide.example.path}
+              </p>
+              <p className="mt-1 text-[0.7rem] leading-relaxed text-muted-foreground">
+                {guide.example.body}
+              </p>
+            </section>
+          </div>
+          <footer className="shrink-0 border-ink/10 border-t bg-paper/80 px-3 py-1.5 font-mono-tech text-[0.6rem] tracking-[0.08em] text-muted-foreground">
+            {atlas.name} · {atlas.source}
+          </footer>
+        </section>
       ) : null}
       <button
         aria-expanded={open}
@@ -350,7 +453,7 @@ function NoteChip({ note }: { note: string }) {
         onClick={() => setOpen((previous) => !previous)}
         type="button"
       >
-        图注
+        读图
       </button>
     </div>
   );
@@ -898,9 +1001,7 @@ function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: bool
           </li>
         ))}
       </ol>
-      <p className="mt-2 pl-8 font-mono-tech text-[0.58rem] tracking-[0.1em] text-muted-foreground">
-        面片由近及远 · 层级越深越收敛
-      </p>
+      {/* 透视口诀已移入左下「读图」气泡作主句，刻度只保留层级名称。 */}
     </section>
   );
 }
@@ -1070,7 +1171,7 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
         <div className="absolute inset-x-0 bottom-9">
           <HoverReadout dynastyName={atlas.name} hover={hover} />
         </div>
-        <NoteChip note={atlas.hierarchyNote} />
+        <NoteChip atlas={atlas} />
       </div>
 
       <LevelScale layout={clippedLayout} hidden={Boolean(detail)} />
