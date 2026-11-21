@@ -58,6 +58,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         label: "典章制度",
         to: "/china/institutions",
       },
+      {
+        highlights: ["明清登科全阶", "历代入仕途径", "真实官员履历"],
+        label: "科举之路",
+        to: "/china/imperial-exam",
+      },
     ],
     label: "编年与制度",
     mapZone: "north",

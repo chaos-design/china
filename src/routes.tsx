@@ -37,6 +37,11 @@ const InstitutionTopicPage = lazy(() =>
     default: module.InstitutionTopicPage,
   })),
 );
+const ImperialExamPage = lazy(() =>
+  import("./pages/ancient/china-imperial-exam/imperial-exam-page").then((module) => ({
+    default: module.ImperialExamPage,
+  })),
+);
 const AncientChinaReactPage = lazy(() =>
   import("./pages/ancient/china").then((module) => ({
     default: module.AncientChinaReactPage,
@@ -99,6 +104,7 @@ export const routes: RouteObject[] = [
         path: "china/institutions/taxation",
         element: withSuspense(<InstitutionTopicPage topicId="taxation" />),
       },
+      { path: "china/imperial-exam", element: withSuspense(<ImperialExamPage />) },
       ...htmlResourceRoutes,
       { path: "*", element: withSuspense(<NotFoundPage />) },
     ],
