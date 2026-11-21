@@ -143,6 +143,7 @@ describe("<SiteMenu /> columns and content", () => {
       ["/china/policies", /朝代政策全览/],
       ["/china/atlas", /历史地理图谱/],
       ["/china/institutions", /典章制度/],
+      ["/china/imperial-exam", /科举之路/],
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],

@@ -119,6 +119,11 @@ describe("<App /> routing", () => {
       "href",
       "/china/institutions",
     );
+    // 科举之路已开放：独立专题页
+    expect(screen.getByRole("link", { name: /^科举之路/ })).toHaveAttribute(
+      "href",
+      "/china/imperial-exam",
+    );
     expect(screen.queryByText("丝路与海疆线索")).not.toBeInTheDocument();
     // 两个原 preview 专题（历史地理图谱、典章制度）都已转正：
     // 首页不再有「后续专题 · 筹备中」紧凑预告区
@@ -186,6 +191,7 @@ describe("<App /> routing", () => {
       ["/china/policies", /朝代政策全览/],
       ["/china/atlas", /历史地理图谱/],
       ["/china/institutions", /典章制度/],
+      ["/china/imperial-exam", /科举之路/],
       ["/intangible-culture-heritage", /中华非遗瑰宝/],
       ["/silk-road", /丝绸之路与海疆/],
       ["/taiwan", /台湾专题/],
@@ -426,6 +432,29 @@ describe("<App /> routing", () => {
     const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
     expect(menu.getByRole("link", { name: /^官制/ })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it("redirects /china/imperial-exam to the first section", async () => {
+    renderAt("/china/imperial-exam");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "科举之路" })).toBeInTheDocument();
+    // 索引路径落到登科之阶：七站链 + 左侧条目目录（当前条目 aria-current）
+    expect(screen.getByLabelText("登科之阶")).toBeInTheDocument();
+    const menu = within(screen.getByRole("navigation", { name: "科举之路目录" }));
+    expect(menu.getByRole("link", { name: /^登科之阶/ })).toHaveAttribute("aria-current", "page");
+    // 页面自带的「图片出处」脚注存在；站点页脚在此路由不渲染
+    expect(screen.getByText("图片出处")).toBeInTheDocument();
+    expect(screen.queryByRole("article", { name: "先秦官途" })).not.toBeInTheDocument();
+  });
+
+  it("renders the imperial exam dynasty section at its own route", async () => {
+    renderAt("/china/imperial-exam/dynasties");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "科举之路" })).toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "先秦官途" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "清" })).toBeInTheDocument();
+    const menu = within(screen.getByRole("navigation", { name: "科举之路目录" }));
+    expect(menu.getByRole("link", { name: /^历代官途/ })).toHaveAttribute("aria-current", "page");
   });
 
   it("preserves the complete policy HTML interactions in the React page", async () => {
