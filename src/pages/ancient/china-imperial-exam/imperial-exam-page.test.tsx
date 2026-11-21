@@ -3,26 +3,35 @@ import { describe, expect, it } from "vitest";
 
 import { IMPERIAL_EXAM_DYNASTIES } from "./dynasties";
 import { ImperialExamPage } from "./imperial-exam-page";
-import { IMPERIAL_EXAM_LADDER } from "./ladder";
+import { EXAM_STAGES } from "./ladder";
 
 describe("<ImperialExamPage />", () => {
-  it("renders the header, the five exam gates and the side-route aside", () => {
+  it("renders the header, the seven-stage chain with images, funnel and cadence", () => {
     render(<ImperialExamPage />);
 
     expect(screen.getByRole("heading", { level: 1, name: "科举之路" })).toBeInTheDocument();
-    expect(screen.getByText(/登科之阶：从童生到翰林/)).toBeInTheDocument();
+    expect(screen.getByText(/一张考卷，怎样换来一顶官帽/)).toBeInTheDocument();
 
     const ladder = screen.getByRole("region", { name: "登科之阶" });
-    // 五道关卡各有一条「关卡 · 考试」横条：院试 → 乡试 → 会试 → 殿试 → 庶吉士之选
-    expect(within(ladder).getAllByText("关卡 · 考试")).toHaveLength(
-      IMPERIAL_EXAM_LADDER.length - 1,
-    );
-    for (const gateName of ["院试", "乡试（秋闱）", "会试（春闱）", "殿试", "庶吉士之选"]) {
-      expect(within(ladder).getByText(gateName)).toBeInTheDocument();
+    // 七站链：每站一张编号卡（站名 + 地点 + 时点 + 身份）
+    for (const stage of EXAM_STAGES) {
+      expect(
+        within(ladder).getByRole("heading", { level: 3, name: stage.name }),
+      ).toBeInTheDocument();
+      expect(within(ladder).getByText(stage.place)).toBeInTheDocument();
+      expect(within(ladder).getByText(stage.identity)).toBeInTheDocument();
     }
-    for (const station of ["童生", "秀才（生员）", "举人", "进士", "翰林（庶吉士）"]) {
-      expect(within(ladder).getByRole("heading", { level: 3, name: station })).toBeInTheDocument();
-    }
+    // 每站一张主图 + 部分站点的细节缩略图：全链至少 7 张 <img>
+    //（jsdom 不加载图片，只断言 DOM 存在）
+    expect(ladder.querySelectorAll("img").length).toBeGreaterThanOrEqual(EXAM_STAGES.length);
+
+    // 右侧漏斗与底部节奏轴、图例
+    expect(
+      within(ladder).getByRole("complementary", { name: "读书人晋身之路" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/科举之路时间线 · 每三年一科/)).toBeInTheDocument();
+    expect(within(ladder).getByText("第一年 · 八月")).toBeInTheDocument();
+    expect(within(ladder).getByText("朝廷铨选，授以官职")).toBeInTheDocument();
 
     // 正途之外的岔路恒常可见
     expect(screen.getByText("岔路 · 正途之外的入仕")).toBeInTheDocument();
@@ -83,12 +92,15 @@ describe("<ImperialExamPage />", () => {
     expect(within(table).getByText("京察大计、铨选月选、议叙加级")).toBeInTheDocument();
   });
 
-  it("lists per-dynasty sources in the footer", () => {
+  it("lists per-dynasty sources and image credits in the footer", () => {
     render(<ImperialExamPage />);
 
     expect(screen.getByText("资料出处")).toBeInTheDocument();
     expect(screen.getByText(/《元史·张养浩传》/)).toBeInTheDocument();
     expect(screen.getByText(/《明史·张居正传》/)).toBeInTheDocument();
     expect(screen.getByText(/估算数字以「约」标示/)).toBeInTheDocument();
+    // 真实影像的出处清单
+    expect(screen.getByText("图片出处")).toBeInTheDocument();
+    expect(screen.getAllByText(/Wikimedia Commons · /).length).toBeGreaterThanOrEqual(10);
   });
 });

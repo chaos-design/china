@@ -74,23 +74,6 @@ export interface DynastyPath {
   sources: string[];
 }
 
-/** 科举阶梯上的一站：到站所凭的考试关卡 + 站点本身。 */
-export interface LadderStep {
-  station: string;
-  /** 站点身份标签：起点 / 功名 / 身份 / 出身 / 清贵。 */
-  tag?: string;
-  detail: string;
-  /** 进入本站要过的考试关卡；首站没有关卡。 */
-  gate?: {
-    name: string;
-    /** 关卡别称，如「秋闱」。 */
-    alias?: string;
-    detail: string;
-    /** 名额与录取率口径，估算一律带「约」。 */
-    odds?: string;
-  };
-}
-
 /** 页头年份里程碑，与典章制度「科举」条目同一口径。 */
 export interface ExamMilestone {
   year: string;

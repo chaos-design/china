@@ -1,8 +1,18 @@
+import { BadgeCheck, BookOpen, DoorOpen, FileSearch, PenLine, ScrollText } from "lucide-react";
 import { Fragment, useState } from "react";
 
 import { cn } from "../../../lib/utils";
 import { getDynastyPath, IMPERIAL_EXAM_DYNASTIES } from "./dynasties";
-import { EXAM_MILESTONES, IMPERIAL_EXAM_LADDER, SIDE_ROUTES } from "./ladder";
+import { EXAM_IMAGE_CREDITS, EXAM_IMAGES } from "./imperial-exam-images";
+import {
+  ADVANCEMENT_FUNNEL,
+  EXAM_CADENCE,
+  EXAM_LEGEND,
+  EXAM_MILESTONES,
+  EXAM_STAGES,
+  type LegendItem,
+  SIDE_ROUTES,
+} from "./ladder";
 import { ENTRANCE_KIND_LABELS, type EntranceKind } from "./types";
 
 /** 入仕门类章的配色：考试朱、荐举赭、世荫与学校青，其余墨色。 */
@@ -14,6 +24,25 @@ const KIND_STYLES: Record<EntranceKind, string> = {
   merit: "border-ink/25 bg-ink/5 text-ink/80",
   purchase: "border-ink/25 bg-ink/5 text-ink/80",
   clerk: "border-ink/25 bg-ink/5 text-ink/80",
+};
+
+/** 漏斗图例人形：示意个数，不按比例精确绘制。 */
+function PersonGlyph() {
+  return (
+    <svg aria-hidden="true" className="h-3.5 w-2.5 fill-vermillion/60" viewBox="0 0 10 14">
+      <circle cx="5" cy="3" r="2.6" />
+      <path d="M0.5 14c0-3.6 2-6 4.5-6s4.5 2.4 4.5 6z" />
+    </svg>
+  );
+}
+
+const LEGEND_ICONS: Record<LegendItem["icon"], typeof BookOpen> = {
+  read: BookOpen,
+  enter: DoorOpen,
+  write: PenLine,
+  review: FileSearch,
+  list: ScrollText,
+  appoint: BadgeCheck,
 };
 
 const DEFAULT_DYNASTY_ID = IMPERIAL_EXAM_DYNASTIES[0]?.id ?? "";
@@ -37,7 +66,8 @@ export function ImperialExamPage() {
           </span>
         </div>
         <p className="max-w-3xl text-pretty text-lg leading-relaxed text-muted-foreground">
-          一千三百年间，读书人怎么走进官场、又靠什么爬上去。登科之阶按明清定型的科举全程铺开；
+          一千三百年间，读书人怎么走进官场、又靠什么爬上去。登科之阶按「一科三年」的时间轴逻辑
+          逐站铺开明清科举全程，以贡院、金榜、殿试卷等真实影像佐证其难度；
           历代官途逐朝拆解入仕途径与晋升机制，并为每一朝配一份真实官员的履历样本。
         </p>
         <ul aria-label="制度里程碑" className="flex flex-wrap gap-2">
@@ -59,60 +89,201 @@ export function ImperialExamPage() {
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <div className="flex flex-col gap-2">
             <span className="eyebrow">第一程 · 明清科举全程</span>
-            <h2 className="font-brush text-3xl text-ink">登科之阶：从童生到翰林</h2>
+            <h2 className="font-brush text-3xl text-ink">一张考卷，怎样换来一顶官帽</h2>
           </div>
           <span className="font-mono-tech text-muted-foreground text-xs tracking-[0.18em]">
-            五道关卡 · 六个身份 · 一条独木桥
+            七站走完读书人晋身之路 · 一科三年
           </span>
         </div>
 
-        <ol className="relative flex flex-col gap-7 border-ink/15 border-l-2 pl-8">
-          {IMPERIAL_EXAM_LADDER.map((step) => (
-            <li className="relative" key={step.station}>
-              {/* 节点与连接件：朱点钉在轴线上，横线把卡片牵回轴线（与典章制度时间轴同一几何） */}
-              <span
-                aria-hidden="true"
-                className="absolute -left-[40px] top-7 z-10 h-3.5 w-3.5 rounded-full border-2 border-vermillion bg-paper shadow-[0_0_0_3px_hsl(var(--paper))]"
-              />
-              <span
-                aria-hidden="true"
-                className="absolute -left-[33px] top-[35px] hidden h-px w-[33px] bg-vermillion/35 sm:block"
-              />
-              <div className="relative flex flex-col gap-3 rounded-xl border border-ink/15 bg-card/90 p-5 shadow-[0_10px_28px_hsl(var(--ink)/0.08)] transition-shadow duration-300 hover:shadow-[0_14px_34px_hsl(var(--ink)/0.12)]">
-                {step.gate ? (
-                  <div className="rounded-lg border border-dashed border-vermillion/35 bg-vermillion/5 p-3">
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <span className="font-mono-tech text-vermillion text-[0.68rem] tracking-[0.22em]">
-                        关卡 · 考试
-                      </span>
-                      <span className="font-brush text-vermillion text-lg">
-                        {step.gate.name}
-                        {step.gate.alias ? `（${step.gate.alias}）` : ""}
-                      </span>
-                    </div>
-                    <p className="mt-1.5 text-foreground/85 text-sm leading-relaxed">
-                      {step.gate.detail}
-                    </p>
-                    {step.gate.odds ? (
-                      <p className="mt-1.5 font-mono-tech text-[0.7rem] tracking-[0.08em] text-ochre">
-                        {step.gate.odds}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-                  <h3 className="font-brush text-ink text-2xl">{step.station}</h3>
-                  {step.tag ? (
-                    <span className="rounded-sm bg-ink/5 px-2 py-0.5 font-body text-muted-foreground text-xs">
-                      {step.tag}
-                    </span>
+        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start lg:gap-6">
+          {/* 左：七站链，按一科三年的时序逐站走 */}
+          <ol className="flex flex-col gap-8">
+            {EXAM_STAGES.map((stage, index) => {
+              const mainDetailIndex = stage.details.findIndex((detail) => detail.image);
+              const mainDetail = mainDetailIndex >= 0 ? stage.details[mainDetailIndex] : undefined;
+              const mainImage = mainDetail?.image ? EXAM_IMAGES[mainDetail.image.key] : undefined;
+              const mainImageCaption = mainDetail?.image?.caption;
+              const cells = mainDetail
+                ? [
+                    { label: mainDetail.label, text: mainDetail.text, image: undefined },
+                    ...stage.details.filter((_, i) => i !== mainDetailIndex),
+                  ]
+                : stage.details;
+
+              return (
+                <li className="relative" key={stage.name}>
+                  {index < EXAM_STAGES.length - 1 ? (
+                    <span
+                      aria-hidden="true"
+                      className="absolute bottom-0 left-[19px] top-14 hidden w-px bg-vermillion/25 sm:block"
+                    />
                   ) : null}
+                  <div className="flex gap-4">
+                    <span
+                      aria-hidden="true"
+                      className="z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-vermillion/45 bg-paper font-brush text-xl text-vermillion shadow-[0_0_0_4px_hsl(var(--paper))]"
+                    >
+                      {stage.num}
+                    </span>
+                    <div className="flex min-w-0 flex-1 flex-col gap-3 rounded-xl border border-ink/15 bg-card/90 p-4 shadow-[0_10px_28px_hsl(var(--ink)/0.08)] sm:p-5">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
+                        <h3 className="font-brush text-ink text-2xl">{stage.name}</h3>
+                        <span className="rounded-sm bg-ink/5 px-2 py-0.5 font-body text-muted-foreground text-xs">
+                          {stage.place}
+                        </span>
+                        <span className="rounded-sm bg-vermillion/10 px-2 py-0.5 font-mono-tech text-vermillion text-[0.7rem] tracking-[0.1em]">
+                          {stage.timing}
+                        </span>
+                        <span className="rounded-full border border-ochre/45 bg-ochre/10 px-2.5 py-0.5 text-ochre text-[0.72rem]">
+                          {stage.identity}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed">{stage.summary}</p>
+                      <div className="grid gap-3 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+                        {mainImage && mainImageCaption ? (
+                          <figure className="flex flex-col gap-1.5">
+                            <img
+                              alt={mainImage.alt}
+                              className="h-auto w-full rounded-lg border border-ink/10 object-cover"
+                              height={mainImage.h}
+                              loading="lazy"
+                              src={mainImage.src}
+                              width={mainImage.w}
+                            />
+                            <figcaption className="text-muted-foreground text-[0.7rem] leading-snug">
+                              {mainImageCaption}
+                              <span className="text-ink/45"> · {mainImage.credit}</span>
+                            </figcaption>
+                          </figure>
+                        ) : null}
+                        <div className="flex flex-col gap-2">
+                          {cells.map((detail) => {
+                            const detailImage = detail.image;
+                            const thumb = detailImage ? EXAM_IMAGES[detailImage.key] : undefined;
+
+                            return (
+                              <div
+                                className="rounded-lg border border-dashed border-ink/15 bg-paper/60 p-3"
+                                key={detail.label}
+                              >
+                                <span className="font-brush text-vermillion text-sm">
+                                  {detail.label}
+                                </span>
+                                <p className="mt-1 text-foreground/85 text-[0.8rem] leading-relaxed">
+                                  {detail.text}
+                                </p>
+                                {thumb && detailImage ? (
+                                  <figure className="mt-2">
+                                    <img
+                                      alt={thumb.alt}
+                                      className="h-24 w-full rounded-md border border-ink/10 object-cover"
+                                      height={thumb.h}
+                                      loading="lazy"
+                                      src={thumb.src}
+                                      width={thumb.w}
+                                    />
+                                    <figcaption className="mt-1 text-muted-foreground text-[0.68rem] leading-snug">
+                                      {detailImage.caption}
+                                    </figcaption>
+                                  </figure>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+
+          {/* 右：读书人晋身之路（漏斗） */}
+          <aside
+            aria-label="读书人晋身之路"
+            className="flex flex-col gap-3 rounded-xl border border-ink/15 bg-card/90 p-5"
+          >
+            <h3 className="font-brush text-ink text-xl">读书人晋身之路</h3>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              从百万童生到三年三百进士：每级人数取通行估算口径。
+            </p>
+            <ol className="flex flex-col gap-3">
+              {ADVANCEMENT_FUNNEL.map((level, index) => (
+                <li className="flex flex-col gap-1.5" key={level.identity}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-brush text-ink">{level.identity}</span>
+                    <span aria-hidden="true" className="flex gap-[3px]">
+                      {Array.from({ length: level.icons }, (_, iconIndex) => (
+                        <PersonGlyph key={iconIndex} />
+                      ))}
+                    </span>
+                  </div>
+                  <div aria-hidden="true" className="h-1.5 rounded-full bg-ink/10">
+                    <div
+                      className="h-full rounded-full bg-vermillion/70"
+                      style={{ width: `${Math.max(12, 100 - index * 22)}%` }}
+                    />
+                  </div>
+                  <span className="font-mono-tech text-muted-foreground text-[0.7rem]">
+                    {level.count}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <p className="border-ink/15 border-t border-dashed pt-2 text-[0.7rem] leading-relaxed text-muted-foreground">
+              人形为示意个数，不按比例精确绘制；进士每科约二三百名，一甲只三人。
+            </p>
+          </aside>
+        </div>
+
+        {/* 一科三年的节奏轴 */}
+        <div className="flex flex-col gap-4 rounded-xl border border-ink/15 bg-card/80 p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="font-brush text-ink text-xl">科举之路时间线 · 每三年一科</h3>
+            <span className="font-mono-tech text-muted-foreground text-[0.7rem] tracking-[0.15em]">
+              一科跨两年 · 三年一个轮回 · 落第者从乡试再来一遍
+            </span>
+          </div>
+          <ol className="flex flex-col gap-5 sm:flex-row sm:gap-2">
+            {EXAM_CADENCE.map((node, index) => (
+              <li className="relative flex flex-1 flex-col" key={node.name}>
+                <span
+                  aria-hidden="true"
+                  className="z-10 h-3 w-3 shrink-0 rounded-full border-2 border-vermillion bg-paper"
+                />
+                {index < EXAM_CADENCE.length - 1 ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-[5px] top-4 h-full w-px bg-vermillion/30 sm:left-[7px] sm:top-[5px] sm:h-px sm:w-[calc(100%-14px)]"
+                  />
+                ) : null}
+                <span className="mt-2 flex flex-col gap-0.5 sm:mt-3">
+                  <span className="font-brush text-ink text-lg">{node.name}</span>
+                  <span className="font-mono-tech text-muted-foreground text-[0.7rem] tracking-[0.12em]">
+                    {node.time}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <div className="grid grid-cols-3 gap-3 border-ink/15 border-t border-dashed pt-4 sm:grid-cols-6">
+            {EXAM_LEGEND.map((item) => {
+              const Icon = LEGEND_ICONS[item.icon];
+
+              return (
+                <div className="flex flex-col items-center gap-1 text-center" key={item.title}>
+                  <Icon aria-hidden="true" className="h-5 w-5 text-vermillion" strokeWidth={1.6} />
+                  <span className="font-brush text-ink">{item.title}</span>
+                  <span className="text-[0.68rem] leading-snug text-muted-foreground">
+                    {item.note}
+                  </span>
                 </div>
-                <p className="text-muted-foreground leading-relaxed">{step.detail}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+              );
+            })}
+          </div>
+        </div>
 
         <aside className="rounded-xl border border-dashed border-ochre/45 bg-ochre/5 p-5">
           <h3 className="font-brush text-ink text-xl">{SIDE_ROUTES.title}</h3>
@@ -369,6 +540,24 @@ export function ImperialExamPage() {
         <p className="text-muted-foreground text-xs leading-relaxed">
           名额与录取率均取教科书通行口径，估算数字以「约」标示；历官细节以正史本传为准。
         </p>
+
+        <h2 className="font-brush text-ink text-xl">图片出处</h2>
+        <ul className="grid gap-1.5 sm:grid-cols-2">
+          {EXAM_IMAGE_CREDITS.map((image) => (
+            <li className="text-muted-foreground text-xs leading-relaxed" key={image.src}>
+              <a
+                className="text-foreground/80 underline decoration-dotted underline-offset-2 transition-colors hover:text-vermillion"
+                href={image.url}
+                rel="noreferrer"
+                target="_blank"
+              >
+                {image.credit}
+              </a>
+              <span aria-hidden="true"> — </span>
+              {image.caption}
+            </li>
+          ))}
+        </ul>
       </footer>
     </div>
   );
