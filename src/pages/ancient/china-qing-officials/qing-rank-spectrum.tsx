@@ -2,6 +2,12 @@ import { cn } from "../../../lib/utils";
 import { ArchiveSectionHead } from "./content-primitives";
 import type { AtlasRankLevel, DynastyAtlas } from "./data";
 import { HatIllustration, RobeIllustration } from "./rank-illustrations";
+import {
+  formatCnyCompact,
+  parseSilverTaels,
+  SILVER_PRICE_DATE,
+  silverTaelsToCny,
+} from "./silver-value";
 
 export function HatGlyph({ level }: { level: AtlasRankLevel }) {
   return <HatIllustration level={level} />;
@@ -112,11 +118,16 @@ function SalarySpectrum({
 }) {
   return (
     <section aria-label="俸禄阶梯" className="flex flex-col gap-3">
-      <SectionHead mark="俸" title="俸禄 · 阶梯" note="柱高为相对示意" />
+      <SectionHead
+        mark="俸"
+        title="俸禄 · 阶梯"
+        note={`柱高为相对示意 · 约合人民币按 ${SILVER_PRICE_DATE} 银价折算`}
+      />
       <div className="overflow-x-auto pb-1">
         <div className="flex min-w-[40rem] items-end gap-1.5">
           {atlas.levels.map((item) => {
             const active = item.label === selectedLabel;
+            const taels = parseSilverTaels(item.salaryLabel);
             return (
               <button
                 aria-pressed={active}
@@ -133,6 +144,11 @@ function SalarySpectrum({
                 <span className="font-mono-tech text-[0.7rem] whitespace-nowrap text-muted-foreground">
                   {item.salaryLabel ?? `${item.salary} 等`}
                 </span>
+                {taels === null ? null : (
+                  <span className="font-mono-tech text-[0.62rem] leading-none text-vermillion/85">
+                    ≈{formatCnyCompact(silverTaelsToCny(taels))}
+                  </span>
+                )}
                 <span className="flex h-24 w-full items-end justify-center sm:h-28">
                   <span
                     aria-hidden="true"

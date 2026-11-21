@@ -5,6 +5,7 @@ import { cn } from "../../../lib/utils";
 import { ArchiveSectionHead } from "./content-primitives";
 import type { DynastyAtlas } from "./data";
 import { HatGlyph, QingRankSpectrum, RobeGlyph } from "./qing-rank-spectrum";
+import { formatCny, parseSilverTaels, SILVER_NOTE, silverTaelsToCny } from "./silver-value";
 
 /* 阶梯金字塔化：首行最窄、末行占满，宽度随分组序号线性放宽（图二的塔形轮廓）。 */
 function pyramidWidth(index: number, count: number): string {
@@ -17,6 +18,7 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
   const [selectedLabel, setSelectedLabel] = useState(atlas.levels[0]?.label ?? "");
   const selected = atlas.levels.find((item) => item.label === selectedLabel) ?? atlas.levels[0]!;
   const groupCount = atlas.ladderGroups.length;
+  const salaryTaels = parseSilverTaels(selected.salaryLabel);
 
   return (
     <div className="flex flex-col gap-5">
@@ -160,9 +162,19 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
             <span className="font-brush text-lg text-ink">
               {selected.salaryLabel ?? `${selected.salary} 等`}
             </span>
+            {salaryTaels === null ? null : (
+              <span className="font-mono-tech text-xs tracking-wide text-vermillion">
+                约合 {formatCny(silverTaelsToCny(salaryTaels))}
+              </span>
+            )}
             <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
               {atlas.notes.salary}
             </p>
+            {salaryTaels === null ? null : (
+              <p className="text-[0.65rem] leading-relaxed text-muted-foreground/80">
+                {SILVER_NOTE}
+              </p>
+            )}
           </div>
           <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
             <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">

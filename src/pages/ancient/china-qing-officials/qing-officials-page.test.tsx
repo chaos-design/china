@@ -183,7 +183,16 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(lastLayout().nodes).toHaveLength(96);
   });
 
-  it("shows each tier's node count on the level scale with the full tree expanded", () => {
+  it("brings a menu selection into view facing front", () => {
+    mocks.create.mockReturnValue(mocks.scene);
+    renderAt();
+
+    const menu = screen.getByLabelText("舞台菜单");
+    fireEvent.click(within(menu).getByRole("button", { name: /中枢部/ }));
+    expect(mocks.scene.focusNode).toHaveBeenCalledWith("central", { faceFront: true });
+  });
+
+  it("keeps the level scale to tier names only", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();
 
@@ -191,14 +200,13 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(within(scale).getByText("权力本源")).toBeInTheDocument();
     expect(within(scale).getByText("官署分区 · 荣衔")).toBeInTheDocument();
     expect(within(scale).getByText("属官衙署")).toBeInTheDocument();
-    // 默认全展开：第三层属官可见，刻度显示节点数而不是「点分区展开」。
+    expect(within(scale).queryByText(/节点/)).toBeNull();
     expect(within(scale).queryByText("点分区展开")).toBeNull();
-    expect(within(scale).getAllByText(/节点/).length).toBeGreaterThan(0);
 
-    // 收起全部后回到折叠态，刻度重新提示第三层可展开。
+    // 收起全部后刻度仍只呈现层级名称，不回显节点数。
     const menu = screen.getByLabelText("舞台菜单");
     fireEvent.click(within(menu).getByRole("button", { name: "收起全部" }));
-    expect(within(scale).getByText("点分区展开")).toBeInTheDocument();
+    expect(within(scale).queryByText(/节点/)).toBeNull();
   });
 
   it("folds the stage footnote into a toggleable note chip instead of a resident paragraph", () => {
@@ -260,7 +268,7 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(ids).toContain("central");
     expect(ids?.length).toBeGreaterThan(1);
     // 选中的原子自动进入可视区：菜单聚焦同步把该分区补间到镜头中央。
-    expect(mocks.scene.focusNode).toHaveBeenLastCalledWith("central");
+    expect(mocks.scene.focusNode).toHaveBeenLastCalledWith("central", { faceFront: true });
 
     const drawer = screen.getByLabelText("官制详情");
     expect(within(drawer).getByRole("heading", { name: "中枢部" })).toBeInTheDocument();
@@ -323,6 +331,26 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     });
     expect(screen.getByText(/掌天文历法/)).toBeInTheDocument();
     expect(screen.getByText("清 · 钦天监")).toBeInTheDocument();
+  });
+
+  it("keeps the selected view when the dynasty changes", () => {
+    renderAt();
+    fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
+    expect(screen.getByRole("tab", { name: "品级礼制" })).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.click(within(screen.getByLabelText("朝代选择")).getByRole("button", { name: "汉" }));
+    expect(screen.getByRole("tab", { name: "品级礼制" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByLabelText("品级阶梯")).toBeInTheDocument();
+  });
+
+  it("maps Qing salaries to a dated modern silver value", () => {
+    renderAt();
+    fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
+
+    const detail = screen.getByLabelText("正一品档案");
+    expect(detail).toHaveTextContent("约合 ¥62,106");
+    expect(detail).toHaveTextContent("2026-11-21");
+    expect(screen.getByLabelText("俸禄阶梯")).toHaveTextContent("≈¥6.2万");
   });
 
   it("links the ladder to the detail card in the rank view", () => {

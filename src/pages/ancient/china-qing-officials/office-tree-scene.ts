@@ -52,8 +52,11 @@ export interface OfficeTreeSceneHandlers {
 
 export interface OfficeTreeScene {
   applyPreset: (preset: OfficeTreeCameraPreset) => void;
-  /** 把某枚原子补间到视野中央（选中的原子自动进入可视区）。 */
-  focusNode: (id: string) => void;
+  /**
+   * 把某枚原子补间到视野中央（选中的原子自动进入可视区）。
+   * faceFront=true 时同时转到正视，让从属菜单选中的分区正对观众。
+   */
+  focusNode: (id: string, options?: { faceFront?: boolean }) => void;
   dispose: () => void;
   resetView: () => void;
   setAtlas: (atlas: DynastyAtlas, layout: OfficeTreeLayout) => void;
@@ -739,7 +742,7 @@ export function createOfficeTreeScene(
   }
 
   /** 选中的原子补间到视野中央：点画布节点或从菜单聚焦都能立刻看到它，不再留在画外。 */
-  function focusNode(id: string) {
+  function focusNode(id: string, options?: { faceFront?: boolean }) {
     const node =
       layoutNodes?.find((candidate) => candidate.id === id) ??
       (id === "honorary"
@@ -748,9 +751,14 @@ export function createOfficeTreeScene(
     if (!node) {
       return;
     }
-    const angles = currentAngles();
+    const angles = options?.faceFront ? PRESET_ANGLES.front : currentAngles();
+    if (options?.faceFront) {
+      fittedAngles = angles;
+      fittedAspect = camera.aspect;
+    }
     const currentDistance = camera.position.distanceTo(controls.target);
-    // 只把镜头拉近到够看清这枚原子，不贴脸到看不出层级；保留用户转好的方位 / 俯角。
+    // 只把镜头拉近到够看清这枚原子，不贴脸到看不出层级；
+    // 默认保留用户转好的方位 / 俯角，faceFront 时改用正视预设。
     const distance = Math.min(currentDistance, Math.max(fitDistance() * 0.5, 12));
     userAdjusted = true;
     tweenCamera(new THREE.Vector3(node.x, node.y, node.z), distance, angles.azimuth, angles.polar);

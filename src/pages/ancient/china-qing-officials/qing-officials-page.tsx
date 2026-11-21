@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { cn } from "../../../lib/utils";
@@ -21,7 +21,7 @@ const VIEWS: readonly { id: OfficialsView; label: string; note: string }[] = [
  * 页面为单屏沉浸结构（仿品级纵横）：紧凑顶条一行收纳页题、朝代与视图切换，
  * 图谱本体撑满剩余可视高度——官职制度是全高立体树舞台，品级礼制在自身列内滚动。
  * 两视图切换只换正文，各自内部状态（展开节点 / 选中品级）在挂载期间保留；
- * 切换朝代会同时重置到图一，避免残留上一朝的选中态。
+ * 视图选择本身不随朝代变化重置——读者停在哪张图，换朝代后仍停在那张图。
  */
 export function QingOfficialsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -31,17 +31,9 @@ export function QingOfficialsPage() {
   const [view, setView] = useState<OfficialsView>("chart");
   const active = VIEWS.find((entry) => entry.id === view) ?? VIEWS[0]!;
 
-  // 朝代经 URL 直达 / 前进后退变化时（不经过 chooseDynasty），同样重置回图一，
-  // 避免带着上一朝代的品级选中态读新一朝的礼制。
-  useEffect(() => {
-    // 显式读取一次，声明「朝代变化」是这次重置的触发条件。
-    void atlas.id;
-    setView("chart");
-  }, [atlas.id]);
-
+  // 视图是读者自己的阅读位置：切朝代不重置，上一次选的图保持到下一次主动切换。
   const chooseDynasty = (id: string) => {
     setSearchParams({ dynasty: id });
-    setView("chart");
   };
 
   return (

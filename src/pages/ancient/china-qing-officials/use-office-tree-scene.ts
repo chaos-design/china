@@ -32,8 +32,8 @@ export interface OfficeTreeSceneController {
   retry: () => void;
   applyPreset: (preset: OfficeTreeCameraPreset) => void;
   resetView: () => void;
-  /** 把选中的原子补间到视野中央。 */
-  focusNode: (id: string) => void;
+  /** 把选中的原子补间到视野中央；faceFront 时同时转到正视。 */
+  focusNode: (id: string, options?: { faceFront?: boolean }) => void;
   /** 从属筛选高亮（null 恢复全树）。 */
   setFilter: (ids: readonly string[] | null) => void;
   /** 慢速自转开关（用户拖拽会在场景内部自动关闭并回调）。 */
@@ -116,8 +116,8 @@ export function useOfficeTreeScene(
     sceneRef.current?.resetView();
   }, []);
 
-  const focusNode = useCallback((id: string) => {
-    sceneRef.current?.focusNode(id);
+  const focusNode = useCallback((id: string, options?: { faceFront?: boolean }) => {
+    sceneRef.current?.focusNode(id, options);
   }, []);
 
   const setFilter = useCallback((ids: readonly string[] | null) => {

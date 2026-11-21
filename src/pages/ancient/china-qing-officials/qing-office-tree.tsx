@@ -434,7 +434,11 @@ function StageMenu({
                         : "border-transparent hover:border-vermillion/25 hover:bg-vermillion/5",
                     )}
                     key={item.id}
-                    onClick={() => onSelect(item)}
+                    onClick={(event) => {
+                      // 菜单自身可滚动：选中项先滚到可视区，再驱动镜头。
+                      event.currentTarget.scrollIntoView?.({ block: "nearest" });
+                      onSelect(item);
+                    }}
                     type="button"
                   >
                     {item.mark ? (
@@ -851,7 +855,6 @@ function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: bool
     }
     const maxDepth = Math.max(2, ...counts.keys());
     return Array.from({ length: maxDepth + 1 }, (_, depth) => ({
-      count: counts.get(depth) ?? 0,
       depth,
       label: LEVEL_LABELS[depth] ?? `第 ${depth + 1} 层`,
       numeral: LEVEL_NUMERALS[depth] ?? String(depth + 1),
@@ -874,34 +877,28 @@ function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: bool
       </div>
       {/*
        * 竖线、面片与朱点共用 x=20：圆点不再靠负 margin 猜偏移（旧版左偏 2.5px），
-       * 层级越深面片越收敛，从属纵深直接落在刻度上。
+       * pl-8 把面片到文字的横向留白收紧；节点数量不进刻度，只保留层级名称。
        */}
-      <ol className="relative mt-2 flex flex-col gap-1.5 pl-11">
+      <ol className="relative mt-2 flex flex-col gap-1.5 pl-8">
         <span
           aria-hidden="true"
           className="absolute bottom-2 left-[19.5px] top-2 w-px bg-[linear-gradient(180deg,hsl(var(--vermillion)/0.08),hsl(var(--vermillion)/0.4)_50%,hsl(var(--vermillion)/0.08))]"
         />
         {rows.map((row) => (
-          <li
-            className="relative flex min-h-[1.6rem] items-baseline justify-between gap-2"
-            key={row.depth}
-          >
+          <li className="relative flex min-h-[1.6rem] items-baseline" key={row.depth}>
             <span aria-hidden="true" className="absolute left-0 top-1/2 -translate-y-1/2">
               <TierPlane count={rows.length} depth={row.depth} />
             </span>
-            <span className="flex min-w-0 items-baseline gap-1.5 pl-2">
+            <span className="flex min-w-0 items-baseline gap-1.5 pl-1.5">
               <span className="font-brush text-[0.8rem] leading-none text-vermillion">
                 {row.numeral}
               </span>
               <span className="truncate font-body text-xs text-ink/80">{row.label}</span>
             </span>
-            <span className="shrink-0 font-mono-tech text-[0.7rem] text-muted-foreground">
-              {row.count > 0 ? `${row.count} 节点` : "点分区展开"}
-            </span>
           </li>
         ))}
       </ol>
-      <p className="mt-2 pl-11 font-mono-tech text-[0.58rem] tracking-[0.1em] text-muted-foreground">
+      <p className="mt-2 pl-8 font-mono-tech text-[0.58rem] tracking-[0.1em] text-muted-foreground">
         面片由近及远 · 层级越深越收敛
       </p>
     </section>
@@ -1096,7 +1093,8 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
           setFilterId(item.id);
           setDetail({ type: "filter", item });
           if (item.id !== "all") {
-            scene.focusNode(item.id);
+            // 从属菜单选中即入镜并转正，正对观众；画布点选仍保留原视角。
+            scene.focusNode(item.id, { faceFront: true });
           }
         }}
         onToggleRotate={() => setAutoRotateUi((previous) => !previous)}
