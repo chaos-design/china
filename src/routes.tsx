@@ -104,7 +104,23 @@ export const routes: RouteObject[] = [
         path: "china/institutions/taxation",
         element: withSuspense(<InstitutionTopicPage topicId="taxation" />),
       },
-      { path: "china/imperial-exam", element: withSuspense(<ImperialExamPage />) },
+      // 三个子页共用一版式：左侧条目目录 + 右侧内容；索引路径落到第一页
+      {
+        path: "china/imperial-exam",
+        element: <Navigate to="/china/imperial-exam/stages" replace />,
+      },
+      {
+        path: "china/imperial-exam/stages",
+        element: withSuspense(<ImperialExamPage sectionId="stages" />),
+      },
+      {
+        path: "china/imperial-exam/dynasties",
+        element: withSuspense(<ImperialExamPage sectionId="dynasties" />),
+      },
+      {
+        path: "china/imperial-exam/compare",
+        element: withSuspense(<ImperialExamPage sectionId="compare" />),
+      },
       ...htmlResourceRoutes,
       { path: "*", element: withSuspense(<NotFoundPage />) },
     ],

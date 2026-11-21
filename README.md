@@ -22,7 +22,7 @@
 | 民族迁徙 | https://china.chaosmic.cn/china/atlas/migration | 总览页的迁徙预设图层：八条迁徙路线（汉唐宋元）以经纬度途经点绘制在真实底图上，流动光点与画线动画模拟去向，可整屏全览。 | - |
 | 边疆治理 | https://china.chaosmic.cn/china/atlas/frontier | 总览页的边疆预设图层：八项边疆制度（西域都护府、羁縻州县、榷场、行省、宣政院等）的治所方印地图，逐项标注辖区与资料出处。 | - |
 | 典章制度 | https://china.chaosmic.cn/china/institutions | 官制、赋役、律令、科举与礼制五大专题：左侧条目目录 + 右侧内容的应用式版式，沿革以编年体时间轴呈现，附关键条目表。 | - |
-| 科举之路 | https://china.chaosmic.cn/china/imperial-exam | 登科之阶按「一科三年」时间轴逻辑铺开明清科举全程（①童试→②乡试→③放榜→④进京赶考→⑤会试→⑥殿试→⑦铨选授官），每站配贡院、金榜、殿试卷、夹带实物等真实馆藏影像佐证难度，右侧读书人晋身之路漏斗 + 底部三年一科节奏轴；另有先秦至清八朝的入仕途径与晋升机制（察举、九品中正、铨选、磨勘、考满考察、京察大计），每朝配一份正史本传履历样本，附横向对照表。 | - |
+| 科举之路 | https://china.chaosmic.cn/china/imperial-exam | 拆分为三个子页（左侧条目目录）：登科之阶按「一科三年」时间轴逻辑铺开明清科举全程（①童试→②乡试→③放榜→④进京赶考→⑤会试→⑥殿试→⑦铨选授官），每站配贡院、金榜、殿试卷、夹带实物等真实馆藏影像佐证难度，右侧读书人晋身之路漏斗 + 底部三年一科节奏轴；历代官途逐朝拆解先秦至清八朝的入仕途径与晋升机制（察举、九品中正、铨选、磨勘、考满考察、京察大计），每朝配一份正史本传履历样本；对照一览收束为横向对照表。 | - |
 | HTML 专题资源 | https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片、阅读指南等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
 | 台湾专题 | https://china.chaosmic.cn/taiwan | 五卷分页：地形剖面与经纬度投影地图、岛屿编年、风土人情，以及 1895—1945 年日治与 1947 年之后的近代，逐节标注资料出处。内容存于 `resources/html-data/taiwan.json`，渲染逻辑在 `resources/html/taiwan.html`。 | - |
 | 解放战争交互图 | https://china.chaosmic.cn/liberation-war | 1946—1951 战局沙盘：真实省界地形上的攻防连线、包围圈与起义/和平解放部署，可拖动时间轴逐阶段推演。 | - |
@@ -113,7 +113,10 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 | `/china/atlas/migration` | 总览页的迁徙预设图层：迁徙路线动画（真实省界底图） |
 | `/china/atlas/frontier` | 总览页的边疆预设图层：边疆制度治所地图（真实省界底图） |
 | `/china/institutions` | 典章制度（官制、赋役、律令、科举与礼制五类专题页，直达官制） |
-| `/china/imperial-exam` | 科举之路：登科之阶（一科三年七站链 + 真实馆藏影像 + 晋身漏斗 + 节奏轴）+ 历代官途（逐朝入仕与晋升 + 履历样本）+ 横向对照表 |
+| `/china/imperial-exam` | 科举之路（重定向到 `/china/imperial-exam/stages`）：三个子页共用「左侧条目目录 + 右侧内容」版式 |
+| `/china/imperial-exam/stages` | 登科之阶：一科三年七站链（①童试→…→⑦铨选授官）+ 真实馆藏影像 + 晋身漏斗 + 节奏轴 |
+| `/china/imperial-exam/dynasties` | 历代官途：先秦至清八朝的入仕途径与晋升机制，逐朝配正史本传履历样本 |
+| `/china/imperial-exam/compare` | 对照一览：八朝官途横向对照表 + 资料出处 |
 | `/<html-resource-slug>` | 从 `resources/html/*.html` 自动生成，文件名会按 kebab-case 转为路由 |
 | `*` | 404 兜底页面 |
 
@@ -215,7 +218,7 @@ src/
 │   ├── ancient/china-policies/ # 政策全览
 │   ├── ancient/china-atlas/    # 疆域与民族图谱（疆域变迁/民族迁徙/边疆治理）
 │   ├── ancient/china-institutions/ # 典章制度五专题（数据在 topics/，共用渲染器）
-│   ├── ancient/china-imperial-exam/ # 科举之路（登科阶梯 + 八朝官途数据 + 页面）
+│   ├── ancient/china-imperial-exam/ # 科举之路（shell + 三个子页 + 八朝官途数据 + 图片档案）
 │   ├── html-resources/         # resources/html 动态路由与 iframe 渲染
 │   ├── upcoming/               # 筹备中专题资源
 │   ├── home.tsx

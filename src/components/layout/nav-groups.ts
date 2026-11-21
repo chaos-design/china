@@ -38,6 +38,9 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       "/china/institutions/legal-code",
       "/china/institutions/examinations",
       "/china/institutions/rites",
+      "/china/imperial-exam/stages",
+      "/china/imperial-exam/dynasties",
+      "/china/imperial-exam/compare",
     ],
     blurb:
       "时间与制度两条线：先看朝代怎么更替、边界怎么移动，再看每一朝把制度落在哪些机构与人物身上。长城线以下的北方与中原。",

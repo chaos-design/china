@@ -1,16 +1,59 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import { IMPERIAL_EXAM_DYNASTIES } from "./dynasties";
 import { ImperialExamPage } from "./imperial-exam-page";
 import { EXAM_STAGES } from "./ladder";
+import { IMPERIAL_EXAM_SECTIONS } from "./sections";
 
-describe("<ImperialExamPage />", () => {
-  it("renders the header, the seven-stage chain with images, funnel and cadence", () => {
-    render(<ImperialExamPage />);
+function renderSection(sectionId: string) {
+  return render(
+    <MemoryRouter>
+      <ImperialExamPage sectionId={sectionId} />
+    </MemoryRouter>,
+  );
+}
+
+describe("<ImperialExamPage /> 共用外壳", () => {
+  it("renders the pinned header with badge, milestones and the section menu", () => {
+    renderSection("stages");
 
     expect(screen.getByRole("heading", { level: 1, name: "科举之路" })).toBeInTheDocument();
-    expect(screen.getByText(/一张考卷，怎样换来一顶官帽/)).toBeInTheDocument();
+    const header = screen.getByRole("heading", { level: 1, name: "科举之路" }).closest("header");
+    expect(header).not.toBeNull();
+    expect(within(header as HTMLElement).getByText("入仕 · 晋升 · 官途")).toBeInTheDocument();
+    expect(within(header as HTMLElement).getByLabelText("制度里程碑")).toBeInTheDocument();
+
+    const menu = within(screen.getByRole("navigation", { name: "科举之路目录" }));
+    for (const section of IMPERIAL_EXAM_SECTIONS) {
+      expect(menu.getByRole("link", { name: new RegExp(`^${section.name}`) })).toHaveAttribute(
+        "href",
+        `/china/imperial-exam/${section.id}`,
+      );
+    }
+    expect(menu.getByRole("link", { name: /^登科之阶/ })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("marks the active menu entry per section", () => {
+    renderSection("dynasties");
+
+    const menu = within(screen.getByRole("navigation", { name: "科举之路目录" }));
+    expect(menu.getByRole("link", { name: /^历代官途/ })).toHaveAttribute("aria-current", "page");
+    expect(menu.getByRole("link", { name: /^登科之阶/ })).not.toHaveAttribute("aria-current");
+  });
+
+  it("falls back to a friendly card for an unknown section id", () => {
+    renderSection("nonexistent");
+
+    expect(screen.getByRole("heading", { name: "条目尚未收录" })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "科举之路目录" })).not.toBeInTheDocument();
+  });
+});
+
+describe("<ImperialExamPage /> 登科之阶", () => {
+  it("renders the seven-stage chain with images, funnel and cadence", () => {
+    renderSection("stages");
 
     const ladder = screen.getByRole("region", { name: "登科之阶" });
     // 七站链：每站一张编号卡（站名 + 地点 + 时点 + 身份）
@@ -38,8 +81,19 @@ describe("<ImperialExamPage />", () => {
     expect(screen.getByText(/天花板/)).toBeInTheDocument();
   });
 
+  it("lists the image credits in the stages footer", () => {
+    renderSection("stages");
+
+    expect(screen.getByText("图片出处")).toBeInTheDocument();
+    expect(screen.getAllByText(/Wikimedia Commons · /).length).toBeGreaterThanOrEqual(10);
+    // 资料出处（历代正史）不在本页
+    expect(screen.queryByText("资料出处")).not.toBeInTheDocument();
+  });
+});
+
+describe("<ImperialExamPage /> 历代官途", () => {
   it("shows the 先秦 panel by default with its routes and career sample", () => {
-    render(<ImperialExamPage />);
+    renderSection("dynasties");
 
     const panel = screen.getByRole("article", { name: "先秦官途" });
     expect(within(panel).getByText("世卿世禄")).toBeInTheDocument();
@@ -52,7 +106,7 @@ describe("<ImperialExamPage />", () => {
   });
 
   it("switches to 汉 and shows its entry routes, promotion mechanisms and career", () => {
-    render(<ImperialExamPage />);
+    renderSection("dynasties");
 
     fireEvent.click(screen.getByRole("button", { name: "汉" }));
 
@@ -69,7 +123,7 @@ describe("<ImperialExamPage />", () => {
   });
 
   it("switches to 清 and shows the 曾国藩 career sourced from 清史稿", () => {
-    render(<ImperialExamPage />);
+    renderSection("dynasties");
 
     fireEvent.click(screen.getByRole("button", { name: "清" }));
 
@@ -80,9 +134,11 @@ describe("<ImperialExamPage />", () => {
     // 「十年七迁，连跃十级」出现在履历补注里（subjectIntro 亦含「十年七迁」，故用全句）
     expect(within(panel).getByText(/十年七迁，连跃十级/)).toBeInTheDocument();
   });
+});
 
+describe("<ImperialExamPage /> 对照一览", () => {
   it("renders the comparison table with one row per dynasty", () => {
-    render(<ImperialExamPage />);
+    renderSection("compare");
 
     const table = screen.getByRole("table");
     expect(within(table).getAllByRole("row")).toHaveLength(IMPERIAL_EXAM_DYNASTIES.length + 1);
@@ -92,15 +148,14 @@ describe("<ImperialExamPage />", () => {
     expect(within(table).getByText("京察大计、铨选月选、议叙加级")).toBeInTheDocument();
   });
 
-  it("lists per-dynasty sources and image credits in the footer", () => {
-    render(<ImperialExamPage />);
+  it("lists per-dynasty sources in the compare footer", () => {
+    renderSection("compare");
 
     expect(screen.getByText("资料出处")).toBeInTheDocument();
     expect(screen.getByText(/《元史·张养浩传》/)).toBeInTheDocument();
     expect(screen.getByText(/《明史·张居正传》/)).toBeInTheDocument();
     expect(screen.getByText(/估算数字以「约」标示/)).toBeInTheDocument();
-    // 真实影像的出处清单
-    expect(screen.getByText("图片出处")).toBeInTheDocument();
-    expect(screen.getAllByText(/Wikimedia Commons · /).length).toBeGreaterThanOrEqual(10);
+    // 图片出处只在登科之阶页
+    expect(screen.queryByText("图片出处")).not.toBeInTheDocument();
   });
 });
