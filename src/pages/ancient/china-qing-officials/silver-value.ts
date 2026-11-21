@@ -3,8 +3,10 @@
  *
  * 默认口径：清末库平一两 = 37.301 克（1908 年度支部划一度量衡标准）；
  * 默认银价取 2026-11-21 国内白银大盘价约 9.25 元/克。
- * 现查接口：gold-api.com 的 XAG 美元/金衡盎司报价 × frankfurter.app 的 USD→CNY 汇率，
+ * 现查接口：gold-api.com 的 XAG 美元/金衡盎司报价 × frankfurter.dev 的 USD→CNY 汇率，
  * 两者均免费、免 key、支持浏览器 CORS。
+ * 注意：frankfurter.app 旧域名 301 到 api.frankfurter.dev，但 301 响应不带 CORS 头，
+ * 浏览器 fetch 直接失败——必须直连新域名。
  */
 export const QING_TAEL_GRAMS = 37.301;
 export const TROY_OUNCE_GRAMS = 31.1034768;
@@ -12,7 +14,7 @@ export const SILVER_PRICE_PER_GRAM_CNY = 9.25;
 export const SILVER_PRICE_DATE = "2026-11-21";
 
 const SILVER_API = "https://api.gold-api.com/price/XAG";
-const FX_API = "https://api.frankfurter.app/latest?from=USD&to=CNY";
+const FX_API = "https://api.frankfurter.dev/v1/latest?from=USD&to=CNY";
 
 export interface LiveSilverPrice {
   cnyPerGram: number;

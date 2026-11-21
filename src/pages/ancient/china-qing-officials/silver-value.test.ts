@@ -17,19 +17,24 @@ describe("silver-value", () => {
   });
 
   it("combines the free XAG quote and USD/CNY rate into a per-gram price", async () => {
+    const requested: string[] = [];
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (url: string) =>
-        url.includes("gold-api")
+      vi.fn(async (url: string) => {
+        requested.push(url);
+        return url.includes("gold-api")
           ? fakeResponse({ price: TROY_OUNCE_GRAMS, updatedAt: "2026-11-21T05:00:00Z" })
-          : fakeResponse({ rates: { CNY: 7 } }),
-      ),
+          : fakeResponse({ rates: { CNY: 7 } });
+      }),
     );
 
     const result = await fetchSilverPriceCnyPerGram();
     expect(result?.cnyPerGram).toBe(7);
     expect(result?.usdCnyRate).toBe(7);
     expect(result?.updatedAt).toBe("2026-11-21T05:00:00Z");
+    // 旧域名 frankfurter.app 现在 301 且不带 CORS 头，浏览器 fetch 必挂——必须直连 frankfurter.dev。
+    expect(requested.some((url) => url.startsWith("https://api.frankfurter.dev/"))).toBe(true);
+    expect(requested.some((url) => url.includes("frankfurter.app"))).toBe(false);
   });
 
   it("falls back to null when the live quote is unavailable", async () => {
