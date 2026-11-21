@@ -179,7 +179,7 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
             <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
               朝服
             </span>
-            <RobeGlyph dynastyId={atlas.id} level={selected} />
+            <RobeGlyph level={selected} />
             <span className="font-brush text-lg text-ink">{selected.robe ?? "未详"}</span>
             <p className="text-[0.7rem] leading-relaxed text-muted-foreground">
               {atlas.notes.robe}

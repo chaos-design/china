@@ -1,16 +1,10 @@
 import { ArchiveSectionHead } from "./content-primitives";
 import type { AtlasBadge, DynastyAtlas } from "./data";
-import {
-  BadgeIllustration,
-  EssentialIllustration,
-  type EssentialName,
-  RankImageCredits,
-} from "./rank-illustrations";
-import { badgeImage, type RankImage } from "./rank-images";
+import { BadgeIllustration, EssentialIllustration, type EssentialName } from "./rank-illustrations";
 
 const BADGE_NAMES = ["一", "二", "三", "四", "五", "六", "七", "八", "九"];
 
-/** 补子纹样：真实刺绣藏品照优先（缺图回落手绘），动物名退为图下小注。 */
+/** 补子纹样：方补内写意飞禽 / 走兽手绘图，动物名退为图下小注。 */
 function BadgeGlyph({ kind, animal }: { kind: "civil" | "military"; animal: string }) {
   return <BadgeIllustration animal={animal} kind={kind} />;
 }
@@ -24,9 +18,6 @@ function BadgeGrid({
   kind: "civil" | "military";
   title: string;
 }) {
-  const images = badges
-    .map((badge) => badgeImage(badge.animal))
-    .filter((image): image is RankImage => image !== undefined);
   return (
     <section
       aria-label={title}
@@ -51,7 +42,6 @@ function BadgeGrid({
           </li>
         ))}
       </ol>
-      <RankImageCredits images={images} />
     </section>
   );
 }
