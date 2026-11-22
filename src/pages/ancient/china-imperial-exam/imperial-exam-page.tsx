@@ -8,6 +8,7 @@ import { ImperialExamShell } from "./imperial-exam-shell";
 import {
   ADVANCEMENT_FUNNEL,
   EXAM_CADENCE,
+  EXAM_DYNASTY_DIFFS,
   EXAM_LEGEND,
   EXAM_STAGES,
   type LegendItem,
@@ -439,6 +440,36 @@ function StagesSection() {
         </div>
       </div>
 
+      {/* 历代差异：七站链定型于明清，唐宋元各有一套走法 */}
+      <div className="flex flex-col gap-4 rounded-xl border border-ink/15 bg-card/80 p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="font-brush text-ink text-xl">历代差异 · 同一条链，各朝各走</h3>
+          <span className="font-mono-tech text-muted-foreground text-[0.7rem] tracking-[0.15em]">
+            七站定型于明清 · 唐宋元各有一套走法
+          </span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {EXAM_DYNASTY_DIFFS.map((diff) => (
+            <div className="guide-card flex flex-col gap-2.5 p-4" key={diff.id}>
+              <span className="font-brush text-vermillion text-xl">{diff.dynasty}</span>
+              <ul className="flex flex-col gap-2">
+                {diff.points.map((point) => (
+                  <li
+                    className="flex gap-2 text-muted-foreground text-sm leading-relaxed"
+                    key={point}
+                  >
+                    <span aria-hidden="true" className="mt-0.5 shrink-0 text-vermillion/70">
+                      ·
+                    </span>
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <aside className="rounded-xl border border-dashed border-ochre/45 bg-ochre/5 p-5">
         <h3 className="font-brush text-ink text-xl">{SIDE_ROUTES.title}</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -608,6 +639,24 @@ function DynastiesSection() {
             </div>
           </div>
 
+          {/* 历代成就：本朝选官制度立了什么规矩、产出了什么规模 */}
+          <div className="flex flex-col gap-4">
+            <h4 className="font-brush text-ink text-xl">历代成就</h4>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {activeDynasty.achievements.map((item) => (
+                <li
+                  className="guide-card flex gap-2.5 p-4 text-muted-foreground text-sm leading-relaxed"
+                  key={item}
+                >
+                  <span aria-hidden="true" className="mt-0.5 shrink-0 text-vermillion/70">
+                    ◆
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           {/* 履历样本 */}
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -645,6 +694,23 @@ function DynastiesSection() {
             </ol>
           </div>
 
+          {/* 科场名人：以本朝选官路径闻于后世者；先秦与九品中正时代不设 */}
+          {activeDynasty.notables && activeDynasty.notables.length > 0 ? (
+            <div className="flex flex-col gap-4">
+              <h4 className="font-brush text-ink text-xl">科场名人</h4>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {activeDynasty.notables.map((person) => (
+                  <div className="guide-card flex flex-col gap-1.5 p-4" key={person.name}>
+                    <span className="font-brush text-vermillion text-lg">{person.name}</span>
+                    <span className="text-muted-foreground text-sm leading-relaxed">
+                      {person.note}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {/* 身份关键词 */}
           <div className="flex flex-col gap-3">
             <h4 className="font-brush text-ink text-xl">身份关键词</h4>
@@ -658,6 +724,17 @@ function DynastiesSection() {
                 </div>
               ))}
             </dl>
+          </div>
+
+          {/* 官途终点 · 致仕 */}
+          <div className="flex flex-col gap-3 rounded-xl border border-dashed border-blueprint/40 bg-blueprint/5 p-5">
+            <h4 className="font-brush text-ink text-xl">官途终点 · 致仕</h4>
+            <span className="font-mono-tech text-blueprint text-[0.7rem] tracking-[0.15em]">
+              {activeDynasty.retirement.rule}
+            </span>
+            <p className="max-w-3xl text-muted-foreground text-sm leading-relaxed">
+              {activeDynasty.retirement.detail}
+            </p>
           </div>
         </article>
       ) : null}

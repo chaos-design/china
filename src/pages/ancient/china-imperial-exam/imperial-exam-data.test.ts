@@ -7,6 +7,7 @@ import { EXAM_IMAGE_CREDITS, EXAM_IMAGES, type ExamImageKey } from "./imperial-e
 import {
   ADVANCEMENT_FUNNEL,
   EXAM_CADENCE,
+  EXAM_DYNASTY_DIFFS,
   EXAM_LEGEND,
   EXAM_MILESTONES,
   EXAM_STAGES,
@@ -262,6 +263,55 @@ describe("imperial exam dynasties data", () => {
       expect(dynasty.career.steps.length).toBeGreaterThanOrEqual(4);
       const stepKeys = dynasty.career.steps.map((step) => `${step.year}-${step.role}`);
       expect(new Set(stepKeys).size).toBe(stepKeys.length);
+    }
+  });
+
+  it("gives every dynasty achievements and a retirement rule", () => {
+    for (const dynasty of IMPERIAL_EXAM_DYNASTIES) {
+      expect(dynasty.achievements.length).toBeGreaterThanOrEqual(2);
+      for (const item of dynasty.achievements) {
+        expect(item.length).toBeGreaterThan(10);
+      }
+      expect(dynasty.retirement.rule.length).toBeGreaterThan(2);
+      expect(dynasty.retirement.detail.length).toBeGreaterThan(15);
+    }
+  });
+
+  it("names exam notables from 汉 onward, not for the pre-exam ages", () => {
+    const withNotables = IMPERIAL_EXAM_DYNASTIES.filter((dynasty) => dynasty.notables);
+    // 先秦（世卿世禄）与魏晋南北朝（九品中正）无科场名人；汉（察举）起有人可点
+    expect(withNotables.map((dynasty) => dynasty.id)).toEqual([
+      "han",
+      "suitang",
+      "song",
+      "yuan",
+      "ming",
+      "qing",
+    ]);
+    for (const dynasty of withNotables) {
+      const notables = dynasty.notables;
+      if (!notables) throw new Error(`missing notables for ${dynasty.id}`);
+      expect(notables.length).toBeGreaterThanOrEqual(2);
+      const names = notables.map((person) => person.name);
+      expect(new Set(names).size).toBe(names.length);
+      for (const person of notables) {
+        expect(person.note.length).toBeGreaterThan(6);
+      }
+      // 名人不与履历样本重复
+      expect(names).not.toContain(dynasty.career.subject);
+    }
+  });
+
+  it("describes per-dynasty differences across the five exam dynasties", () => {
+    expect(EXAM_DYNASTY_DIFFS.map((diff) => diff.dynasty)).toEqual(["唐", "宋", "元", "明", "清"]);
+    const ids = EXAM_DYNASTY_DIFFS.map((diff) => diff.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const diff of EXAM_DYNASTY_DIFFS) {
+      expect(diff.id).toMatch(/^[a-z]+$/);
+      expect(diff.points.length).toBeGreaterThanOrEqual(3);
+      for (const point of diff.points) {
+        expect(point.length).toBeGreaterThan(10);
+      }
     }
   });
 

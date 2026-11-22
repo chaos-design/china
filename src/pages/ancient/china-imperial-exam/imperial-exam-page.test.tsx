@@ -128,6 +128,18 @@ describe("<ImperialExamPage /> 登科之阶", () => {
     fireEvent.click(screen.getByRole("button", { name: /关闭放大图/ }));
     expect(screen.queryByRole("button", { name: /关闭放大图/ })).not.toBeInTheDocument();
   });
+
+  it("shows the per-dynasty differences of the exam chain", () => {
+    renderSection("stages");
+
+    expect(screen.getByText("历代差异 · 同一条链，各朝各走")).toBeInTheDocument();
+    // 五张朝代卡各有一个标题，差异点用短句
+    for (const name of ["唐", "宋", "元", "明", "清"]) {
+      expect(screen.getByText(name)).toBeInTheDocument();
+    }
+    expect(screen.getByText(/科举必由学校/)).toBeInTheDocument();
+    expect(screen.getByText(/延祐二年复行/)).toBeInTheDocument();
+  });
 });
 
 describe("<ImperialExamPage /> 历代官途", () => {
@@ -178,6 +190,28 @@ describe("<ImperialExamPage /> 历代官途", () => {
     expect(within(panel).getByText("《清史稿·曾国藩传》")).toBeInTheDocument();
     // 「十年七迁，连跃十级」出现在履历补注里（subjectIntro 亦含「十年七迁」，故用全句）
     expect(within(panel).getByText(/十年七迁，连跃十级/)).toBeInTheDocument();
+  });
+
+  it("shows achievements, notables and retirement in the 宋 panel", () => {
+    renderSection("dynasties");
+
+    fireEvent.click(screen.getByRole("button", { name: "宋" }));
+
+    const panel = screen.getByRole("article", { name: "宋官途" });
+    expect(within(panel).getByText("历代成就")).toBeInTheDocument();
+    expect(within(panel).getByText("科场名人")).toBeInTheDocument();
+    expect(within(panel).getByText("苏轼")).toBeInTheDocument();
+    expect(within(panel).getByText("官途终点 · 致仕")).toBeInTheDocument();
+    expect(within(panel).getByText("七十致仕 · 半俸荫补")).toBeInTheDocument();
+  });
+
+  it("hides the notables block for the pre-exam ages but keeps achievements and retirement", () => {
+    renderSection("dynasties");
+
+    const panel = screen.getByRole("article", { name: "先秦官途" });
+    expect(within(panel).queryByText("科场名人")).not.toBeInTheDocument();
+    expect(within(panel).getByText("历代成就")).toBeInTheDocument();
+    expect(within(panel).getByText("官途终点 · 致仕")).toBeInTheDocument();
   });
 });
 

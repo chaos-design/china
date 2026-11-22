@@ -114,8 +114,8 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 | `/china/atlas/frontier` | 总览页的边疆预设图层：边疆制度治所地图（真实省界底图） |
 | `/china/institutions` | 典章制度（官制、赋役、律令、科举与礼制五类专题页，直达官制） |
 | `/china/imperial-exam` | 科举之路（重定向到 `/china/imperial-exam/stages`）：三个子页共用「左侧条目目录 + 右侧内容」版式 |
-| `/china/imperial-exam/stages` | 登科之阶：一科三年七站链（①童试→…→⑦铨选授官）+ 真实馆藏影像 + 晋身漏斗 + 节奏轴 |
-| `/china/imperial-exam/dynasties` | 历代官途：先秦至清八朝的入仕途径与晋升机制，逐朝配正史本传履历样本 |
+| `/china/imperial-exam/stages` | 登科之阶：一科三年七站链（①童试→…→⑦铨选授官）+ 真实馆藏影像 + 晋身漏斗（各级配影像）+ 节奏轴 + 历代差异（唐宋元明清） |
+| `/china/imperial-exam/dynasties` | 历代官途：先秦至清八朝的入仕途径与晋升机制 + 历代成就 + 科场名人 + 致仕规则，逐朝配正史本传履历样本 |
 | `/china/imperial-exam/compare` | 对照一览：八朝官途横向对照表 + 资料出处 |
 | `/<html-resource-slug>` | 从 `resources/html/*.html` 自动生成，文件名会按 kebab-case 转为路由 |
 | `*` | 404 兜底页面 |

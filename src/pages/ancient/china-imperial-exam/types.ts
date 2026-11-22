@@ -69,6 +69,16 @@ export interface DynastyPath {
     source: string;
     steps: CareerStep[];
   };
+  /** 历代成就：本朝选官制度立了什么规矩、产出了什么规模。 */
+  achievements: string[];
+  /** 科场名人：以本朝选官路径闻于后世者；科举未兴的时代（先秦、九品中正）不设。 */
+  notables?: { name: string; note: string }[];
+  /** 致仕：官途的终点，怎么退出官场。 */
+  retirement: {
+    /** 短规则，如「七十听致仕 · 加阶给俸」。 */
+    rule: string;
+    detail: string;
+  };
   /** 本朝身份关键词。 */
   terms: { name: string; explanation: string }[];
   sources: string[];
