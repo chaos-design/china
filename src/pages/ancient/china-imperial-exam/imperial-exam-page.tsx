@@ -55,7 +55,7 @@ const DEFAULT_DYNASTY_ID = IMPERIAL_EXAM_DYNASTIES[0]?.id ?? "";
 /** 子页一：登科之阶——七站链 + 晋身漏斗 + 一科三年节奏轴 + 岔路。 */
 function StagesSection() {
   return (
-    <section aria-label="登科之阶" className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+    <section aria-label="登科之阶" className="mx-auto flex w-full max-w-5xl flex-col gap-8 pt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div className="flex flex-col gap-2">
           <span className="eyebrow">第一程 · 明清科举全程</span>
@@ -110,6 +110,23 @@ function StagesSection() {
                       </span>
                     </div>
                     <p className="text-muted-foreground leading-relaxed">{stage.summary}</p>
+                    <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-ink/10 bg-paper/60 px-3 py-2">
+                      <span className="font-mono-tech text-muted-foreground text-[0.65rem] tracking-[0.2em]">
+                        环节
+                      </span>
+                      {stage.flow.map((step, stepIndex) => (
+                        <Fragment key={step}>
+                          {stepIndex > 0 ? (
+                            <span aria-hidden="true" className="text-vermillion/50">
+                              →
+                            </span>
+                          ) : null}
+                          <span className="rounded border border-ink/15 bg-card px-1.5 py-0.5 text-foreground/90 text-[0.72rem]">
+                            {step}
+                          </span>
+                        </Fragment>
+                      ))}
+                    </div>
                     <div className="grid gap-3 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
                       {mainImage && mainImageCaption ? (
                         <figure className="flex flex-col gap-1.5">
@@ -174,7 +191,7 @@ function StagesSection() {
             高度不足时卡片内部滚动兜底 */}
         <aside
           aria-label="读书人晋身之路"
-          className="flex flex-col gap-3 rounded-xl border border-ink/15 bg-card/90 p-5 lg:sticky lg:top-0 lg:max-h-[calc(100vh-18rem)] lg:overflow-y-auto"
+          className="flex flex-col gap-3 rounded-xl border border-ink/15 bg-card p-5 lg:sticky lg:top-0 lg:max-h-[calc(100vh-18rem)] lg:overflow-y-auto"
         >
           <h3 className="font-brush text-ink text-xl">读书人晋身之路</h3>
           <p className="text-muted-foreground text-xs leading-relaxed">
@@ -300,7 +317,7 @@ function DynastiesSection() {
   const activeDynasty = getDynastyPath(activeId) ?? IMPERIAL_EXAM_DYNASTIES[0];
 
   return (
-    <section aria-label="历代官途" className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+    <section aria-label="历代官途" className="mx-auto flex w-full max-w-5xl flex-col gap-8 pt-6">
       <div className="flex flex-col gap-2">
         <span className="eyebrow">第二程 · 逐朝拆解</span>
         <h2 className="font-brush text-3xl text-ink">历代官途：怎么做官，怎么晋升</h2>
@@ -483,7 +500,10 @@ function DynastiesSection() {
 /** 子页三：对照一览——横向对照表 + 资料出处。 */
 function CompareSection() {
   return (
-    <section aria-label="历代官途对照" className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <section
+      aria-label="历代官途对照"
+      className="mx-auto flex w-full max-w-5xl flex-col gap-6 pt-6"
+    >
       <div className="flex flex-col gap-2">
         <span className="eyebrow">第三程 · 横向对照</span>
         <h2 className="font-brush text-3xl text-ink">一张表看清历代官途</h2>

@@ -25,6 +25,8 @@ export interface ExamStage {
   /** 过关所得身份。 */
   identity: string;
   summary: string;
+  /** 站内环节微流程：从进场到出榜的先后步骤（教科书通行口径）。 */
+  flow: string[];
   details: ExamStageDetail[];
 }
 
@@ -35,6 +37,7 @@ export const EXAM_STAGES: ExamStage[] = [
     place: "本县 · 府城",
     timing: "岁科两试 · 年年可考",
     identity: "过关得「生员（秀才）」",
+    flow: ["廪生保结", "县试", "府试", "院试", "出榜进学"],
     summary: "县试（知县主持）、府试（知府主持）、院试（学政主持）三关连过，才算「进学」。",
     details: [
       {
@@ -61,6 +64,7 @@ export const EXAM_STAGES: ExamStage[] = [
     place: "省城贡院",
     timing: "子午卯酉年八月 · 秋闱",
     identity: "中式得「举人」",
+    flow: ["点名搜检", "发卷入号", "三场答卷", "弥封誊录", "同考荐卷", "主考取中", "张挂桂榜"],
     summary: "连考三场、每场三日，吃住全在号舍里；中式曰举人，第一名称解元。",
     details: [
       {
@@ -91,6 +95,7 @@ export const EXAM_STAGES: ExamStage[] = [
     place: "省城 · 贡院前",
     timing: "乡试年九月 · 桂榜",
     identity: "身份生效「举人」",
+    flow: ["拆封填榜", "张挂贡院前", "报喜到门", "谒祖谢师"],
     summary: "桂榜张挂贡院前，报喜人连夜敲门；举人免役、见官不跪，「一举成名」由此而来。",
     details: [
       {
@@ -117,6 +122,7 @@ export const EXAM_STAGES: ExamStage[] = [
     place: "举人离乡赴京",
     timing: "会试年正月启程",
     identity: "具会试资格",
+    flow: ["筹措盘缠", "辞亲登程", "千里赴京", "借住会馆", "静候春闱"],
     summary: "乡试次年春闱在即，举人筹盘缠、辞宗族，跋涉千里进京。",
     details: [
       {
@@ -143,6 +149,7 @@ export const EXAM_STAGES: ExamStage[] = [
     place: "京师贡院 · 礼部主试",
     timing: "丑辰未戌年二月 · 春闱",
     identity: "中式得「贡士」",
+    flow: ["点名搜检", "入号领卷", "三场答卷", "弥封誊录", "阅卷取中", "张挂杏榜"],
     summary: "礼部主持的全国会试，九天三夜再进号舍；中式曰贡士，第一名称会元。",
     details: [
       {
@@ -173,6 +180,7 @@ export const EXAM_STAGES: ExamStage[] = [
     place: "皇城保和殿（清制）",
     timing: "会试同年四月",
     identity: "定「进士」三甲",
+    flow: ["集保和殿", "天子策问", "当日答卷", "读卷官评阅", "钦定名次", "金榜题名"],
     summary: "天子亲策于廷，只定名次不黜落——一甲三名赐进士及第，二甲赐进士出身，三甲赐同进士出身。",
     details: [
       {
@@ -203,6 +211,7 @@ export const EXAM_STAGES: ExamStage[] = [
     place: "吏部 · 翰林院",
     timing: "会试年五月以后",
     identity: "入仕为官",
+    flow: ["朝考", "引见授职", "翰林入馆或外放知县", "顶服上任"],
     summary: "朝考选庶吉士入翰林，其余进士授部院主事或外放知县——由「读书人」变「官」。",
     details: [
       {

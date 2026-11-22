@@ -108,9 +108,11 @@ export function ImperialExamShell({
           </div>
         </nav>
 
-        {/* 右侧内容区：区域内滚动 */}
+        {/* 右侧内容区：区域内滚动。顶部 padding 由各子页自带（pt-6）——
+            sticky 吸顶带钉在窗格顶缘时，窗格自身的 padding 会在其上方留出
+            一条漏出滚动内容的缝隙，因此 padding 不能放在这里 */}
         <section className="order-1 flex min-h-0 flex-1 flex-col lg:order-2">
-          <div className="min-h-0 flex-1 px-4 py-6 sm:px-8 lg:overflow-y-auto lg:px-10">
+          <div className="min-h-0 flex-1 px-4 pb-6 sm:px-8 lg:overflow-y-auto lg:px-10">
             {children}
           </div>
         </section>

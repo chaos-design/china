@@ -38,8 +38,8 @@ export interface ImperialExamImage {
 export const EXAM_IMAGES: Record<ExamImageKey, ImperialExamImage> = {
   dingzhou: {
     src: "/imperial-exam/dingzhou-gongyuan.jpg",
-    w: 1280,
-    h: 854,
+    w: 800,
+    h: 533,
     alt: "定州贡院大堂与奎楼：清代直隶州考棚，童试与岁科两试在此举行",
     credit: "Wikimedia Commons · Siyuwj · CC BY-SA 4.0",
     sourceUrl:
@@ -47,16 +47,16 @@ export const EXAM_IMAGES: Record<ExamImageKey, ImperialExamImage> = {
   },
   cike: {
     src: "/imperial-exam/exam-questions.jpg",
-    w: 1280,
-    h: 1215,
+    w: 800,
+    h: 759,
     alt: "清代科举备考刻本《大题文府》：八股范文与试题汇刻的题库书影",
     credit: "Wikimedia Commons · Mx. Granger · CC0",
     sourceUrl: "https://commons.wikimedia.org/wiki/File:Imperial_examination_questions.jpg",
   },
   mingyuanlou: {
     src: "/imperial-exam/mingyuanlou.jpg",
-    w: 1280,
-    h: 960,
+    w: 800,
+    h: 600,
     alt: "南京江南贡院明远楼：全国最大的乡试考场，号舍曾达两万余间",
     credit: "Wikimedia Commons · 江上清风1961 · CC BY 3.0",
     sourceUrl:
@@ -64,8 +64,8 @@ export const EXAM_IMAGES: Record<ExamImageKey, ImperialExamImage> = {
   },
   xiangshiti: {
     src: "/imperial-exam/shuntian-xiangshi-ti.jpg",
-    w: 1280,
-    h: 960,
+    w: 800,
+    h: 600,
     alt: "乾隆四十四年顺天乡试题单：从四书五经出题的书、诗、春秋各题",
     credit: "Wikimedia Commons · Tbatb · CC BY-SA 4.0",
     sourceUrl:
@@ -73,16 +73,16 @@ export const EXAM_IMAGES: Record<ExamImageKey, ImperialExamImage> = {
   },
   haoshe: {
     src: "/imperial-exam/peking-gongyuan-alt.jpg",
-    w: 1280,
-    h: 938,
+    w: 800,
+    h: 586,
     alt: "1901 年前后的北京贡院号舍长排：考生在每间小屋里吃住答卷九天",
     credit: "Wikimedia Commons · 未署名 · 公有领域",
     sourceUrl: "https://commons.wikimedia.org/wiki/File:Examination_hall,_Peking.jpg",
   },
   jiebao: {
     src: "/imperial-exam/jiebao-boards.jpg",
-    w: 1280,
-    h: 960,
+    w: 800,
+    h: 600,
     alt: "泉州所见中举捷报匾板：状元、榜眼、探花金字报板",
     credit: "Wikimedia Commons · Vmenkov · CC BY-SA 3.0",
     sourceUrl:
@@ -90,8 +90,8 @@ export const EXAM_IMAGES: Record<ExamImageKey, ImperialExamImage> = {
   },
   gankao: {
     src: "/imperial-exam/gankao-statue.jpg",
-    w: 1280,
-    h: 960,
+    w: 800,
+    h: 600,
     alt: "南京老门东《明代三赶考学生》铜雕：负笈携箱、结伴赴考的士子群像",
     credit: "Wikimedia Commons · 东京村子 · CC BY-SA 3.0",
     sourceUrl:
@@ -99,8 +99,8 @@ export const EXAM_IMAGES: Record<ExamImageKey, ImperialExamImage> = {
   },
   pekingGongyuan: {
     src: "/imperial-exam/peking-gongyuan.jpg",
-    w: 1270,
-    h: 934,
+    w: 800,
+    h: 588,
     alt: "1901 年的北京贡院：明远楼居中，两侧号舍连绵成巷",
     credit: "Wikimedia Commons · Alfons von Mumm · 公有领域",
     sourceUrl:
@@ -108,24 +108,24 @@ export const EXAM_IMAGES: Record<ExamImageKey, ImperialExamImage> = {
   },
   cheating: {
     src: "/imperial-exam/cheating-material.jpg",
-    w: 1280,
-    h: 960,
+    w: 800,
+    h: 600,
     alt: "清代科举夹带实物：满幅蝇头小字密写的作弊材料",
     credit: "Wikimedia Commons · Jack No1 · CC BY-SA 3.0",
     sourceUrl: "https://commons.wikimedia.org/wiki/File:Imperial_examination_cheating_material.JPG",
   },
   baohedian: {
     src: "/imperial-exam/baohedian.jpg",
-    w: 1280,
-    h: 960,
+    w: 800,
+    h: 600,
     alt: "北京故宫保和殿：清代殿试在此举行，天子亲策于廷",
     credit: "Wikimedia Commons · そらみみ · CC BY-SA 4.0",
     sourceUrl: "https://commons.wikimedia.org/wiki/File:Hall_of_Preserving_Harmony_20160826.jpg",
   },
   jinbang: {
     src: "/imperial-exam/wudianshi-jinbang.jpg",
-    w: 750,
-    h: 557,
+    w: 800,
+    h: 594,
     alt: "道光二十四年武殿试大金榜卷首：奉天承运皇帝制曰，第一甲赐武进士及第",
     credit: "Wikimedia Commons · 未署名 · 公有领域",
     sourceUrl:
@@ -133,16 +133,16 @@ export const EXAM_IMAGES: Record<ExamImageKey, ImperialExamImage> = {
   },
   zhuangyuanjuan: {
     src: "/imperial-exam/zhuangyuanjuan.jpg",
-    w: 1280,
-    h: 720,
+    w: 800,
+    h: 450,
     alt: "明万历二十六年赵秉忠殿试卷卷首：「第一甲第一名」金书朱批",
     credit: "Wikimedia Commons · 三猎 · CC BY-SA 4.0",
     sourceUrl: "https://commons.wikimedia.org/wiki/File:%E7%8A%B6%E5%85%83%E5%8D%B7.JPG",
   },
   yamen: {
     src: "/imperial-exam/neixiang-yamen.jpg",
-    w: 1280,
-    h: 814,
+    w: 800,
+    h: 508,
     alt: "河南内乡县衙正堂：新科进士外放知县，即从此等衙门做起",
     credit: "Wikimedia Commons · ScareCriterion12 · CC BY-SA 4.0",
     sourceUrl:

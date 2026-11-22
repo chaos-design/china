@@ -330,7 +330,7 @@ npx vercel dev
 | `/china/policies` | 341–377 kB | 页面 138 kB + 当前朝代的 1–2 张疆域图 |
 | `/china/timeline` | 287 kB | Three.js 场景 |
 | `/china/atlas/*` | ~30 kB | 各图谱页 5–6.5 kB + 共享 chunk；真实省界底图数据与解放战争页共用同一 chunk，不重复加载 |
-| `/china/imperial-exam` | ~15 kB | 七站链与八朝官途数据一体打包；13 张真实馆藏影像在 `public/imperial-exam/`（约 4.5 MB，懒加载按需传输） |
+| `/china/imperial-exam` | ~15 kB | 七站链与八朝官途数据一体打包；13 张真实馆藏影像在 `public/imperial-exam/`（约 1.8 MB，统一 800px/JPEG q60，懒加载按需传输） |
 | `/intangible-culture-heritage` | ~1,381 kB | JS 122 kB + 视口内可见的手艺实拍图 |
 
 三处结构性优化已完成：

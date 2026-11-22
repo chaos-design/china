@@ -67,6 +67,19 @@ describe("imperial exam stage chain (登科之阶)", () => {
     }
   });
 
+  it("details the per-station flow with at least three ordered steps", () => {
+    for (const stage of EXAM_STAGES) {
+      expect(stage.flow.length).toBeGreaterThanOrEqual(3);
+      const steps = stage.flow;
+      expect(new Set(steps).size).toBe(steps.length);
+      for (const step of steps) {
+        expect(step.length).toBeGreaterThan(1);
+      }
+      // 流程从进场到出榜：末步不再是一次考试动作（进学/榜/上任收尾）
+      expect(stage.flow[stage.flow.length - 1]).toMatch(/进学|榜|上任|春闱|题名|谢师/);
+    }
+  });
+
   it("keeps odds claims marked as estimates", () => {
     // 「约」必须出现在标签或正文里（估算口径），全链至少四处
     const estimates = EXAM_STAGES.flatMap((stage) =>
