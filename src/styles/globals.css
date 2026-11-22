@@ -473,23 +473,53 @@
 }
 
 .home-carousel-viewport {
-  overflow: hidden;
-  margin: -0.6rem;
-  padding: 0.6rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.8rem 0.6rem;
+  scroll-padding-inline: 0.6rem;
+  scroll-snap-type: x mandatory;
+  scrollbar-color: hsl(var(--ink) / 0.2) transparent;
+  scrollbar-width: thin;
+}
+
+.home-carousel-viewport::-webkit-scrollbar {
+  height: 4px;
+}
+
+.home-carousel-viewport::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: hsl(var(--ink) / 0.2);
 }
 
 .home-carousel-track {
   display: flex;
-  will-change: transform;
-  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  gap: 1rem;
+  --carousel-slide-width: 84%;
+}
+
+@media (min-width: 640px) {
+  .home-carousel-track {
+    --carousel-slide-width: 48%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-carousel-track {
+    --carousel-slide-width: 31%;
+  }
+}
+
+/* 末尾留白：让最后一张也能吸附到起点，滚动位置与卡片序号线性对应 */
+.home-carousel-track::after {
+  content: "";
+  flex: 0 0 calc(100% - var(--carousel-slide-width) - 1rem);
 }
 
 .home-carousel-slide {
   display: flex;
-  flex-grow: 0;
-  flex-shrink: 0;
+  flex: 0 0 var(--carousel-slide-width);
   min-width: 0;
-  padding: 0 0.6rem;
+  scroll-snap-align: start;
 }
 
 .home-carousel-slide > * {
@@ -874,7 +904,10 @@
     opacity: 1;
   }
 
-  .home-carousel-track,
+  .home-carousel-viewport {
+    scroll-behavior: auto;
+  }
+
   .home-carousel-dot,
   .home-carousel-arrow {
     transition: none;

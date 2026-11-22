@@ -88,10 +88,6 @@ const pageResources = Object.entries(resourceModules)
       first.path.localeCompare(second.path, "zh-CN", { numeric: true }),
   );
 
-function collectResourceItems<T>(selectItems: (resource: PageResourceConfig) => T[] | undefined) {
-  return pageResources.flatMap(({ resource }) => selectItems(resource) ?? []);
-}
-
 function collectHomeItems<T>(selectItems: (resource: PageResourceConfig) => T[] | undefined) {
   return pageResources.flatMap(({ resource }) =>
     resource.showInHome === false ? [] : (selectItems(resource) ?? []),
@@ -120,4 +116,4 @@ export const HOME_ENTRY_ROUTES = collectHomeItems((resource) => resource.homeEnt
 
 export const ABOUT_CONTENT_ITEMS = collectHomeItems((resource) => resource.aboutItems);
 
-export const READING_GUIDES = collectResourceItems((resource) => resource.readingGuides);
+export const READING_GUIDES = collectHomeItems((resource) => resource.readingGuides);

@@ -207,7 +207,7 @@ const htmlResourcesPageResource = {
   homeEntries: collectHomeItems(HTML_RESOURCES, (resource, htmlResource) =>
     withGeneratedHomeEntryPaths(resource.homeEntries, htmlResource.path),
   ),
-  readingGuides: HTML_RESOURCES.flatMap((resource) => resource.resource.readingGuides ?? []),
+  readingGuides: collectHomeItems(HTML_RESOURCES, (resource) => resource.readingGuides),
 } satisfies PageResourceConfig;
 
 export default htmlResourcesPageResource;

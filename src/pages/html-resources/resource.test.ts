@@ -392,11 +392,15 @@ describe("html resource metadata", () => {
         }),
       ]),
     );
-    expect(htmlResourcesPageResource.readingGuides).toEqual(
+    expect(htmlResourcesPageResource.readingGuides).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           title: "对照旧版浮岛",
         }),
+      ]),
+    );
+    expect(htmlResourcesPageResource.readingGuides).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           title: "浏览非遗瑰宝",
         }),
