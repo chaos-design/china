@@ -331,27 +331,60 @@ function StagesSection() {
             从百万童生到三年三百进士：每级人数取通行估算口径。
           </p>
           <ol className="flex flex-col gap-3">
-            {ADVANCEMENT_FUNNEL.map((level, index) => (
-              <li className="flex flex-col gap-1.5" key={level.identity}>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-brush text-ink">{level.identity}</span>
-                  <span aria-hidden="true" className="flex gap-[3px]">
-                    {Array.from({ length: level.icons }, (_, iconIndex) => (
-                      <PersonGlyph key={iconIndex} />
-                    ))}
+            {ADVANCEMENT_FUNNEL.map((level, index) => {
+              const funnelImage = EXAM_IMAGES[level.image.key];
+
+              return (
+                <li className="flex flex-col gap-1.5" key={level.identity}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-brush text-ink">{level.identity}</span>
+                    <span aria-hidden="true" className="flex gap-[3px]">
+                      {Array.from({ length: level.icons }, (_, iconIndex) => (
+                        <PersonGlyph key={iconIndex} />
+                      ))}
+                    </span>
+                  </div>
+                  <div aria-hidden="true" className="h-1.5 rounded-full bg-ink/10">
+                    <div
+                      className="h-full rounded-full bg-vermillion/70"
+                      style={{ width: `${Math.max(12, 100 - index * 22)}%` }}
+                    />
+                  </div>
+                  <span className="font-mono-tech text-muted-foreground text-[0.7rem]">
+                    {level.count}
                   </span>
-                </div>
-                <div aria-hidden="true" className="h-1.5 rounded-full bg-ink/10">
-                  <div
-                    className="h-full rounded-full bg-vermillion/70"
-                    style={{ width: `${Math.max(12, 100 - index * 22)}%` }}
-                  />
-                </div>
-                <span className="font-mono-tech text-muted-foreground text-[0.7rem]">
-                  {level.count}
-                </span>
-              </li>
-            ))}
+                  <figure className="flex flex-col gap-1">
+                    <button
+                      aria-label={`放大查看：${level.image.caption}`}
+                      className="block w-full cursor-zoom-in overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      onClick={() =>
+                        setLightbox({
+                          src: funnelImage.src,
+                          w: funnelImage.w,
+                          h: funnelImage.h,
+                          alt: funnelImage.alt,
+                          credit: funnelImage.credit,
+                          caption: level.image.caption,
+                        })
+                      }
+                      type="button"
+                    >
+                      <img
+                        alt={funnelImage.alt}
+                        className="h-24 w-full object-cover"
+                        height={funnelImage.h}
+                        loading="lazy"
+                        src={funnelImage.src}
+                        width={funnelImage.w}
+                      />
+                    </button>
+                    <figcaption className="text-muted-foreground text-[0.68rem] leading-snug">
+                      {level.image.caption}
+                    </figcaption>
+                  </figure>
+                </li>
+              );
+            })}
           </ol>
           <p className="border-ink/15 border-t border-dashed pt-2 text-[0.7rem] leading-relaxed text-muted-foreground">
             人形为示意个数，不按比例精确绘制；进士每科约二三百名，一甲只三人。

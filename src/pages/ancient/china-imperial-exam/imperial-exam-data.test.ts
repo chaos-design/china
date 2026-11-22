@@ -152,6 +152,16 @@ describe("advancement funnel and exam cadence", () => {
     }
   });
 
+  it("attaches a valid image with a caption to every funnel level", () => {
+    for (const level of ADVANCEMENT_FUNNEL) {
+      expect(
+        EXAM_IMAGES[level.image.key],
+        `missing funnel image for ${level.identity}`,
+      ).toBeTruthy();
+      expect(level.image.caption.length).toBeGreaterThan(4);
+    }
+  });
+
   it("lays out the three-year cadence with five nodes", () => {
     expect(EXAM_CADENCE).toHaveLength(5);
     expect(EXAM_CADENCE.map((node) => node.name)).toEqual([

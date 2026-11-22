@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { IMPERIAL_EXAM_DYNASTIES } from "./dynasties";
 import { ImperialExamPage } from "./imperial-exam-page";
-import { EXAM_STAGES } from "./ladder";
+import { ADVANCEMENT_FUNNEL, EXAM_STAGES } from "./ladder";
 import { IMPERIAL_EXAM_SECTIONS } from "./sections";
 
 function renderSection(sectionId: string) {
@@ -102,9 +102,14 @@ describe("<ImperialExamPage /> 登科之阶", () => {
     renderSection("stages");
 
     const ladder = screen.getByRole("region", { name: "登科之阶" });
-    // 每站主图 + 细节缩略图都可放大：10 个「放大查看」按钮
+    // 每站主图 + 细节缩略图 + 漏斗各级影像都可放大
     const zoomButtons = within(ladder).getAllByRole("button", { name: /^放大查看/ });
-    expect(zoomButtons.length).toBe(EXAM_STAGES.length + 3);
+    expect(zoomButtons.length).toBe(EXAM_STAGES.length + 3 + ADVANCEMENT_FUNNEL.length);
+
+    // 漏斗区：每级配一张可放大影像
+    const funnel = screen.getByRole("complementary", { name: "读书人晋身之路" });
+    const funnelZooms = within(funnel).getAllByRole("button", { name: /^放大查看/ });
+    expect(funnelZooms.length).toBe(ADVANCEMENT_FUNNEL.length);
 
     // 点开第一张：放大层展示原图与图注，Esc 不至于误关（先断言存在）
     fireEvent.click(zoomButtons[0]);

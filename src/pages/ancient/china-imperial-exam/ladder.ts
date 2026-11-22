@@ -302,14 +302,41 @@ export interface FunnelLevel {
   count: string;
   /** 图形上的人形图标个数（示意，非按比例精确绘制）。 */
   icons: number;
+  /** 各级对应的真实影像佐证（复用影像档案，与七站主图同源、已带署名）。 */
+  image: { key: ExamImageKey; caption: string };
 }
 
 export const ADVANCEMENT_FUNNEL: FunnelLevel[] = [
-  { identity: "童生", count: "应试者以百万计", icons: 10 },
-  { identity: "生员（秀才）", count: "全国存量约五十万", icons: 7 },
-  { identity: "举人", count: "每科中额约一千二百名", icons: 4 },
-  { identity: "贡士", count: "每科取二三百名", icons: 2 },
-  { identity: "进士", count: "一甲只三名", icons: 1 },
+  {
+    identity: "童生",
+    count: "应试者以百万计",
+    icons: 10,
+    image: { key: "dingzhou", caption: "定州贡院：童试所在的州县考棚" },
+  },
+  {
+    identity: "生员（秀才）",
+    count: "全国存量约五十万",
+    icons: 7,
+    image: { key: "mingyuanlou", caption: "江南贡院明远楼：乡试考场" },
+  },
+  {
+    identity: "举人",
+    count: "每科中额约一千二百名",
+    icons: 4,
+    image: { key: "pekingGongyuan", caption: "北京贡院：会试考场" },
+  },
+  {
+    identity: "贡士",
+    count: "每科取二三百名",
+    icons: 2,
+    image: { key: "baohedian", caption: "保和殿：殿试所在" },
+  },
+  {
+    identity: "进士",
+    count: "一甲只三名",
+    icons: 1,
+    image: { key: "jinbang", caption: "殿试大金榜" },
+  },
 ];
 
 /** 一科三年的节奏轴：一科跨两年、三年一个轮回。 */
