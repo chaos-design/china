@@ -9,6 +9,8 @@ const geographyResource = {
       title: "历史地理图谱",
       description:
         "疆域变迁、民族迁徙与边疆治理三谱同图：真实省界底图上按朝代切换断面，看边界、人群与治所的变化。",
+      screenshot: "atlas.jpg",
+      note: "截图为一张常驻的真实省界底图；左侧选条目、顶部切朝代，地图会聚焦并叠加疆域示意。",
     },
   ],
   aboutItems: [

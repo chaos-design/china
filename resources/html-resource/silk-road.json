@@ -4,7 +4,9 @@
       "icon": "map",
       "status": "available",
       "title": "丝绸之路与海疆发展史",
-      "description": "以世界地图呈现中国各朝代陆上丝路、海上丝路与海疆经略的演变。"
+      "description": "以世界地图呈现中国各朝代陆上丝路、海上丝路与海疆经略的演变。",
+      "screenshot": "silk-road.jpg",
+      "note": "截图为秦朝段落的陆海丝路条目；左侧切朝代，可对照同一路线在不同时期的走向。"
     }
   ],
   "aboutItems": [

@@ -6,13 +6,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
 import { cn } from "../lib/utils";
 
-const AUTOPLAY_MS = 7000;
+const AUTOPLAY_MS = 6500;
 
 function matchesMedia(query: string): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -35,23 +34,22 @@ interface HomeEntryCarouselProps {
 }
 
 /**
- * 首页「核心入口」的横向卷轴：原生 overflow-x + scroll-snap，手指可直接横划，
- * 下一张卡片露出边缘提示可继续翻阅。箭头、分页点、方向键与自动播放都落在同一个
- * 滚动位置上。所有幻灯片常驻 DOM（不虚拟化），链接对测试与读屏器始终可见。
+ * 首页「核心入口」的大图轮播：一次只呈现一张功能预览，靠透明度缓慢交替，
+ * 不做横向整屏滑动。箭头、分页点与方向键复用同一当前位置；自动播放间隔
+ * 较长，并在悬停、聚焦与减少动态效果偏好下暂停。
+ *
+ * 所有幻灯片常驻 DOM 且不设 inert / aria-hidden：它们是导航链接，键盘与
+ * 读屏器需要一次拿到全部入口；非当前页靠 :focus-within 浮出以便 Tab 可达。
  */
 export function HomeEntryCarousel({ children, label }: HomeEntryCarouselProps) {
   const slides = useMemo(() => Children.toArray(children), [children]);
   const total = slides.length;
 
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const positionRef = useRef(0);
-
-  const [position, setPosition] = useState(0);
+  const [active, setActive] = useState(0);
   const [showDots, setShowDots] = useState(() => matchesMedia("(min-width: 640px)"));
   const [paused, setPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(prefersReducedMotion);
 
-  // 断点与减少动态效果偏好都可能在运行中变化（旋转屏幕、系统设置）。
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
       return;
@@ -76,54 +74,24 @@ export function HomeEntryCarousel({ children, label }: HomeEntryCarouselProps) {
 
   const goTo = useCallback(
     (target: number) => {
-      const viewport = viewportRef.current;
-      if (!viewport || total <= 1) {
+      if (total === 0) {
         return;
       }
-      const next = Math.max(0, Math.min(total - 1, target));
-      // 末尾留白让最后一张也能吸附到起点，因此滚动位置与卡片序号线性对应。
-      const range = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-      const left = (next / (total - 1)) * range;
-      positionRef.current = next;
-      setPosition(next);
-
-      const behavior: ScrollBehavior = reducedMotion ? "instant" : "smooth";
-      if (typeof viewport.scrollTo === "function") {
-        viewport.scrollTo({ left, behavior });
-      } else {
-        viewport.scrollLeft = left;
-      }
+      setActive(((target % total) + total) % total);
     },
-    [total, reducedMotion],
+    [total],
   );
 
-  function handleScroll() {
-    const viewport = viewportRef.current;
-    if (!viewport || total <= 1) {
-      return;
-    }
-    const range = Math.max(1, viewport.scrollWidth - viewport.clientWidth);
-    const next = Math.max(
-      0,
-      Math.min(total - 1, Math.round((viewport.scrollLeft / range) * (total - 1))),
-    );
-    positionRef.current = next;
-    setPosition(next);
-  }
-
-  const next = useCallback(() => goTo((positionRef.current + 1) % total), [goTo, total]);
-  const previous = useCallback(
-    () => goTo((positionRef.current - 1 + total) % total),
-    [goTo, total],
-  );
+  const next = useCallback(() => goTo(active + 1), [goTo, active]);
+  const previous = useCallback(() => goTo(active - 1), [goTo, active]);
 
   useEffect(() => {
     if (total <= 1 || paused || reducedMotion) {
       return;
     }
-    const timer = window.setInterval(() => goTo((positionRef.current + 1) % total), AUTOPLAY_MS);
+    const timer = window.setInterval(() => goTo(active + 1), AUTOPLAY_MS);
     return () => window.clearInterval(timer);
-  }, [total, paused, reducedMotion, goTo]);
+  }, [total, paused, reducedMotion, active, goTo]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === "ArrowRight") {
@@ -150,24 +118,22 @@ export function HomeEntryCarousel({ children, label }: HomeEntryCarouselProps) {
         }
       }}
     >
-      <div className="home-carousel-viewport" ref={viewportRef} onScroll={handleScroll}>
-        <ol className="home-carousel-track">
-          {slides.map((slide, index) => (
-            <li
-              key={index}
-              className="home-carousel-slide"
-              aria-roledescription="slide"
-              aria-label={`${index + 1} / ${total}`}
-            >
-              {slide}
-            </li>
-          ))}
-        </ol>
-      </div>
+      <ol className="home-carousel-stage">
+        {slides.map((slide, index) => (
+          <li
+            key={index}
+            className={cn("home-carousel-slide", index === active && "is-active")}
+            aria-roledescription="slide"
+            aria-label={`${index + 1} / ${total}`}
+          >
+            {slide}
+          </li>
+        ))}
+      </ol>
 
       <div className="home-carousel-controls">
         <span className="home-carousel-count whitespace-nowrap font-mono-tech text-[0.7rem] tracking-[0.2em] text-muted-foreground">
-          {String(position + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+          {String(active + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
         </span>
         {showDots ? (
           <div className="home-carousel-dots">
@@ -175,9 +141,9 @@ export function HomeEntryCarousel({ children, label }: HomeEntryCarouselProps) {
               <button
                 key={index}
                 type="button"
-                className={cn("home-carousel-dot", index === position && "is-active")}
+                className={cn("home-carousel-dot", index === active && "is-active")}
                 aria-label={`第 ${index + 1} 组`}
-                aria-current={index === position ? "true" : undefined}
+                aria-current={index === active ? "true" : undefined}
                 onClick={() => goTo(index)}
               />
             ))}
@@ -197,7 +163,7 @@ export function HomeEntryCarousel({ children, label }: HomeEntryCarouselProps) {
           </button>
         </div>
         <span className="sr-only" aria-live="polite">
-          当前第 {position + 1} 个入口，共 {total} 个
+          当前第 {active + 1} 个入口，共 {total} 个
         </span>
       </div>
     </section>

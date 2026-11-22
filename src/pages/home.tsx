@@ -29,12 +29,7 @@ import { HomeEntryCarousel } from "../components/home-entry-carousel";
 import type { HomeOutletContext } from "../components/layout/root-layout";
 import { Button } from "../components/ui/button";
 import { cn } from "../lib/utils";
-import {
-  ABOUT_CONTENT_ITEMS,
-  HOME_ENTRY_ROUTES,
-  type HomeEntryIcon,
-  READING_GUIDES,
-} from "./page-resources";
+import { HOME_ENTRY_ROUTES, type HomeEntryIcon } from "./page-resources";
 
 const ENTRY_ICONS: Record<HomeEntryIcon, typeof Landmark> = {
   "book-open": BookOpen,
@@ -134,7 +129,7 @@ export function HomePage() {
           <span className="eyebrow">内容入口</span>
           <h2 className="font-brush text-4xl text-ink">核心入口与后续专题</h2>
           <p className="max-w-md text-muted-foreground">
-            左右翻阅各专题入口：已开放的内容可直接进入，筹备中的新专题只作预告，不打断阅读动线。
+            逐一预览各专题的真实页面：每张截图附读图注释，点击可直接进入；筹备中的新专题只作预告。
           </p>
         </div>
 
@@ -142,31 +137,23 @@ export function HomePage() {
           {HOME_ENTRY_ROUTES.map((entry) => {
             const Icon = ENTRY_ICONS[entry.icon];
 
-            // 筹备中条目留在同一卷轴里，但用虚线纸页与「筹备中」印标明确保持不可点击。
+            // 筹备中条目保持不可点击，用虚线纸页与「筹备中」印明确标示。
             if (entry.status !== "available" || !entry.path) {
               return (
                 <article
                   key={entry.title}
                   aria-disabled="true"
-                  className="index-card index-card-preview group relative flex min-h-52 flex-col gap-4 overflow-hidden p-6 text-left"
+                  className="home-feature-card index-card-preview flex flex-col gap-4 p-6 text-left"
                 >
-                  <span className="absolute right-5 top-5 rounded-full border border-ink/20 px-2 py-0.5 font-body text-[0.7rem] text-muted-foreground">
+                  <span className="self-start rounded-full border border-ink/20 px-2 py-0.5 font-body text-[0.7rem] text-muted-foreground">
                     筹备中
                   </span>
-                  <Icon aria-hidden="true" className="h-8 w-8 text-ink/40" />
-                  {/* 标题恒占两行、描述恒占三行：与已开放卡片保持同一基线 */}
-                  <div className="flex flex-col gap-2">
-                    <span className="line-clamp-2 min-h-[2.5em] font-brush text-3xl leading-[1.25] text-ink/70">
-                      {entry.title}
-                    </span>
-                    <span
-                      className="line-clamp-3 min-h-[4.5em] text-muted-foreground/80 text-sm leading-[1.5]"
-                      title={entry.description}
-                    >
-                      {entry.description}
-                    </span>
-                  </div>
-                  <span className="relative z-10 mt-auto font-mono-tech text-xs tracking-[0.25em] text-muted-foreground uppercase">
+                  <Icon aria-hidden="true" className="h-10 w-10 text-ink/40" />
+                  <span className="font-brush text-4xl leading-tight text-ink/70">
+                    {entry.title}
+                  </span>
+                  <span className="text-muted-foreground">{entry.description}</span>
+                  <span className="mt-auto font-mono-tech text-xs tracking-[0.25em] text-muted-foreground uppercase">
                     敬请期待
                   </span>
                 </article>
@@ -177,95 +164,48 @@ export function HomePage() {
               <Link
                 key={entry.title}
                 to={entry.path}
-                className="group index-card relative flex min-h-52 flex-col gap-4 overflow-hidden p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-paper"
+                className="home-feature-card group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 focus-visible:ring-offset-paper"
               >
-                <span className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-vermillion/70 to-transparent opacity-70" />
-                <Icon className="h-8 w-8 text-vermillion transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110" />
-                <div className="flex flex-col gap-2">
-                  <span className="line-clamp-2 min-h-[2.5em] font-brush text-3xl leading-[1.25] text-ink">
-                    {entry.title}
-                  </span>
-                  <span
-                    className="line-clamp-3 min-h-[4.5em] text-muted-foreground text-sm leading-[1.5]"
-                    title={entry.description}
-                  >
-                    {entry.description}
+                <div className="home-feature-shot">
+                  {entry.screenshot ? (
+                    <img
+                      src={`/home-screenshots/${entry.screenshot}`}
+                      alt={`${entry.title}页面截图`}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="grid h-full place-items-center">
+                      <Icon aria-hidden="true" className="h-12 w-12 text-vermillion/50" />
+                    </div>
+                  )}
+                  <span className="home-feature-shot-badge">功能页面截图</span>
+                </div>
+                <div className="home-feature-body">
+                  <span className="eyebrow">专题预览</span>
+                  <span className="font-brush text-4xl leading-tight text-ink">{entry.title}</span>
+                  <span className="text-muted-foreground">{entry.description}</span>
+                  {entry.note ? (
+                    <div className="home-feature-note flex flex-col gap-1">
+                      <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
+                        读图注释
+                      </span>
+                      <span className="text-sm leading-relaxed text-muted-foreground">
+                        {entry.note}
+                      </span>
+                    </div>
+                  ) : null}
+                  <span className="mt-auto flex items-center gap-1.5 font-mono-tech text-xs tracking-[0.25em] text-vermillion uppercase sm:text-sm">
+                    进入专题
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1"
+                    />
                   </span>
                 </div>
-                <span className="relative z-10 mt-auto flex items-center gap-1.5 font-mono-tech text-xs tracking-[0.25em] text-vermillion uppercase sm:text-sm">
-                  进入
-                  <ArrowRight
-                    aria-hidden="true"
-                    className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1"
-                  />
-                </span>
               </Link>
             );
           })}
         </HomeEntryCarousel>
-      </section>
-
-      <section
-        className="home-section-panel reveal flex flex-col gap-12"
-        style={{ animationDelay: "350ms" }}
-      >
-        <div className="flex max-w-2xl flex-col gap-3">
-          <span className="eyebrow">关于内容</span>
-          <h2 className="font-brush text-4xl text-ink">如何阅读中国古代全览</h2>
-          <p className="max-w-xl text-muted-foreground">
-            全览按「先立朝代坐标、再读治国制度、后及边疆与交通」的次第展开。沿下面的路径逐层深入，
-            可把分散的专题读成一条线索。
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <span className="eyebrow">内容结构</span>
-            <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-muted-foreground uppercase">
-              沿次第逐层深入
-            </span>
-          </div>
-          <ol className="reading-path-list">
-            {ABOUT_CONTENT_ITEMS.map((item, index) => (
-              <li key={item.title} className="reading-path-step">
-                <span className="reading-path-index" aria-hidden="true">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div className="reading-path-body">
-                  <span className="font-brush text-2xl text-ink">{item.title}</span>
-                  <span className="text-muted-foreground text-sm leading-relaxed">{item.text}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <span className="eyebrow">读法提示</span>
-            <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-muted-foreground uppercase">
-              按图索骥 · 随题追问
-            </span>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {READING_GUIDES.map(({ icon, title, text }, index) => {
-              const Icon = ENTRY_ICONS[icon];
-
-              return (
-                <div key={title} className="guide-card flex flex-col gap-3 p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-muted-foreground uppercase">
-                      读法 {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <Icon aria-hidden="true" className="h-6 w-6 text-vermillion" />
-                  </div>
-                  <span className="font-brush text-xl text-ink">{title}</span>
-                  <span className="text-muted-foreground text-sm">{text}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </section>
     </div>
   );

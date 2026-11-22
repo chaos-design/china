@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { HOME_ENTRY_ROUTES, READING_GUIDES } from "./page-resources";
+import { HOME_ENTRY_ROUTES } from "./page-resources";
 
 describe("page resources", () => {
   it("keeps enterable home entries before preview entries", () => {
@@ -19,10 +19,11 @@ describe("page resources", () => {
     }
   });
 
-  it("keeps hidden resources out of the home reading guides", () => {
-    // 「对照旧版浮岛」来自 showInHome:false 的旧版页，不应出现在首页导览里。
-    expect(READING_GUIDES.map((guide) => guide.title)).not.toContain("对照旧版浮岛");
-    expect(READING_GUIDES.map((guide) => guide.title)).toContain("先定朝代坐标");
+  it("gives every home entry a real screenshot and a reading note", () => {
+    for (const entry of HOME_ENTRY_ROUTES) {
+      expect(entry.screenshot).toMatch(/^[a-z-]+\.jpg$/);
+      expect(entry.note).toBeTruthy();
+    }
   });
 
   it("uses the integrated silk road html resource instead of a preview entry", () => {
