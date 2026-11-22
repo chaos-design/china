@@ -97,6 +97,32 @@ describe("<ImperialExamPage /> 登科之阶", () => {
     // 资料出处（历代正史）不在本页
     expect(screen.queryByText("资料出处")).not.toBeInTheDocument();
   });
+
+  it("opens an image lightbox by clicking and closes it by Escape or mask click", () => {
+    renderSection("stages");
+
+    const ladder = screen.getByRole("region", { name: "登科之阶" });
+    // 每站主图 + 细节缩略图都可放大：10 个「放大查看」按钮
+    const zoomButtons = within(ladder).getAllByRole("button", { name: /^放大查看/ });
+    expect(zoomButtons.length).toBe(EXAM_STAGES.length + 3);
+
+    // 点开第一张：放大层展示原图与图注，Esc 不至于误关（先断言存在）
+    fireEvent.click(zoomButtons[0]);
+    const closeButton = screen.getByRole("button", { name: /关闭放大图/ });
+    expect(closeButton).toBeInTheDocument();
+    const lightboxImage = document.querySelector('button[aria-label^="关闭放大图"] img');
+    expect(lightboxImage).not.toBeNull();
+    expect(lightboxImage?.getAttribute("src")).toMatch(/^\/imperial-exam\//);
+
+    // Escape 关闭
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("button", { name: /关闭放大图/ })).not.toBeInTheDocument();
+
+    // 再点开，点遮罩（放大层按钮本身）关闭
+    fireEvent.click(zoomButtons[0]);
+    fireEvent.click(screen.getByRole("button", { name: /关闭放大图/ }));
+    expect(screen.queryByRole("button", { name: /关闭放大图/ })).not.toBeInTheDocument();
+  });
 });
 
 describe("<ImperialExamPage /> 历代官途", () => {

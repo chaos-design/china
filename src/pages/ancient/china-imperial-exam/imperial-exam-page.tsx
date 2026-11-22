@@ -1,5 +1,5 @@
 import { BadgeCheck, BookOpen, DoorOpen, FileSearch, PenLine, ScrollText } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import { cn } from "../../../lib/utils";
 import { getDynastyPath, IMPERIAL_EXAM_DYNASTIES } from "./dynasties";
@@ -46,6 +46,61 @@ const LEGEND_ICONS: Record<LegendItem["icon"], typeof BookOpen> = {
   appoint: BadgeCheck,
 };
 
+/** 放大查看的影像数据：档案记录 + 图注。 */
+interface LightboxImage {
+  src: string;
+  w: number;
+  h: number;
+  alt: string;
+  credit: string;
+  caption: string;
+}
+
+/**
+ * 影像放大层：遮罩即关闭按钮（点击任意处关闭），Escape 关闭；
+ * 与政策全览页的放大图同一交互约定（mask 为 button、aria-label「关闭放大图」）。
+ */
+function ImageLightbox({ image, onClose }: { image: LightboxImage; onClose: () => void }) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return (
+    <button
+      aria-label={`关闭放大图：${image.caption}`}
+      className="fixed inset-0 z-[80] flex cursor-zoom-out flex-col items-center justify-center gap-3 bg-ink/85 p-6"
+      onClick={onClose}
+      type="button"
+    >
+      <span
+        aria-hidden="true"
+        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-paper/30 bg-paper/10 font-body text-2xl text-paper"
+      >
+        ×
+      </span>
+      <figure className="flex max-h-full flex-col gap-2">
+        <img
+          alt={image.alt}
+          className="mx-auto h-auto max-h-[76vh] w-auto max-w-[92vw] rounded-lg border border-paper/15 object-contain"
+          height={image.h}
+          src={image.src}
+          width={image.w}
+        />
+        <figcaption className="text-center text-paper/85 text-xs leading-snug">
+          {image.caption}
+          <span className="text-paper/55"> · {image.credit}</span>
+        </figcaption>
+      </figure>
+    </button>
+  );
+}
+
 const PAGE_DESCRIPTION =
   "一千三百年间，读书人怎么走进官场、又靠什么爬上去。登科之阶按「一科三年」的时间轴逻辑逐站铺开明清科举全程，" +
   "以贡院、金榜、殿试卷等真实影像佐证其难度；历代官途逐朝拆解入仕途径与晋升机制，并为每一朝配一份真实官员的履历样本。";
@@ -54,6 +109,8 @@ const DEFAULT_DYNASTY_ID = IMPERIAL_EXAM_DYNASTIES[0]?.id ?? "";
 
 /** 子页一：登科之阶——七站链 + 晋身漏斗 + 一科三年节奏轴 + 岔路。 */
 function StagesSection() {
+  const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
+
   return (
     <section aria-label="登科之阶" className="mx-auto flex w-full max-w-5xl flex-col gap-8 pt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -174,14 +231,30 @@ function StagesSection() {
                     <div className="grid gap-3 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
                       {mainImage && mainImageCaption ? (
                         <figure className="flex flex-col gap-1.5">
-                          <img
-                            alt={mainImage.alt}
-                            className="h-auto w-full rounded-lg border border-ink/10 object-cover"
-                            height={mainImage.h}
-                            loading="lazy"
-                            src={mainImage.src}
-                            width={mainImage.w}
-                          />
+                          <button
+                            aria-label={`放大查看：${mainImageCaption}`}
+                            className="block w-full cursor-zoom-in overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            onClick={() =>
+                              setLightbox({
+                                src: mainImage.src,
+                                w: mainImage.w,
+                                h: mainImage.h,
+                                alt: mainImage.alt,
+                                credit: mainImage.credit,
+                                caption: mainImageCaption,
+                              })
+                            }
+                            type="button"
+                          >
+                            <img
+                              alt={mainImage.alt}
+                              className="h-auto w-full border-ink/10 object-cover"
+                              height={mainImage.h}
+                              loading="lazy"
+                              src={mainImage.src}
+                              width={mainImage.w}
+                            />
+                          </button>
                           <figcaption className="text-muted-foreground text-[0.7rem] leading-snug">
                             {mainImageCaption}
                             <span className="text-ink/45"> · {mainImage.credit}</span>
@@ -206,14 +279,30 @@ function StagesSection() {
                               </p>
                               {thumb && detailImage ? (
                                 <figure className="mt-2">
-                                  <img
-                                    alt={thumb.alt}
-                                    className="h-24 w-full rounded-md border border-ink/10 object-cover"
-                                    height={thumb.h}
-                                    loading="lazy"
-                                    src={thumb.src}
-                                    width={thumb.w}
-                                  />
+                                  <button
+                                    aria-label={`放大查看：${detailImage.caption}`}
+                                    className="block w-full cursor-zoom-in overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                    onClick={() =>
+                                      setLightbox({
+                                        src: thumb.src,
+                                        w: thumb.w,
+                                        h: thumb.h,
+                                        alt: thumb.alt,
+                                        credit: thumb.credit,
+                                        caption: detailImage.caption,
+                                      })
+                                    }
+                                    type="button"
+                                  >
+                                    <img
+                                      alt={thumb.alt}
+                                      className="h-24 w-full object-cover"
+                                      height={thumb.h}
+                                      loading="lazy"
+                                      src={thumb.src}
+                                      width={thumb.w}
+                                    />
+                                  </button>
                                   <figcaption className="mt-1 text-muted-foreground text-[0.68rem] leading-snug">
                                     {detailImage.caption}
                                   </figcaption>
@@ -351,6 +440,8 @@ function StagesSection() {
           ))}
         </ul>
       </footer>
+
+      {lightbox ? <ImageLightbox image={lightbox} onClose={() => setLightbox(null)} /> : null}
     </section>
   );
 }
