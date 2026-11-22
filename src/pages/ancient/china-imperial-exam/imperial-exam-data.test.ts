@@ -67,6 +67,32 @@ describe("imperial exam stage chain (登科之阶)", () => {
     }
   });
 
+  it("details exam subjects and methods for the five exam stations", () => {
+    const withExam = EXAM_STAGES.filter((stage) => stage.exam);
+    // 五个考试站：童试/乡试/会试/殿试/铨选授官；放榜与赶考两站不设考试
+    expect(withExam.map((stage) => stage.name)).toEqual([
+      "童试",
+      "乡试",
+      "会试",
+      "殿试",
+      "铨选授官",
+    ]);
+    for (const stage of withExam) {
+      const exam = stage.exam;
+      if (!exam) throw new Error(`missing exam block for ${stage.name}`);
+      expect(exam.subjects.length).toBeGreaterThanOrEqual(2);
+      expect(exam.methods.length).toBeGreaterThanOrEqual(2);
+      for (const item of [...exam.subjects, ...exam.methods]) {
+        expect(item.name.length).toBeGreaterThan(1);
+        expect(item.text.length).toBeGreaterThan(4);
+      }
+      const subjectNames = exam.subjects.map((item) => item.name);
+      expect(new Set(subjectNames).size).toBe(subjectNames.length);
+    }
+    // 童试口径：岁试科试是学政对生员的考试，不该出现在童试时点章
+    expect(EXAM_STAGES[0]?.timing).not.toContain("岁科两试");
+  });
+
   it("details the per-station flow with at least three ordered steps", () => {
     for (const stage of EXAM_STAGES) {
       expect(stage.flow.length).toBeGreaterThanOrEqual(3);

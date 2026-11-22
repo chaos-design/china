@@ -127,6 +127,50 @@ function StagesSection() {
                         </Fragment>
                       ))}
                     </div>
+                    {stage.exam ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-lg border border-ink/10 bg-paper/60 p-3">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-brush text-vermillion text-sm">考试科目</span>
+                            <span className="font-mono-tech text-muted-foreground text-[0.62rem] tracking-[0.2em]">
+                              考什么
+                            </span>
+                          </div>
+                          <ul className="mt-1.5 flex flex-col gap-1.5">
+                            {stage.exam.subjects.map((subject) => (
+                              <li className="flex flex-col gap-0.5" key={subject.name}>
+                                <span className="text-ink text-[0.78rem] font-medium">
+                                  {subject.name}
+                                </span>
+                                <span className="text-muted-foreground text-[0.72rem] leading-relaxed">
+                                  {subject.text}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="rounded-lg border border-ink/10 bg-paper/60 p-3">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-brush text-vermillion text-sm">考试方式</span>
+                            <span className="font-mono-tech text-muted-foreground text-[0.62rem] tracking-[0.2em]">
+                              怎么考
+                            </span>
+                          </div>
+                          <ul className="mt-1.5 flex flex-col gap-1.5">
+                            {stage.exam.methods.map((method) => (
+                              <li className="flex flex-col gap-0.5" key={method.name}>
+                                <span className="text-ink text-[0.78rem] font-medium">
+                                  {method.name}
+                                </span>
+                                <span className="text-muted-foreground text-[0.72rem] leading-relaxed">
+                                  {method.text}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="grid gap-3 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
                       {mainImage && mainImageCaption ? (
                         <figure className="flex flex-col gap-1.5">

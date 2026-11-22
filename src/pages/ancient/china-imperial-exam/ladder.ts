@@ -27,6 +27,11 @@ export interface ExamStage {
   summary: string;
   /** 站内环节微流程：从进场到出榜的先后步骤（教科书通行口径）。 */
   flow: string[];
+  /** 考试科目（考什么）与考试方式（怎么考）；非考试站（放榜、赶考）不填。 */
+  exam?: {
+    subjects: { name: string; text: string }[];
+    methods: { name: string; text: string }[];
+  };
   details: ExamStageDetail[];
 }
 
@@ -35,10 +40,22 @@ export const EXAM_STAGES: ExamStage[] = [
     num: "①",
     name: "童试",
     place: "本县 · 府城",
-    timing: "岁科两试 · 年年可考",
+    timing: "县府年年开考 · 院试随按临",
     identity: "过关得「生员（秀才）」",
     flow: ["廪生保结", "县试", "府试", "院试", "出榜进学"],
     summary: "县试（知县主持）、府试（知府主持）、院试（学政主持）三关连过，才算「进学」。",
+    exam: {
+      subjects: [
+        { name: "四书文", text: "从《四书》出题作八股文，各级两篇（清制）" },
+        { name: "试帖诗", text: "五言八韵诗一首" },
+        { name: "默写圣谕", text: "默写《圣谕广训》一二百字，不许错讹" },
+      ],
+      methods: [
+        { name: "三级连考", text: "县试、府试、院试逐级淘汰，一关失手从头再来" },
+        { name: "廪生保结", text: "报考须廪生出具保结，防冒籍、顶替、匿丧" },
+        { name: "学政按临", text: "院试由学政亲往各府主持，随岁科两试并考" },
+      ],
+    },
     details: [
       {
         label: "备考之苦",
@@ -50,7 +67,7 @@ export const EXAM_STAGES: ExamStage[] = [
       },
       {
         label: "三场连过",
-        text: "县试、府试各一场，院试为最后一关；岁试、科试三年轮替，一次失利再等一年。",
+        text: "县试多在二月、府试在四月，年年开考；院试随学政按临，三年两遇——一关失手，等下次再战。",
       },
       {
         label: "进学率约百分之一二",
@@ -66,6 +83,18 @@ export const EXAM_STAGES: ExamStage[] = [
     identity: "中式得「举人」",
     flow: ["点名搜检", "发卷入号", "三场答卷", "弥封誊录", "同考荐卷", "主考取中", "张挂桂榜"],
     summary: "连考三场、每场三日，吃住全在号舍里；中式曰举人，第一名称解元。",
+    exam: {
+      subjects: [
+        { name: "第一场 · 四书文", text: "《四书》题三篇、五言八韵诗一首（乾隆后加诗）" },
+        { name: "第二场 · 五经文", text: "《五经》出题五篇" },
+        { name: "第三场 · 策问", text: "时务策五道，问经史时务" },
+      ],
+      methods: [
+        { name: "八股程式", text: "破题、承题、起讲至大结各有定式，代圣人立言" },
+        { name: "九天号舍", text: "三场共九天，吃住答卷全在号舍" },
+        { name: "弥封誊录", text: "糊名、朱笔誊录，考官只对文字不对人" },
+      ],
+    },
     details: [
       {
         label: "九天三夜的号舍",
@@ -151,6 +180,18 @@ export const EXAM_STAGES: ExamStage[] = [
     identity: "中式得「贡士」",
     flow: ["点名搜检", "入号领卷", "三场答卷", "弥封誊录", "阅卷取中", "张挂杏榜"],
     summary: "礼部主持的全国会试，九天三夜再进号舍；中式曰贡士，第一名称会元。",
+    exam: {
+      subjects: [
+        { name: "三场递进", text: "《四书》文、《五经》文与时务策，式同乡试" },
+        { name: "策问并重", text: "第三场策问五道，多问时务与经史" },
+        { name: "防弊加码", text: "内帘外帘分设，阅卷与供事隔绝往来" },
+      ],
+      methods: [
+        { name: "再入号舍", text: "九天三场，号舍形制与乡试相同" },
+        { name: "同考荐卷", text: "同考官分房阅卷、推荐佳卷，主考定去取" },
+        { name: "杏榜揭晓", text: "放榜曰杏榜，中式者称贡士" },
+      ],
+    },
     details: [
       {
         label: "京师贡院",
@@ -182,6 +223,17 @@ export const EXAM_STAGES: ExamStage[] = [
     identity: "定「进士」三甲",
     flow: ["集保和殿", "天子策问", "当日答卷", "读卷官评阅", "钦定名次", "金榜题名"],
     summary: "天子亲策于廷，只定名次不黜落——一甲三名赐进士及第，二甲赐进士出身，三甲赐同进士出身。",
+    exam: {
+      subjects: [
+        { name: "时务策一道", text: "天子亲出策题，只考一场" },
+        { name: "楷法居先", text: "殿试重书法，卷面工整直接影响名次" },
+      ],
+      methods: [
+        { name: "一日考毕", text: "晨入保和殿策问，日暮交卷，无号舍之苦" },
+        { name: "读卷钦定", text: "读卷官阅定前十本，皇帝钦定名次，鼎甲由此而定" },
+        { name: "不黜落", text: "只排三甲名次，人人可得进士出身" },
+      ],
+    },
     details: [
       {
         label: "大金榜",
@@ -213,6 +265,16 @@ export const EXAM_STAGES: ExamStage[] = [
     identity: "入仕为官",
     flow: ["朝考", "引见授职", "翰林入馆或外放知县", "顶服上任"],
     summary: "朝考选庶吉士入翰林，其余进士授部院主事或外放知县——由「读书人」变「官」。",
+    exam: {
+      subjects: [
+        { name: "朝考", text: "殿试后再试一场，论、疏、诗并出，定庶吉士人选" },
+        { name: "掣签名次", text: "吏部月选掣签定缺，科分班次定先后" },
+      ],
+      methods: [
+        { name: "引见授职", text: "新进士由皇帝引见，钦定职守" },
+        { name: "三大去向", text: "庶吉士入翰林、部院主事、外放知县" },
+      ],
+    },
     details: [
       {
         label: "县衙正堂",

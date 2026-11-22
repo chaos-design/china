@@ -78,6 +78,11 @@ describe("<ImperialExamPage /> 登科之阶", () => {
     expect(screen.getByText(/科举之路时间线 · 每三年一科/)).toBeInTheDocument();
     expect(within(ladder).getByText("第一年 · 八月")).toBeInTheDocument();
     expect(within(ladder).getByText("朝廷铨选，授以官职")).toBeInTheDocument();
+    // 五个考试站各带「考试科目 / 考试方式」双栏块
+    expect(within(ladder).getAllByText("考试科目")).toHaveLength(5);
+    expect(within(ladder).getAllByText("考试方式")).toHaveLength(5);
+    expect(within(ladder).getAllByText("考什么")).toHaveLength(5);
+    expect(within(ladder).getByText("第一场 · 四书文")).toBeInTheDocument();
 
     // 正途之外的岔路恒常可见
     expect(screen.getByText("岔路 · 正途之外的入仕")).toBeInTheDocument();
