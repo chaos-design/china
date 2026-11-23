@@ -1,3 +1,4 @@
+import { ZoomIn } from "lucide-react";
 import { useId } from "react";
 
 import { cn } from "../../../lib/utils";
@@ -21,18 +22,27 @@ import { useRankLightbox } from "./rank-lightbox";
 function RankImageTile({ className, image }: { className?: string; image: RankImage }) {
   const openLightbox = useRankLightbox();
   return (
-    <img
-      alt=""
-      aria-hidden="true"
-      className={cn("cursor-zoom-in border border-ink/15 object-cover shadow-sm", className)}
-      loading="lazy"
-      onDoubleClick={(event) => {
-        event.stopPropagation();
-        openLightbox(image);
-      }}
-      src={image.src}
-      title={`${image.caption}（双击放大）`}
-    />
+    <span className={cn("relative inline-flex shrink-0", className)}>
+      <img
+        alt=""
+        aria-hidden="true"
+        className="h-full w-full cursor-zoom-in rounded-[inherit] border border-ink/15 object-cover shadow-sm"
+        loading="lazy"
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          openLightbox(image);
+        }}
+        src={image.src}
+        title={`${image.caption}（双击放大）`}
+      />
+      {/* 角落放大镜：真实藏品照可放大查看的可见提示；纯装饰，不拦双击与卡片点选。 */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute right-0.5 top-0.5 grid h-3.5 w-3.5 place-items-center rounded-full border border-vermillion/40 bg-paper/90 text-vermillion shadow-sm"
+      >
+        <ZoomIn className="h-2.5 w-2.5" strokeWidth={2.5} />
+      </span>
+    </span>
   );
 }
 

@@ -31,6 +31,8 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
   const [silverPrice, setSilverPrice] = useState(SILVER_PRICE_PER_GRAM_CNY);
   const [silverSource, setSilverSource] = useState(SILVER_PRICE_DATE);
   const [fetchingSilver, setFetchingSilver] = useState(false);
+  // 当前价格是否来自实时查询：用于价格徽标的强调档位；手动改价即回落为普通高亮。
+  const [silverLive, setSilverLive] = useState(false);
 
   const changeSilverPrice = (raw: string) => {
     setSilverInput(raw);
@@ -38,6 +40,7 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
     if (Number.isFinite(parsed) && parsed > 0) {
       setSilverPrice(parsed);
       setSilverSource("自定义");
+      setSilverLive(false);
     }
   };
 
@@ -50,8 +53,10 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
       setSilverSource(
         `现查 · ${live.usdPerOunce.toFixed(2)} 美元/盎司 × ${live.usdCnyRate.toFixed(3)}`,
       );
+      setSilverLive(true);
     } else {
       setSilverSource("查询失败，沿用当前价");
+      setSilverLive(false);
     }
     setFetchingSilver(false);
   };
@@ -227,6 +232,7 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
         onSilverInputChange={changeSilverPrice}
         selectedLabel={selectedLabel}
         silverInput={silverInput}
+        silverLive={silverLive}
         silverPrice={silverPrice}
         silverSource={silverSource}
       />

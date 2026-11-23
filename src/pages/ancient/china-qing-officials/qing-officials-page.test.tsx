@@ -379,6 +379,36 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(screen.getByLabelText("正一品档案")).toHaveTextContent("自定义");
   });
 
+  it("highlights the effective silver price and emphasizes it after a live query", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.includes("gold-api")) {
+          return { ok: true, json: async () => ({ price: 50, updatedAt: "2026-11-23" }) };
+        }
+        return { ok: true, json: async () => ({ rates: { CNY: 7 } }) };
+      }),
+    );
+    try {
+      renderAt();
+      fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
+      const salary = screen.getByLabelText("俸禄阶梯");
+      const badge = within(salary).getByText("¥9.25/克");
+      expect(badge).toHaveClass("text-vermillion");
+      expect(badge).not.toHaveClass("ring-2");
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "查询银价" }));
+      });
+
+      // 50 美元/盎司 × 7 汇率 ÷ 31.1035 克 = 11.25 元/克；实时结果进一步加重。
+      const live = within(salary).getByText("¥11.25/克");
+      expect(live).toHaveClass("text-vermillion", "ring-2");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("folds salaries of non-silver dynasties into the same map", () => {
     renderAt("/china/qing-officials?dynasty=han");
     fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));

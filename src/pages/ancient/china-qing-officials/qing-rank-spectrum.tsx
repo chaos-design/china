@@ -119,6 +119,7 @@ function SalarySpectrum({
   onSilverInputChange,
   selectedLabel,
   silverInput,
+  silverLive,
   silverPrice,
   silverSource,
 }: {
@@ -129,6 +130,7 @@ function SalarySpectrum({
   onSilverInputChange: (raw: string) => void;
   selectedLabel: string;
   silverInput: string;
+  silverLive: boolean;
   silverPrice: number;
   silverSource: string;
 }) {
@@ -162,6 +164,17 @@ function SalarySpectrum({
         >
           {fetchingSilver ? "查询中…" : "查询银价"}
         </button>
+        <span
+          aria-live="polite"
+          className={cn(
+            "rounded-md border px-2.5 py-1 font-mono-tech text-sm font-semibold text-vermillion",
+            silverLive
+              ? "border-vermillion/50 bg-vermillion/15 ring-2 ring-vermillion/20"
+              : "border-vermillion/25 bg-vermillion/[0.06]",
+          )}
+        >
+          ¥{silverPrice.toFixed(2)}/克
+        </span>
         <span className="rounded-md border border-ochre/35 bg-ochre/10 px-2 py-0.5 font-mono-tech text-[0.62rem] text-ochre">
           {silverNote(silverPrice, silverSource, exact)}
         </span>
@@ -229,6 +242,7 @@ export function QingRankSpectrum({
   onSilverInputChange,
   selectedLabel,
   silverInput,
+  silverLive,
   silverPrice,
   silverSource,
 }: {
@@ -239,6 +253,7 @@ export function QingRankSpectrum({
   onSilverInputChange: (raw: string) => void;
   selectedLabel: string;
   silverInput: string;
+  silverLive: boolean;
   silverPrice: number;
   silverSource: string;
 }) {
@@ -254,6 +269,7 @@ export function QingRankSpectrum({
         onSilverInputChange={onSilverInputChange}
         selectedLabel={selectedLabel}
         silverInput={silverInput}
+        silverLive={silverLive}
         silverPrice={silverPrice}
         silverSource={silverSource}
       />
