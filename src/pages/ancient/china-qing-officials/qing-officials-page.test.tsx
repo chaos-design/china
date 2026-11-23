@@ -440,4 +440,26 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(screen.queryByLabelText("文官补子 · 飞禽")).toBeNull();
     expect(screen.getByLabelText("补子制度")).toHaveTextContent("补子尚未出现");
   });
+
+  it("double-clicks a real photograph to open the lightbox and closes it", () => {
+    const { unmount } = renderAt("/china/qing-officials?dynasty=qing");
+    fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
+
+    // 顶戴全谱里宝石顶是真图（img，标题带「双击放大」）；双击弹出 lightbox。
+    const photos = screen.getAllByTitle(/双击放大/);
+    expect(photos.length).toBeGreaterThan(0);
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    fireEvent.doubleClick(photos[0]!);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+    // 大图 + Commons 出处链接都在浮层里。
+    expect(within(dialog).getByRole("img")).toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: /Wikimedia Commons/ })).toBeInTheDocument();
+
+    // Esc 关闭（与读图气泡口径一致）。
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    unmount();
+  });
 });

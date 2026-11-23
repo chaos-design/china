@@ -6,6 +6,7 @@ import { DYNASTY_ATLASES, getDynastyAtlas, resolveDynastyAtlas } from "./data";
 import { QingOfficeTree } from "./qing-office-tree";
 import { QingRankLadder } from "./qing-rank-ladder";
 import { QingRegalia } from "./qing-regalia";
+import { RankLightboxProvider } from "./rank-lightbox";
 
 type OfficialsView = "chart" | "ranks";
 
@@ -105,15 +106,17 @@ export function QingOfficialsPage() {
       >
         {view === "chart" ? <QingOfficeTree atlas={atlas} /> : null}
         {view === "ranks" ? (
-          <div className="h-full min-h-0 overflow-y-auto pr-1 lg:pr-2">
-            <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-4 pt-1">
-              <QingRankLadder atlas={atlas} />
-              <QingRegalia atlas={atlas} />
-              <p className="border-ink/10 border-t pt-4 text-xs leading-relaxed text-muted-foreground">
-                {atlas.footnote}
-              </p>
+          <RankLightboxProvider>
+            <div className="h-full min-h-0 overflow-y-auto pr-1 lg:pr-2">
+              <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-4 pt-1">
+                <QingRankLadder atlas={atlas} />
+                <QingRegalia atlas={atlas} />
+                <p className="border-ink/10 border-t pt-4 text-xs leading-relaxed text-muted-foreground">
+                  {atlas.footnote}
+                </p>
+              </div>
             </div>
-          </div>
+          </RankLightboxProvider>
         ) : null}
       </div>
     </article>

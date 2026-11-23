@@ -3,6 +3,7 @@ import { useId } from "react";
 import { cn } from "../../../lib/utils";
 import type { AtlasRankLevel } from "./data";
 import { badgeImage, hatImage, type RankImage, robeImage } from "./rank-images";
+import { useRankLightbox } from "./rank-lightbox";
 
 /**
  * 品秩图示：优先渲染 rank-images.ts 里的真实博物馆藏品照（Commons 公有领域 / CC0），
@@ -11,16 +12,26 @@ import { badgeImage, hatImage, type RankImage, robeImage } from "./rank-images";
  * 图形本身 aria-hidden，文字由相邻节点承担；真实图片的出处由 RankImageCredits 落页脚。
  */
 
-/** 真实藏品照统一小图：圆角 + 细边，与卡片语言一致；title 带藏品说明。 */
+/**
+ * 真实藏品照统一小图：圆角 + 细边，与卡片语言一致；title 带藏品说明。
+ * 双击放大：双击触发页面层 lightbox 展示大图 + 藏品注 + Commons 出处。
+ * 用 img 的 onDoubleClick 而非内嵌 button——各全谱卡片本身已是 button，
+ * 内嵌 button 会产生非法嵌套；img 加 onDoubleClick 合法且不破坏既有 button 计数。
+ */
 function RankImageTile({ className, image }: { className?: string; image: RankImage }) {
+  const openLightbox = useRankLightbox();
   return (
     <img
       alt=""
       aria-hidden="true"
-      className={cn("border border-ink/15 object-cover shadow-sm", className)}
+      className={cn("cursor-zoom-in border border-ink/15 object-cover shadow-sm", className)}
       loading="lazy"
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        openLightbox(image);
+      }}
       src={image.src}
-      title={image.caption}
+      title={`${image.caption}（双击放大）`}
     />
   );
 }
