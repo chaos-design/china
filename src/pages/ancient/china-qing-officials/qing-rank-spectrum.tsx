@@ -162,7 +162,7 @@ function SalarySpectrum({
         >
           {fetchingSilver ? "查询中…" : "查询银价"}
         </button>
-        <span className="font-mono-tech text-[0.62rem] text-muted-foreground">
+        <span className="rounded-md border border-ochre/35 bg-ochre/10 px-2 py-0.5 font-mono-tech text-[0.62rem] text-ochre">
           {silverNote(silverPrice, silverSource, exact)}
         </span>
       </div>
