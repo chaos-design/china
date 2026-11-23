@@ -43,8 +43,8 @@ export function QingOfficialsPage() {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-baseline gap-x-3">
             <h1 className="font-brush text-2xl text-ink sm:text-3xl">官制图谱</h1>
-            <span className="hidden rounded-full border border-ink/15 bg-paper/80 px-3 py-0.5 font-body text-xs tracking-widest text-muted-foreground md:inline">
-              职官 · 品级 · 央地结构
+            <span className="hidden rounded-full border border-ink/15 bg-paper/80 px-3 py-0.5 font-body text-xs text-muted-foreground md:inline">
+              职官、品级、央地结构
             </span>
           </div>
           <fieldset aria-label="朝代选择" className="flex flex-wrap items-center gap-1.5">

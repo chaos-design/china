@@ -139,7 +139,7 @@ function SalarySpectrum({
       <SectionHead mark="俸" title="俸禄 · 阶梯" note="柱高为相对示意 · 金额随银价折算" />
       <div className="flex flex-wrap items-center gap-2 rounded-lg border border-ink/12 bg-paper/60 px-3 py-2">
         <label
-          className="font-mono-tech text-[0.65rem] tracking-[0.1em] text-muted-foreground"
+          className="font-mono-tech text-[0.65rem] text-muted-foreground"
           htmlFor="silver-price-input"
         >
           银价 元/克

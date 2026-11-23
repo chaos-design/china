@@ -148,7 +148,7 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
             </div>
           ))}
         </div>
-        <p className="pl-8 font-mono-tech text-[0.6rem] tracking-[0.1em] text-muted-foreground">
+        <p className="pl-8 font-mono-tech text-[0.6rem] text-muted-foreground">
           上层品秩高而窄 · 下层所辖广而深
         </p>
       </section>
@@ -165,9 +165,7 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
         />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
-              顶戴 · 章服
-            </span>
+            <span className="font-mono-tech text-[0.7rem] text-vermillion">顶戴 · 章服</span>
             {/* 三列共用固定高度媒体槽：图形底部对齐，正文起点一致 */}
             <div className="flex h-24 w-full items-end justify-center">
               <HatGlyph level={selected} />
@@ -179,9 +177,7 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
             <p className="text-[0.7rem] leading-relaxed text-muted-foreground">{atlas.notes.hat}</p>
           </div>
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
-              朝服
-            </span>
+            <span className="font-mono-tech text-[0.7rem] text-vermillion">朝服</span>
             <div className="flex h-24 w-full items-end justify-center">
               <RobeGlyph dynastyId={atlas.id} level={selected} />
             </div>
@@ -191,9 +187,7 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
             </p>
           </div>
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
-              俸禄 · 参考
-            </span>
+            <span className="font-mono-tech text-[0.7rem] text-vermillion">俸禄 · 参考</span>
             <div className="flex h-24 w-full items-end justify-center">
               <span
                 className="w-10 rounded-t-sm bg-vermillion/65"
@@ -214,9 +208,7 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
             </p>
           </div>
           <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-3">
-            <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
-              本级职官
-            </span>
+            <span className="font-mono-tech text-[0.7rem] text-vermillion">本级职官</span>
             <span className="font-brush text-base leading-snug text-ink">{selected.label}</span>
             <p className="text-xs leading-relaxed text-foreground/85">{selected.offices}</p>
             <p className="border-ink/10 border-t pt-1.5 text-[0.7rem] text-muted-foreground">

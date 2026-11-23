@@ -149,7 +149,7 @@ function OfficeLeaf({ node, depth }: { node: OfficeBranch["nodes"][number]; dept
           <span
             aria-hidden="true"
             className={cn(
-              "mt-[0.4em] inline-block h-2 w-2 shrink-0 border-r border-b border-vermillion/60 transition-transform",
+              "mt-[0.4em] inline-block h-2 w-2 shrink-0 border-r border-b border-vermillion/60 transition-transform motion-reduce:transition-none",
               open ? "rotate-45" : "-rotate-45",
             )}
           />
@@ -169,9 +169,7 @@ function OfficeLeaf({ node, depth }: { node: OfficeBranch["nodes"][number]; dept
             {node.title}
           </span>
           {node.rank ? (
-            <span className="font-mono-tech text-[0.7rem] tracking-[0.08em] text-vermillion">
-              {node.rank}
-            </span>
+            <span className="font-mono-tech text-[0.7rem] text-vermillion">{node.rank}</span>
           ) : null}
         </span>
       </button>
@@ -223,9 +221,7 @@ function OfficeTree2DFallback({ atlas }: { atlas: DynastyAtlas }) {
   return (
     <section aria-label="官制层级镜像" className="flex flex-col gap-6">
       <div className="mx-auto flex w-full max-w-md flex-col items-center gap-2 rounded-xl border border-ochre/30 bg-paper/75 px-5 py-4 text-center shadow-[0_8px_24px_hsl(var(--ink)/0.06)]">
-        <span className="font-mono-tech text-[0.7rem] tracking-[0.3em] text-ochre uppercase">
-          权力本源
-        </span>
+        <span className="font-mono-tech text-[0.7rem] text-ochre">权力本源</span>
         <span className="font-brush text-3xl text-ink sm:text-4xl">{atlas.root.title}</span>
         <span className="text-xs leading-relaxed text-muted-foreground">{atlas.root.note}</span>
       </div>
@@ -283,16 +279,14 @@ function HoverReadout({
           <span aria-hidden="true" className="absolute inset-y-0 left-0 w-[3px] bg-vermillion/85" />
           <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 pl-1.5">
             <span className="font-brush text-lg text-ink">{hover.title}</span>
-            <span className="font-mono-tech text-[0.7rem] tracking-[0.06em] text-vermillion">
-              {hover.subtitle}
-            </span>
+            <span className="font-mono-tech text-[0.7rem] text-vermillion">{hover.subtitle}</span>
           </div>
           <p className="mt-0.5 line-clamp-2 pl-1.5 text-muted-foreground text-xs leading-relaxed">
             {hover.detail}
           </p>
         </div>
       ) : (
-        <span className="inline-flex items-center gap-2 rounded-full border border-ink/12 bg-paper/90 px-4 py-1.5 font-mono-tech text-[0.7rem] tracking-[0.08em] text-muted-foreground">
+        <span className="inline-flex items-center gap-2 rounded-full border border-ink/12 bg-paper/90 px-4 py-1.5 font-mono-tech text-[0.7rem] text-muted-foreground">
           <SealBadge mark="阅" className="h-5 w-5 text-[0.6rem]" />
           {dynastyName} · 拖拽旋转 滚轮缩放 点选节点或标签展开详情
         </span>
@@ -340,7 +334,7 @@ function NoteChip({ atlas, drawerOpen }: { atlas: DynastyAtlas; drawerOpen: bool
     };
   }, [open]);
 
-  const eyebrow = "font-mono-tech text-[0.6rem] tracking-[0.18em] text-ochre uppercase";
+  const eyebrow = "font-mono-tech text-[0.6rem] text-ochre";
   const readingSteps = [
     {
       mark: "壹",
@@ -393,7 +387,7 @@ function NoteChip({ atlas, drawerOpen }: { atlas: DynastyAtlas; drawerOpen: bool
             <p className="font-brush text-lg leading-snug text-ink">
               面片由近及远 · 层级越深越收敛
             </p>
-            <p className="mt-0.5 font-mono-tech text-[0.65rem] tracking-[0.06em] text-muted-foreground">
+            <p className="mt-0.5 font-mono-tech text-[0.65rem] text-muted-foreground">
               {atlas.name} · {atlas.system} · {atlas.period}
             </p>
 
@@ -444,7 +438,7 @@ function NoteChip({ atlas, drawerOpen }: { atlas: DynastyAtlas; drawerOpen: bool
 
             <section aria-label="读图示例" className="mt-3 border-ink/10 border-t pt-2.5">
               <p className={eyebrow}>读图示例</p>
-              <p className="mt-1 font-mono-tech text-[0.7rem] tracking-[0.04em] text-vermillion">
+              <p className="mt-1 font-mono-tech text-[0.7rem] text-vermillion">
                 {guide.example.path}
               </p>
               <p className="mt-1 text-[0.7rem] leading-relaxed text-muted-foreground">
@@ -452,7 +446,7 @@ function NoteChip({ atlas, drawerOpen }: { atlas: DynastyAtlas; drawerOpen: bool
               </p>
             </section>
           </div>
-          <footer className="shrink-0 border-ink/10 border-t bg-paper/80 px-3 py-1.5 font-mono-tech text-[0.6rem] tracking-[0.08em] text-muted-foreground">
+          <footer className="shrink-0 border-ink/10 border-t bg-paper/80 px-3 py-1.5 font-mono-tech text-[0.6rem] text-muted-foreground">
             {atlas.name} · {atlas.source}
           </footer>
         </section>
@@ -460,7 +454,7 @@ function NoteChip({ atlas, drawerOpen }: { atlas: DynastyAtlas; drawerOpen: bool
       <button
         aria-expanded={open}
         className={cn(
-          "pointer-events-auto rounded-full border bg-paper/90 px-3 py-1 font-mono-tech text-[0.65rem] tracking-[0.18em] uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "pointer-events-auto rounded-full border bg-paper/90 px-3 py-1 font-mono-tech text-[0.65rem] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           open
             ? "border-vermillion/40 text-vermillion"
             : "border-ink/12 text-muted-foreground hover:border-vermillion/30 hover:text-ink",
@@ -506,7 +500,7 @@ function StageMenu({
   onToggleRotate: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
-  const eyebrow = "font-mono-tech text-[0.65rem] tracking-[0.18em] text-ochre uppercase";
+  const eyebrow = "font-mono-tech text-[0.65rem] text-ochre";
   const tool =
     "rounded-full border border-ink/15 bg-card/70 px-2.5 py-1 font-body text-[0.7rem] text-muted-foreground transition-colors hover:border-vermillion/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-45 whitespace-nowrap";
 
@@ -576,7 +570,7 @@ function StageMenu({
                       {item.title}
                     </span>
                     {item.span ? (
-                      <span className="ml-auto shrink-0 font-mono-tech text-[0.65rem] tracking-[0.04em] text-muted-foreground">
+                      <span className="ml-auto shrink-0 font-mono-tech text-[0.65rem] text-muted-foreground">
                         {item.span}
                       </span>
                     ) : null}
@@ -653,9 +647,7 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
         aria-hidden="true"
         className="absolute -left-[3px] top-1.5 h-1.5 w-1.5 rounded-sm bg-vermillion/60"
       />
-      <dt className="font-mono-tech text-[0.65rem] tracking-[0.18em] text-ochre uppercase">
-        {label}
-      </dt>
+      <dt className="font-mono-tech text-[0.65rem] text-ochre">{label}</dt>
       <dd className="text-xs leading-relaxed text-foreground/90">{children}</dd>
     </div>
   );
@@ -703,9 +695,7 @@ function OfficeNodeDetail({
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <h3 className="font-brush text-2xl text-ink">{node.title}</h3>
         {node.rank ? (
-          <span className="font-mono-tech text-xs tracking-[0.08em] text-vermillion">
-            {node.rank}
-          </span>
+          <span className="font-mono-tech text-xs text-vermillion">{node.rank}</span>
         ) : null}
         <span className="rounded-full border border-ink/15 bg-paper/70 px-2 py-0.5 text-[0.7rem] text-muted-foreground">
           {KIND_LABEL[node.kind]}
@@ -724,9 +714,7 @@ function OfficeNodeDetail({
                   key={level.label}
                 >
                   <div className="flex flex-wrap items-baseline gap-x-2">
-                    <span className="font-mono-tech text-xs tracking-[0.06em] text-vermillion">
-                      {level.label}
-                    </span>
+                    <span className="font-mono-tech text-xs text-vermillion">{level.label}</span>
                     <span className="text-[0.7rem] leading-snug text-muted-foreground">
                       {level.offices}
                     </span>
@@ -762,7 +750,7 @@ function OfficeNodeDetail({
         ) : null}
         <DetailRow label="所属朝代">{dynastyName}</DetailRow>
       </dl>
-      <p className="border-ink/10 border-t pt-3 font-mono-tech text-[0.65rem] tracking-[0.06em] text-muted-foreground">
+      <p className="border-ink/10 border-t pt-3 font-mono-tech text-[0.65rem] text-muted-foreground">
         {atlas.name} · {atlas.system} ｜ 据 {atlas.source}
       </p>
     </div>
@@ -853,7 +841,7 @@ function RelationDetail({
                 >
                   <span className="text-foreground/90">{entry.title}</span>
                   {entry.rank ? (
-                    <span className="shrink-0 font-mono-tech text-[0.65rem] tracking-[0.04em] text-vermillion">
+                    <span className="shrink-0 font-mono-tech text-[0.65rem] text-vermillion">
                       {entry.rank}
                     </span>
                   ) : null}
@@ -903,9 +891,7 @@ function OfficeDetailDrawer({
     >
       <header className="flex items-center gap-3 border-ink/10 border-b bg-paper/60 px-4 py-3">
         <SealBadge mark="详" className="h-6 w-6 text-xs" />
-        <span className="font-mono-tech text-[0.65rem] tracking-[0.2em] text-ochre uppercase">
-          从属详解
-        </span>
+        <span className="font-mono-tech text-[0.65rem] text-ochre">从属详解</span>
         <button
           aria-label="关闭详情"
           className="ml-auto rounded-full border border-ink/15 bg-card/70 px-2.5 py-1 font-body text-xs text-muted-foreground transition-colors hover:border-vermillion/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -989,9 +975,7 @@ function LevelScale({ layout, hidden }: { layout: OfficeTreeLayout; hidden: bool
     >
       <div className="flex items-center gap-2">
         <SealBadge mark="层" className="h-5 w-5 text-[0.6rem]" />
-        <p className="font-mono-tech text-[0.65rem] tracking-[0.18em] text-ochre uppercase">
-          层级刻度
-        </p>
+        <p className="font-mono-tech text-[0.65rem] text-ochre">层级刻度</p>
       </div>
       {/*
        * 竖线与面片朱点共用 x=20：li 因 pl-8 右移 32px，面片用 -32px 抵消，
@@ -1177,7 +1161,7 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
               aria-hidden="true"
               className="h-8 w-8 animate-spin rounded-full border-2 border-ink/15 border-t-vermillion"
             />
-            <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-muted-foreground">
+            <span className="font-mono-tech text-[0.7rem] text-muted-foreground">
               正在展开官制立体树
             </span>
           </div>

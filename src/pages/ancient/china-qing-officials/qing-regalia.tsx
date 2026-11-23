@@ -44,7 +44,7 @@ function BadgeGrid({
             key={`${kind}-${badge.order}`}
           >
             <BadgeGlyph animal={badge.animal} kind={kind} />
-            <span className="font-mono-tech text-[0.7rem] text-vermillion tracking-[0.1em]">
+            <span className="font-mono-tech text-[0.7rem] text-vermillion">
               {BADGE_NAMES[badge.order - 1] ?? badge.order}品
             </span>
             <span className="font-brush text-sm text-ink">{badge.animal}</span>
@@ -103,9 +103,7 @@ export function QingRegalia({ atlas }: { atlas: DynastyAtlas }) {
         aria-label="补子制度"
         className="flex flex-col gap-1.5 rounded-xl border border-dashed border-ink/20 bg-paper/60 px-4 py-3"
       >
-        <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
-          章服制度
-        </span>
+        <span className="font-mono-tech text-[0.7rem] text-vermillion">章服制度</span>
         <p className="text-xs leading-relaxed text-muted-foreground">{atlas.badgeNote}</p>
       </section>
 
@@ -133,10 +131,10 @@ export function QingRegalia({ atlas }: { atlas: DynastyAtlas }) {
           <span className="mt-1 h-2 w-32 rounded-[50%] border border-vermillion/20 bg-vermillion/[0.04]" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
-            礼序 · 朝会位次
-          </span>
-          <h3 className="font-brush text-2xl text-ink">{atlas.ritual.title}</h3>
+          <h3 className="flex flex-col gap-1.5 font-brush text-2xl text-ink">
+            <span className="font-mono-tech text-[0.7rem] text-vermillion">礼序、朝会位次</span>
+            {atlas.ritual.title}
+          </h3>
           <p className="max-w-2xl text-sm leading-relaxed text-foreground/85">
             {atlas.ritual.text}
           </p>

@@ -78,9 +78,7 @@ export function ArchiveSectionHead({
         <SealBadge mark={mark} />
         <h3 className="font-brush text-xl text-ink">{title}</h3>
         {note ? (
-          <span className="font-mono-tech text-[0.7rem] tracking-[0.12em] text-muted-foreground">
-            {note}
-          </span>
+          <span className="font-mono-tech text-[0.7rem] text-muted-foreground">{note}</span>
         ) : null}
         {children}
       </div>
