@@ -321,6 +321,7 @@ Project-local skills live under `.agents/skills/`. Use the most specific skill f
 - `deploy-guide`: Vercel/deployment configuration, production build behavior, and hosting notes.
 - `html-resource-sync`: generating `resources/html-resource/*.json` metadata for new HTML files.
 - `vite-tailwind-source-location`: Vite/Tailwind JSX source-location injection setup.
+- `hallmark`: anti-AI-slop design review (`.agents/skills/hallmark/scripts/sloplint.mjs`, reads `.tsx`/`.css`; excludes `.dark` token literals as false positives). Invoke only when the user names Hallmark. On this existing design, use it to **audit and fix in place** — never apply its 50 catalog themes, which would replace the water-ink system. Script dir is excluded from Biome via `biome.json`.
 
 ## Deployment Notes
 

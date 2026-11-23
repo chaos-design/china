@@ -101,7 +101,7 @@ export function HomePage() {
         >
           <Button
             asChild
-            className="btn-ink rounded-sm bg-vermillion px-6 font-mono-tech text-sm font-semibold tracking-wide text-primary-foreground uppercase hover:bg-vermillion"
+            className="btn-ink rounded-sm bg-vermillion px-6 font-kai text-sm font-semibold text-primary-foreground hover:bg-vermillion"
           >
             <Link to="/china/timeline">
               进入时间长河
@@ -111,7 +111,7 @@ export function HomePage() {
           <Button
             asChild
             variant="ghost"
-            className="rounded-sm font-mono-tech text-sm font-semibold tracking-wide text-ink uppercase underline-offset-4 hover:bg-transparent hover:underline"
+            className="rounded-sm font-kai text-sm font-semibold text-ink underline-offset-4 hover:bg-transparent hover:underline"
           >
             <Link to="/china/policies">
               <BookOpen className="mr-2 h-4 w-4" />
@@ -126,7 +126,6 @@ export function HomePage() {
         style={{ animationDelay: "280ms" }}
       >
         <div className="flex max-w-2xl flex-col gap-3">
-          <span className="eyebrow">内容入口</span>
           <h2 className="font-brush text-4xl text-ink">核心入口与后续专题</h2>
           <p className="max-w-md text-muted-foreground">
             逐一预览各专题的真实页面：每张截图附读图注释，点击可直接进入；筹备中的新专题只作预告。
@@ -153,9 +152,7 @@ export function HomePage() {
                     {entry.title}
                   </span>
                   <span className="text-muted-foreground">{entry.description}</span>
-                  <span className="mt-auto font-mono-tech text-xs tracking-[0.25em] text-muted-foreground uppercase">
-                    敬请期待
-                  </span>
+                  <span className="mt-auto font-kai text-xs text-muted-foreground">敬请期待</span>
                 </article>
               );
             }
@@ -181,24 +178,21 @@ export function HomePage() {
                   <span className="home-feature-shot-badge">功能页面截图</span>
                 </div>
                 <div className="home-feature-body">
-                  <span className="eyebrow">专题预览</span>
                   <span className="font-brush text-4xl leading-tight text-ink">{entry.title}</span>
                   <span className="text-muted-foreground">{entry.description}</span>
                   {entry.note ? (
                     <div className="home-feature-note flex flex-col gap-1">
-                      <span className="font-mono-tech text-[0.7rem] tracking-[0.2em] text-vermillion uppercase">
-                        读图注释
-                      </span>
+                      <span className="font-kai text-[0.7rem] text-vermillion">读图注释</span>
                       <span className="text-sm leading-relaxed text-muted-foreground">
                         {entry.note}
                       </span>
                     </div>
                   ) : null}
-                  <span className="mt-auto flex items-center gap-1.5 font-mono-tech text-xs tracking-[0.25em] text-vermillion uppercase sm:text-sm">
+                  <span className="mt-auto flex items-center gap-1.5 font-kai text-xs text-vermillion sm:text-sm">
                     进入专题
                     <ArrowRight
                       aria-hidden="true"
-                      className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1"
+                      className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
                     />
                   </span>
                 </div>

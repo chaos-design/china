@@ -547,9 +547,8 @@
   border-radius: 999px;
   background: hsl(var(--paper) / 0.92);
   color: hsl(var(--vermillion));
-  font-family: var(--font-mono);
+  font-family: var(--font-kai);
   font-size: 0.7rem;
-  letter-spacing: 0.12em;
 }
 
 .home-feature-body {

@@ -165,10 +165,10 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
         data-menu-group={group.id}
         key={group.id}
       >
-        {/* 主标题（分类）与次标题（条目）用字体区分层级：
-            分类是无衬线小字、拉开字距、朱色，读作「栏目签」；条目是楷体正文字号，读作「去处」。
+        {/* 主标题（分类）与次标题（条目）用字体区分层级，不靠拉开字距：
+            分类是无衬线小字、朱色，读作「栏目签」；条目是楷体正文字号，读作「去处」。
             两者若同为楷体，只靠字号差两级分不出主次。 */}
-        <h3 className="mega-col-title pb-2 font-body text-xs font-medium tracking-[0.3em] text-vermillion">
+        <h3 className="mega-col-title pb-2 font-body text-sm font-medium text-vermillion">
           {group.label}
         </h3>
         <ul className="flex flex-col">
