@@ -114,6 +114,16 @@ export function buildOfficeTree(atlas: DynastyAtlas): RawNode[] {
     raws.push(node);
     index.set(node.id, node);
   };
+  // 荣衔与官署共用同一套递归挂载：节点自身先入树，再递归挂全部后代。
+  // 旧版荣衔只用 rawFromOfficeNode 挂一层，孙节点会静默丢失、永远不渲染。
+  const attach = (parentId: string, depth: number, node: AtlasOfficeNode) => {
+    const raw = rawFromOfficeNode(parentId, depth, node);
+    register(raw);
+    index.get(parentId)?.children.push(node.id);
+    for (const child of node.children ?? []) {
+      attach(node.id, depth + 1, child);
+    }
+  };
 
   const root: RawNode = {
     children: [],
@@ -141,8 +151,7 @@ export function buildOfficeTree(atlas: DynastyAtlas): RawNode[] {
     register(groupRaw);
     root.children.push(group.id);
     for (const child of group.children ?? []) {
-      register(rawFromOfficeNode(group.id, 2, child));
-      groupRaw.children.push(child.id);
+      attach(group.id, 2, child);
     }
   }
 
@@ -160,14 +169,6 @@ export function buildOfficeTree(atlas: DynastyAtlas): RawNode[] {
     };
     register(branchRaw);
     root.children.push(branch.id);
-    const attach = (parentId: string, depth: number, node: AtlasOfficeNode) => {
-      const nodeRaw = rawFromOfficeNode(parentId, depth, node);
-      register(nodeRaw);
-      index.get(parentId)?.children.push(node.id);
-      for (const child of node.children ?? []) {
-        attach(node.id, depth + 1, child);
-      }
-    };
     for (const node of branch.nodes) {
       attach(branch.id, 2, node);
     }

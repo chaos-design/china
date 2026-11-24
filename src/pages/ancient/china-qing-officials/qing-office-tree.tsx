@@ -685,6 +685,7 @@ function OfficeNodeDetail({
     (byId.get(id)?.children ?? []).reduce((sum, child) => sum + 1 + countDescendants(child), 0);
   const descendantCount = countDescendants(node.id);
   const rankLevels = matchRankLevels(atlas, node.rank);
+  const duty = getOfficeDuty(node);
   let ancestor = node.parent ? byId.get(node.parent) : undefined;
   while (ancestor && ancestor.depth > 1) {
     ancestor = ancestor.parent ? byId.get(ancestor.parent) : undefined;
@@ -703,8 +704,11 @@ function OfficeNodeDetail({
       </div>
       <dl className="flex flex-col gap-3">
         <DetailRow label="从属路径">{path.join(" / ")}</DetailRow>
-        <DetailRow label="职权范围">{getOfficeDuty(node).scope}</DetailRow>
-        <DetailRow label="职能">{getOfficeDuty(node).function}</DetailRow>
+        <DetailRow label="职权范围">{duty.scope}</DetailRow>
+        <DetailRow label="职能">{duty.function}</DetailRow>
+        {duty.detail ? <DetailRow label="职掌详述">{duty.detail}</DetailRow> : null}
+        {duty.evolution ? <DetailRow label="沿革与权变">{duty.evolution}</DetailRow> : null}
+        {duty.source ? <DetailRow label="史料出处">{duty.source}</DetailRow> : null}
         {rankLevels.length > 0 ? (
           <DetailRow label="品级实档（据本朝品秩谱）">
             <div className="flex flex-col gap-2">

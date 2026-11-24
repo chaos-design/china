@@ -77,9 +77,44 @@ export const qing: DynastyAtlas = {
     ]),
     branch("assistant", "佐", "佐理部", "分掌全国政务、监察、司法与礼仪的中央衙署。", [
       node("six-boards", "六部", {
-        note: "吏、户、礼、兵、刑、工六部，尚书领之，侍郎佐之。",
-        children: ["吏部", "户部", "礼部", "兵部", "刑部", "工部"].map((title, index) =>
-          node(`qing-board-${index}`, title, { rank: "尚书 从一品 · 侍郎 正二品" }),
+        note: "吏、户、礼、兵、刑、工六部，尚书领之、侍郎佐之；部下分司，郎中、员外郎、主事分掌一司之事。",
+        children: [
+          { title: "吏部", duty: "掌文官铨选、升降、考绩与封爵，下设文选、验封、稽勋、考功四司。" },
+          { title: "户部", duty: "掌户籍、田赋、仓储与俸禄，按省分司承办钱粮奏销。" },
+          {
+            title: "礼部",
+            duty: "掌朝会礼仪、祭祀、贡举与外宾接待，下设仪制、祠祭、主客、精膳四司。",
+          },
+          { title: "兵部", duty: "掌武官铨选、军籍、军令与驿传，下设武选、职方、车驾、武库四司。" },
+          { title: "刑部", duty: "掌律令刑名与各司复审，与大理寺、都察院合称三法司。" },
+          { title: "工部", duty: "掌营造、水利、屯田与山泽物产，下设营缮、虞衡、都水、屯田四司。" },
+        ].map(({ title, duty }, index) =>
+          node(`qing-board-${index}`, title, {
+            rank: "尚书 从一品 · 侍郎 正二品",
+            note: `${duty}尚书总领部务，左右侍郎协理，各司郎中、员外郎、主事分掌具体事务。`,
+            children: [
+              node(`qing-board-${index}-left-vice`, "左侍郎", {
+                rank: "正二品",
+                note: "本部副长官之一，协理部务并分掌本司事务，遇尚书缺员则署理。",
+              }),
+              node(`qing-board-${index}-right-vice`, "右侍郎", {
+                rank: "正二品",
+                note: "本部副长官之一，与左侍郎分掌部务，满汉各设一员。",
+              }),
+              node(`qing-board-${index}-director`, "郎中", {
+                rank: "正五品",
+                note: "各清吏司的长官，统领本司属官承办本省或本类事务，承上启下。",
+              }),
+              node(`qing-board-${index}-vice-director`, "员外郎", {
+                rank: "从五品",
+                note: "各司副长官，协理郎中分掌专项，郎中出差时代理司务。",
+              }),
+              node(`qing-board-${index}-secretary`, "主事", {
+                rank: "正六品",
+                note: "各司基层办事官，掌文稿案牍与日常事务，是进士分部行走的起点。",
+              }),
+            ],
+          }),
         ),
       }),
       node("censorate", "都察院", { rank: "左都御史 · 正一品" }),

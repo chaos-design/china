@@ -35,6 +35,22 @@ describe("getOfficeDuty — 每个原子的职权说明", () => {
     expect(duty.scope).toContain("侦查");
   });
 
+  it("exposes detailed function, evolution and source for a curated office", () => {
+    const duty = getOfficeDuty(makeNode({ title: "军机处" }));
+    expect(duty.function.length).toBeGreaterThan(duty.scope.length);
+    expect(duty.detail).toContain("章京");
+    expect(duty.evolution).toContain("雍正");
+    expect(duty.source).toContain("清史稿");
+  });
+
+  it("uses a node's own note as the detailed function for an uncurated office", () => {
+    const duty = getOfficeDuty(
+      makeNode({ title: "某司主事", note: "掌本司文书案牍与日常事务，承郎中之命办事。" }),
+    );
+    expect(duty.function).toContain("文书案牍");
+    expect(duty.scope).toContain("承本衙署分职");
+  });
+
   it("falls back to the node's own note when the title is not in the lexicon", () => {
     const duty = getOfficeDuty(makeNode({ title: "某冷门属官", note: "掌 specialty 事务" }));
     expect(duty.function).toBe("掌 specialty 事务");

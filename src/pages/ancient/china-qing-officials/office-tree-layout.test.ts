@@ -207,7 +207,7 @@ describe("branchRankSpans", () => {
     expect(spans.get("honorary")).toBe("正一品—正二品");
     expect(spans.get("central")).toBe("正一品—正五品");
     // 佐理部按行进顺序先遇到六部的「尚书 从一品」，同序并列时取先出现的一枚。
-    expect(spans.get("assistant")).toBe("从一品—正五品");
+    expect(spans.get("assistant")).toBe("从一品—正六品");
     expect(spans.get("household")).toBe("正二品—正五品");
     expect(spans.get("province")).toBe("正二品—从七品");
     expect(spans.get("frontier")).toBe("从一品—正六品");

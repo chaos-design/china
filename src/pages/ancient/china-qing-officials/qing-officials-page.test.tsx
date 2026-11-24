@@ -159,28 +159,30 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();
 
-    // 默认全展开：一落地即见完整从属树（96 节点），每枚属官都有标注（重叠交由场景避让）。
+    // 默认全展开：一落地即见完整从属树，每枚属官都有标注（重叠交由场景避让）。
     const lastLayout = () =>
       mocks.scene.setAtlas.mock.calls[mocks.scene.setAtlas.mock.calls.length - 1]?.[1] as {
         nodes: unknown[];
       };
-    expect(lastLayout().nodes).toHaveLength(96);
+    const fullCount = lastLayout().nodes.length;
+    // 六部属官拆分后，完整树已远超原先的 96 枚节点。
+    expect(fullCount).toBeGreaterThan(96);
 
-    // 点已展开的分区节点会收起其子树：佐理部收起后从 96 减去其可见后代。
+    // 点已展开的分区节点会收起其子树：佐理部收起后减去其可见后代。
     act(() => {
       sceneHandlers().onPick({ id: "assistant", kind: "branch", title: "佐理部" });
     });
-    expect(lastLayout().nodes.length).toBeLessThan(96);
+    expect(lastLayout().nodes.length).toBeLessThan(fullCount);
     act(() => {
       sceneHandlers().onPick({ id: "assistant", kind: "branch", title: "佐理部" });
     });
-    expect(lastLayout().nodes).toHaveLength(96);
+    expect(lastLayout().nodes).toHaveLength(fullCount);
 
     const menu = screen.getByLabelText("舞台菜单");
     fireEvent.click(within(menu).getByRole("button", { name: "收起全部" }));
     expect(lastLayout().nodes).toHaveLength(11);
     fireEvent.click(within(menu).getByRole("button", { name: "展开全部" }));
-    expect(lastLayout().nodes).toHaveLength(96);
+    expect(lastLayout().nodes).toHaveLength(fullCount);
   });
 
   it("brings a menu selection into view facing front", () => {
