@@ -205,4 +205,51 @@ describe("<HomeEntryCarousel />", () => {
     act(() => vi.advanceTimersByTime(6500));
     expect(stageSlides()[0]).toHaveClass("is-active");
   });
+
+  it("自动播放时给当前页显示进度，暂停与减少动效时移除", () => {
+    vi.useFakeTimers();
+    setMedia(1280);
+    const { container } = render(
+      <HomeEntryCarousel label="核心入口">{slides(4)}</HomeEntryCarousel>,
+    );
+    const carousel = screen.getByRole("region", { name: "核心入口" });
+    const dotProgress = () =>
+      container.querySelector(".home-carousel-dot.is-active .home-carousel-progress");
+
+    expect(dotProgress()).not.toBeNull();
+    expect(dotProgress()).toHaveStyle({ animationDuration: "6500ms" });
+    expect(container.querySelector(".home-carousel-mobile-progress")).not.toBeNull();
+
+    fireEvent.mouseEnter(carousel);
+    expect(dotProgress()).toBeNull();
+    expect(container.querySelector(".home-carousel-mobile-progress")).toBeNull();
+
+    fireEvent.mouseLeave(carousel);
+    expect(dotProgress()).not.toBeNull();
+  });
+
+  it("翻页后进度条挂到新的当前页", () => {
+    vi.useFakeTimers();
+    setMedia(1280);
+    const { container } = render(
+      <HomeEntryCarousel label="核心入口">{slides(4)}</HomeEntryCarousel>,
+    );
+
+    act(() => vi.advanceTimersByTime(6500));
+    expect(stageSlides()[1]).toHaveClass("is-active");
+    const progress = container.querySelector(
+      ".home-carousel-dot.is-active .home-carousel-progress",
+    );
+    expect(progress).not.toBeNull();
+    expect(progress?.parentElement).toBe(screen.getByRole("button", { name: "第 2 组" }));
+  });
+
+  it("减少动效偏好下不显示自动播放进度", () => {
+    setMedia(1280, true);
+    const { container } = render(
+      <HomeEntryCarousel label="核心入口">{slides(4)}</HomeEntryCarousel>,
+    );
+
+    expect(container.querySelector(".home-carousel-progress")).toBeNull();
+  });
 });

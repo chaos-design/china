@@ -40,6 +40,8 @@ interface HomeEntryCarouselProps {
  *
  * 所有幻灯片常驻 DOM 且不设 inert / aria-hidden：它们是导航链接，键盘与
  * 读屏器需要一次拿到全部入口；非当前页靠 :focus-within 浮出以便 Tab 可达。
+ * 当前页的分页点（窄屏则是控件条细线）带一条自动播放进度，暂停、聚焦与
+ * 减少动效时卸载，恢复时重新挂载，让进度与定时器从同一起点走。
  */
 export function HomeEntryCarousel({ children, label }: HomeEntryCarouselProps) {
   const slides = useMemo(() => Children.toArray(children), [children]);
@@ -84,6 +86,10 @@ export function HomeEntryCarousel({ children, label }: HomeEntryCarouselProps) {
 
   const next = useCallback(() => goTo(active + 1), [goTo, active]);
   const previous = useCallback(() => goTo(active - 1), [goTo, active]);
+
+  // 进度条只在「真的会自动翻页」时出现。暂停 / 减少动效 / 单张时卸载，
+  // 恢复时重新挂载，动画从 0 开始，正好对上 setInterval 的重启。
+  const isPlaying = total > 1 && !paused && !reducedMotion;
 
   useEffect(() => {
     if (total <= 1 || paused || reducedMotion) {
@@ -145,7 +151,16 @@ export function HomeEntryCarousel({ children, label }: HomeEntryCarouselProps) {
                 aria-label={`第 ${index + 1} 组`}
                 aria-current={index === active ? "true" : undefined}
                 onClick={() => goTo(index)}
-              />
+              >
+                {index === active && isPlaying ? (
+                  <span
+                    aria-hidden="true"
+                    className="home-carousel-progress"
+                    key={active}
+                    style={{ animationDuration: `${AUTOPLAY_MS}ms` }}
+                  />
+                ) : null}
+              </button>
             ))}
           </div>
         ) : null}
@@ -165,6 +180,15 @@ export function HomeEntryCarousel({ children, label }: HomeEntryCarouselProps) {
         <span className="sr-only" aria-live="polite">
           当前第 {active + 1} 个入口，共 {total} 个
         </span>
+        {isPlaying ? (
+          <span aria-hidden="true" className="home-carousel-mobile-progress sm:hidden">
+            <span
+              className="home-carousel-progress"
+              key={active}
+              style={{ animationDuration: `${AUTOPLAY_MS}ms` }}
+            />
+          </span>
+        ) : null}
       </div>
     </section>
   );
