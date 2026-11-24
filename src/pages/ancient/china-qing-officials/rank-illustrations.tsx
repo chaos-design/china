@@ -311,6 +311,9 @@ export function BadgeIllustration({
     return <RankImageTile className="h-16 w-[4.5rem] rounded-md" image={image} />;
   }
   const variant = variantFor(animal, kind);
+  // 兜底方补的缂绢底随朝代分色：明官袍尚黑、缂丝补子墨黑地；清补子石青地。
+  const isMing = dynastyId === "ming";
+  const silkStops = isMing ? ["#2b2926", "#191715", "#0e0d0c"] : ["#28486c", "#162c4b", "#0e2138"];
 
   return (
     <svg
@@ -322,9 +325,9 @@ export function BadgeIllustration({
     >
       <defs>
         <linearGradient id={`${uid}-silk`} x1="0" x2="1" y1="0" y2="1">
-          <stop stopColor="#28486c" />
-          <stop offset="0.5" stopColor="#162c4b" />
-          <stop offset="1" stopColor="#0e2138" />
+          <stop stopColor={silkStops[0]} />
+          <stop offset="0.5" stopColor={silkStops[1]} />
+          <stop offset="1" stopColor={silkStops[2]} />
         </linearGradient>
         <linearGradient id={`${uid}-gold`} x1="0" x2="1" y1="0" y2="1">
           <stop stopColor="#f6e3a5" />

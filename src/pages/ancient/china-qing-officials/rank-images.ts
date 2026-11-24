@@ -63,8 +63,9 @@ export const BADGE_IMAGES: Readonly<Record<string, RankImage>> = {
   },
   鹭鸶: {
     src: "/qing-officials/badge-lusi.jpg",
-    caption: "清 · 六品文官鹭鸶补",
-    source: "https://commons.wikimedia.org/wiki/File:Qing_Dynasty_Mandarin_square.jpg",
+    caption: "清 · 六品文官鹭鸶补 · 库珀·休伊特设计博物馆",
+    source:
+      "https://commons.wikimedia.org/wiki/File:Rank_Badge_(China),_19th_century_(CH_18426389).jpg",
   },
   鸂鶒: {
     src: "/qing-officials/badge-xichi.jpg",
