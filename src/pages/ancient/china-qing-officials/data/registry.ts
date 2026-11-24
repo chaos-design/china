@@ -1,17 +1,21 @@
 import { beiwei } from "./dynasties/beiwei";
-import { liaojin } from "./dynasties/liao-jin";
+import { jin } from "./dynasties/jin";
+import { liao } from "./dynasties/liao";
 import { ming } from "./dynasties/ming";
 import { han, qin } from "./dynasties/qin-han";
 import { qing } from "./dynasties/qing";
 import { song, yuan } from "./dynasties/song-yuan";
-import { suitang, weijin } from "./dynasties/weijin-suitang";
+import { sui } from "./dynasties/sui";
+import { tang } from "./dynasties/tang";
+import { weijin } from "./dynasties/weijin";
 import { wudai } from "./dynasties/wudai";
+import { xixia } from "./dynasties/xixia";
 import { zhou } from "./dynasties/zhou";
 import type { AtlasDynastyId, DynastyAtlas } from "./types";
 
 /**
- * 十二朝官制图谱：先按历史顺序排入与全站共用的八朝，再补入周、北魏、五代、辽金西夏。
- * 顺序即页头朝代按钮的排列顺序。
+ * 十五朝官制图谱，按历史顺序排列，即页头朝代按钮的排列顺序。
+ * 原本合并的「隋唐」「辽金西夏」已拆为隋/唐与辽/金/西夏各自独立的数据。
  */
 export const DYNASTY_ATLASES: readonly DynastyAtlas[] = [
   zhou,
@@ -19,11 +23,14 @@ export const DYNASTY_ATLASES: readonly DynastyAtlas[] = [
   han,
   weijin,
   beiwei,
-  suitang,
-  song,
+  sui,
+  tang,
   wudai,
+  song,
+  liao,
+  jin,
+  xixia,
   yuan,
-  liaojin,
   ming,
   qing,
 ];

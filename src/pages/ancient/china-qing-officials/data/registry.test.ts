@@ -12,23 +12,83 @@ function collectIds(nodes: readonly AtlasOfficeNode[]): string[] {
   return nodes.flatMap((node) => [node.id, ...(node.children ? collectIds(node.children) : [])]);
 }
 
+function collectTitles(nodes: readonly AtlasOfficeNode[]): string[] {
+  return nodes.flatMap((node) => [
+    node.title,
+    ...(node.children ? collectTitles(node.children) : []),
+  ]);
+}
+
+function atlasTitles(id: string): string {
+  const atlas = getDynastyAtlas(id)!;
+  return [
+    ...atlas.honorary.flatMap((group) => collectTitles(group.children ?? [])),
+    ...atlas.branches.flatMap((entry) => collectTitles(entry.nodes)),
+  ].join("|");
+}
+
 describe("官制图谱数据层", () => {
-  it("registers all twelve dynasties in canonical order", () => {
+  it("registers all fifteen dynasties in canonical order", () => {
     expect(DYNASTY_ATLASES.map((atlas) => atlas.id)).toEqual([
       "zhou",
       "qin",
       "han",
       "weijin",
       "beiwei",
-      "suitang",
-      "song",
+      "sui",
+      "tang",
       "wudai",
+      "song",
+      "liao",
+      "jin",
+      "xixia",
       "yuan",
-      "liaojin",
       "ming",
       "qing",
     ]);
-    expect(new Set(DYNASTY_ATLASES.map((atlas) => atlas.id)).size).toBe(12);
+    expect(new Set(DYNASTY_ATLASES.map((atlas) => atlas.id)).size).toBe(15);
+  });
+
+  it("keeps merged Sui-Tang and Liao-Jin-Xixia out of the atlas ids", () => {
+    const ids = DYNASTY_ATLASES.map((atlas) => atlas.id);
+    expect(ids).not.toContain("suitang");
+    expect(ids).not.toContain("liaojin");
+    for (const id of ["sui", "tang", "liao", "jin", "xixia"]) {
+      expect(ids).toContain(id);
+    }
+  });
+
+  it("shows only each dynasty's own office titles on its atoms", () => {
+    const sui = atlasTitles("sui");
+    expect(sui).toContain("内史省");
+    expect(sui).toContain("纳言");
+    expect(sui).toContain("民部");
+    expect(sui).not.toContain("中书省");
+
+    const tang = atlasTitles("tang");
+    expect(tang).toContain("中书省");
+    expect(tang).toContain("侍中");
+    expect(tang).toContain("节度使");
+    expect(tang).not.toContain("内史省");
+    expect(tang).not.toContain("纳言");
+
+    const liao = atlasTitles("liao");
+    expect(liao).toContain("夷离堇");
+    expect(liao).toContain("斡鲁朵");
+    expect(liao).not.toContain("猛安");
+    expect(liao).not.toContain("蕃官");
+
+    const jin = atlasTitles("jin");
+    expect(jin).toContain("猛安");
+    expect(jin).toContain("谋克");
+    expect(jin).not.toContain("夷离堇");
+    expect(jin).not.toContain("监军司");
+
+    const xixia = atlasTitles("xixia");
+    expect(xixia).toContain("兀卒");
+    expect(xixia).toContain("监军司");
+    expect(xixia).not.toContain("猛安");
+    expect(xixia).not.toContain("斡鲁朵");
   });
 
   it("resolves every dynasty by id and falls back safely", () => {

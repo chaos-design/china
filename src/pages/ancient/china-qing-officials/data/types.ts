@@ -1,10 +1,20 @@
 import type { OfficialsDynastyId } from "../../china-officials/officials-data";
 
 /**
- * 图谱朝代口径：八个与全站职官名录共用的 id，另加四套只在官制图谱里展开的朝代。
- * 后者不进入「品级纵横」的名录数据，因此单独成类型，避免牵动别的页面。
+ * 图谱朝代口径：与全站职官名录共用的 id 里去掉合并的「隋唐」（图谱里已拆成隋、唐），
+ * 再补入只在官制图谱展开的朝代。后者不进入「品级纵横」名录，单独成类型以免牵动别的页面。
+ * 「辽金西夏」也已拆成辽、金、西夏，不再作为图谱 id。
  */
-export type AtlasDynastyId = OfficialsDynastyId | "zhou" | "beiwei" | "wudai" | "liaojin";
+export type AtlasDynastyId =
+  | Exclude<OfficialsDynastyId, "suitang">
+  | "zhou"
+  | "beiwei"
+  | "wudai"
+  | "sui"
+  | "tang"
+  | "liao"
+  | "jin"
+  | "xixia";
 
 /**
  * 官制图谱的朝代数据层类型。

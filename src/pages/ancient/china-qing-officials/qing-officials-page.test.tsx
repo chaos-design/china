@@ -68,7 +68,7 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     }
   });
 
-  it("lists all twelve dynasties and switches the atlas content", () => {
+  it("lists all fifteen dynasties and switches the atlas content", () => {
     renderAt();
 
     const picker = screen.getByLabelText("朝代选择");
