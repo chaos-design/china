@@ -15,9 +15,10 @@ import { useRankLightbox } from "./rank-lightbox";
 
 /**
  * 真实藏品照统一小图：圆角 + 细边，与卡片语言一致；title 带藏品说明。
- * 双击放大：双击触发页面层 lightbox 展示大图 + 藏品注 + Commons 出处。
- * 用 img 的 onDoubleClick 而非内嵌 button——各全谱卡片本身已是 button，
- * 内嵌 button 会产生非法嵌套；img 加 onDoubleClick 合法且不破坏既有 button 计数。
+ * 单击放大：点图片（含角落放大镜）即触发页面层 lightbox，展示大图 + 藏品注 + Commons 出处。
+ * 用 img 的 onClick 而非内嵌 button——各全谱卡片本身已是 button，内嵌 button 会非法嵌套；
+ * img 加 onClick 合法，stopPropagation 避免冒泡触发卡片选品级；放大镜 pointer-events-none
+ * 穿透到 img，故整块图片任意位置单击都放大，与卡片「选品级」的交互区分开。
  */
 function RankImageTile({ className, image }: { className?: string; image: RankImage }) {
   const openLightbox = useRankLightbox();
@@ -28,14 +29,14 @@ function RankImageTile({ className, image }: { className?: string; image: RankIm
         aria-hidden="true"
         className="h-full w-full cursor-zoom-in rounded-[inherit] border border-ink/15 object-cover shadow-sm"
         loading="lazy"
-        onDoubleClick={(event) => {
+        onClick={(event) => {
           event.stopPropagation();
           openLightbox(image);
         }}
         src={image.src}
-        title={`${image.caption}（双击放大）`}
+        title={`${image.caption}（点击放大）`}
       />
-      {/* 角落放大镜：真实藏品照可放大查看的可见提示；纯装饰，不拦双击与卡片点选。 */}
+      {/* 角落放大镜：真实藏品照可放大查看的可见提示；pointer-events-none 穿透到 img，不拦截卡片点选。 */}
       <span
         aria-hidden="true"
         className="pointer-events-none absolute right-0.5 top-0.5 grid h-3.5 w-3.5 place-items-center rounded-full border border-vermillion/40 bg-paper/90 text-vermillion shadow-sm"

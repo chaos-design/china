@@ -471,16 +471,17 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(screen.getByLabelText("补子制度")).toHaveTextContent("补子尚未出现");
   });
 
-  it("double-clicks a real photograph to open the lightbox and closes it", () => {
+  it("clicks a real photograph to open the lightbox and closes it", () => {
     const { unmount } = renderAt("/china/qing-officials?dynasty=qing");
     fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
 
-    // 顶戴全谱里宝石顶是真图（img，标题带「双击放大」）；双击弹出 lightbox。
-    const photos = screen.getAllByTitle(/双击放大/);
+    // 顶戴全谱里宝石顶是真图（img，标题带「点击放大」）；单击图片即弹 lightbox，
+    // 与卡片「单击选品级」区分开——点图片内部放大，点卡片外部选中。
+    const photos = screen.getAllByTitle(/点击放大/);
     expect(photos.length).toBeGreaterThan(0);
     expect(screen.queryByRole("dialog")).toBeNull();
 
-    fireEvent.doubleClick(photos[0]!);
+    fireEvent.click(photos[0]!);
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
     // 大图 + Commons 出处链接都在浮层里。
