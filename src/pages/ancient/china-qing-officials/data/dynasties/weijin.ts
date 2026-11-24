@@ -147,27 +147,21 @@ export const weijin: DynastyAtlas = {
       node("weijin-county", "县", {
         note: "县为基层行政，大县置令、小县置长，县丞、主簿分掌文书与仓廪。",
         children: [
-          node("weijin-magistrate", "县令 / 县长", {
-            note: "一县之长，大县称令、小县称长，掌民政、赋役、诉讼与教化，上承郡守而治其民。",
-            children: [
-              node("weijin-xianling", "县令", {
-                note: "大县之长，掌一县政务、赋税与刑狱，品秩较高，多为士族起家之职。",
-              }),
-              node("weijin-xianzhang", "县长", {
-                note: "小县之长，职掌与县令同而品秩稍低，治户口、田赋与乡里诉讼。",
-              }),
-            ],
+          node("weijin-xianling", "县令", {
+            note: "大县之长，掌一县政务、赋税与刑狱，品秩较高，多为士族起家之职。",
+            annotation: "县令与县长为同一职位因县之等第而异称：大县置令、小县置长，县令品秩较高。",
           }),
-          node("weijin-aide", "县丞、主簿", {
-            note: "县令之佐官，分掌文书、仓廪与掾属事务，为县中处理日常案牍之职。",
-            children: [
-              node("weijin-xiancheng", "县丞", {
-                note: "县令副贰，掌仓储、田赋与户籍簿籍，县令外出时代行县事。",
-              }),
-              node("weijin-zhubu", "主簿", {
-                note: "县中掌文书案牍之官，主簿籍、印信与书记，凡县中公文皆经其手。",
-              }),
-            ],
+          node("weijin-xianzhang", "县长", {
+            note: "小县之长，职掌与县令同而品秩稍低，治户口、田赋与乡里诉讼。",
+            annotation: "县令与县长为同一职位因县之等第而异称：大县置令、小县置长，县长品秩稍低。",
+          }),
+          node("weijin-xiancheng", "县丞", {
+            note: "县令副贰，掌仓储、田赋与户籍簿籍，县令外出时代行县事。",
+            annotation: "县丞与主簿同为县令佐官，分掌仓廪与文书；县丞为县令副贰。",
+          }),
+          node("weijin-zhubu", "主簿", {
+            note: "县中掌文书案牍之官，主簿籍、印信与书记，凡县中公文皆经其手。",
+            annotation: "县丞与主簿同为县令佐官，主簿专掌文书印信，与县丞分职。",
           }),
         ],
       }),

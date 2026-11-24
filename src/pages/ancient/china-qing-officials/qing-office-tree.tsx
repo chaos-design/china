@@ -737,6 +737,7 @@ function OfficeNodeDetail({
           </DetailRow>
         ) : null}
         {node.note ? <DetailRow label="职掌说明">{node.note}</DetailRow> : null}
+        {node.annotation ? <DetailRow label="注释">{node.annotation}</DetailRow> : null}
         {children.length > 0 ? (
           <DetailRow label="直属下属">
             {children.join("、")}

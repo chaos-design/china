@@ -29,6 +29,8 @@ export interface AtlasOfficeNode {
   title: string;
   rank?: string;
   note?: string;
+  /** 读图注释：同职异称、从属关系、口径说明等语义，展开详情时在抽屉单独展示。 */
+  annotation?: string;
   children?: readonly AtlasOfficeNode[];
 }
 

@@ -10,7 +10,12 @@ import type {
 export function node(
   id: string,
   title: string,
-  extra: { rank?: string; note?: string; children?: readonly AtlasOfficeNode[] } = {},
+  extra: {
+    rank?: string;
+    note?: string;
+    annotation?: string;
+    children?: readonly AtlasOfficeNode[];
+  } = {},
 ): AtlasOfficeNode {
   return { id, title, ...extra };
 }

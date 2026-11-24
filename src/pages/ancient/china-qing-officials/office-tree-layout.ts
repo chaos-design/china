@@ -29,6 +29,8 @@ export interface OfficeTreeNode extends OfficeTreeVec3 {
   title: string;
   rank?: string;
   note?: string;
+  /** 读图注释：同职异称、从属关系、口径说明等语义。 */
+  annotation?: string;
   mark?: string;
   depth: number;
 }
@@ -85,6 +87,7 @@ interface RawNode {
   kind: OfficeNodeKind;
   mark?: string;
   note?: string;
+  annotation?: string;
   parent: string | null;
   rank?: string;
   title: string;
@@ -101,6 +104,7 @@ function rawFromOfficeNode(parent: string, depth: number, node: AtlasOfficeNode)
     id: node.id,
     kind: "office",
     note: node.note,
+    annotation: node.annotation,
     parent,
     rank: node.rank,
     title: node.title,

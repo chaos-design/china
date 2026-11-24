@@ -153,15 +153,19 @@ export const qing: DynastyAtlas = {
         }),
         node("provincial-boards", "两司与学政", {
           children: [
-            node("provincial-treasury", "承宣布政使司 · 布政使", {
+            node("provincial-treasury", "布政使", {
               rank: "从二品",
               note: "左右参政（从三品）、左右参议（从四品）佐之。",
+              annotation: "承宣布政使司的长官，掌一省民政与钱粮。",
             }),
-            node("provincial-justice", "提督按察使司 · 按察使", {
+            node("provincial-justice", "按察使", {
               rank: "正三品",
               note: "按察使司副使（正四品）、佥事（正五品）佐之。",
+              annotation: "提督按察使司的长官，掌一省刑名与监察。",
             }),
-            node("provincial-education", "提督学政署 · 提督学政"),
+            node("provincial-education", "提督学政", {
+              annotation: "提督学政署的长官，由朝廷简派主持一省学校与科举。",
+            }),
           ],
         }),
         node("capital-prefectures", "京府", {
