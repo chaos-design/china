@@ -8,6 +8,7 @@ import {
   badgeImage,
   HAT_IMAGES,
   hatImage,
+  MING_BADGE_IMAGES,
   ROBE_IMAGES,
   robeImage,
 } from "./rank-images";
@@ -16,6 +17,7 @@ import {
 describe("rank-images table integrity", () => {
   const allImages = [
     ...Object.values(BADGE_IMAGES),
+    ...Object.values(MING_BADGE_IMAGES),
     ...Object.values(HAT_IMAGES),
     ...Object.values(ROBE_IMAGES),
   ];
@@ -36,31 +38,58 @@ describe("rank-images table integrity", () => {
     }
   });
 
-  it("明清同物异名（狮/狮子、熊/熊罴）解析到同一张实物照", () => {
-    expect(badgeImage("狮子")?.src).toBe(badgeImage("狮")?.src);
-    expect(badgeImage("熊罴")?.src).toBe(badgeImage("熊")?.src);
+  it("同物异名（狮/狮子、熊/熊罴）在清表内解析到同一张实物照，明表按明制书写", () => {
+    expect(badgeImage("狮子", "qing")?.src).toBe(badgeImage("狮", "qing")?.src);
+    expect(badgeImage("熊罴", "qing")?.src).toBe(badgeImage("熊", "qing")?.src);
     expect(badgeImage("不存在的动物")).toBeUndefined();
     expect(hatImage(undefined)).toBeUndefined();
     expect(robeImage("qing", undefined)).toBeUndefined();
     expect(robeImage("qing", "不存在的服色")).toBeUndefined();
   });
+
+  it("明代同名动物不挪用清代实物：明表与清表各归各朝", () => {
+    expect(MING_BADGE_IMAGES.狮子).toBeDefined();
+    expect(badgeImage("狮子", "ming")?.src).toBe("/qing-officials/badge-ming-shizi.jpg");
+    expect(badgeImage("狮", "ming")).toBeUndefined();
+    expect(badgeImage("仙鹤", "ming")).toBeUndefined();
+    // 未传朝代的旧调用保持清表语义（清页与无朝代上下文都用清制实物）。
+    expect(badgeImage("狮子")?.src).toBe(badgeImage("狮")?.src);
+  });
 });
 
 /**
- * 覆盖口径：明清补子除 鹌鹑 / 练雀 / 犀牛 外全部落实物照；顶戴只在明清宝石顶与
- * 秦汉印绶上落图（周/魏晋/宋元/辽金/北魏的冠制统一走手绘暖帽兜底）；朝服以清七组
- * 全图，另落 明绯袍 / 宋元绯袍 / 秦汉黑袍三幅。改名或删表都会在这里炸。
+ * 覆盖口径（2026-11）：清代补子除 鹌鹑 / 练雀 / 犀牛 外全部落实物照；明代
+ * 只落本朝实物（孔雀 / 鹭鸶 / 鸂鶒 / 狮子 / 虎），其余回落手绘方补——
+ * 明页不挪用清代实物。顶戴只在明清宝石顶与秦汉印绶上落图（周/魏晋/宋元/
+ * 辽金/北魏的冠制统一走手绘暖帽兜底）；朝服以清七组全图，另落 明绯袍 /
+ * 宋绯袍 / 秦黑袍一幅。改名或删表都会在这里炸。
  */
 describe("rank-images coverage against dynasty data", () => {
-  /** 明清补子尚未找到实物照的三种动物（手绘方补兜底）。 */
-  const BADGE_GAPS = new Set(["鹌鹑", "练雀", "犀牛"]);
+  /** 各朝补子尚未找到本朝实物照的动物（手绘方补兜底）。 */
+  const BADGE_GAPS: Readonly<Record<string, ReadonlySet<string>>> = {
+    ming: new Set([
+      "仙鹤",
+      "锦鸡",
+      "云雁",
+      "白鹇",
+      "黄鹂",
+      "鹌鹑",
+      "豹",
+      "熊罴",
+      "彪",
+      "犀牛",
+      "海马",
+    ]),
+    qing: new Set(["鹌鹑", "练雀", "犀牛"]),
+  };
 
-  it("明清补子动物要么有实物照、要么是登记过的缺口", () => {
+  it("明清补子动物要么有本朝实物照、要么是登记过的缺口", () => {
     for (const atlas of DYNASTY_ATLASES) {
       if (!atlas.badgesAvailable) continue;
+      const gaps = BADGE_GAPS[atlas.id] ?? new Set<string>();
       for (const badge of [...atlas.civilBadges, ...atlas.militaryBadges]) {
-        const resolved = badgeImage(badge.animal);
-        if (BADGE_GAPS.has(badge.animal)) {
+        const resolved = badgeImage(badge.animal, atlas.id);
+        if (gaps.has(badge.animal)) {
           expect(resolved, `${atlas.id} · ${badge.animal} 应保持兜底`).toBeUndefined();
         } else {
           expect(resolved, `${atlas.id} · ${badge.animal}`).toBeDefined();

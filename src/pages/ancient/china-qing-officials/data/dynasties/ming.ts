@@ -236,9 +236,10 @@ export const ming: DynastyAtlas = {
     ladder("七至九品", "知县、县丞、典史", [7, 8, 9]),
   ],
   badgesAvailable: true,
-  civilBadges: makeBadges(["仙鹤", "锦鸡", "孔雀", "云雁", "白鹇", "鹭鸶", "鸂鶒", "鹌鹑", "练雀"]),
+  civilBadges: makeBadges(["仙鹤", "锦鸡", "孔雀", "云雁", "白鹇", "鹭鸶", "鸂鶒", "黄鹂", "鹌鹑"]),
   militaryBadges: makeBadges(["狮子", "狮子", "虎", "豹", "熊罴", "彪", "彪", "犀牛", "海马"]),
-  badgeNote: "明始以补子别文武：文官绣飞禽、武官绣走兽，品级一眼可辨。",
+  badgeNote:
+    "明始以补子别文武：文官绣飞禽、武官绣走兽，品级一眼可辨。明制八品黄鹂、九品鹌鹑，与清制（八品鹌鹑、九品练雀）不同。",
   notes: {
     rank: "明分九品十八级，品级决定服色、补子与礼遇。",
     hat: "以材质与颜色区分官员品级高低。",

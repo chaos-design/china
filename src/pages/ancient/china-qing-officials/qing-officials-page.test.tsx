@@ -465,6 +465,16 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(screen.getByLabelText("武官补子 · 走兽")).toHaveTextContent("麒麟");
     unmount();
 
+    // 明代走明制补子（八品黄鹂、九品鹌鹑，与清制不同），武官仍狮子居首。
+    const ming = renderAt("/china/qing-officials?dynasty=ming");
+    fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
+    const mingCivil = screen.getByLabelText("文官补子 · 飞禽");
+    expect(mingCivil).toHaveTextContent("黄鹂");
+    expect(mingCivil).toHaveTextContent("鹌鹑");
+    expect(mingCivil).not.toHaveTextContent("练雀");
+    expect(screen.getByLabelText("武官补子 · 走兽")).toHaveTextContent("狮子");
+    ming.unmount();
+
     renderAt("/china/qing-officials?dynasty=han");
     fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
     expect(screen.queryByLabelText("文官补子 · 飞禽")).toBeNull();

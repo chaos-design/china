@@ -264,6 +264,7 @@ const ANIMALS: Record<string, AnimalVariant> = {
   鸂鶒: { primary: "#7c9b8a", accent: "#c9a227", kind: "bird", tail: "long" },
   鹌鹑: { primary: "#9b7448", accent: "#4b3a2a", kind: "bird", tail: "short" },
   练雀: { primary: "#d7d2c0", accent: "#43505a", kind: "bird", tail: "long" },
+  黄鹂: { primary: "#e8c33a", accent: "#2e2418", kind: "bird", tail: "short", crown: true },
   麒麟: {
     primary: "#b98d42",
     accent: "#6b4a1d",
@@ -290,15 +291,20 @@ function variantFor(animal: string, kind: "civil" | "military"): AnimalVariant {
   );
 }
 
-/** 补子：真实刺绣藏品照优先，缺图回落绫绢方补手绘图。 */
+/**
+ * 补子：真实刺绣藏品照优先（按朝代取本朝实物——明页用明代补子、清页用清代补子，
+ * 见 rank-images 的 MING_BADGE_IMAGES / BADGE_IMAGES），缺图回落绫绢方补手绘图。
+ */
 export function BadgeIllustration({
   animal,
   kind,
+  dynastyId,
 }: {
   animal: string;
   kind: "civil" | "military";
+  dynastyId?: string;
 }) {
-  const image = badgeImage(animal);
+  const image = badgeImage(animal, dynastyId);
   const raw = useId();
   const uid = raw.replace(/:/g, "");
   if (image) {

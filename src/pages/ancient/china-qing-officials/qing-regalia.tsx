@@ -10,22 +10,32 @@ import { badgeImage, type RankImage } from "./rank-images";
 
 const BADGE_NAMES = ["一", "二", "三", "四", "五", "六", "七", "八", "九"];
 
-/** 补子纹样：真实刺绣藏品照优先（缺图回落手绘），动物名退为图下小注。 */
-function BadgeGlyph({ kind, animal }: { kind: "civil" | "military"; animal: string }) {
-  return <BadgeIllustration animal={animal} kind={kind} />;
+/** 补子纹样：真实刺绣藏品照优先（按朝代取本朝实物，缺图回落手绘），动物名退为图下小注。 */
+function BadgeGlyph({
+  animal,
+  kind,
+  dynastyId,
+}: {
+  animal: string;
+  kind: "civil" | "military";
+  dynastyId?: string;
+}) {
+  return <BadgeIllustration animal={animal} kind={kind} dynastyId={dynastyId} />;
 }
 
 function BadgeGrid({
   badges,
   kind,
   title,
+  dynastyId,
 }: {
   badges: readonly AtlasBadge[];
   kind: "civil" | "military";
   title: string;
+  dynastyId?: string;
 }) {
   const images = badges
-    .map((badge) => badgeImage(badge.animal))
+    .map((badge) => badgeImage(badge.animal, dynastyId))
     .filter((image): image is RankImage => image !== undefined);
   return (
     <section
@@ -43,7 +53,7 @@ function BadgeGrid({
             className="flex flex-col items-center gap-1.5 rounded-lg border border-ink/10 bg-paper/60 p-2 text-center"
             key={`${kind}-${badge.order}`}
           >
-            <BadgeGlyph animal={badge.animal} kind={kind} />
+            <BadgeGlyph animal={badge.animal} kind={kind} dynastyId={dynastyId} />
             <span className="font-mono-tech text-[0.7rem] text-vermillion">
               {BADGE_NAMES[badge.order - 1] ?? badge.order}品
             </span>
@@ -94,8 +104,18 @@ export function QingRegalia({ atlas }: { atlas: DynastyAtlas }) {
     <div className="flex flex-col gap-4">
       {atlas.badgesAvailable ? (
         <div className="grid gap-4 lg:grid-cols-2">
-          <BadgeGrid badges={atlas.civilBadges} kind="civil" title="文官补子 · 飞禽" />
-          <BadgeGrid badges={atlas.militaryBadges} kind="military" title="武官补子 · 走兽" />
+          <BadgeGrid
+            badges={atlas.civilBadges}
+            dynastyId={atlas.id}
+            kind="civil"
+            title="文官补子 · 飞禽"
+          />
+          <BadgeGrid
+            badges={atlas.militaryBadges}
+            dynastyId={atlas.id}
+            kind="military"
+            title="武官补子 · 走兽"
+          />
         </div>
       ) : null}
 

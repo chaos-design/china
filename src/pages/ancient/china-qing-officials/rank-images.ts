@@ -2,14 +2,17 @@
  * 品级礼制的真实图片索引：Wikimedia Commons 上的博物馆藏品照与古画像
  * （公有领域 / CC0 / CC-BY 系，许可逐条核验过）。
  *
- * 三张表分别按「补子动物名 / 顶戴材质名 / 朝代:服色」建索引；缺图条目由
+ * 四张表分别按「补子动物名 / 明代补子动物名 / 顶戴材质名 / 朝代:服色」建索引；
+ * 补子表按朝代分——明制与清制的品级禽兽不同（明文八品黄鹂、九品鹌鹑，清八品鹌鹑、
+ * 九品练雀；明清同名动物如仙鹤/孔雀也各用本朝实物），缺图条目由
  * rank-illustrations 回落（补子→手绘方补、顶戴→手绘暖帽、朝服→服色色样），
  * 因此允许部分覆盖。图片本体放在 public/qing-officials/（绝对路径引用，
  * 镜像 /heritage、/taiwan 的约定），caption 与 source 保留藏品说明与
  * Commons 文件页链接（同 taiwan 页 credit + sourceUrl 约定，非 ASCII 已转义）。
  * rank-images.test.ts 校验所有 src 都真实存在，避免死链上线。
  *
- * 覆盖口径（2026-11）：明清补子除 鹌鹑 / 练雀 / 犀牛 外全部有实物照；
+ * 覆盖口径（2026-11）：清代补子除 鹌鹑 / 练雀 / 犀牛 外全部落实物照；明代
+ * 落 孔雀 / 鹭鸶 / 鸂鶒 / 狮子 / 虎 五幅本朝实物，其余回落手绘；
  * 頂戴材质（明清宝石顶 + 秦汉印绶）除无印的「青绶」外全覆盖；朝服以清
  * 七组全图，另落 明绯袍 / 宋绯袍 / 秦黑袍一幅（其余朝服色以丝绢色样兜底）。
  */
@@ -23,7 +26,10 @@ export interface RankImage {
   source: string;
 }
 
-/** 补子：按动物名索引（明清同名动物共用一图；狮/狮子、熊/熊罴为同物异名别名键）。 */
+/**
+ * 补子：按动物名索引的清代实物照（清制：八品鹌鹑、九品练雀）。
+ * 狮/狮子、熊/熊罴为同物异名别名键。
+ */
 export const BADGE_IMAGES: Readonly<Record<string, RankImage>> = {
   仙鹤: {
     src: "/qing-officials/badge-xianhe.jpg",
@@ -104,7 +110,7 @@ export const BADGE_IMAGES: Readonly<Record<string, RankImage>> = {
     caption: "清 · 武官海马补 · 大都会艺术博物馆",
     source: "https://commons.wikimedia.org/wiki/File:MET_144228.jpg",
   },
-  // 明清同物异名别名键（武官一品 / 五品等的写法差异）。
+  // 清制同物异名别名键（明制写「狮子」「熊罴」，清制写「狮」「熊」）。
   狮子: {
     src: "/qing-officials/badge-shi.jpg",
     caption: "清晚期 · 二品武官狮子补 · 大都会艺术博物馆",
@@ -116,6 +122,42 @@ export const BADGE_IMAGES: Readonly<Record<string, RankImage>> = {
     caption: "清初 · 熊罴纹补子（17—18 世纪之交）",
     source:
       "https://commons.wikimedia.org/wiki/File:Rank_Badge_with_Bear_late_17th%E2%80%93early_18th_century_China.jpg",
+  },
+};
+
+/**
+ * 明代补子实物照（明制：文八品黄鹂、九品鹌鹑，武一二品狮子、三四品虎豹——
+ * 与清制不同，故明页不能直接引用清代实物）。缺图条目回落手绘方补。
+ */
+export const MING_BADGE_IMAGES: Readonly<Record<string, RankImage>> = {
+  孔雀: {
+    src: "/qing-officials/badge-ming-kongque.jpg",
+    caption: "明中期 · 三品文官孔雀补（缂丝）· 大都会艺术博物馆",
+    source:
+      "https://commons.wikimedia.org/wiki/File:%E6%98%8E%E4%B8%AD%E6%9C%9F_%E7%B7%99%E7%B5%B2%E5%AD%94%E9%9B%80%E7%B4%8B%E8%A3%9C-Medallion_with_two_peacocks_MET_DP-14150-013.jpg",
+  },
+  鹭鸶: {
+    src: "/qing-officials/badge-ming-lusi.jpg",
+    caption: "明 · 六品文官鹭鸶补 · 库珀·休伊特设计博物馆",
+    source:
+      "https://commons.wikimedia.org/wiki/File:Rank_Badge_%28China%29%2C_Ming_dynasty%2C_1368%E2%80%931644_%28CH_18130937%29.jpg",
+  },
+  鸂鶒: {
+    src: "/qing-officials/badge-ming-xichi.jpg",
+    caption: "明 · 七品文官鸂鶒（鸳鸯）补 · 克利夫兰艺术博物馆",
+    source:
+      "https://commons.wikimedia.org/wiki/File:China%2C_Ming_dynasty_-_Rank_Badge_with_Mandarin_Ducks_-_1985.32_-_Cleveland_Museum_of_Art.tif",
+  },
+  狮子: {
+    src: "/qing-officials/badge-ming-shizi.jpg",
+    caption: "明 · 武官狮子补 · 大都会艺术博物馆",
+    source: "https://commons.wikimedia.org/wiki/File:Ming_dynasty_Rank_Badge_with_Lion.jpg",
+  },
+  虎: {
+    src: "/qing-officials/badge-ming-hu.jpg",
+    caption: "明 · 武官虎补（LACMA 著录为四品武官）· 洛杉矶县艺术博物馆",
+    source:
+      "https://commons.wikimedia.org/wiki/File:Rank_Badge_%28Buzi%29_of_the_Fourth_Military_Rank_with_Tiger_LACMA_M.39.2.234.jpg",
   },
 };
 
@@ -253,7 +295,10 @@ export const ROBE_IMAGES: Readonly<Record<string, RankImage>> = {
   },
 };
 
-export function badgeImage(animal: string): RankImage | undefined {
+export function badgeImage(animal: string, dynastyId?: string): RankImage | undefined {
+  if (dynastyId === "ming") {
+    return MING_BADGE_IMAGES[animal];
+  }
   return BADGE_IMAGES[animal];
 }
 
