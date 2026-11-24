@@ -131,6 +131,14 @@ export function QingRankLadder({ atlas }: { atlas: DynastyAtlas }) {
                           onClick={() => setSelectedLabel(item.label)}
                           type="button"
                         >
+                          {item.offices ? (
+                            <span
+                              className="w-full truncate text-center font-body text-[0.62rem] leading-tight text-muted-foreground/90"
+                              title={item.offices}
+                            >
+                              {item.offices}
+                            </span>
+                          ) : null}
                           <span
                             className={cn(
                               "font-brush text-sm",

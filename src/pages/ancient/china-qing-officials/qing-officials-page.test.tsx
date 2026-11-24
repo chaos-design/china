@@ -432,6 +432,8 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(fifth).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByLabelText("正五品档案")).toHaveTextContent("水晶顶");
     expect(screen.getByLabelText("正五品档案")).toHaveTextContent("青色");
+    // 每个品级（原子）在品级名前方展示该行对应职官名（显示截断、title 为全文）。
+    expect(fifth).toHaveTextContent("同知、各部院郎中、给事中");
   });
 
   it("renders the full-spectrum strips and the six essentials in the rank view", () => {
