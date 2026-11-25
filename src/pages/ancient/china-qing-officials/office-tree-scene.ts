@@ -80,8 +80,9 @@ const GROW_STAGGER_MS = 16;
  */
 const BRACKET_LABEL_DISTANCE = OFFICE_TREE_GEOMETRY.ringRadiusX * 2.4;
 /**
- * 属官名牌只在接近正视时出现：斜视/俯视时环上标签会互相穿插，
- * 只保留 root / 分区 / 荣衔这些骨架名称。滞回区间避免自转经过阈值时闪烁。
+ * 二层级及以上属官名牌只在接近正视时出现：斜视/俯视时深层环上标签会互相
+ * 穿插，斜视只保留 root / 分区 / 荣衔 / 首层属官这些骨架名称。
+ * 滞回区间避免自转经过阈值时闪烁。
  */
 const FRONT_LABEL_SHOW_AZIMUTH = 0.3;
 const FRONT_LABEL_HIDE_AZIMUTH = 0.46;
@@ -1576,8 +1577,9 @@ export function createOfficeTreeScene(
     for (const label of ranked) {
       const id = label.userData.nodeId as string;
       const depth = label.userData.depth as number | undefined;
-      if (!detailLabelsVisible && depth !== undefined && depth >= 2) {
-        // 斜视时只留下权力本源 / 分区 / 荣衔骨架，具体属官名称等转正后再出现。
+      if (!detailLabelsVisible && depth !== undefined && depth >= 3) {
+        // 斜视时只留权力本源 / 分区 / 荣衔 / 首层属官（1、2 级部门）的常驻名，
+        // 更深层属官名称等转正后再出现。
         label.visible = false;
         continue;
       }
