@@ -72,6 +72,8 @@ export function RankLightboxProvider({ children }: { children: ReactNode }) {
                 <img
                   alt={active.caption}
                   className="max-h-[72vh] max-w-[90vw] rounded-lg border border-paper/20 bg-paper object-contain shadow-[0_24px_64px_hsl(var(--ink)/0.5)]"
+                  decoding="async"
+                  fetchPriority="high"
                   src={active.src}
                 />
                 <div className="flex flex-col items-center gap-2">

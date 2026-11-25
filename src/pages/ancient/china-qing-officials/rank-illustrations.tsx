@@ -28,6 +28,7 @@ function RankImageTile({ className, image }: { className?: string; image: RankIm
         alt=""
         aria-hidden="true"
         className="h-full w-full cursor-zoom-in rounded-[inherit] border border-ink/15 object-cover shadow-sm"
+        decoding="async"
         loading="lazy"
         onClick={(event) => {
           event.stopPropagation();
