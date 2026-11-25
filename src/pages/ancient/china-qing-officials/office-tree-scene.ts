@@ -80,12 +80,12 @@ const GROW_STAGGER_MS = 16;
  */
 const BRACKET_LABEL_DISTANCE = OFFICE_TREE_GEOMETRY.ringRadiusX * 2.4;
 /**
- * 二层级及以上属官名牌只在接近正视时出现：斜视/俯视时深层环上标签会互相
- * 穿插，斜视只保留 root / 分区 / 荣衔 / 首层属官这些骨架名称。
+ * 二层级及以上属官名牌在「近正视窗口」内出现（含斜侧默认镜头 0.3 rad）：
+ * 只有强斜视 / 俯视（> 0.75 rad）才收回深层名牌，避免环上标签互相穿插。
  * 滞回区间避免自转经过阈值时闪烁。
  */
-const FRONT_LABEL_SHOW_AZIMUTH = 0.3;
-const FRONT_LABEL_HIDE_AZIMUTH = 0.46;
+const FRONT_LABEL_SHOW_AZIMUTH = 0.55;
+const FRONT_LABEL_HIDE_AZIMUTH = 0.75;
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 /**
  * 节点体量即尊卑：皇权独占一个数量级的尺度，分区、荣衔、属官依次收小。
@@ -319,7 +319,7 @@ function createLabelSprite(
   options: { accent?: string; background?: boolean } = {},
 ): THREE.Sprite {
   const pixelRatio = 2;
-  const padX = 14;
+  const padX = 10;
   const padY = 8;
   const lineGap = 3;
   const measure = document.createElement("canvas").getContext("2d");
@@ -957,13 +957,14 @@ export function createOfficeTreeScene(
         pickMeshes.push(proxy);
       }
 
-      // 每一枚节点都挂标注（含属官），满足「每个原子都有标注」；属官字号更小。
+      // 每一枚节点都挂标注（含属官），满足「每个原子都有标注」；属官字号更小、
+      // 内边距更窄：密集环上标签越窄，同排能挤下的名字越多。
       // 屏幕空间的重叠交给定于 tick 的贪心避让处理：按层级与远近择优显示，绝不互相压盖。
       const labelSize =
         node.kind === "root"
           ? 20
           : node.kind === "office"
-            ? 12
+            ? 11
             : node.kind === "honorary"
               ? 14
               : 16;
@@ -1491,6 +1492,9 @@ export function createOfficeTreeScene(
     [0, 1.2, 0.8],
     [-1.6, 1.8, 0.6],
     [1.6, 1.8, 0.6],
+    [0, 2.7, 0],
+    [-3.1, 1.6, 0],
+    [3.1, 1.6, 0],
   ];
   function placeLabel(label: THREE.Sprite, pinned: boolean, placed: LabelBox[], pad: number) {
     const px = label.userData.px as { h: number; w: number } | undefined;
@@ -1578,8 +1582,8 @@ export function createOfficeTreeScene(
       const id = label.userData.nodeId as string;
       const depth = label.userData.depth as number | undefined;
       if (!detailLabelsVisible && depth !== undefined && depth >= 3) {
-        // 斜视时只留权力本源 / 分区 / 荣衔 / 首层属官（1、2 级部门）的常驻名，
-        // 更深层属官名称等转正后再出现。
+        // 强斜视（> 0.75 rad）只留权力本源 / 分区 / 荣衔 / 首层属官（1、2 级部门）的
+        // 常驻名；近正视窗口（含斜侧默认镜头 0.3 rad）内 3 级及以下属官名称展开。
         label.visible = false;
         continue;
       }
