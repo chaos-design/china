@@ -73,8 +73,12 @@ const LABEL_WORLD_PER_PX = 0.02;
 const GROW_MS = 460;
 const GROW_STAGGER_MS = 16;
 
-/** 相机距目标超过该距离（折叠总览镜头）时隐藏包围框的跨度标注，左菜单已标注跨度。 */
-const BRACKET_LABEL_DISTANCE = 26;
+/**
+ * 相机距目标超过该距离（折叠总览镜头）时隐藏包围框的跨度标注，左菜单已标注跨度。
+ * 折叠视图的取景距离随 ringRadiusX 线性变化，阈值跟着几何走——写死常数会在
+ * 放大环半径后把跨度标注连同折叠总览一起隐藏（新布局折叠 fit ≈ 25.5）。
+ */
+const BRACKET_LABEL_DISTANCE = OFFICE_TREE_GEOMETRY.ringRadiusX * 2.4;
 /**
  * 属官名牌只在接近正视时出现：斜视/俯视时环上标签会互相穿插，
  * 只保留 root / 分区 / 荣衔这些骨架名称。滞回区间避免自转经过阈值时闪烁。

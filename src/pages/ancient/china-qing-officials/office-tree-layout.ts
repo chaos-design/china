@@ -57,25 +57,30 @@ export interface OfficeTreeLayout {
 }
 
 export const OFFICE_TREE_GEOMETRY = {
-  /** 每一级向下的纵向间距。 */
-  levelGap: 4.2,
+  /**
+   * 每一级向下的纵向间距。取景由全树宽度主导，加高纵向不会推远相机——
+   * 这是屏幕上真正能把层与层拉开的参数，别为了「紧凑」调小它。
+   */
+  levelGap: 5.6,
   /**
    * 同心深度环：depth d 的节点落在椭圆环 (ringRadiusX + (d-1)·ringStepX,
    * ringRadiusZ + (d-1)·ringStepZ) 上。皇权居中在上，直属子节点铺第一道环，
    * 属官按深度落到更外圈——「一圈一代人」，俯视即见同心圆层级。
+   * x 半径决定取景宽度（放大它会等比例拉远相机，屏幕间距不变）；
+   * z 半径只进取景深度且带 0.75 权重，放大它能真正在屏幕上摊开前后排。
    */
-  ringRadiusX: 11,
-  ringRadiusZ: 7.2,
+  ringRadiusX: 12,
+  ringRadiusZ: 8.6,
   /** 每深一层，环向外扩的步长。 */
-  ringStepX: 3.1,
-  ringStepZ: 2.2,
+  ringStepX: 3.5,
+  ringStepZ: 3,
   /**
    * 族扇区平滑项：每个直属子族（荣衔组 / 官署分区）按「叶子数 + sectorSmooth」
    * 分得环上的弧长——衙署多的分区自动拿到更宽的弧，避免族内拥挤。
    */
   sectorSmooth: 3,
   /** 根节点高于第一道环的距离。 */
-  rootLift: 1.8,
+  rootLift: 2.2,
 } as const;
 
 /** 第一族在环上的起始角（正后方），族沿逆时针依次铺开。 */
