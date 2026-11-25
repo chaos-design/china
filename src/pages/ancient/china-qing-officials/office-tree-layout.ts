@@ -61,24 +61,34 @@ export const OFFICE_TREE_GEOMETRY = {
    * 每一级向下的纵向间距。取景由全树宽度主导，加高纵向不会推远相机——
    * 这是屏幕上真正能把层与层拉开的参数，别为了「紧凑」调小它。
    */
-  levelGap: 5.6,
+  levelGap: 6.2,
   /**
    * 同心深度环：depth d 的节点落在椭圆环 (ringRadiusX + (d-1)·ringStepX,
    * ringRadiusZ + (d-1)·ringStepZ) 上。皇权居中在上，直属子节点铺第一道环，
    * 属官按深度落到更外圈——「一圈一代人」，俯视即见同心圆层级。
    * x 半径决定取景宽度（放大它会等比例拉远相机，屏幕间距不变）；
    * z 半径只进取景深度且带 0.75 权重，放大它能真正在屏幕上摊开前后排。
+   * z 再放大（>9.2/3.3）会压到「子代聚拢父代」的 xz 同向守卫（明·内阁端部
+   * 属官 dot 跌到 0.2 以下），前后排松了、父子朝向却散了——两害相权不再加。
    */
   ringRadiusX: 12,
-  ringRadiusZ: 8.6,
+  ringRadiusZ: 9.2,
   /** 每深一层，环向外扩的步长。 */
   ringStepX: 3.5,
-  ringStepZ: 3,
+  ringStepZ: 3.3,
   /**
-   * 族扇区平滑项：每个直属子族（荣衔组 / 官署分区）按「叶子数 + sectorSmooth」
-   * 分得环上的弧长——衙署多的分区自动拿到更宽的弧，避免族内拥挤。
+   * 族扇区平滑项：每个直属子族（荣衔组 / 官署分区）按「叶子数 + sectorSmooth +
+   * sectorQuadratic·叶子数²」分得环上的弧长——衙署多的分区自动拿到更宽的弧，
+   * 避免族内拥挤。
    */
   sectorSmooth: 3,
+  /**
+   * 族扇区超线性项：权重里的 K·L² 让密集分区（清·佐理部 37 叶、明·内阁 29 叶）
+   * 拿到比纯线性比例更宽的扇区，同环相邻原子的角度步长随之放宽——展开后
+   * 原子名称更容易彼此分开。再大就顶到「子代聚拢父代」守卫（明·内阁端部
+   * 属官 xz 同向 dot ≥ 0.2，当前余量 0.023），端部属官会绕到父代对侧。
+   */
+  sectorQuadratic: 0.008,
   /** 根节点高于第一道环的距离。 */
   rootLift: 2.2,
 } as const;
@@ -201,7 +211,9 @@ export function layoutOfficeTree(atlas: DynastyAtlas): OfficeTreeLayout {
   const index = new Map(raws.map((raw) => [raw.id, raw]));
 
   // —— 角度：径向整齐树（tidy radial tree）——
-  // 直属子族（荣衔组 / 官署分区）按「叶子数 + sectorSmooth」分得椭圆环上的扇区，
+  // 直属子族（荣衔组 / 官署分区）按「叶子数 + sectorSmooth + sectorQuadratic·叶子数²」
+  // 分得椭圆环上的扇区：平滑项保住小族的最小弧长，超线性项让密集分区（清·佐理部
+  // 37 叶）拿到比纯线性比例更宽的弧——同环相邻原子角度步长放宽，展开后名称更易分开。
   // 族内叶子按序铺满扇区（角度槽两两错开），内部节点取全部后代叶子的角度均值：
   // 子代永远聚拢在父代角附近，衙署多的分区自动拿到更宽的弧，
   // 任何两枚节点都不会落到同一点。旧版按兄弟序号沿 x 轴排开再向 +z「向前垂落」，
@@ -213,17 +225,18 @@ export function layoutOfficeTree(atlas: DynastyAtlas): OfficeTreeLayout {
     }
     return raw.children.reduce((sum, child) => sum + leafCount(child), 0);
   };
+  /** 族权重：线性叶子数 + 平滑下限 + 超线性密集项（见 OFFICE_TREE_GEOMETRY 注释）。 */
+  const familyWeight = (leaves: number): number =>
+    leaves +
+    OFFICE_TREE_GEOMETRY.sectorSmooth +
+    OFFICE_TREE_GEOMETRY.sectorQuadratic * leaves * leaves;
   const families = childrenOf.get(ROOT_ID) ?? [];
-  const totalWeight = families.reduce(
-    (sum, family) => sum + leafCount(family.id) + OFFICE_TREE_GEOMETRY.sectorSmooth,
-    0,
-  );
+  const totalWeight = families.reduce((sum, family) => sum + familyWeight(leafCount(family.id)), 0);
   const angleOf = new Map<string, number>();
   let familyStart = START_ANGLE;
   for (const family of families) {
     const leaves = leafCount(family.id);
-    const span =
-      ((leaves + OFFICE_TREE_GEOMETRY.sectorSmooth) / Math.max(1, totalWeight)) * Math.PI * 2;
+    const span = (familyWeight(leaves) / Math.max(1, totalWeight)) * Math.PI * 2;
     const step = span / Math.max(1, leaves);
     let leafCursor = familyStart;
     const assign = (raw: RawNode): number => {

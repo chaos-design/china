@@ -116,7 +116,8 @@ describe("layoutOfficeTree", () => {
       const layout = layoutOfficeTree(atlas);
       const byId = new Map(layout.nodes.map((node) => [node.id, node]));
 
-      // 同深度的任意两枚节点不重叠（最小官署直径约 0.6）。
+      // 同深度的任意两枚节点不重叠（最小官署直径约 0.6；加宽扇区 / z 环后
+      // 全朝实测最小间距 0.85，锁 0.75 防几何回缩）。
       const depths = [...new Set(layout.nodes.map((node) => node.depth))];
       for (const depth of depths) {
         const group = layout.nodes.filter((node) => node.depth === depth);
@@ -127,7 +128,7 @@ describe("layoutOfficeTree", () => {
               group[i]!.y - group[j]!.y,
               group[i]!.z - group[j]!.z,
             );
-            expect(distance).toBeGreaterThan(0.6);
+            expect(distance).toBeGreaterThan(0.75);
           }
         }
       }
@@ -147,6 +148,31 @@ describe("layoutOfficeTree", () => {
             (node.x * child.x + node.z * child.z) / Math.max(1e-6, magnitude * childMagnitude);
           expect(dot).toBeGreaterThan(0.2);
         }
+      }
+    }
+  });
+  it("keeps densest family's same-ring atoms apart so their nameplates fit", () => {
+    const qing = getDynastyAtlas("qing")!;
+    const layout = layoutOfficeTree(qing);
+    const byId = new Map(layout.nodes.map((node) => [node.id, node]));
+
+    // 佐理部是清最密集分区（37 叶），其中 30 枚属官落在最深环。同环任意两枚的
+    // xz 弦距 ≥ 1.1：展开后原子之间留得出名字的空间，屏幕端避让无需全部挪位。
+    // 回退到旧几何（线性扇区 + 更小的 z 环）时最小弦距跌到 1.0 以下，此测试失败。
+    const leavesOf = (id: string): string[] => {
+      const node = byId.get(id)!;
+      if (node.children.length === 0) {
+        return [id];
+      }
+      return node.children.flatMap((childId) => leavesOf(childId));
+    };
+    const deepAtoms = leavesOf("assistant").filter((id) => byId.get(id)!.depth === 4);
+    expect(deepAtoms.length).toBeGreaterThanOrEqual(20);
+    for (let i = 0; i < deepAtoms.length; i += 1) {
+      for (let j = i + 1; j < deepAtoms.length; j += 1) {
+        const a = byId.get(deepAtoms[i]!)!;
+        const b = byId.get(deepAtoms[j]!)!;
+        expect(Math.hypot(a.x - b.x, a.z - b.z)).toBeGreaterThanOrEqual(1.1);
       }
     }
   });
