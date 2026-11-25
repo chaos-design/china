@@ -31,6 +31,9 @@ import { Button } from "../components/ui/button";
 import { cn } from "../lib/utils";
 import { HOME_ENTRY_ROUTES, type HomeEntryIcon } from "./page-resources";
 
+/** 首张功能截图的下标：它是首屏 LCP 候选图，立即高优先抓取；其余幻灯片的图走懒加载。 */
+const FIRST_SCREENSHOT_INDEX = HOME_ENTRY_ROUTES.findIndex((entry) => Boolean(entry.screenshot));
+
 const ENTRY_ICONS: Record<HomeEntryIcon, typeof Landmark> = {
   "book-open": BookOpen,
   compass: Compass,
@@ -133,7 +136,7 @@ export function HomePage() {
         </div>
 
         <HomeEntryCarousel label="核心入口与后续专题">
-          {HOME_ENTRY_ROUTES.map((entry) => {
+          {HOME_ENTRY_ROUTES.map((entry, index) => {
             const Icon = ENTRY_ICONS[entry.icon];
 
             // 筹备中条目保持不可点击，用虚线纸页与「筹备中」印明确标示。
@@ -168,7 +171,9 @@ export function HomePage() {
                     <img
                       src={`/home-screenshots/${entry.screenshot}`}
                       alt={`${entry.title}页面截图`}
-                      loading="lazy"
+                      decoding="async"
+                      fetchPriority={index === FIRST_SCREENSHOT_INDEX ? "high" : undefined}
+                      loading={index === FIRST_SCREENSHOT_INDEX ? undefined : "lazy"}
                     />
                   ) : (
                     <div className="grid h-full place-items-center">
