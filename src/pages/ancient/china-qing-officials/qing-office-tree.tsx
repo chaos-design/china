@@ -296,10 +296,11 @@ function HoverReadout({
 }
 
 /**
- * 舞台右下的「读图」气泡：默认只留一枚小 chip，点开浮出一份有层次的解说——
+ * 舞台左下的「读图」气泡：默认只留一枚小 chip，点开浮出一份有层次的解说——
  * 透视口诀、三步读法、本朝制度口径、可回查的文献依据、具体从属示例。
  * 层级刻度的那句口诀收在这里作主句；点外部 / Escape / 关闭键均可收起。
- * 详情抽屉展开时自动收起并让位：移动端抬到底部抽屉之上，桌面端退到抽屉左侧。
+ * 详情抽屉展开时自动收起并让位：移动端抬到底部抽屉之上（仍居左），
+ * 桌面端本就居左、不与右侧抽屉相撞。
  */
 function NoteChip({ atlas, drawerOpen }: { atlas: DynastyAtlas; drawerOpen: boolean }) {
   const [open, setOpen] = useState(false);
@@ -359,10 +360,8 @@ function NoteChip({ atlas, drawerOpen }: { atlas: DynastyAtlas; drawerOpen: bool
   return (
     <div
       className={cn(
-        "pointer-events-none absolute z-40 flex flex-col items-end",
-        drawerOpen
-          ? "bottom-[calc(58%+1.25rem)] right-3 lg:bottom-9 lg:right-[calc(360px+0.75rem)]"
-          : "bottom-9 right-3",
+        "pointer-events-none absolute z-40 flex flex-col items-start",
+        drawerOpen ? "bottom-[calc(58%+1.25rem)] left-3 lg:bottom-9" : "bottom-9 left-3",
       )}
       ref={containerRef}
     >

@@ -235,9 +235,9 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();
 
-    // 读图气泡默认收纳并落在舞台右侧：刻度上的口诀已移入这里作主句。
+    // 读图气泡默认收纳并落在舞台左下：刻度上的口诀已移入这里作主句。
     const chip = screen.getByRole("button", { name: "读图" });
-    expect(chip.parentElement).toHaveClass("right-3");
+    expect(chip.parentElement).toHaveClass("left-3");
     expect(chip).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByLabelText("读图说明")).toBeNull();
     expect(screen.queryByText("面片由近及远 · 层级越深越收敛")).toBeNull();
@@ -257,13 +257,13 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(chip).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByLabelText("读图说明")).toBeNull();
 
-    // 抽屉展开时气泡自动收起，chip 让到抽屉左侧；层级高于抽屉，不被面板盖住。
+    // 抽屉展开时气泡自动收起，移动端 chip 抬到底部抽屉之上（仍居左）；桌面端本就居左，不与右侧抽屉相撞。
     fireEvent.click(chip);
     act(() => {
       sceneHandlers().onPick({ id: "censorate", kind: "office", title: "都察院" });
     });
     expect(screen.queryByLabelText("读图说明")).toBeNull();
-    expect(chip.parentElement).toHaveClass("lg:right-[calc(360px+0.75rem)]");
+    expect(chip.parentElement).toHaveClass("left-3", "bottom-[calc(58%+1.25rem)]");
   });
 
   it("opens the right-side detail drawer on an office pick and closes it", () => {
