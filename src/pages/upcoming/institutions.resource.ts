@@ -4,7 +4,7 @@ const institutionsResource = {
   homeEntries: [
     {
       path: "/china/institutions",
-      dimensions: ["历史"],
+      dimensions: ["chronology"],
       icon: "book-open",
       status: "available",
       title: "典章制度",

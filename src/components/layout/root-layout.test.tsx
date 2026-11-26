@@ -184,7 +184,7 @@ describe("<SiteMenu /> columns and content", () => {
 
   it("moves the map highlight to the hovered column", async () => {
     const panel = await openMenu("/");
-    const column = screen.getByText("地域与近代").closest(".mega-col");
+    const column = within(panel).getByRole("heading", { name: "地域与近代" }).closest(".mega-col");
     expect(column).not.toBeNull();
 
     // 列的 hover 高亮走 wrapper 上的 mouseover 委托

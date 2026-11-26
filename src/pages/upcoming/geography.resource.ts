@@ -4,7 +4,7 @@ const geographyResource = {
   homeEntries: [
     {
       icon: "map",
-      dimensions: ["历史", "军事"],
+      dimensions: ["atlas"],
       path: "/china/atlas",
       status: "available",
       title: "历史地理图谱",

@@ -70,7 +70,7 @@ export function HomePage() {
   const hasEnteredHome = outletContext?.homeEntered ?? true;
 
   const [dimension, setDimension] = useState<ResourceDimensionFilter>(ALL_RESOURCE_DIMENSIONS);
-  // 维度只筛选项，不生成新条目；「全部」仍保持原有顺序与数量。
+  // 维度只筛选项，不生成新条目；「全览」仍保持原有顺序与数量。
   const entries = useMemo(
     () =>
       HOME_ENTRY_ROUTES.filter((entry) => matchesResourceDimension(entry.dimensions, dimension)),
@@ -150,16 +150,16 @@ export function HomePage() {
         </div>
 
         <div aria-label="入口维度" className="home-dimension-tabs" role="tablist">
-          {RESOURCE_DIMENSION_FILTERS.map((item) => (
+          {RESOURCE_DIMENSION_FILTERS.map(({ id, label }) => (
             <button
-              aria-selected={dimension === item}
-              className={cn("home-dimension-tab", dimension === item && "is-active")}
-              key={item}
-              onClick={() => setDimension(item)}
+              aria-selected={dimension === id}
+              className={cn("home-dimension-tab", dimension === id && "is-active")}
+              key={id}
+              onClick={() => setDimension(id)}
               role="tab"
               type="button"
             >
-              {item}
+              {label}
             </button>
           ))}
         </div>

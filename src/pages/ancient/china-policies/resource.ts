@@ -4,7 +4,7 @@ const qinPoliciesResource = {
   homeEntries: [
     {
       path: "/china/policies",
-      dimensions: ["历史", "军事"],
+      dimensions: ["chronology"],
       icon: "scroll-text",
       status: "available",
       title: "朝代政策全览",

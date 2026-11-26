@@ -5,7 +5,7 @@ const ancientChinaResource = {
   homeEntries: [
     {
       path: "/china/timeline",
-      dimensions: ["历史"],
+      dimensions: ["chronology"],
       icon: "landmark",
       status: "available",
       title: "朝代时间长河",

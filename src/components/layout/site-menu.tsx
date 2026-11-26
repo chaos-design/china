@@ -12,7 +12,7 @@ import { NavLink, useLocation } from "react-router-dom";
 
 import {
   ALL_RESOURCE_DIMENSIONS,
-  matchesResourceDimension,
+  matchesResourceDimensionId,
   RESOURCE_DIMENSION_FILTERS,
   type ResourceDimensionFilter,
 } from "../../lib/resource-dimensions";
@@ -59,14 +59,11 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
   );
   const focusGroupId = hoverGroupId ?? activeGroup.id;
 
-  // 维度筛选只重组展示：NAV_GROUPS 保留原编辑顺序与全部条目，
-  // 切换维度时过滤出仍含条目的列，空列直接消失，地图高亮也跟着收敛到可见列。
+  // 维度就是菜单分组 id：按分组整列筛选，列内条目与「全览」时完全一致，
+  // 首页入口用同一批 id 标注，保证菜单与功能一一对应。空列直接消失，
+  // 地图高亮也跟着收敛到可见列。
   const visibleGroups = useMemo(
-    () =>
-      NAV_GROUPS.map((group) => ({
-        ...group,
-        items: group.items.filter((item) => matchesResourceDimension(item.dimensions, dimension)),
-      })).filter((group) => group.items.length > 0),
+    () => NAV_GROUPS.filter((group) => matchesResourceDimensionId(group.id, dimension)),
     [dimension],
   );
   const focusGroup =
@@ -281,16 +278,16 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
               role=tablist 让读屏器把它读作一组筛选，而不是新的导航层级。 */}
           <div className="mega-dimension-bar">
             <div aria-label="菜单维度" className="flex flex-wrap gap-1.5" role="tablist">
-              {RESOURCE_DIMENSION_FILTERS.map((item) => (
+              {RESOURCE_DIMENSION_FILTERS.map(({ id, label }) => (
                 <button
-                  aria-selected={dimension === item}
-                  className={cn("mega-dimension-tab", dimension === item && "is-active")}
-                  key={item}
-                  onClick={() => selectDimension(item)}
+                  aria-selected={dimension === id}
+                  className={cn("mega-dimension-tab", dimension === id && "is-active")}
+                  key={id}
+                  onClick={() => selectDimension(id)}
                   role="tab"
                   type="button"
                 >
-                  {item}
+                  {label}
                 </button>
               ))}
             </div>

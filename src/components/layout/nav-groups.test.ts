@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { RESOURCE_DIMENSION_LABELS, RESOURCE_DIMENSIONS } from "../../lib/resource-dimensions";
+import { HOME_ENTRY_ROUTES } from "../../pages/page-resources";
 import { findNavGroupId, NAV_GROUPS, type NavGroup } from "./nav-groups";
 
 /** 与 routes.tsx 的嵌套路由匹配口径一致：本体或任意子路由都算命中。 */
@@ -60,17 +62,21 @@ describe("NAV_GROUPS 菜单数据治理", () => {
     expect(labels).toEqual(["编年与制度", "历史地理", "文化与交通", "地域与近代"]);
   });
 
-  it("每个菜单条目都有已知维度，三个维度都有落点", () => {
-    const covered = new Set<string>();
+  it("分组 id / 标签与维度 id / 维度名一一对应", () => {
+    expect(NAV_GROUPS.map((group) => group.id)).toEqual([...RESOURCE_DIMENSIONS]);
     for (const group of NAV_GROUPS) {
-      for (const item of group.items) {
-        expect(item.dimensions?.length).toBeGreaterThan(0);
-        for (const dimension of item.dimensions ?? []) {
-          expect(["军事", "历史", "非物质文化遗产"]).toContain(dimension);
-          covered.add(dimension);
-        }
-      }
+      expect(RESOURCE_DIMENSION_LABELS[group.id]).toBe(group.label);
     }
-    expect([...covered].sort()).toEqual(["军事", "历史", "非物质文化遗产"].sort());
+  });
+
+  it("每个首页入口的维度就是它对应菜单项所属的分组", () => {
+    for (const entry of HOME_ENTRY_ROUTES) {
+      if (!entry.path) continue;
+      const group = NAV_GROUPS.find((candidate) =>
+        candidate.items.some((item) => item.to === entry.path),
+      );
+      expect(group).toBeDefined();
+      expect(entry.dimensions).toEqual([group?.id]);
+    }
   });
 });

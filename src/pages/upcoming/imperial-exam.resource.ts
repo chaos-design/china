@@ -4,7 +4,7 @@ const imperialExamResource = {
   homeEntries: [
     {
       path: "/china/imperial-exam",
-      dimensions: ["历史"],
+      dimensions: ["chronology"],
       icon: "scroll-text",
       status: "available",
       title: "科举之路",

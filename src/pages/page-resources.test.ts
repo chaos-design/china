@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { RESOURCE_DIMENSIONS } from "../lib/resource-dimensions";
 import { HOME_ENTRY_ROUTES } from "./page-resources";
 
 describe("page resources", () => {
@@ -26,16 +27,16 @@ describe("page resources", () => {
     }
   });
 
-  it("gives every home entry a known dimension, covering all three dimensions", () => {
+  it("gives every home entry an existing menu group as its dimension", () => {
     const covered = new Set<string>();
     for (const entry of HOME_ENTRY_ROUTES) {
       expect(entry.dimensions?.length).toBeGreaterThan(0);
       for (const dimension of entry.dimensions ?? []) {
-        expect(["军事", "历史", "非物质文化遗产"]).toContain(dimension);
+        expect(RESOURCE_DIMENSIONS).toContain(dimension);
         covered.add(dimension);
       }
     }
-    expect([...covered].sort()).toEqual(["军事", "历史", "非物质文化遗产"].sort());
+    expect([...covered].sort()).toEqual([...RESOURCE_DIMENSIONS].sort());
   });
 
   it("uses the integrated silk road html resource instead of a preview entry", () => {

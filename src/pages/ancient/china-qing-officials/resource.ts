@@ -4,7 +4,7 @@ const chinaQingOfficialsResource = {
   homeEntries: [
     {
       path: "/china/qing-officials",
-      dimensions: ["历史"],
+      dimensions: ["chronology"],
       icon: "crown",
       status: "available",
       title: "历代官制图谱",
