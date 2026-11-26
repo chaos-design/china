@@ -142,6 +142,12 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         label: "解放战争交互图",
         to: "/liberation-war",
       },
+      {
+        dimensions: ["军事", "历史"],
+        highlights: ["十阶段战役沙盘", "四次渡河路线", "战况速报与兵力对比"],
+        label: "四渡赤水交互沙盘",
+        to: "/siduchishui",
+      },
     ],
     label: "地域与近代",
     mapZone: "islands",

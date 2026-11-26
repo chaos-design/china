@@ -26,6 +26,7 @@
 | HTML 专题资源 | https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片的截图文件名与读图注释等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
 | 台湾专题 | https://china.chaosmic.cn/taiwan | 五卷分页：地形剖面与经纬度投影地图、岛屿编年、风土人情，以及 1895—1945 年日治与 1947 年之后的近代，逐节标注资料出处。内容存于 `resources/html-data/taiwan.json`，渲染逻辑在 `resources/html/taiwan.html`。 | - |
 | 解放战争交互图 | https://china.chaosmic.cn/liberation-war | 1946—1951 战局沙盘：真实省界地形上的攻防连线、包围圈与起义/和平解放部署，可拖动时间轴逐阶段推演。 | - |
+| 四渡赤水交互沙盘 | https://china.chaosmic.cn/siduchishui | 1935 年 1 月至 5 月中央红军四渡赤水的十阶段地图沙盘：双方部队与渡口、行军路线、战况速报与兵力对比，可播放或拖动时间轴；原始 HTML 原样嵌入 `iframe srcDoc`。 | - |
 
 ## 技术栈
 
@@ -122,9 +123,9 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 
 `/ancient-china` 是唯一保留的旧版 HTML 页面（141 kB，`showInHome: false`），它同时是生成式路由的测试夹具。
 
-当前 HTML 资源路由：`/ancient-china`（旧版，首页不展示）、`/intangible-culture-heritage`、`/silk-road`、`/taiwan`、`/liberation-war`。
+当前 HTML 资源路由：`/ancient-china`（旧版，首页不展示）、`/intangible-culture-heritage`、`/silk-road`、`/taiwan`、`/liberation-war`、`/siduchishui`。
 
-> **关于站点定位**：本项目自称「中国古代全览」，但 HTML 资源并非都属于中国古代范畴。非遗、丝绸之路与旧版朝代页符合；`/taiwan`（地理与 1895 年以来的近现代）、`/liberation-war`（1946—1951）是近现代主题，属于有意保留的例外。站点名与 `<title>` 保持不变——改动品牌文案的影响面（SEO、分享卡片、已部署 URL 语义）远大于收益。此处显式记录该例外，后续新增专题时应明确判断它是否落在「中国古代」框架内；框架之外的资源，要么同步放宽 README 与 `index.html` 的定位表述，要么像本条一样把例外写在文档里，不要让一个页面悄悄改变站点的含义。
+> **关于站点定位**：本项目自称「中国古代全览」，但 HTML 资源并非都属于中国古代范畴。非遗、丝绸之路与旧版朝代页符合；`/taiwan`（地理与 1895 年以来的近现代）、`/liberation-war`（1946—1951）、`/siduchishui`（1935 年长征中的四渡赤水）是近现代主题，属于有意保留的例外。站点名与 `<title>` 保持不变——改动品牌文案的影响面（SEO、分享卡片、已部署 URL 语义）远大于收益。此处显式记录该例外，后续新增专题时应明确判断它是否落在「中国古代」框架内；框架之外的资源，要么同步放宽 README 与 `index.html` 的定位表述，要么像本条一样把例外写在文档里，不要让一个页面悄悄改变站点的含义。
 
 新增 HTML 专题资源时，应同时提供：
 
@@ -143,7 +144,7 @@ GitHub Actions 会在 `main` 分支的 push 与 PR 上自动执行同一组检�
 | 编年与制度 | 朝代时间长河、朝代政策全览 |
 | 历史地理 | 图谱总览（三个专题在页内以铺平的可折叠菜单呈现） |
 | 文化与交通 | 中华非遗瑰宝、丝绸之路与海疆 |
-| 地域与近代 | 台湾专题、解放战争交互图 |
+| 地域与近代 | 台湾专题、解放战争交互图、四渡赤水交互沙盘 |
 
 分组硬编码在 `src/components/layout/nav-groups.ts` 的 `NAV_GROUPS`，因为它表达的是编辑判断（哪些内容属于同一类、落在地图哪一块），放进资源元数据会让数据层承担分类职责。新增资源时要在 `NAV_GROUPS` 里补一条叶子——代码里有一道校验，路径若没有对应的可用资源会在启动时抛错，避免留下死链（`/china/*` 形式的路径因属 React 路由而跳过该校验）。
 

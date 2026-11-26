@@ -93,6 +93,17 @@ describe("html resource metadata", () => {
             ],
           }),
         }),
+        expect.objectContaining({
+          fileName: "siduchishui.html",
+          path: "/siduchishui",
+          resource: expect.objectContaining({
+            homeEntries: [
+              expect.objectContaining({
+                title: "四渡赤水战役交互沙盘",
+              }),
+            ],
+          }),
+        }),
       ]),
     );
 
@@ -175,6 +186,11 @@ describe("html resource metadata", () => {
     expect(lwData.TERRAIN.ridges.length).toBeGreaterThan(15);
     expect(lwData.TERRAIN.plateaus.length).toBeGreaterThan(0);
     expect(lwData.TERRAIN.basins.length).toBeGreaterThan(0);
+
+    const siduchishui = await loadDocument("/siduchishui");
+    expect(siduchishui.title).toBe("四渡赤水战役 · 交互式战争沙盘");
+    expect(siduchishui.html).toContain("四渡赤水战役 · 交互式战争沙盘");
+    expect(siduchishui.html).not.toContain('data-resource="siduchishui.json"');
 
     const taiwan = await loadDocument("/taiwan");
     expect(taiwan.title).toBe("台湾 · 山海之间的百年");
@@ -374,6 +390,11 @@ describe("html resource metadata", () => {
           path: "/taiwan",
           status: "available",
           title: "台湾 · 山海之间",
+        }),
+        expect.objectContaining({
+          path: "/siduchishui",
+          status: "available",
+          title: "四渡赤水战役交互沙盘",
         }),
       ]),
     );
