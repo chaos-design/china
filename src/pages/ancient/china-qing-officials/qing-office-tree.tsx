@@ -1032,7 +1032,7 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
   // 默认全展开：落地即见完整从属树与每一枚属官；重叠标注由场景的屏幕避让处理。
   // 用户仍可用舞台菜单「收起全部」回到分区总览。
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set(expandableIds));
-  // 慢速自转默认开（reduce-motion 时关）；用户拖拽画布会让场景自动关掉并回调同步。
+  // 慢速自转默认开（reduce-motion 时关）；拖拽画布或 hover 原子会让场景自动关掉并回调同步。
   const [autoRotate, setAutoRotateUi] = useState(
     () =>
       typeof window.matchMedia !== "function" ||
@@ -1063,7 +1063,7 @@ export function QingOfficeTree({ atlas }: { atlas: DynastyAtlas }) {
         }
         setDetail(node ? { type: "node", node } : null);
       },
-      // 用户拖拽画布时场景自行停转，这里同步按钮状态。
+      // 用户拖拽画布或 hover 原子时场景自行停转，这里同步按钮状态。
       onAutoRotateChange: (on: boolean) => setAutoRotateUi(on),
       onUnavailable: () => undefined,
     }),

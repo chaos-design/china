@@ -19,6 +19,8 @@ import { createOfficeTreeScene, readOfficeTreeColors } from "./office-tree-scene
 export interface OfficeTreeSceneCallbacks {
   onHover: (hover: OfficeTreeHover | null) => void;
   onPick: (pick: OfficeTreePick | null) => void;
+  /** 场景侧拖拽 / hover 原子关停自转时回调，让 React 侧的开关状态同步。 */
+  onAutoRotateChange?: (on: boolean) => void;
   onUnavailable: () => void;
 }
 
@@ -36,7 +38,7 @@ export interface OfficeTreeSceneController {
   focusNode: (id: string, options?: { faceFront?: boolean }) => void;
   /** 从属筛选高亮（null 恢复全树）。 */
   setFilter: (ids: readonly string[] | null) => void;
-  /** 慢速自转开关（用户拖拽会在场景内部自动关闭并回调）。 */
+  /** 慢速自转开关（用户拖拽或 hover 原子会在场景内部自动关闭并回调）。 */
   setAutoRotate: (on: boolean) => void;
 }
 
@@ -72,6 +74,9 @@ export function useOfficeTreeScene(
       },
       onPick: (pick) => {
         callbacksRef.current.onPick(pick);
+      },
+      onAutoRotateChange: (on) => {
+        callbacksRef.current.onAutoRotateChange?.(on);
       },
       onUnavailable: () => {
         setFailed(true);

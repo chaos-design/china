@@ -539,13 +539,20 @@ export function createOfficeTreeScene(
   controls.minPolarAngle = 0.08;
   controls.rotateSpeed = 0.7;
   controls.zoomSpeed = 0.8;
+  // 手动操作一律让位给自转：拖拽与 hover 原子共用同一条关停路径，
+  // 并回调同步 React 侧的「旋转」按钮。hover 是永久关停而非临时暂停——
+  // 在密集节点间移动鼠标时反复启停比一直转更扰人。
+  function stopAutoRotate() {
+    if (!autoRotate) {
+      return;
+    }
+    autoRotate = false;
+    controls.autoRotate = false;
+    handlers.onAutoRotateChange?.(false);
+  }
   controls.addEventListener("start", () => {
     userAdjusted = true;
-    if (autoRotate) {
-      autoRotate = false;
-      controls.autoRotate = false;
-      handlers.onAutoRotateChange?.(false);
-    }
+    stopAutoRotate();
   });
   // 相机每被动一次（含阻尼收敛与自转）都标记重画；静止时脏标记保持 false，跳过 render。
   controls.addEventListener("change", () => {
@@ -1402,6 +1409,8 @@ export function createOfficeTreeScene(
     hover = pick;
     const node = pick ? (layoutNodes?.find((candidate) => candidate.id === pick.id) ?? null) : null;
     if (pick && node) {
+      // 悬浮到原子即停自转：名字、名牌与详情停在原地才读得清，不会被转走。
+      stopAutoRotate();
       // 悬浮放大改为逐帧插值的平滑凸起；属官没有常驻标签，hover 时浮出一枚名牌补位。
       const mesh = nodeMeshes.find(
         (candidate) => (candidate.userData.pick as OfficeTreePick).id === pick.id,

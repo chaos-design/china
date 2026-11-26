@@ -145,6 +145,26 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(screen.queryByText(/未能启用 WebGL/)).toBeNull();
   });
 
+  it("mirrors a scene-side auto-rotate stop on the toggle (drag / hover an atom)", () => {
+    mocks.create.mockReturnValue(mocks.scene);
+    renderAt();
+
+    const rotate = screen.getByRole("button", { name: "旋转" });
+    expect(rotate).toHaveAttribute("aria-pressed", "true");
+
+    // 场景内部拖拽 / hover 原子关停自转后回调；hook 必须把这条回调转发到 UI。
+    const calls = mocks.create.mock.calls;
+    const callbacks = calls[calls.length - 1]?.[2] as {
+      onAutoRotateChange?: (on: boolean) => void;
+    };
+    act(() => {
+      callbacks?.onAutoRotateChange?.(false);
+    });
+
+    expect(rotate).toHaveAttribute("aria-pressed", "false");
+    expect(mocks.scene.setAutoRotate).toHaveBeenLastCalledWith(false);
+  });
+
   it("switches the 3D tree to a new dynasty and re-syncs the scene", () => {
     mocks.create.mockReturnValue(mocks.scene);
     renderAt();
