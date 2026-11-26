@@ -26,6 +26,18 @@ describe("page resources", () => {
     }
   });
 
+  it("gives every home entry a known dimension, covering all three dimensions", () => {
+    const covered = new Set<string>();
+    for (const entry of HOME_ENTRY_ROUTES) {
+      expect(entry.dimensions?.length).toBeGreaterThan(0);
+      for (const dimension of entry.dimensions ?? []) {
+        expect(["军事", "历史", "非物质文化遗产"]).toContain(dimension);
+        covered.add(dimension);
+      }
+    }
+    expect([...covered].sort()).toEqual(["军事", "历史", "非物质文化遗产"].sort());
+  });
+
   it("uses the integrated silk road html resource instead of a preview entry", () => {
     expect(HOME_ENTRY_ROUTES).toEqual(
       expect.arrayContaining([

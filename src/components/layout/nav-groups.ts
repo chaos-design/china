@@ -1,3 +1,4 @@
+import type { ResourceDimension } from "../../lib/resource-dimensions";
 import { HOME_ENTRY_ROUTES } from "../../pages/page-resources";
 
 export type { MapZoneId } from "./china-map-geometry";
@@ -11,6 +12,8 @@ import type { MapZoneId } from "./china-map-geometry";
  * 放进资源元数据反而会让数据层承担分类职责。
  */
 export interface NavLeaf {
+  /** 与首页入口共用的展示维度，菜单按它筛选；缺省条目只在「全部」中出现。 */
+  dimensions?: readonly ResourceDimension[];
   /** 右侧面板里的短标签，让条目不止于一句话说明。 */
   highlights: readonly string[];
   label: string;
@@ -47,31 +50,37 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "chronology",
     items: [
       {
+        dimensions: ["历史"],
         highlights: ["3D 朝代浮岛", "更替节点", "民族迁徙线索"],
         label: "朝代时间长河",
         to: "/china/timeline",
       },
       {
+        dimensions: ["历史", "军事"],
         highlights: ["385 条政策卡片", "按朝代筛选", "机构与人物"],
         label: "朝代政策全览",
         to: "/china/policies",
       },
       {
+        dimensions: ["历史"],
         highlights: ["文武双枝官职树", "完整名录与名臣名将", "同品序八朝断面"],
         label: "品级纵横",
         to: "/china/ranks",
       },
       {
+        dimensions: ["历史"],
         highlights: ["八朝官制按朝代切换", "官署层级与品秩阶梯", "章服补子与朝会礼序"],
         label: "历代官制图谱",
         to: "/china/qing-officials",
       },
       {
+        dimensions: ["历史"],
         highlights: ["五大制度专题", "沿革与关键条目", "专题检索"],
         label: "典章制度",
         to: "/china/institutions",
       },
       {
+        dimensions: ["历史"],
         highlights: ["明清登科全阶", "历代入仕途径", "真实官员履历"],
         label: "科举之路",
         to: "/china/imperial-exam",
@@ -86,6 +95,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "atlas",
     items: [
       {
+        dimensions: ["历史", "军事"],
         highlights: ["三类图谱同图", "按朝代切换疆域", "选中局部放大"],
         label: "历史地理图谱",
         to: "/china/atlas",
@@ -100,11 +110,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "culture",
     items: [
       {
+        dimensions: ["非物质文化遗产", "历史"],
         highlights: ["二十项传统技艺", "工序拆解", "匠人与故事"],
         label: "中华非遗瑰宝",
         to: "/intangible-culture-heritage",
       },
       {
+        dimensions: ["历史"],
         highlights: ["陆上丝路", "海上丝路", "海疆经略"],
         label: "丝绸之路与海疆",
         to: "/silk-road",
@@ -119,11 +131,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "region",
     items: [
       {
+        dimensions: ["历史"],
         highlights: ["五卷分页", "地形剖面与投影地图", "1895—1945 日治"],
         label: "台湾专题",
         to: "/taiwan",
       },
       {
+        dimensions: ["军事", "历史"],
         highlights: ["四阶段时间轴", "战役地点与解放区", "进军箭头与行军路线"],
         label: "解放战争交互图",
         to: "/liberation-war",

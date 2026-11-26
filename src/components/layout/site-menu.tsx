@@ -1,7 +1,21 @@
 import { Compass } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
+import {
+  ALL_RESOURCE_DIMENSIONS,
+  matchesResourceDimension,
+  RESOURCE_DIMENSION_FILTERS,
+  type ResourceDimensionFilter,
+} from "../../lib/resource-dimensions";
 import { cn } from "../../lib/utils";
 import { HandDrawnMap } from "./hand-drawn-map";
 import { NAV_GROUPS, type NavGroup } from "./nav-groups";
@@ -32,6 +46,7 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [hoverGroupId, setHoverGroupId] = useState<string | undefined>(undefined);
+  const [dimension, setDimension] = useState<ResourceDimensionFilter>(ALL_RESOURCE_DIMENSIONS);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeTimerRef = useRef<number | null>(null);
@@ -43,7 +58,24 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
     [activeRouteGroupId],
   );
   const focusGroupId = hoverGroupId ?? activeGroup.id;
-  const focusGroup = NAV_GROUPS.find((group) => group.id === focusGroupId) ?? NAV_GROUPS[0];
+
+  // 维度筛选只重组展示：NAV_GROUPS 保留原编辑顺序与全部条目，
+  // 切换维度时过滤出仍含条目的列，空列直接消失，地图高亮也跟着收敛到可见列。
+  const visibleGroups = useMemo(
+    () =>
+      NAV_GROUPS.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => matchesResourceDimension(item.dimensions, dimension)),
+      })).filter((group) => group.items.length > 0),
+    [dimension],
+  );
+  const focusGroup =
+    visibleGroups.find((group) => group.id === focusGroupId) ?? visibleGroups[0] ?? NAV_GROUPS[0];
+
+  const selectDimension = useCallback((next: ResourceDimensionFilter) => {
+    setDimension(next);
+    setHoverGroupId(undefined);
+  }, []);
 
   /** 只取消关闭定时器——用于鼠标进入 wrapper/面板时，防止误关。 */
   const cancelCloseTimer = useCallback(() => {
@@ -160,7 +192,7 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
         className={cn(
           "mega-col relative flex flex-col gap-1.5 px-5 py-5 sm:px-6",
           // 分隔线只在列与列之间，末列不画
-          group.id !== NAV_GROUPS[NAV_GROUPS.length - 1].id && "lg:border-ink/10 lg:border-r",
+          group.id !== visibleGroups[visibleGroups.length - 1].id && "lg:border-ink/10 lg:border-r",
         )}
         data-menu-group={group.id}
         key={group.id}
@@ -245,8 +277,30 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
           )}
           id={MENU_PANEL_ID}
         >
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_13rem]">
-            {NAV_GROUPS.map((group) => renderColumn(group))}
+          {/* 维度切换条：只改列与条目的可见性，所有既有菜单文案原样保留。
+              role=tablist 让读屏器把它读作一组筛选，而不是新的导航层级。 */}
+          <div className="mega-dimension-bar">
+            <div aria-label="菜单维度" className="flex flex-wrap gap-1.5" role="tablist">
+              {RESOURCE_DIMENSION_FILTERS.map((item) => (
+                <button
+                  aria-selected={dimension === item}
+                  className={cn("mega-dimension-tab", dimension === item && "is-active")}
+                  key={item}
+                  onClick={() => selectDimension(item)}
+                  role="tab"
+                  type="button"
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div
+            className="mega-groups grid grid-cols-1"
+            style={{ "--mega-column-count": visibleGroups.length } as CSSProperties}
+          >
+            {visibleGroups.map((group) => renderColumn(group))}
 
             {/* 右缘地图带：装饰性识别区，随悬停/当前路由切换分区高亮。
                 窄屏没有空间，整条隐藏（<lg）；不接受指针事件，免得挡住面板边缘。 */}

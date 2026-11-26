@@ -4,6 +4,7 @@ const chinaRanksResource = {
   homeEntries: [
     {
       path: "/china/ranks",
+      dimensions: ["历史"],
       icon: "scale",
       status: "available",
       title: "品级纵横",

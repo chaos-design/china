@@ -2,6 +2,7 @@
   "homeEntries": [
     {
       "icon": "swords",
+      "dimensions": ["军事", "历史"],
       "status": "available",
       "title": "解放战争历史地理交互图",
       "description": "以中国省界 3D 沙盘呈现 1946—1951 年解放进程：逐战役的攻防路线、合围圈与突破点，起义与和平解放部署，以及可播放、可拖动的时间轴。",

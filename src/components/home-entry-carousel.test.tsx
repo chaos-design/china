@@ -65,6 +65,7 @@ function stageSlides() {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
+  Object.defineProperty(document, "hidden", { configurable: true, value: false });
 });
 
 describe("<HomeEntryCarousel />", () => {
@@ -251,5 +252,61 @@ describe("<HomeEntryCarousel />", () => {
     );
 
     expect(container.querySelector(".home-carousel-progress")).toBeNull();
+  });
+
+  it("横向短划翻页，纵向滑动与短距离手势不翻页", () => {
+    setMedia(375);
+    render(<HomeEntryCarousel label="核心入口">{slides(4)}</HomeEntryCarousel>);
+    const carousel = screen.getByRole("region", { name: "核心入口" });
+
+    fireEvent.touchStart(carousel, { changedTouches: [{ clientX: 220, clientY: 120 }] });
+    fireEvent.touchEnd(carousel, { changedTouches: [{ clientX: 140, clientY: 124 }] });
+    expect(stageSlides()[1]).toHaveClass("is-active");
+    expect(carousel).toHaveAttribute("data-direction", "next");
+
+    fireEvent.touchStart(carousel, { changedTouches: [{ clientX: 140, clientY: 120 }] });
+    fireEvent.touchEnd(carousel, { changedTouches: [{ clientX: 230, clientY: 122 }] });
+    expect(stageSlides()[0]).toHaveClass("is-active");
+    expect(carousel).toHaveAttribute("data-direction", "previous");
+
+    // 纵向占优或位移不足时把滚动交还页面。
+    fireEvent.touchStart(carousel, { changedTouches: [{ clientX: 200, clientY: 100 }] });
+    fireEvent.touchEnd(carousel, { changedTouches: [{ clientX: 120, clientY: 260 }] });
+    expect(stageSlides()[0]).toHaveClass("is-active");
+
+    fireEvent.touchStart(carousel, { changedTouches: [{ clientX: 200, clientY: 100 }] });
+    fireEvent.touchEnd(carousel, { changedTouches: [{ clientX: 180, clientY: 104 }] });
+    expect(stageSlides()[0]).toHaveClass("is-active");
+  });
+
+  it("手势被取消后不会残留到下一段触摸", () => {
+    setMedia(375);
+    render(<HomeEntryCarousel label="核心入口">{slides(4)}</HomeEntryCarousel>);
+    const carousel = screen.getByRole("region", { name: "核心入口" });
+
+    fireEvent.touchStart(carousel, { changedTouches: [{ clientX: 220, clientY: 120 }] });
+    fireEvent.touchCancel(carousel);
+    fireEvent.touchEnd(carousel, { changedTouches: [{ clientX: 140, clientY: 124 }] });
+    expect(stageSlides()[0]).toHaveClass("is-active");
+  });
+
+  it("标签页隐藏时暂停自动播放，回到前台恢复", () => {
+    vi.useFakeTimers();
+    setMedia(375);
+    const { container } = render(
+      <HomeEntryCarousel label="核心入口">{slides(4)}</HomeEntryCarousel>,
+    );
+
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    fireEvent(document, new Event("visibilitychange"));
+    expect(container.querySelector(".home-carousel-mobile-progress")).toBeNull();
+    act(() => vi.advanceTimersByTime(6500));
+    expect(stageSlides()[0]).toHaveClass("is-active");
+
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    fireEvent(document, new Event("visibilitychange"));
+    expect(container.querySelector(".home-carousel-mobile-progress")).not.toBeNull();
+    act(() => vi.advanceTimersByTime(6500));
+    expect(stageSlides()[1]).toHaveClass("is-active");
   });
 });

@@ -2,6 +2,7 @@
   "homeEntries": [
     {
       "icon": "palette",
+      "dimensions": ["非物质文化遗产", "历史"],
       "status": "available",
       "title": "中华非遗二十项瑰宝",
       "description": "汇集剪纸、皮影、云锦、昆曲、陶瓷、书法等二十项中华非物质文化遗产。",

@@ -23,16 +23,20 @@ import {
   TreePine,
   Users,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 
 import { HomeEntryCarousel } from "../components/home-entry-carousel";
 import type { HomeOutletContext } from "../components/layout/root-layout";
 import { Button } from "../components/ui/button";
+import {
+  ALL_RESOURCE_DIMENSIONS,
+  matchesResourceDimension,
+  RESOURCE_DIMENSION_FILTERS,
+  type ResourceDimensionFilter,
+} from "../lib/resource-dimensions";
 import { cn } from "../lib/utils";
 import { HOME_ENTRY_ROUTES, type HomeEntryIcon } from "./page-resources";
-
-/** 首张功能截图的下标：它是首屏 LCP 候选图，立即高优先抓取；其余幻灯片的图走懒加载。 */
-const FIRST_SCREENSHOT_INDEX = HOME_ENTRY_ROUTES.findIndex((entry) => Boolean(entry.screenshot));
 
 const ENTRY_ICONS: Record<HomeEntryIcon, typeof Landmark> = {
   "book-open": BookOpen,
@@ -64,6 +68,16 @@ export function HomePage() {
   // 独立渲染（无 Outlet context）时默认视为已进入，正文直接可见。
   const outletContext = useOutletContext<HomeOutletContext | null>();
   const hasEnteredHome = outletContext?.homeEntered ?? true;
+
+  const [dimension, setDimension] = useState<ResourceDimensionFilter>(ALL_RESOURCE_DIMENSIONS);
+  // 维度只筛选项，不生成新条目；「全部」仍保持原有顺序与数量。
+  const entries = useMemo(
+    () =>
+      HOME_ENTRY_ROUTES.filter((entry) => matchesResourceDimension(entry.dimensions, dimension)),
+    [dimension],
+  );
+  // 当前维度下的首张截图才是 LCP 候选，切换维度后优先抓取的图随之更新。
+  const firstScreenshotIndex = entries.findIndex((entry) => Boolean(entry.screenshot));
 
   return (
     <div
@@ -135,8 +149,25 @@ export function HomePage() {
           </p>
         </div>
 
-        <HomeEntryCarousel label="核心入口与后续专题">
-          {HOME_ENTRY_ROUTES.map((entry, index) => {
+        <div aria-label="入口维度" className="home-dimension-tabs" role="tablist">
+          {RESOURCE_DIMENSION_FILTERS.map((item) => (
+            <button
+              aria-selected={dimension === item}
+              className={cn("home-dimension-tab", dimension === item && "is-active")}
+              key={item}
+              onClick={() => setDimension(item)}
+              role="tab"
+              type="button"
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+
+        {/* 维度变化时重挂载：位置、暂停状态与自动播放计时一起归零，
+            旧维度的当前页下标不会落进新维度的幻灯片里。 */}
+        <HomeEntryCarousel key={dimension} label="核心入口与后续专题">
+          {entries.map((entry, index) => {
             const Icon = ENTRY_ICONS[entry.icon];
 
             // 筹备中条目保持不可点击，用虚线纸页与「筹备中」印明确标示。
@@ -172,8 +203,8 @@ export function HomePage() {
                       src={`/home-screenshots/${entry.screenshot}`}
                       alt={`${entry.title}页面截图`}
                       decoding="async"
-                      fetchPriority={index === FIRST_SCREENSHOT_INDEX ? "high" : undefined}
-                      loading={index === FIRST_SCREENSHOT_INDEX ? undefined : "lazy"}
+                      fetchPriority={index === firstScreenshotIndex ? "high" : undefined}
+                      loading={index === firstScreenshotIndex ? undefined : "lazy"}
                     />
                   ) : (
                     <div className="grid h-full place-items-center">
