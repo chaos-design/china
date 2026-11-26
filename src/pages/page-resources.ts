@@ -25,7 +25,11 @@ export type HomeEntryIcon =
 export interface HomeEntryRoute {
   description: string;
   icon: HomeEntryIcon;
+  /** 针对该页面截图的读图注释，替代原先脱离上下文的「如何阅读」长段。 */
+  note?: string;
   path?: string;
+  /** public/home-screenshots/ 下的文件名，首页轮播用它做功能预览。 */
+  screenshot?: string;
   status: "available" | "preview";
   title: string;
 }
@@ -88,10 +92,6 @@ const pageResources = Object.entries(resourceModules)
       first.path.localeCompare(second.path, "zh-CN", { numeric: true }),
   );
 
-function collectResourceItems<T>(selectItems: (resource: PageResourceConfig) => T[] | undefined) {
-  return pageResources.flatMap(({ resource }) => selectItems(resource) ?? []);
-}
-
 function collectHomeItems<T>(selectItems: (resource: PageResourceConfig) => T[] | undefined) {
   return pageResources.flatMap(({ resource }) =>
     resource.showInHome === false ? [] : (selectItems(resource) ?? []),
@@ -117,7 +117,3 @@ function getHomeEntryOrderRank(entry: HomeEntryRoute) {
 export const HOME_ENTRY_ROUTES = collectHomeItems((resource) => resource.homeEntries).sort(
   (first, second) => getHomeEntryOrderRank(first) - getHomeEntryOrderRank(second),
 );
-
-export const ABOUT_CONTENT_ITEMS = collectHomeItems((resource) => resource.aboutItems);
-
-export const READING_GUIDES = collectResourceItems((resource) => resource.readingGuides);

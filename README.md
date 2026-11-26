@@ -14,7 +14,7 @@
 
 | 页面 | 预览地址 | 内容 | 截图 |
 | --- | --- | --- | --- |
-| 首页 | https://china.chaosmic.cn/ | 水墨风首页、画卷入场动画与全局换色入口，卡片组织全部核心入口。画卷动画播过一次后 7 天内不再展示，时间戳存储在 `localStorage`；主题色偏好同样存储在 `localStorage`。 | ![中国古代全览首页](./screenshots/home.webp) |
+| 首页 | https://china.chaosmic.cn/ | 水墨风首页、画卷入场动画与全局换色入口。核心入口以大图轮播呈现：每个专题一张真实页面截图 + 读图注释，缓慢淡入淡出自动播放（悬停/聚焦/减少动态效果时暂停），可箭头、分页点或方向键切换。画卷入场动画播过一次后 7 天内不再展示，时间戳存储在 `localStorage`；主题色偏好同样存储在 `localStorage`。 | ![中国古代全览首页](./screenshots/home.webp) |
 | 时间长河 | https://china.chaosmic.cn/china/timeline | 基于 Three.js 的 3D 朝代与少数民族关系漫游，包含主时间轴、战争连线、民族副线、吞并箭头、朝代筛选与时间范围筛选。`/china` 会重定向到此页面。 | ![3D 时间长河](./screenshots/china-timeline.webp) |
 | 政策全览 | https://china.chaosmic.cn/china/policies | 按朝代整理核心政策、制度机构、历史人物、疆域治理与文化科技内容。 | ![朝代政策全览](./screenshots/china-policies.webp) |
 | 全部图谱 | https://china.chaosmic.cn/china/atlas | 疆域变迁、民族迁徙、边疆治理三类材料整合到同一张现今疆域省界底图上：左侧一张铺平的可折叠菜单按专题分节、按朝代分组，选中条目朱色高亮并局部放大；切换朝代叠加该朝疆域示意与都城、大城市标记；近距离标注用引导线错开，悬停展开条目详情与史料出处。 | - |
@@ -23,7 +23,7 @@
 | 边疆治理 | https://china.chaosmic.cn/china/atlas/frontier | 总览页的边疆预设图层：八项边疆制度（西域都护府、羁縻州县、榷场、行省、宣政院等）的治所方印地图，逐项标注辖区与资料出处。 | - |
 | 典章制度 | https://china.chaosmic.cn/china/institutions | 官制、赋役、律令、科举与礼制五大专题：左侧条目目录 + 右侧内容的应用式版式，沿革以编年体时间轴呈现，附关键条目表。 | - |
 | 科举之路 | https://china.chaosmic.cn/china/imperial-exam | 拆分为三个子页（左侧条目目录）：登科之阶按「一科三年」时间轴逻辑铺开明清科举全程（①童试→②乡试→③放榜→④进京赶考→⑤会试→⑥殿试→⑦铨选授官），每站配贡院、金榜、殿试卷、夹带实物等真实馆藏影像佐证难度，右侧读书人晋身之路漏斗 + 底部三年一科节奏轴；历代官途逐朝拆解先秦至清八朝的入仕途径与晋升机制（察举、九品中正、铨选、磨勘、考满考察、京察大计），每朝配一份正史本传履历样本；对照一览收束为横向对照表。 | - |
-| HTML 专题资源 | https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片、阅读指南等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
+| HTML 专题资源 | https://china.chaosmic.cn/silk-road | 静态 HTML 资源通过 `iframe srcDoc` 隔离渲染，并由 `resources/html-resource/*.json` 提供首页卡片的截图文件名与读图注释等元数据。缺少元数据的 HTML 会被自动过滤。 | - |
 | 台湾专题 | https://china.chaosmic.cn/taiwan | 五卷分页：地形剖面与经纬度投影地图、岛屿编年、风土人情，以及 1895—1945 年日治与 1947 年之后的近代，逐节标注资料出处。内容存于 `resources/html-data/taiwan.json`，渲染逻辑在 `resources/html/taiwan.html`。 | - |
 | 解放战争交互图 | https://china.chaosmic.cn/liberation-war | 1946—1951 战局沙盘：真实省界地形上的攻防连线、包围圈与起义/和平解放部署，可拖动时间轴逐阶段推演。 | - |
 

@@ -458,6 +458,253 @@
   transform: translateX(0);
 }
 
+.guide-card::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: linear-gradient(180deg, hsl(var(--vermillion) / 0.6), transparent);
+  opacity: 0.7;
+}
+
+/* --------------------------------------------------------- 首页大图轮播 */
+.home-carousel {
+  position: relative;
+}
+
+.home-carousel-stage {
+  display: grid;
+  align-items: stretch;
+}
+
+.home-carousel-slide {
+  display: flex;
+  grid-area: 1 / 1;
+  opacity: 0;
+  pointer-events: none;
+  /* 淡出略快于淡入，并让旧片轻微退后、新片轻微浮起：
+     交叉淡入不再像两张纸互相盖章，而是同一张册页翻过去。 */
+  transform: scale(0.985) translateY(0.35rem);
+  transition:
+    opacity 0.7s ease,
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-carousel-slide.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+/* 键盘 Tab 进入未展示的幻灯片时浮出，避免焦点落在不可见的链接上 */
+.home-carousel-slide:focus-within {
+  z-index: 2;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+.home-feature-card {
+  display: grid;
+  width: 100%;
+  min-height: 26rem;
+  overflow: hidden;
+  border: 1.5px solid hsl(var(--ink));
+  border-radius: calc(var(--radius) * 1.5);
+  background: hsl(var(--card));
+  box-shadow: 7px 7px 0 0 hsl(var(--ink) / 0.9);
+}
+
+@media (min-width: 1024px) {
+  .home-feature-card {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    min-height: 30rem;
+  }
+}
+
+.home-feature-shot {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border-bottom: 1px solid hsl(var(--ink) / 0.18);
+  background: hsl(var(--ink) / 0.04);
+}
+
+@media (min-width: 1024px) {
+  .home-feature-shot {
+    border-right: 1px solid hsl(var(--ink) / 0.18);
+    border-bottom: 0;
+  }
+}
+
+.home-feature-shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+/* 截图像摊在案头的一页：内缘细线与底部淡墨让图片不直接贴着纸框。 */
+.home-feature-shot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--paper) / 0.45),
+    inset 0 -3rem 2.5rem -2.5rem hsl(var(--ink) / 0.3);
+}
+
+.home-feature-shot-badge {
+  position: absolute;
+  top: 0.9rem;
+  left: 0.9rem;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid hsl(var(--vermillion) / 0.5);
+  border-radius: 999px;
+  background: hsl(var(--paper) / 0.92);
+  color: hsl(var(--vermillion));
+  font-family: var(--font-kai);
+  font-size: 0.7rem;
+}
+
+.home-feature-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+}
+
+.home-feature-note {
+  border-left: 2px solid hsl(var(--vermillion) / 0.55);
+  padding-left: 1rem;
+}
+
+/* 读图注释当作题跋读：标签加书名号，内容不跟着变，DOM 文本仍是「读图注释」。 */
+.home-feature-note .font-kai::before {
+  content: "「";
+  margin-right: 0.1rem;
+}
+
+.home-feature-note .font-kai::after {
+  content: "」";
+  margin-left: 0.1rem;
+}
+
+.home-carousel-controls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1.4rem;
+}
+
+/* 窄屏没有分页点，用控件条底部一道细进度线顶上（≥sm 交给分页点）。 */
+.home-carousel-mobile-progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: hsl(var(--vermillion) / 0.18);
+}
+
+.home-carousel-dots {
+  display: none;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+@media (min-width: 640px) {
+  .home-carousel-dots {
+    display: flex;
+  }
+}
+
+.home-carousel-dot {
+  position: relative;
+  width: 1.5rem;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: hsl(var(--ink) / 0.16);
+  transition:
+    width 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.home-carousel-dot:hover {
+  background: hsl(var(--vermillion) / 0.45);
+}
+
+.home-carousel-dot.is-active {
+  width: 2.75rem;
+  background: hsl(var(--vermillion) / 0.25);
+}
+
+/* 当前页的自动播放进度：从左向右填满朱色轨。
+   组件只在「确实在自动播放」时挂载这一片，暂停/减少动效时卸载，
+   因此重新播放会从 0 开始，和 setInterval 的重启对齐。 */
+.home-carousel-progress {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: hsl(var(--vermillion));
+  transform-origin: left center;
+  animation: carousel-progress linear forwards;
+}
+
+@keyframes carousel-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.home-carousel-arrow {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1.5px solid hsl(var(--ink) / 0.7);
+  border-radius: 999px;
+  background: hsl(var(--paper));
+  color: hsl(var(--ink));
+  box-shadow: 2px 2px 0 0 hsl(var(--ink) / 0.28);
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.home-carousel-arrow:hover {
+  border-color: hsl(var(--vermillion));
+  background: hsl(var(--vermillion) / 0.06);
+  color: hsl(var(--vermillion));
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 hsl(var(--ink) / 0.4);
+}
+
+.home-carousel-arrow:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 0 hsl(var(--ink) / 0.4);
+}
+
+.home-carousel-arrow:focus-visible {
+  outline: 2px solid hsl(var(--vermillion));
+  outline-offset: 2px;
+}
+
 .btn-ink {
   border: 1.5px solid hsl(var(--ink));
   box-shadow: 3px 3px 0 0 hsl(var(--ink));
@@ -509,6 +756,7 @@
 
 /* 条目行：整行可点，悬停时淡染纸色并轻微右移，路径徽标保持安静 */
 .mega-link {
+  position: relative;
   transition:
     background-color 0.15s ease,
     transform 0.15s ease;
@@ -517,6 +765,26 @@
 .mega-link:hover {
   background: hsl(var(--ink) / 0.045);
   transform: translateX(2px);
+}
+
+/* 当前路由所在入口：朱色淡染 + 左侧细签，与地图分区高亮一起回答「我在哪」。
+   NavLink 同时挂 aria-current="page"，读屏器与视觉读法保持一致。 */
+.mega-link.is-current {
+  background: hsl(var(--vermillion) / 0.08);
+}
+
+.mega-link.is-current::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.45rem;
+  left: 0;
+  width: 2px;
+  border-radius: 999px;
+  background: hsl(var(--vermillion));
+}
+
+.mega-link.is-current .font-kai {
+  color: hsl(var(--vermillion));
 }
 
 /* 右缘地图带：淡入纸面，边缘用遮罩融进面板，不做一张"贴上去的图" */
@@ -716,6 +984,21 @@
 
   .reveal {
     opacity: 1;
+  }
+
+  .home-carousel-slide {
+    transition: none;
+    transform: none;
+  }
+
+  .home-carousel-dot,
+  .home-carousel-arrow {
+    transition: none;
+  }
+
+  .home-carousel-progress {
+    animation: none;
+    transform: scaleX(1);
   }
 }
 

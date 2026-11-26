@@ -106,7 +106,7 @@ export function RootLayout() {
             to="/"
             className="group flex items-baseline gap-2 rounded-none bg-transparent outline-none transition-colors hover:bg-transparent focus-visible:ring-0"
           >
-            <Asterisk className="h-5 w-5 self-center text-primary transition-transform duration-300 group-hover:rotate-90 group-hover:bg-transparent" />
+            <Asterisk className="h-5 w-5 self-center text-primary transition-transform duration-300 group-hover:rotate-90 group-hover:bg-transparent motion-reduce:transition-none" />
             <span className="text-2xl font-black tracking-tight text-ink">中国古代全览</span>
           </Link>
 

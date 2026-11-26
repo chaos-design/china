@@ -19,6 +19,13 @@ describe("page resources", () => {
     }
   });
 
+  it("gives every home entry a real screenshot and a reading note", () => {
+    for (const entry of HOME_ENTRY_ROUTES) {
+      expect(entry.screenshot).toMatch(/^[a-z-]+\.jpg$/);
+      expect(entry.note).toBeTruthy();
+    }
+  });
+
   it("uses the integrated silk road html resource instead of a preview entry", () => {
     expect(HOME_ENTRY_ROUTES).toEqual(
       expect.arrayContaining([

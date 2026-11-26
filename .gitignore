@@ -145,6 +145,7 @@ out
 # Agent / workspace tooling directories (never commit)
 .codebuddy/
 .workbuddy/
+.zcode/
 
 # TernJS port file
 .tern-port

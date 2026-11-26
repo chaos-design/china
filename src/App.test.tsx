@@ -119,6 +119,11 @@ describe("<App /> routing", () => {
       "href",
       "/china/institutions",
     );
+    // 历代官制图谱：按朝代切换的独立入口
+    expect(screen.getByRole("link", { name: /历代官制图谱/ })).toHaveAttribute(
+      "href",
+      "/china/qing-officials",
+    );
     // 科举之路已开放：独立专题页
     expect(screen.getByRole("link", { name: /^科举之路/ })).toHaveAttribute(
       "href",
@@ -131,21 +136,13 @@ describe("<App /> routing", () => {
     expect(screen.queryAllByText("筹备中")).toHaveLength(0);
   });
 
-  it("merges the about content into the home page", async () => {
+  it("shows feature screenshots and reading notes instead of a detached guide section", async () => {
     renderAt("/");
 
-    expect(
-      await screen.findByRole("heading", { name: /如何阅读中国古代全览/ }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("内容结构")).toBeInTheDocument();
-    expect(screen.getAllByText("朝代全景").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("朝代政策全览").length).toBeGreaterThan(0);
-    expect(screen.getByText("先定朝代坐标")).toBeInTheDocument();
-    expect(screen.getByText("再看治国取向")).toBeInTheDocument();
-    expect(screen.getByText("追问疆域变化")).toBeInTheDocument();
-    expect(screen.getByText("对照制度变形")).toBeInTheDocument();
-    expect(screen.getByText("对照丝路演变")).toBeInTheDocument();
-    expect(screen.queryByText(/围绕帝王治国政策展开/)).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /核心入口与后续专题/ })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /如何阅读中国古代全览/ })).not.toBeInTheDocument();
+    expect(screen.getAllByText("读图注释").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("img", { name: /页面截图/ }).length).toBeGreaterThan(0);
   });
 
   it("renders the global menu in the layout", async () => {
@@ -250,6 +247,21 @@ describe("<App /> routing", () => {
     expect(await screen.findByRole("heading", { level: 1, name: label })).toBeInTheDocument();
     expect(screen.getByText(badge)).toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it("renders the officials atlas at /china/qing-officials", async () => {
+    renderAt("/china/qing-officials");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "官制图谱" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "官职制度" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it("loads a dynasty from the URL query parameter", async () => {
+    renderAt("/china/qing-officials?dynasty=han");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "官制图谱" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "汉" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("renders the not found page for unknown routes", async () => {

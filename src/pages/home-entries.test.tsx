@@ -4,17 +4,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // 核心入口治理的边界情形：全部条目已开放时，筹备中区块整体不出现。
 vi.mock("./page-resources", () => ({
-  ABOUT_CONTENT_ITEMS: [],
   HOME_ENTRY_ROUTES: [
     {
       description: "以编年为经的时间长河。",
       icon: "landmark",
+      note: "截图按编年纵轴排列朝代浮岛。",
       path: "/china/timeline",
+      screenshot: "timeline.jpg",
       status: "available",
       title: "朝代时间长河",
     },
   ],
-  READING_GUIDES: [],
 }));
 
 import { HomePage } from "./home";

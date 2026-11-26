@@ -9,6 +9,8 @@ const ancientChinaResource = {
       status: "available",
       title: "朝代时间长河",
       description: "以 3D 浮岛和时间轴呈现中国朝代、更替节点与少数民族线索。",
+      screenshot: "timeline.jpg",
+      note: "截图按编年纵轴排列朝代浮岛与并行的民族、战争线索；滚轮缩放、点击节点可查看该朝代详情。",
     },
   ],
   aboutItems: [
