@@ -73,7 +73,7 @@ export function InstitutionShell({
                           ? "border-vermillion/30 bg-vermillion/10"
                           : "border-transparent hover:border-vermillion/25 hover:bg-vermillion/5",
                       )}
-                      to={topic.path ?? `/china/institutions/${topic.slug}`}
+                      to={`/china/institutions/${topic.slug}`}
                     >
                       <span className="flex items-center justify-between gap-2">
                         <span

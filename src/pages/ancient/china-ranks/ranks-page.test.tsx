@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
@@ -33,6 +34,14 @@ vi.mock("./rank-tree-scene", () => ({
 }));
 
 import { RanksPage } from "./ranks-page";
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <RanksPage />
+    </MemoryRouter>,
+  );
+}
 
 function sceneHandlers() {
   return mocks.create.mock.calls[0]?.[2] as unknown as {
@@ -72,12 +81,15 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("renders the full-viewport stage: full-bleed canvas, top title strip, bottom-left menu, open drawer", () => {
-    render(<RanksPage />);
+    renderPage();
 
-    const article = screen
-      .getByRole("heading", { level: 1, name: "历代品级对照" })
-      .closest("article");
+    const article = screen.getByRole("heading", { level: 1, name: "品级对照" }).closest("article");
     expect(article).toHaveClass("h-full", "overflow-hidden");
+    // 顶条保留返回职官制度总目的入口
+    expect(screen.getByRole("link", { name: /返回职官制度/ })).toHaveAttribute(
+      "href",
+      "/china/officials",
+    );
 
     // 全幅画布宿主（timeline #cv 的对应物）
     expect(
@@ -95,7 +107,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
     expect(within(filter).getByLabelText("双朝并置")).toBeInTheDocument();
     expect(within(filter).getByLabelText("分列模式")).toBeInTheDocument();
     expect(within(filter).getByLabelText("视角预设")).toBeInTheDocument();
-    expect(within(filter).getByText(/6 级 · 26 官/)).toBeInTheDocument();
+    expect(within(filter).getByText(/6 级 \/ 26 官/)).toBeInTheDocument();
 
     // 抽屉默认打开（落地即读树 tab）；顶条「品级资料」按钮双向切换，收起后对读屏/键盘不可达
     expect(screen.getByRole("tablist")).toBeInTheDocument();
@@ -110,7 +122,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("hands the complete qin tree to the scene and mirrors split/span options", () => {
-    render(<RanksPage />);
+    renderPage();
 
     expect(mocks.scene.setTrees).toHaveBeenCalledTimes(1);
     const [entries, options] = mocks.scene.setTrees.mock.calls[0] as [
@@ -144,7 +156,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("opens the drawer with five tabs; default tab is 树 showing the focused tier", () => {
-    render(<RanksPage />);
+    renderPage();
     openDrawer();
 
     const tablist = screen.getByRole("tablist");
@@ -165,7 +177,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("jumps to a tier from the tree tab's grade chips", () => {
-    render(<RanksPage />);
+    renderPage();
     openDrawer();
 
     fireEvent.click(
@@ -177,7 +189,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("opens the drawer on an office pick from the 3D canvas with the five-facet card", () => {
-    render(<RanksPage />);
+    renderPage();
 
     act(() => {
       sceneHandlers().onPick({
@@ -200,7 +212,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("follows tier picks and hover events coming from the 3D scene", () => {
-    render(<RanksPage />);
+    renderPage();
 
     act(() => {
       sceneHandlers().onPick({ dynastyId: "qin", kind: "tier", gradeIndex: 1 });
@@ -224,7 +236,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("switches the main dynasty from the filter panel and syncs the genealogy tab", () => {
-    render(<RanksPage />);
+    renderPage();
 
     fireEvent.click(within(screen.getByLabelText("朝代选择")).getByRole("button", { name: "明" }));
     const [entries] = lastSetTreesCall();
@@ -237,7 +249,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("puts two dynasties side by side and disables the main one in the compare picker", () => {
-    render(<RanksPage />);
+    renderPage();
 
     fireEvent.click(
       within(screen.getByLabelText("双朝并置")).getByRole("button", { name: "朝代对比" }),
@@ -254,7 +266,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("keeps the compare column off the main dynasty when the main reaches the compare one", () => {
-    render(<RanksPage />);
+    renderPage();
 
     fireEvent.click(
       within(screen.getByLabelText("双朝并置")).getByRole("button", { name: "朝代对比" }),
@@ -267,7 +279,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("renders the ladder tab in single-dynasty mode, then side-stacked compare mode", () => {
-    render(<RanksPage />);
+    renderPage();
     openDrawer();
     openTab("阶梯");
 
@@ -288,7 +300,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("reinterprets the six tracks as a vertical timeline in the track tab", () => {
-    render(<RanksPage />);
+    renderPage();
     openDrawer();
     openTab("追踪");
 
@@ -310,7 +322,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   });
 
   it("compares the same grade across dynasties in the grade tab", () => {
-    render(<RanksPage />);
+    renderPage();
     openDrawer();
     openTab("断面");
 
@@ -331,7 +343,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
 
   it("falls back to a text hint when WebGL is unavailable and auto-opens the genealogy tab", () => {
     mocks.create.mockReturnValueOnce(null);
-    render(<RanksPage />);
+    renderPage();
 
     expect(screen.getByText(/未能启用 WebGL/)).toBeInTheDocument();
     // 抽屉自动停在「族谱」tab（无 WebGL 的 2D 镜像）
@@ -345,7 +357,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
 
   it("retries scene creation from the WebGL fallback and clears the error state", () => {
     mocks.create.mockReturnValueOnce(null);
-    render(<RanksPage />);
+    renderPage();
 
     expect(screen.getByText(/未能启用 WebGL/)).toBeInTheDocument();
     expect(mocks.create).toHaveBeenCalledTimes(1);
@@ -360,7 +372,7 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
 
   it("never syncs into a disposed scene when a retry fails again", () => {
     // 首次成功建场景 → context lost 路径触发 onUnavailable → retry 失败（返回 null）。
-    render(<RanksPage />);
+    renderPage();
     expect(mocks.scene.setTrees).toHaveBeenCalledTimes(1);
 
     act(() => {

@@ -23,11 +23,11 @@ describe("<SiteMenu /> 维度化筛选", () => {
       "true",
     );
     expect(panel.querySelectorAll(".mega-col")).toHaveLength(4);
-    expect(within(panel).getByRole("link", { name: /历代编年长河/ })).toBeInTheDocument();
+    expect(within(panel).getByRole("link", { name: /朝代时间长河/ })).toBeInTheDocument();
     expect(within(panel).getByRole("link", { name: /中华非遗技艺/ })).toBeInTheDocument();
     // 三个近似名称的职官入口已收敛为一个总目
     expect(within(panel).getByRole("link", { name: /职官制度/ })).toBeInTheDocument();
-    expect(within(panel).queryByRole("link", { name: /历代品级对照/ })).not.toBeInTheDocument();
+    expect(within(panel).queryByRole("link", { name: /品级对照/ })).not.toBeInTheDocument();
   });
 
   it("军事维度只留下归属军事的列与条目", () => {
@@ -37,7 +37,7 @@ describe("<SiteMenu /> 维度化筛选", () => {
 
     expect(panel.querySelectorAll(".mega-col")).toHaveLength(3);
     expect(within(panel).getByRole("link", { name: /解放战争沙盘/ })).toBeInTheDocument();
-    expect(within(panel).getByRole("link", { name: /历代治国政策/ })).toBeInTheDocument();
+    expect(within(panel).getByRole("link", { name: /朝代政策/ })).toBeInTheDocument();
     expect(within(panel).queryByRole("link", { name: /中华非遗技艺/ })).not.toBeInTheDocument();
     expect(within(panel).queryByRole("link", { name: /科举与仕途/ })).not.toBeInTheDocument();
   });

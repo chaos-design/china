@@ -374,6 +374,60 @@
   mask-image: linear-gradient(90deg, transparent, black 16%, black 84%, transparent);
 }
 
+/* 卷轴装裱：上下轴头 + 左右细边，首页的入口区像摊开的一卷纸。
+   轴头用真实元素而不是伪元素，避开 .home-section-panel::before 的纸纹层。 */
+.home-scroll-frame {
+  position: relative;
+  isolation: isolate;
+  border-inline: 1px solid hsl(var(--ink) / 0.14);
+}
+
+.home-scroll-rods {
+  position: absolute;
+  inset-inline: -0.55rem;
+  inset-block: -0.35rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.home-scroll-rods span {
+  position: absolute;
+  inset-inline: 0;
+  height: 0.7rem;
+  border: 1px solid hsl(var(--ink) / 0.5);
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    hsl(var(--ink) / 0.68),
+    hsl(var(--ink) / 0.3) 46%,
+    hsl(var(--ink) / 0.6)
+  );
+  box-shadow: inset 0 1px 0 hsl(var(--paper) / 0.5);
+}
+
+.home-scroll-rods span:first-child {
+  top: 0;
+}
+
+.home-scroll-rods span:last-child {
+  bottom: 0;
+}
+
+/* 栏目名前的朱印：与读图注释、维度签共用同一枚印章语言。 */
+.home-section-seal {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 2px solid hsl(var(--vermillion) / 0.62);
+  border-radius: 2px;
+  color: hsl(var(--vermillion));
+  font-family: var(--font-brush);
+  font-size: 1.15rem;
+  line-height: 1;
+  transform: rotate(-6deg);
+}
+
 .index-card {
   position: relative;
   background: hsl(var(--card));
@@ -488,8 +542,8 @@
 
 .home-dimension-tab {
   padding: 0.3rem 0.85rem;
-  border: 1px solid hsl(var(--ink) / 0.25);
-  border-radius: 999px;
+  border: 1px solid hsl(var(--ink) / 0.3);
+  border-radius: 0.2rem;
   color: hsl(var(--ink) / 0.8);
   font-family: var(--font-kai);
   font-size: 0.875rem;
@@ -522,6 +576,16 @@
 .home-dimension-tab:focus-visible {
   outline: 2px solid hsl(var(--vermillion));
   outline-offset: 2px;
+}
+
+.home-dimension-tab:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.home-dimension-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .home-carousel-slide {

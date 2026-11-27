@@ -94,14 +94,10 @@ export const routes: RouteObject[] = [
       { path: "china/atlas/territory", element: withSuspense(<TerritoryAtlasPage />) },
       { path: "china/atlas/migration", element: withSuspense(<MigrationAtlasPage />) },
       { path: "china/atlas/frontier", element: withSuspense(<FrontierAtlasPage />) },
-      // 职官制度：三个视图保留各自完整页面，收敛到一个总目入口下。
-      // 旧路径 /china/ranks、/china/qing-officials、/china/institutions/official-system 已删除。
+      // 职官制度：两个视图保留各自完整页面，收敛到一个总目入口下。
+      // 官制的编年沿革不另开页面，仍由 /china/institutions/official-system 承载。
+      // 旧路径 /china/ranks、/china/qing-officials 已删除。
       { path: "china/officials", element: withSuspense(<OfficialsHubPage />) },
-      // 沿革：编年体职官设置演变（原「典章制度·官制」条目）。
-      {
-        path: "china/officials/evolution",
-        element: withSuspense(<InstitutionTopicPage topicId="official-system" />),
-      },
       // 图谱：按朝代切换的立体官署树与品秩礼制信息图。
       { path: "china/officials/structure", element: withSuspense(<QingOfficialsPage />) },
       // 品级：单屏沉浸立体品级树 + 资料抽屉（树 / 族谱 / 阶梯 / 追踪 / 断面）。
@@ -109,7 +105,11 @@ export const routes: RouteObject[] = [
       // 制度沿革：本节没有总览页，落到第一个仍在节内的条目。
       {
         path: "china/institutions",
-        element: <Navigate to="/china/institutions/taxation" replace />,
+        element: <Navigate to="/china/institutions/official-system" replace />,
+      },
+      {
+        path: "china/institutions/official-system",
+        element: withSuspense(<InstitutionTopicPage topicId="official-system" />),
       },
       {
         path: "china/institutions/rites",

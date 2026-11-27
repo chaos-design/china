@@ -87,12 +87,12 @@ describe("<App /> routing", () => {
     expect(await screen.findByRole("heading", { name: "核心入口与后续专题" })).toBeInTheDocument();
     // 首屏 CTA 也会指向第一个条目，卡片链接断言限定在轮播舞台内。
     const carousel = within(screen.getByRole("region", { name: "核心入口与后续专题" }));
-    expect(carousel.getByRole("link", { name: /历代编年长河/ })).toHaveAttribute(
+    expect(carousel.getByRole("link", { name: /朝代时间长河/ })).toHaveAttribute(
       "href",
       "/china/timeline",
     );
     expect(screen.queryByRole("link", { name: /帝王政策全览/ })).not.toBeInTheDocument();
-    expect(carousel.getByRole("link", { name: /历代治国政策/ })).toHaveAttribute(
+    expect(carousel.getByRole("link", { name: /朝代政策/ })).toHaveAttribute(
       "href",
       "/china/policies",
     );
@@ -115,25 +115,20 @@ describe("<App /> routing", () => {
     ]) {
       expect(document.querySelector(`a[href="${topicPath}"]`)).toBeNull();
     }
-    // 制度沿革：官制已迁出，节内四类专题仍在
+    // 制度沿革含官制在内的五个专题；职官制度只收两个不重复的视图
     expect(carousel.getByRole("link", { name: /^制度沿革/ })).toHaveAttribute(
       "href",
       "/china/institutions",
     );
-    // 职官制度：一个总目 + 三个独立视图入口
     expect(carousel.getByRole("link", { name: /^职官制度/ })).toHaveAttribute(
       "href",
       "/china/officials",
     );
-    expect(carousel.getByRole("link", { name: /^职官沿革/ })).toHaveAttribute(
-      "href",
-      "/china/officials/evolution",
-    );
-    expect(carousel.getByRole("link", { name: /^历代职官图谱/ })).toHaveAttribute(
+    expect(carousel.getByRole("link", { name: /^职官图谱/ })).toHaveAttribute(
       "href",
       "/china/officials/structure",
     );
-    expect(carousel.getByRole("link", { name: /^历代品级对照/ })).toHaveAttribute(
+    expect(carousel.getByRole("link", { name: /^品级对照/ })).toHaveAttribute(
       "href",
       "/china/officials/grades",
     );
@@ -196,8 +191,8 @@ describe("<App /> routing", () => {
 
     // 下拉四列同时可见：收敛后的入口一次点齐，visited 计数防空转
     const destinations = [
-      ["/china/timeline", /历代编年长河/],
-      ["/china/policies", /历代治国政策/],
+      ["/china/timeline", /朝代时间长河/],
+      ["/china/policies", /朝代政策/],
       ["/china/officials", /职官制度/],
       ["/china/atlas", /疆域与民族图谱/],
       ["/china/institutions", /制度沿革/],
@@ -267,10 +262,8 @@ describe("<App /> routing", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "职官制度" })).toBeInTheDocument();
     const views = within(screen.getByRole("navigation", { name: "职官制度视图" }));
-    expect(views.getByRole("link", { name: /职官沿革/ })).toHaveAttribute(
-      "href",
-      "/china/officials/evolution",
-    );
+    // 沿革不再另开入口，避免与制度沿革的官制专题重复
+    expect(views.queryByRole("link", { name: /职官沿革/ })).not.toBeInTheDocument();
     expect(views.getByRole("link", { name: /职官图谱/ })).toHaveAttribute(
       "href",
       "/china/officials/structure",
@@ -372,7 +365,7 @@ describe("<App /> routing", () => {
 
     fireEvent.click(within(nav).getByRole("button", { name: /全览目录/ }));
     const panel = await screen.findByLabelText("全览目录");
-    fireEvent.click(within(panel).getByRole("link", { name: /历代治国政策/ }));
+    fireEvent.click(within(panel).getByRole("link", { name: /朝代政策/ }));
 
     // 路由切换成功：政策页的朝代标题出现，且时间轴已卸载
     expect(await screen.findByRole("heading", { name: /秦/ })).toBeInTheDocument();
@@ -455,31 +448,25 @@ describe("<App /> routing", () => {
   });
 
   it("redirects /china/institutions to the first topic page", async () => {
-    // 官制已迁入职官制度，本节索引落到第一个仍在节内的专题
+    // 官制是本节第一个专题，索引路径仍落到它——不再另设职官沿革页
     renderAt("/china/institutions");
 
-    expect(await screen.findByRole("heading", { level: 1, name: "赋役" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "官制" })).toBeInTheDocument();
     expect(screen.getByLabelText("编年沿革时间轴")).toBeInTheDocument();
     const menu = within(screen.getByRole("navigation", { name: "制度沿革目录" }));
-    expect(menu.getByRole("link", { name: /^赋役/ })).toHaveAttribute("aria-current", "page");
+    expect(menu.getByRole("link", { name: /^官制/ })).toHaveAttribute("aria-current", "page");
     expect(menu.queryByRole("link", { name: /^总览/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
-  it("renders the officials evolution route", async () => {
-    renderAt("/china/officials/evolution");
+  it("renders the official-system topic inside 制度沿革", async () => {
+    renderAt("/china/institutions/official-system");
 
     expect(await screen.findByRole("heading", { level: 1, name: "官制" })).toBeInTheDocument();
-    // 编年时间轴 + 左侧目录（当前条目 aria-current）
     expect(screen.getByLabelText("编年沿革时间轴")).toBeInTheDocument();
-    // 官制现为 8 个沿革节点（先秦世卿世禄 → 清军机处）
     expect(document.querySelectorAll("[data-era-dot]")).toHaveLength(8);
     const menu = within(screen.getByRole("navigation", { name: "制度沿革目录" }));
     expect(menu.getByRole("link", { name: /^官制/ })).toHaveAttribute("aria-current", "page");
-    expect(menu.getByRole("link", { name: /^官制/ })).toHaveAttribute(
-      "href",
-      "/china/officials/evolution",
-    );
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 

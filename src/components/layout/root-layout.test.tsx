@@ -139,8 +139,8 @@ describe("<SiteMenu /> columns and content", () => {
     const panel = await openMenu("/");
 
     const expected: [string, RegExp][] = [
-      ["/china/timeline", /历代编年长河/],
-      ["/china/policies", /历代治国政策/],
+      ["/china/timeline", /朝代时间长河/],
+      ["/china/policies", /朝代政策/],
       ["/china/officials", /职官制度/],
       ["/china/atlas", /疆域与民族图谱/],
       ["/china/institutions", /制度沿革/],

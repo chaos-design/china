@@ -43,7 +43,7 @@ export interface NavGroup {
 export const NAV_GROUPS: readonly NavGroup[] = [
   {
     activePaths: [
-      "/china/officials/evolution",
+      "/china/institutions/official-system",
       "/china/officials/structure",
       "/china/officials/grades",
       "/china/institutions/taxation",
@@ -61,13 +61,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       {
         dimensions: ["历史"],
         highlights: ["3D 朝代浮岛", "更替节点", "民族迁徙线索"],
-        label: "历代编年长河",
+        label: "朝代时间长河",
         to: "/china/timeline",
       },
       {
         dimensions: ["历史", "军事"],
         highlights: ["385 条政策卡片", "按朝代筛选", "机构与人物"],
-        label: "历代治国政策",
+        label: "朝代政策",
         to: "/china/policies",
       },
       {

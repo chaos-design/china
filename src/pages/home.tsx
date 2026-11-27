@@ -99,7 +99,11 @@ export function HomePage() {
         <span className="home-seal-mark">史</span>
       </div>
 
-      <header className="flex flex-col gap-7">
+      <header className="home-scroll-frame flex flex-col gap-7">
+        <div aria-hidden="true" className="home-scroll-rods">
+          <span />
+          <span />
+        </div>
         <h1
           className="reveal font-brush text-6xl leading-[1.05] tracking-tight text-ink sm:text-8xl"
           style={{ animationDelay: "70ms" }}
@@ -123,7 +127,7 @@ export function HomePage() {
         >
           <Button
             asChild
-            className="btn-ink rounded-sm bg-vermillion px-6 font-kai text-sm font-semibold text-primary-foreground hover:bg-vermillion"
+            className="btn-ink rounded-sm bg-vermillion px-6 font-kai text-sm font-semibold text-primary-foreground hover:bg-vermillion active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Link to={primaryPath}>
               {primaryLabel}
@@ -133,22 +137,31 @@ export function HomePage() {
           <Button
             asChild
             variant="ghost"
-            className="rounded-sm font-kai text-sm font-semibold text-ink underline-offset-4 hover:bg-transparent hover:underline"
+            className="rounded-sm font-kai text-sm font-semibold text-ink underline-offset-4 hover:bg-transparent hover:underline active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Link to="/china/policies">
               <BookOpen className="mr-2 h-4 w-4" />
-              浏览历代治国政策
+              浏览朝代政策
             </Link>
           </Button>
         </div>
       </header>
 
       <section
-        className="home-section-panel reveal flex flex-col gap-8"
+        className="home-section-panel home-scroll-frame reveal flex flex-col gap-8"
         style={{ animationDelay: "280ms" }}
       >
+        <div aria-hidden="true" className="home-scroll-rods">
+          <span />
+          <span />
+        </div>
         <div className="flex max-w-2xl flex-col gap-3">
-          <h2 className="font-brush text-4xl text-ink">核心入口与后续专题</h2>
+          <div className="flex items-center gap-3">
+            <span aria-hidden="true" className="home-section-seal">
+              览
+            </span>
+            <h2 className="font-brush text-4xl text-ink">核心入口与后续专题</h2>
+          </div>
           <p className="max-w-md text-muted-foreground">
             逐一预览各专题的真实页面：每张截图附读图注释，点击可直接进入；筹备中的新专题只作预告。
           </p>

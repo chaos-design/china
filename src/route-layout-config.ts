@@ -16,7 +16,6 @@ export const ROUTE_LAYOUT_CONFIGS: RouteLayoutConfig[] = [
   { path: "/china/atlas/frontier" },
   // 职官制度：总目与三个视图，默认布局（无页脚、无调色器）。
   { path: "/china/officials" },
-  { path: "/china/officials/evolution" },
   { path: "/china/officials/structure" },
   { path: "/china/officials/grades" },
   { path: "/china/institutions" },

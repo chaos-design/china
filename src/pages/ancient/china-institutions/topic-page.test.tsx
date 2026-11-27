@@ -29,12 +29,19 @@ describe("<InstitutionTopicPage />", () => {
     const menu = within(screen.getByRole("navigation", { name: "制度沿革目录" }));
     const activeLink = menu.getByRole("link", { name: /^官制/ });
     expect(activeLink).toHaveAttribute("aria-current", "page");
-    expect(activeLink).toHaveAttribute("href", "/china/officials/evolution");
+    expect(activeLink).toHaveAttribute("href", "/china/institutions/official-system");
     for (const other of INSTITUTION_TOPICS.filter((item) => item.id !== topic.id)) {
       expect(menu.getByRole("link", { name: new RegExp(`^${other.name}`) })).not.toHaveAttribute(
         "aria-current",
       );
     }
+  });
+
+  it("does not show the officials back link on topics still inside this section", () => {
+    renderTopic("taxation");
+
+    expect(screen.getByRole("heading", { level: 1, name: "赋役" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /返回职官制度/ })).not.toBeInTheDocument();
   });
 
   it("renders the annal-style timeline with one card per era", () => {
