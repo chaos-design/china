@@ -1,7 +1,16 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import { RanksPage } from "./ranks-page";
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <RanksPage />
+    </MemoryRouter>,
+  );
+}
 
 /**
  * 品级族谱现在是资料抽屉的一个 tab（无 WebGL / 键盘可达的 2D 镜像）：
@@ -21,7 +30,7 @@ function levelButton(section: HTMLElement, index: number): HTMLButtonElement {
 
 describe("rank genealogy panel（资料抽屉 · 族谱 tab）", () => {
   it("expands only the first grade by default and marks the schematic 品 mapping", () => {
-    render(<RanksPage />);
+    renderPage();
     const section = screen.getByLabelText("品级族谱");
 
     expect(levelButton(section, 0)).toHaveAttribute("aria-expanded", "true");
@@ -36,7 +45,7 @@ describe("rank genealogy panel（资料抽屉 · 族谱 tab）", () => {
   });
 
   it("can keep multiple grade branches open at once", () => {
-    render(<RanksPage />);
+    renderPage();
     const section = screen.getByLabelText("品级族谱");
 
     fireEvent.click(levelButton(section, 1));
@@ -53,7 +62,7 @@ describe("rank genealogy panel（资料抽屉 · 族谱 tab）", () => {
   });
 
   it("expands the five-facet detail with figures under an office leaf", () => {
-    render(<RanksPage />);
+    renderPage();
 
     const office = genealogy().getByRole("button", { name: /掌丞天子、助理万机/ });
     expect(office).toHaveAttribute("aria-expanded", "false");
@@ -74,7 +83,7 @@ describe("rank genealogy panel（资料抽屉 · 族谱 tab）", () => {
   });
 
   it("expand-all opens every grade and office, collapse-all closes them", () => {
-    render(<RanksPage />);
+    renderPage();
     const section = screen.getByLabelText("品级族谱");
 
     fireEvent.click(within(section).getByRole("button", { name: "全部展开" }));
@@ -91,7 +100,7 @@ describe("rank genealogy panel（资料抽屉 · 族谱 tab）", () => {
   });
 
   it("follows the unified dynasty picker and resets the expansion state", () => {
-    render(<RanksPage />);
+    renderPage();
     const section = screen.getByLabelText("品级族谱");
 
     fireEvent.click(levelButton(section, 1));

@@ -18,7 +18,7 @@ export interface InstitutionShellProps {
 }
 
 /**
- * 「典章制度」的应用式外壳（与图谱页 shell 同一套版式语言）：
+ * 「制度沿革」的应用式外壳（与图谱页 shell 同一套版式语言）：
  * - 页头钉在顶部，右侧内容滚动时保持可见；
  * - 左侧目录贴住页面左缘、全高侧栏：五类条目一一线列，
  *   当前条目以朱色高亮并带 aria-current，窄屏退化为内容在前、目录在后的文档流；
@@ -41,7 +41,7 @@ export function InstitutionShell({
             {badge}
           </span>
           <span className="font-body text-xs font-medium tracking-[0.3em] text-vermillion">
-            典章制度 · 编年脉络
+            制度沿革 · 编年脉络
           </span>
         </div>
         <p className="mt-2 max-w-3xl font-body text-sm leading-relaxed text-ink/85">
@@ -52,7 +52,7 @@ export function InstitutionShell({
       <div className="flex min-h-0 flex-1 flex-col-reverse lg:flex-row">
         {/* 左侧条目目录 */}
         <nav
-          aria-label="典章制度目录"
+          aria-label="制度沿革目录"
           className="flex w-full shrink-0 flex-col border-ink/10 lg:w-64 lg:border-r"
         >
           <div className="min-h-0 flex-1 px-3 py-4 lg:overflow-y-auto">

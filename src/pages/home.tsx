@@ -23,16 +23,20 @@ import {
   TreePine,
   Users,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 
 import { HomeEntryCarousel } from "../components/home-entry-carousel";
 import type { HomeOutletContext } from "../components/layout/root-layout";
 import { Button } from "../components/ui/button";
+import {
+  ALL_RESOURCE_DIMENSIONS,
+  matchesResourceDimension,
+  RESOURCE_DIMENSION_FILTERS,
+  type ResourceDimensionFilter,
+} from "../lib/resource-dimensions";
 import { cn } from "../lib/utils";
 import { HOME_ENTRY_ROUTES, type HomeEntryIcon } from "./page-resources";
-
-/** 首张功能截图的下标：它是首屏 LCP 候选图，立即高优先抓取；其余幻灯片的图走懒加载。 */
-const FIRST_SCREENSHOT_INDEX = HOME_ENTRY_ROUTES.findIndex((entry) => Boolean(entry.screenshot));
 
 const ENTRY_ICONS: Record<HomeEntryIcon, typeof Landmark> = {
   "book-open": BookOpen,
@@ -64,6 +68,21 @@ export function HomePage() {
   // 独立渲染（无 Outlet context）时默认视为已进入，正文直接可见。
   const outletContext = useOutletContext<HomeOutletContext | null>();
   const hasEnteredHome = outletContext?.homeEntered ?? true;
+
+  const [dimension, setDimension] = useState<ResourceDimensionFilter>(ALL_RESOURCE_DIMENSIONS);
+  // 维度只筛选项，不生成新条目；「全部」仍保持原有顺序与数量。
+  const entries = useMemo(
+    () =>
+      HOME_ENTRY_ROUTES.filter((entry) => matchesResourceDimension(entry.dimensions, dimension)),
+    [dimension],
+  );
+  // 当前维度下的首张截图才是 LCP 候选，切换维度后优先抓取的图随之更新。
+  const firstScreenshotIndex = entries.findIndex((entry) => Boolean(entry.screenshot));
+  // 主 CTA 跟随当前维度的第一个可进入条目：切到「军事」就指向军事专题，
+  // 不必先滑一轮轮播才知道入口在哪；没有可进入条目时回落到时间长河。
+  const primaryEntry = entries.find((entry) => entry.status === "available" && entry.path);
+  const primaryPath = primaryEntry?.path ?? "/china/timeline";
+  const primaryLabel = primaryEntry ? `进入${primaryEntry.title}` : "进入时间长河";
 
   return (
     <div
@@ -104,39 +123,65 @@ export function HomePage() {
         >
           <Button
             asChild
-            className="btn-ink rounded-sm bg-vermillion px-6 font-kai text-sm font-semibold text-primary-foreground hover:bg-vermillion"
+            className="btn-ink rounded-sm bg-vermillion px-6 font-kai text-sm font-semibold text-primary-foreground hover:bg-vermillion active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Link to="/china/timeline">
-              进入时间长河
+            <Link to={primaryPath}>
+              {primaryLabel}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
           <Button
             asChild
             variant="ghost"
-            className="rounded-sm font-kai text-sm font-semibold text-ink underline-offset-4 hover:bg-transparent hover:underline"
+            className="rounded-sm font-kai text-sm font-semibold text-ink underline-offset-4 hover:bg-transparent hover:underline active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Link to="/china/policies">
               <BookOpen className="mr-2 h-4 w-4" />
-              查看政策全览
+              浏览朝代政策
             </Link>
           </Button>
         </div>
       </header>
 
       <section
-        className="home-section-panel reveal flex flex-col gap-8"
+        className="home-section-panel home-scroll-frame reveal flex flex-col gap-8"
         style={{ animationDelay: "280ms" }}
       >
+        <div aria-hidden="true" className="home-scroll-rods">
+          <span />
+          <span />
+        </div>
         <div className="flex max-w-2xl flex-col gap-3">
-          <h2 className="font-brush text-4xl text-ink">核心入口与后续专题</h2>
+          <div className="flex items-center gap-3">
+            <span aria-hidden="true" className="home-section-seal">
+              览
+            </span>
+            <h2 className="font-brush text-4xl text-ink">核心入口与后续专题</h2>
+          </div>
           <p className="max-w-md text-muted-foreground">
             逐一预览各专题的真实页面：每张截图附读图注释，点击可直接进入；筹备中的新专题只作预告。
           </p>
         </div>
 
-        <HomeEntryCarousel label="核心入口与后续专题">
-          {HOME_ENTRY_ROUTES.map((entry, index) => {
+        <div aria-label="入口维度" className="home-dimension-tabs" role="tablist">
+          {RESOURCE_DIMENSION_FILTERS.map((item) => (
+            <button
+              aria-selected={dimension === item}
+              className={cn("home-dimension-tab", dimension === item && "is-active")}
+              key={item}
+              onClick={() => setDimension(item)}
+              role="tab"
+              type="button"
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+
+        {/* 维度变化时重挂载：位置、暂停状态与自动播放计时一起归零，
+            旧维度的当前页下标不会落进新维度的幻灯片里。 */}
+        <HomeEntryCarousel key={dimension} label="核心入口与后续专题">
+          {entries.map((entry, index) => {
             const Icon = ENTRY_ICONS[entry.icon];
 
             // 筹备中条目保持不可点击，用虚线纸页与「筹备中」印明确标示。
@@ -172,8 +217,8 @@ export function HomePage() {
                       src={`/home-screenshots/${entry.screenshot}`}
                       alt={`${entry.title}页面截图`}
                       decoding="async"
-                      fetchPriority={index === FIRST_SCREENSHOT_INDEX ? "high" : undefined}
-                      loading={index === FIRST_SCREENSHOT_INDEX ? undefined : "lazy"}
+                      fetchPriority={index === firstScreenshotIndex ? "high" : undefined}
+                      loading={index === firstScreenshotIndex ? undefined : "lazy"}
                     />
                   ) : (
                     <div className="grid h-full place-items-center">
@@ -193,7 +238,7 @@ export function HomePage() {
                       </span>
                     </div>
                   ) : null}
-                  <span className="mt-auto flex items-center gap-1.5 font-kai text-xs text-vermillion sm:text-sm">
+                  <span className="home-feature-enter mt-auto flex items-center gap-1.5 font-kai text-xs text-vermillion sm:text-sm">
                     进入专题
                     <ArrowRight
                       aria-hidden="true"

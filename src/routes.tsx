@@ -32,6 +32,11 @@ const TerritoryAtlasPage = lazy(() =>
     default: module.TerritoryAtlasPage,
   })),
 );
+const OfficialsHubPage = lazy(() =>
+  import("./pages/ancient/china-officials/hub-page").then((module) => ({
+    default: module.OfficialsHubPage,
+  })),
+);
 const RanksPage = lazy(() =>
   import("./pages/ancient/china-ranks").then((module) => ({
     default: module.RanksPage,
@@ -89,23 +94,26 @@ export const routes: RouteObject[] = [
       { path: "china/atlas/territory", element: withSuspense(<TerritoryAtlasPage />) },
       { path: "china/atlas/migration", element: withSuspense(<MigrationAtlasPage />) },
       { path: "china/atlas/frontier", element: withSuspense(<FrontierAtlasPage />) },
-      // 品级纵横：单屏沉浸立体品级树 + 资料抽屉（树 / 族谱 / 阶梯 / 追踪 / 断面）。
-      // 原「品秩全景」页已下线，/china/officials 不再保留。
-      { path: "china/ranks", element: withSuspense(<RanksPage />) },
-      // 历代官制图谱：按朝代切换的官署层级与品秩礼制信息图；清朝部分据两图重绘。
-      { path: "china/qing-officials", element: withSuspense(<QingOfficialsPage />) },
-      // 本节没有总览页：/china/institutions 直接落到第一个条目
+      // 职官制度：两个视图保留各自完整页面，收敛到一个总目入口下。
+      // 官制的编年沿革不另开页面，仍由 /china/institutions/official-system 承载。
+      // 旧路径 /china/ranks、/china/qing-officials 已删除。
+      { path: "china/officials", element: withSuspense(<OfficialsHubPage />) },
+      // 图谱：按朝代切换的立体官署树与品秩礼制信息图。
+      { path: "china/officials/structure", element: withSuspense(<QingOfficialsPage />) },
+      // 品级：单屏沉浸立体品级树 + 资料抽屉（树 / 族谱 / 阶梯 / 追踪 / 断面）。
+      { path: "china/officials/grades", element: withSuspense(<RanksPage />) },
+      // 制度沿革：本节没有总览页，落到第一个仍在节内的条目。
       {
         path: "china/institutions",
         element: <Navigate to="/china/institutions/official-system" replace />,
       },
       {
-        path: "china/institutions/rites",
-        element: withSuspense(<InstitutionTopicPage topicId="rites" />),
-      },
-      {
         path: "china/institutions/official-system",
         element: withSuspense(<InstitutionTopicPage topicId="official-system" />),
+      },
+      {
+        path: "china/institutions/rites",
+        element: withSuspense(<InstitutionTopicPage topicId="rites" />),
       },
       {
         path: "china/institutions/examinations",

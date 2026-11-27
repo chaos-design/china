@@ -15,7 +15,7 @@ export interface ImperialExamShellProps {
 }
 
 /**
- * 「科举之路」的应用式外壳（与典章制度/图谱页同一套版式语言）：
+ * 「科举与仕途」的应用式外壳（与制度沿革/图谱页同一套版式语言）：
  * - 页头钉在顶部（标题 + 徽章 + 说明 + 制度里程碑），右侧内容滚动时保持可见；
  * - 左侧子页目录贴住页面左缘、全高侧栏，当前条目朱色高亮并带 aria-current；
  * - 右侧为内容区，lg 下区域内滚动（<main> 是定高 flex 项，lg:h-full 才能生效，
@@ -30,7 +30,7 @@ export function ImperialExamShell({
     <article className="flex min-h-0 flex-col lg:h-full">
       <header className="shrink-0 border-ink/10 border-b px-4 py-4 lg:px-6">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-          <h1 className="font-brush text-3xl text-ink sm:text-4xl">科举之路</h1>
+          <h1 className="font-brush text-3xl text-ink sm:text-4xl">科举与仕途</h1>
           <span className="rounded-full border border-ink/15 bg-paper/80 px-3 py-0.5 font-body text-muted-foreground text-xs tracking-widest">
             入仕 · 晋升 · 官途
           </span>
@@ -58,7 +58,7 @@ export function ImperialExamShell({
       <div className="flex min-h-0 flex-1 flex-col-reverse lg:flex-row">
         {/* 左侧子页目录 */}
         <nav
-          aria-label="科举之路目录"
+          aria-label="科举与仕途目录"
           className="flex w-full shrink-0 flex-col border-ink/10 lg:w-64 lg:border-r"
         >
           <div className="min-h-0 flex-1 px-3 py-4 lg:overflow-y-auto">

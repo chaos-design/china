@@ -26,7 +26,7 @@ describe("<InstitutionTopicPage />", () => {
     expect(within(header).getByText(/职官 · 品级 · 央地结构/)).toBeInTheDocument();
     expect(screen.getByText(/官制是王朝的骨架/)).toBeInTheDocument();
     // 左侧目录：当前条目以 aria-current 标记为当前页
-    const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
+    const menu = within(screen.getByRole("navigation", { name: "制度沿革目录" }));
     const activeLink = menu.getByRole("link", { name: /^官制/ });
     expect(activeLink).toHaveAttribute("aria-current", "page");
     expect(activeLink).toHaveAttribute("href", "/china/institutions/official-system");
@@ -35,6 +35,13 @@ describe("<InstitutionTopicPage />", () => {
         "aria-current",
       );
     }
+  });
+
+  it("does not show the officials back link on topics still inside this section", () => {
+    renderTopic("taxation");
+
+    expect(screen.getByRole("heading", { level: 1, name: "赋役" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /返回职官制度/ })).not.toBeInTheDocument();
   });
 
   it("renders the annal-style timeline with one card per era", () => {

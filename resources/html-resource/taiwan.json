@@ -2,8 +2,9 @@
   "homeEntries": [
     {
       "icon": "map",
+      "dimensions": ["历史"],
       "status": "available",
-      "title": "台湾 · 山海之间",
+      "title": "台湾史地",
       "description": "五卷分页：地形剖面与经纬度投影地图、岛屿编年、风土人情，以及 1895—1945 年日治与 1947 年之后的近代，逐节标注资料出处。",
       "screenshot": "taiwan.jpg",
       "note": "截图书一·地理的地形剖面；切到后续卷可读编年、风物与 1895—1945 年近代史。"

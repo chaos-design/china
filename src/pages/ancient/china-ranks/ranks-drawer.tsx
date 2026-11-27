@@ -83,7 +83,7 @@ export function RanksDrawer({
       aria-hidden={open ? undefined : true}
       aria-label="品级资料"
       className={cn(
-        "absolute z-40 flex flex-col overflow-hidden border-ink/15 bg-paper/90 shadow-[0_-18px_48px_hsl(var(--ink)/0.14)] backdrop-blur-xl transition-transform duration-300",
+        "absolute z-40 flex flex-col overflow-hidden border-ink/15 bg-paper/90 shadow-[0_-18px_48px_hsl(var(--ink)/0.14)] backdrop-blur-xl transition-transform duration-300 motion-reduce:transition-none",
         "inset-x-0 bottom-0 max-h-[45vh] rounded-t-2xl border-t",
         "lg:inset-x-auto lg:bottom-0 lg:right-0 lg:top-0 lg:max-h-none lg:w-[420px] lg:rounded-l-2xl lg:border-l lg:border-t-0 lg:shadow-[0_18px_48px_hsl(var(--ink)/0.14)]",
         open

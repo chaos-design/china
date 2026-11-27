@@ -4,9 +4,10 @@ const imperialExamResource = {
   homeEntries: [
     {
       path: "/china/imperial-exam",
+      dimensions: ["历史"],
       icon: "scroll-text",
       status: "available",
-      title: "科举之路",
+      title: "科举与仕途",
       description:
         "明清登科全阶与历代官途：从童生到状元要走几场考试，从郎官到宰相靠什么迁转，八朝各配一份真实官员的履历样本。",
       screenshot: "imperial-exam.jpg",
