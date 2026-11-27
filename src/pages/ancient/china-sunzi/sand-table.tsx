@@ -11,6 +11,7 @@ export interface SandTableProps {
   step: BattleStep;
   view: "sand" | "top";
   zoom: number;
+  speed: number;
 }
 
 /** 机动性质的军用读图口径：与 Move.kind 一一对应，不凭空添加战果。 */
@@ -29,7 +30,7 @@ const RIDGES = [
 ];
 
 /** The signature: one tilted board that shows control, routes and decisions for a single step. */
-export function SandTable({ battle, playing, step, view, zoom }: SandTableProps) {
+export function SandTable({ battle, playing, step, view, zoom, speed }: SandTableProps) {
   const sceneStyle = { "--sunzi-zoom": zoom } as CSSProperties;
   const [webgl, setWebgl] = useState(false);
   const [ready, setReady] = useState(false);
@@ -53,7 +54,14 @@ export function SandTable({ battle, playing, step, view, zoom }: SandTableProps)
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional create-once lifecycle
   useEffect(() => {
     if (!webgl || !mountRef.current) return;
-    const handle = createSandTableScene(mountRef.current, { battle, playing, step, view, zoom });
+    const handle = createSandTableScene(mountRef.current, {
+      battle,
+      playing,
+      step,
+      view,
+      zoom,
+      speed,
+    });
     handleRef.current = handle;
     setReady(Boolean(handle));
     return () => {
@@ -64,8 +72,8 @@ export function SandTable({ battle, playing, step, view, zoom }: SandTableProps)
 
   useEffect(() => {
     if (!ready) return;
-    handleRef.current?.update({ battle, playing, step, view, zoom });
-  }, [ready, battle, step, playing, view, zoom]);
+    handleRef.current?.update({ battle, playing, step, view, zoom, speed });
+  }, [ready, battle, step, playing, view, zoom, speed]);
 
   const deployment = step.units
     .map((unit) => `${unit.label}（${BRANCH_LABEL[unit.branch]}）`)

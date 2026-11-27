@@ -26,6 +26,8 @@ export interface SceneData {
   step: BattleStep;
   view: "sand" | "top";
   zoom: number;
+  /** 播放倍速，决定换幕补间的时长；静止时不跑动画循环。 */
+  speed: number;
 }
 
 export interface SceneHandle {
@@ -89,8 +91,9 @@ function readColors(): SandPalette {
 }
 
 /**
- * 事件驱动的 Three.js 沙盘：一幕一张静态图，地形与兵力只在数据变化时重建，
- * 不跑 rAF 循环——嵌入 iframe 的后台标签会节流计时器，动画循环会把画面冻在首帧。
+ * 按需动画的 Three.js 沙盘：静止时零渲染；换幕时才启动一段带缓动的补间，
+ * 完成后立刻停表。时钟用 performance.now() 并配定时器兜底，
+ * 因为嵌入环境的 rAF 时间戳可能冻结，纯 rAF 循环会把动画卡在首帧。
  */
 export function createSandTableScene(
   container: HTMLElement,
@@ -124,6 +127,32 @@ export function createSandTableScene(
   let pitch = 0.78;
   let distance = 42;
   let data = initial;
+
+  /** 换幕补间状态：只在动画期间非空，静止时没有任何循环在跑。 */
+  interface Transition {
+    start: number;
+    duration: number;
+    from: Map<string, { x: number; z: number; scale: number }>;
+    targets: Map<string, THREE.Vector3>;
+  }
+  let transition: Transition | null = null;
+  let rafId = 0;
+  let fallbackId = 0;
+  let lastFrameStamp = -1;
+  let currentStepId: string | null = null;
+  let currentBattleId: string | null = null;
+  const unitGroups = new Map<string, THREE.Group>();
+  const flowMarkers: Array<{
+    mesh: THREE.Mesh;
+    curve: THREE.QuadraticBezierCurve3;
+    offset: number;
+  }> = [];
+  const clashRings: Array<{ mesh: THREE.Mesh; start: number }> = [];
+  const reduceMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
   // 暖白主光是物理光，不随明暗主题换色；地形与兵力才由 CSS 令牌重着色。
   const hemi = new THREE.HemisphereLight(new THREE.Color(0xfff6e8), new THREE.Color(0xece6da), 0.7);
@@ -216,6 +245,156 @@ export function createSandTableScene(
       }
     });
     content.clear();
+  }
+
+  function stopAnimation() {
+    if (rafId) cancelAnimationFrame(rafId);
+    if (fallbackId) window.clearInterval(fallbackId);
+    rafId = 0;
+    fallbackId = 0;
+    transition = null;
+  }
+
+  /** 单帧推进：performance.now 计时，rAF 与定时器重复触发时按 12ms 去重。 */
+  function tick() {
+    const active = transition;
+    if (!active || document.hidden) return;
+    const now = performance.now();
+    if (now - lastFrameStamp < 12) return;
+    lastFrameStamp = now;
+    const t = Math.min(1, (now - active.start) / active.duration);
+    const eased = easeInOut(t);
+
+    for (const unit of data.step.units) {
+      const group = unitGroups.get(unit.id);
+      const from = active.from.get(unit.id);
+      const target = active.targets.get(unit.id);
+      if (!group || !from || !target) continue;
+      group.position.x = from.x + (target.x - from.x) * eased;
+      group.position.z = from.z + (target.z - from.z) * eased;
+      group.position.y = target.y + Math.sin(eased * Math.PI * 6) * 0.07 * (1 - t);
+      group.scale.setScalar(1.8 * (from.scale + (1 - from.scale) * eased));
+      group.rotation.z = Math.sin(eased * Math.PI * 10) * 0.07 * (1 - t);
+    }
+
+    for (const flow of flowMarkers) {
+      flow.mesh.position.copy(flow.curve.getPoint((t * 1.15 + flow.offset) % 1));
+      flow.mesh.scale.setScalar(0.7 + Math.sin(t * Math.PI) * 0.5);
+    }
+
+    for (const clash of clashRings) {
+      const age = (now - clash.start) / 700;
+      const visible = age >= 0 && age < 1;
+      clash.mesh.visible = visible;
+      if (!visible) continue;
+      clash.mesh.scale.setScalar(0.5 + age * 1.5);
+      (clash.mesh.material as THREE.MeshBasicMaterial).opacity = 0.65 * (1 - age);
+    }
+
+    positionCamera();
+
+    if (t >= 1) {
+      for (const [id, group] of unitGroups) {
+        const target = active.targets.get(id);
+        if (target) group.position.copy(target);
+        group.scale.setScalar(1.8);
+        group.rotation.z = 0;
+      }
+      stopAnimation();
+      positionCamera();
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function startTransition(previous: Map<string, { x: number; z: number; scale: number }>) {
+    stopAnimation();
+    if (reduceMotion) return;
+    const from = new Map<string, { x: number; z: number; scale: number }>();
+    const targets = new Map<string, THREE.Vector3>();
+    for (const unit of data.step.units) {
+      const group = unitGroups.get(unit.id);
+      if (!group) continue;
+      targets.set(unit.id, group.position.clone());
+      const old = previous.get(unit.id);
+      if (old) {
+        group.position.x = old.x;
+        group.position.z = old.z;
+        group.scale.setScalar(1.8 * old.scale);
+        from.set(unit.id, old);
+      } else {
+        group.scale.setScalar(0.01);
+        from.set(unit.id, { x: group.position.x, z: group.position.z, scale: 0.01 });
+      }
+    }
+    if (from.size === 0) return;
+    transition = {
+      start: performance.now(),
+      duration: 1500 / Math.max(0.5, data.speed),
+      from,
+      targets,
+    };
+    lastFrameStamp = -1;
+    rafId = requestAnimationFrame(tick);
+    fallbackId = window.setInterval(tick, 40);
+  }
+
+  /** 城池间的驿道：虚线路网，给兵力推进一个可读的参照。 */
+  function buildRoads(current: SceneData, colors: SandPalette) {
+    const places = [...current.battle.places].sort((a, b) => a.x - b.x);
+    for (let index = 0; index < places.length - 1; index += 1) {
+      const from = boardToWorld([places[index].x, places[index].y]);
+      const to = boardToWorld([places[index + 1].x, places[index + 1].y]);
+      const points: THREE.Vector3[] = [];
+      for (let step = 0; step <= 20; step += 1) {
+        const ratio = step / 20;
+        const x = from.x + (to.x - from.x) * ratio;
+        const z = from.z + (to.z - from.z) * ratio + Math.sin(ratio * Math.PI) * 0.55;
+        points.push(new THREE.Vector3(x, surfaceHeight(x, z) + 0.055, z));
+      }
+      const road = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(points),
+        new THREE.LineDashedMaterial({
+          color: colors.ochre,
+          dashSize: 0.32,
+          gapSize: 0.22,
+          transparent: true,
+          opacity: 0.52,
+        }),
+      );
+      road.computeLineDistances();
+      content.add(road);
+    }
+  }
+
+  /** 双方贴身时亮起交锋环，为「拼杀」给出可见的时机点。 */
+  function buildClashes(current: SceneData, colors: SandPalette) {
+    if (current.step.moves.length === 0) return;
+    for (const first of current.step.units) {
+      for (const second of current.step.units) {
+        if (first.side === second.side) continue;
+        if (Math.hypot(first.x - second.x, first.y - second.y) > 150) continue;
+        const a = boardToWorld([first.x, first.y]);
+        const b = boardToWorld([second.x, second.y]);
+        const x = (a.x + b.x) / 2;
+        const z = (a.z + b.z) / 2;
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(0.32, 0.46, 24),
+          new THREE.MeshBasicMaterial({
+            color: colors.ochre,
+            transparent: true,
+            opacity: 0.65,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+          }),
+        );
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(x, surfaceHeight(x, z) + 0.22, z);
+        ring.visible = false;
+        content.add(ring);
+        clashRings.push({ mesh: ring, start: performance.now() + 380 });
+      }
+    }
   }
 
   function buildTray(colors: SandPalette) {
@@ -382,6 +561,7 @@ export function createSandTableScene(
       soldier.position.set(world.x, height + 0.02, world.z);
       soldier.scale.setScalar(1.8);
       content.add(soldier);
+      unitGroups.set(unit.id, soldier);
 
       // 部队名牌压在脚下，与城池名牌分层，避免斜视镜头下叠成一团。
       const label = labelSprite(unit.label, sideColor(unit.side, colors), 1.35);
@@ -402,10 +582,36 @@ export function createSandTableScene(
       const label = labelSprite(moveLabel(move), sideColor(move.side, colors), 1.25);
       label.position.set(midpointX, surfaceHeight(midpointX, midpointZ) + 1.05, midpointZ);
       content.add(label);
+
+      // 沿路线流转的光点，只示意推进方向，不冒充真实行军轨迹。
+      const start = new THREE.Vector3(from.x, surfaceHeight(from.x, from.z) + 0.68, from.z);
+      const end = new THREE.Vector3(to.x, surfaceHeight(to.x, to.z) + 0.68, to.z);
+      const middle = start.clone().lerp(end, 0.5);
+      const delta = end.clone().sub(start);
+      middle.x += -delta.z * 0.15;
+      middle.z += delta.x * 0.15;
+      const flow = new THREE.Mesh(
+        new THREE.SphereGeometry(0.12, 8, 6),
+        new THREE.MeshBasicMaterial({
+          color: sideColor(move.side, colors),
+          transparent: true,
+          opacity: 0.85,
+        }),
+      );
+      content.add(flow);
+      flowMarkers.push({
+        mesh: flow,
+        curve: new THREE.QuadraticBezierCurve3(start, middle, end),
+        offset: flowMarkers.length * 0.24,
+      });
     }
   }
 
   function renderNext() {
+    stopAnimation();
+    unitGroups.clear();
+    flowMarkers.length = 0;
+    clashRings.length = 0;
     disposeContent();
     const colors = readColors();
     buildTray(colors);
@@ -413,9 +619,11 @@ export function createSandTableScene(
     buildGraticule(colors);
     buildRegionEdges(data, colors);
     buildRivers(data, colors);
+    buildRoads(data, colors);
     buildStrongholds(data, colors);
     buildUnits(data, colors);
     buildMoves(data, colors);
+    buildClashes(data, colors);
     setCamera(data.view, data.zoom);
   }
 
@@ -442,11 +650,25 @@ export function createSandTableScene(
 
   return {
     update(next) {
+      const previous = new Map<string, { x: number; z: number; scale: number }>();
+      for (const [id, group] of unitGroups) {
+        previous.set(id, {
+          x: group.position.x,
+          z: group.position.z,
+          scale: group.scale.x / 1.8,
+        });
+      }
+      const changedStep = currentStepId !== null && currentStepId !== next.step.id;
+      const changedBattle = currentBattleId !== null && currentBattleId !== next.battle.id;
       data = next;
       renderNext();
+      currentStepId = data.step.id;
+      currentBattleId = data.battle.id;
+      if (changedStep && !changedBattle) startTransition(previous);
     },
     setCamera,
     dispose() {
+      stopAnimation();
       observer.disconnect();
       themeObserver.disconnect();
       canvas.removeEventListener("pointerdown", onDown);

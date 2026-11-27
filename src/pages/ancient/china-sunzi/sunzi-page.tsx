@@ -119,7 +119,14 @@ export function SunziPage() {
         onMouseEnter={pause}
         onWheel={handleWheel}
       >
-        <SandTable battle={scene} playing={playing} step={step} view={view} zoom={zoom} />
+        <SandTable
+          battle={scene}
+          playing={playing}
+          speed={speed}
+          step={step}
+          view={view}
+          zoom={zoom}
+        />
       </fieldset>
 
       <nav aria-label="三十六计目录" className="sunzi-left" data-testid="sunzi-left">
