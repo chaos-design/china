@@ -99,11 +99,7 @@ export function HomePage() {
         <span className="home-seal-mark">史</span>
       </div>
 
-      <header className="home-scroll-frame flex flex-col gap-7">
-        <div aria-hidden="true" className="home-scroll-rods">
-          <span />
-          <span />
-        </div>
+      <header className="flex flex-col gap-7">
         <h1
           className="reveal font-brush text-6xl leading-[1.05] tracking-tight text-ink sm:text-8xl"
           style={{ animationDelay: "70ms" }}
