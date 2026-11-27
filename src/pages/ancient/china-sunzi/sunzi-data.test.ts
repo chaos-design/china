@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { BATTLES } from "./battles";
 import { PRINCIPLE_BY_ID, PRINCIPLES, THREAD } from "./principles";
+import { STRATAGEM_BY_NUMBER, STRATAGEM_SETS, STRATAGEMS } from "./stratagems";
+import { BRANCH_LABEL } from "./types";
 
 describe("孙子兵法沙盘数据", () => {
   it("三役各四幕，战役与幕的 id 都唯一", () => {
@@ -14,6 +16,7 @@ describe("孙子兵法沙盘数据", () => {
       expect(battle.name).toBeTruthy();
       expect(battle.period).toBeTruthy();
       expect(battle.summary).toBeTruthy();
+      expect(battle.sources).toContain("《");
     }
   });
 
@@ -29,6 +32,7 @@ describe("孙子兵法沙盘数据", () => {
         expect(step.units.length).toBeGreaterThan(0);
         for (const unit of step.units) {
           expect(forceIds.has(unit.id)).toBe(true);
+          expect(Object.keys(BRANCH_LABEL)).toContain(unit.branch);
         }
         for (const regionId of step.held) {
           expect(regionIds.has(regionId)).toBe(true);
@@ -72,5 +76,27 @@ describe("孙子兵法沙盘数据", () => {
     expect(new Set(THREAD.map((entry) => entry.principleId))).toEqual(
       new Set(PRINCIPLES.map((principle) => principle.id)),
     );
+  });
+
+  it("三十六计六套各六计，编号连续且原文与白话齐备", () => {
+    expect(STRATAGEMS).toHaveLength(36);
+    expect(STRATAGEM_SETS).toHaveLength(6);
+    expect(STRATAGEMS.map((item) => item.number)).toEqual(
+      Array.from({ length: 36 }, (_, index) => index + 1),
+    );
+
+    for (const group of STRATAGEM_SETS) {
+      expect(STRATAGEMS.filter((item) => item.set === group.id)).toHaveLength(6);
+    }
+    for (const item of STRATAGEMS) {
+      expect(STRATAGEM_BY_NUMBER[item.number]).toBe(item);
+      expect(item.verse.length).toBeGreaterThan(5);
+      expect(item.plain.length).toBeGreaterThan(5);
+      expect(item.name.length).toBeGreaterThanOrEqual(3);
+      if (item.link) {
+        const battle = BATTLES.find((candidate) => candidate.id === item.link?.battleId);
+        expect(battle?.steps.some((step) => step.id === item.link?.stepId)).toBe(true);
+      }
+    }
   });
 });

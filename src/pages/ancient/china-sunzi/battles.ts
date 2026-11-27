@@ -12,6 +12,8 @@ export const BATTLES: readonly BattleScenario[] = [
     period: "公元前506年",
     commander: "孙武与吴王阖闾",
     summary: "吴军弃舟登陆，绕开楚军正面防线，五战而入郢都。",
+    sources:
+      "据《左传·定公四年》「舍舟于淮汭」「战于柏举」「五战及郢」与《史记·吴太伯世家》大意重绘。",
     forces: [
       { id: "wu", name: "吴军", side: "a", hint: "远来兵少" },
       { id: "chu", name: "楚军", side: "b", hint: "本土兵众" },
@@ -96,8 +98,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "楚军的沿江防线落空，吴军出现在它侧后方。",
         principleId: "void",
         units: [
-          { id: "wu", label: "吴军", side: "a", x: 285, y: 350 },
-          { id: "chu", label: "楚军", side: "b", x: 715, y: 320 },
+          { id: "wu", label: "吴军", side: "a", x: 285, y: 350, branch: "navy" },
+          { id: "chu", label: "楚军", side: "b", x: 715, y: 320, branch: "chariot" },
         ],
         moves: [{ id: "m1", from: [160, 445], kind: "advance", side: "a", to: [315, 315] }],
         held: ["r-wu"],
@@ -110,8 +112,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "主动权易手：楚军开始跟着吴军的路线走。",
         principleId: "lead",
         units: [
-          { id: "wu", label: "吴军", side: "a", x: 505, y: 245 },
-          { id: "chu", label: "楚军", side: "b", x: 690, y: 330 },
+          { id: "wu", label: "吴军", side: "a", x: 505, y: 245, branch: "infantry" },
+          { id: "chu", label: "楚军", side: "b", x: 690, y: 330, branch: "chariot" },
         ],
         moves: [
           { id: "m1", from: [315, 315], kind: "flank", side: "a", to: [525, 235] },
@@ -127,8 +129,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "楚军前部溃散，退路被吴军的推进切断。",
         principleId: "speed",
         units: [
-          { id: "wu", label: "吴军", side: "a", x: 615, y: 370 },
-          { id: "chu", label: "楚军", side: "b", x: 705, y: 395 },
+          { id: "wu", label: "吴军", side: "a", x: 615, y: 370, branch: "infantry" },
+          { id: "chu", label: "楚军", side: "b", x: 705, y: 395, branch: "infantry" },
         ],
         moves: [
           { id: "m1", from: [525, 235], kind: "advance", side: "a", to: [640, 380] },
@@ -144,8 +146,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "吴军五战入郢，楚都失守；速决胜负被扩展到战略结果。",
         principleId: "speed",
         units: [
-          { id: "wu", label: "吴军", side: "a", x: 835, y: 425 },
-          { id: "chu", label: "楚军", side: "b", x: 895, y: 490 },
+          { id: "wu", label: "吴军", side: "a", x: 835, y: 425, branch: "infantry" },
+          { id: "chu", label: "楚军", side: "b", x: 895, y: 490, branch: "infantry" },
         ],
         moves: [{ id: "m1", from: [640, 380], kind: "pursuit", side: "a", to: [830, 425] }],
         held: ["r-wu", "r-pass", "r-han", "r-ying"],
@@ -158,6 +160,7 @@ export const BATTLES: readonly BattleScenario[] = [
     period: "公元前354年",
     commander: "孙膑与田忌",
     summary: "齐军不赴邯郸解围，直奔魏都大梁，把围城者变成被截击者。",
+    sources: "据《史记·孙子吴起列传》与《资治通鉴·周纪二》大意重绘。",
     forces: [
       { id: "qi", name: "齐军", side: "a", hint: "救赵之师" },
       { id: "wei", name: "魏军", side: "b", hint: "围邯郸之师" },
@@ -232,8 +235,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "齐军按兵不动，魏军继续把兵力压在邯郸。",
         principleId: "know",
         units: [
-          { id: "qi", label: "齐军", side: "a", x: 170, y: 255 },
-          { id: "wei", label: "魏军", side: "b", x: 810, y: 220 },
+          { id: "qi", label: "齐军", side: "a", x: 170, y: 255, branch: "infantry" },
+          { id: "wei", label: "魏军", side: "b", x: 810, y: 220, branch: "chariot" },
         ],
         moves: [{ id: "m1", from: [700, 280], kind: "advance", side: "b", to: [825, 210] }],
         held: ["r-wei", "r-zhao"],
@@ -246,8 +249,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "魏军被迫撤围，赵国之围不解自解。",
         principleId: "void",
         units: [
-          { id: "qi", label: "齐军", side: "a", x: 575, y: 335 },
-          { id: "wei", label: "魏军", side: "b", x: 780, y: 245 },
+          { id: "qi", label: "齐军", side: "a", x: 575, y: 335, branch: "crossbow" },
+          { id: "wei", label: "魏军", side: "b", x: 780, y: 245, branch: "chariot" },
         ],
         moves: [{ id: "m1", from: [180, 250], kind: "flank", side: "a", to: [585, 330] }],
         held: ["r-qi", "r-guiling"],
@@ -260,8 +263,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "魏军在桂陵被截，首尾不能相顾。",
         principleId: "wait",
         units: [
-          { id: "qi", label: "齐军", side: "a", x: 470, y: 180 },
-          { id: "wei", label: "魏军", side: "b", x: 605, y: 250 },
+          { id: "qi", label: "齐军", side: "a", x: 470, y: 180, branch: "crossbow" },
+          { id: "wei", label: "魏军", side: "b", x: 605, y: 250, branch: "chariot" },
         ],
         moves: [
           { id: "m1", from: [780, 245], kind: "advance", side: "b", to: [600, 270] },
@@ -277,8 +280,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "魏师败于桂陵，赵围得解；「救」变成了「攻其必救」。",
         principleId: "lead",
         units: [
-          { id: "qi", label: "齐军", side: "a", x: 585, y: 200 },
-          { id: "wei", label: "魏军", side: "b", x: 700, y: 285 },
+          { id: "qi", label: "齐军", side: "a", x: 585, y: 200, branch: "crossbow" },
+          { id: "wei", label: "魏军", side: "b", x: 700, y: 285, branch: "chariot" },
         ],
         moves: [{ id: "m1", from: [475, 178], kind: "pursuit", side: "a", to: [615, 215] }],
         held: ["r-qi", "r-guiling", "r-zhao", "r-wei"],
@@ -291,6 +294,8 @@ export const BATTLES: readonly BattleScenario[] = [
     period: "公元前341年",
     commander: "孙膑与田忌",
     summary: "齐军逐日减灶示弱，把庞涓诱入马陵道，再以伏兵决战。",
+    sources:
+      "据《史记·孙子吴起列传》与《资治通鉴·周纪二》大意重绘；马陵地望有元城、鄄城、郯城诸说，本页只作示意。",
     forces: [
       { id: "qi", name: "齐军", side: "a", hint: "示弱诱敌" },
       { id: "wei", name: "魏军", side: "b", hint: "轻装追击" },
@@ -365,8 +370,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "魏军仍按自己的节奏推进，对齐军的意图判断不清。",
         principleId: "know",
         units: [
-          { id: "qi", label: "齐军", side: "a", x: 190, y: 355 },
-          { id: "wei", label: "魏军", side: "b", x: 755, y: 300 },
+          { id: "qi", label: "齐军", side: "a", x: 190, y: 355, branch: "infantry" },
+          { id: "wei", label: "魏军", side: "b", x: 755, y: 300, branch: "infantry" },
         ],
         moves: [{ id: "m1", from: [660, 375], kind: "advance", side: "b", to: [800, 300] }],
         held: ["r-wei", "r-han"],
@@ -379,8 +384,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "魏军甩开后队，一头扎进孙膑算好的时间与地点。",
         principleId: "shape",
         units: [
-          { id: "qi", label: "齐军", side: "a", x: 355, y: 330 },
-          { id: "wei", label: "魏军", side: "b", x: 585, y: 320 },
+          { id: "qi", label: "齐军", side: "a", x: 355, y: 330, branch: "crossbow" },
+          { id: "wei", label: "魏军", side: "b", x: 585, y: 320, branch: "cavalry" },
         ],
         moves: [
           { id: "m1", from: [290, 350], kind: "feint", side: "a", to: [440, 300] },
@@ -396,8 +401,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "魏军进入伏击圈，首尾被截断，阵势无从展开。",
         principleId: "wait",
         units: [
-          { id: "qi", label: "齐军", side: "a", x: 495, y: 230 },
-          { id: "wei", label: "魏军", side: "b", x: 545, y: 265 },
+          { id: "qi", label: "齐军", side: "a", x: 495, y: 230, branch: "crossbow" },
+          { id: "wei", label: "魏军", side: "b", x: 545, y: 265, branch: "cavalry" },
         ],
         moves: [
           { id: "m1", from: [440, 300], kind: "flank", side: "a", to: [500, 232] },
@@ -413,8 +418,8 @@ export const BATTLES: readonly BattleScenario[] = [
         outcome: "魏国由盛转衰；一场伏击改变了此后的列国格局。",
         principleId: "lead",
         units: [
-          { id: "qi", label: "齐军", side: "a", x: 480, y: 235 },
-          { id: "wei", label: "魏军", side: "b", x: 620, y: 300 },
+          { id: "qi", label: "齐军", side: "a", x: 480, y: 235, branch: "crossbow" },
+          { id: "wei", label: "魏军", side: "b", x: 620, y: 300, branch: "cavalry" },
         ],
         moves: [{ id: "m1", from: [500, 232], kind: "pursuit", side: "a", to: [625, 300] }],
         held: ["r-qi", "r-maling", "r-wei", "r-han"],

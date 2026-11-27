@@ -4,12 +4,19 @@ import type { BattleStep } from "./types";
 export interface ExplainPanelProps {
   battleName: string;
   step: BattleStep;
+  sources: string;
   stepIndex: number;
   totalSteps: number;
 }
 
 /** The reading rail: situation, decision, the source line, and the result of one move. */
-export function ExplainPanel({ battleName, step, stepIndex, totalSteps }: ExplainPanelProps) {
+export function ExplainPanel({
+  battleName,
+  sources,
+  step,
+  stepIndex,
+  totalSteps,
+}: ExplainPanelProps) {
   const principle = PRINCIPLE_BY_ID[step.principleId];
 
   return (
@@ -66,7 +73,7 @@ export function ExplainPanel({ battleName, step, stepIndex, totalSteps }: Explai
       </section>
 
       <footer className="sunzi-source mt-auto border-ink/10 border-t pt-3 font-body text-muted-foreground text-xs leading-relaxed">
-        据《左传》《史记》《资治通鉴》相关记载的大意重绘。地名关系、推进线与控区均为示意，不是测绘，也不给兵力实数。
+        {sources} 地名关系、推进线与控区均为示意，不是测绘，也不给兵力实数。
       </footer>
     </div>
   );

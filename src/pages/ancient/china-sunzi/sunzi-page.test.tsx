@@ -154,4 +154,56 @@ describe("SunziPage 沙盘演练", () => {
     expect(board.querySelector('[data-kind="advance"]')).toBeTruthy();
     expect(board.querySelector('[data-region="r-wu"]')).toHaveAttribute("data-held", "a");
   });
+
+  it("军种小人按兵种区分，讲解栏可收起", () => {
+    render(<SunziPage />);
+    const board = screen.getByTestId("sunzi-board");
+    expect(board.querySelector('[data-branch="navy"]')).toBeTruthy();
+    expect(board.querySelector('[data-branch="chariot"]')).toBeTruthy();
+    expect(board.getAttribute("aria-label")).toContain("水师");
+
+    fireEvent.click(screen.getByRole("button", { name: "下一步" }));
+    expect(board.querySelector('[data-branch="navy"]')).toBeFalsy();
+    expect(board.querySelector('[data-branch="infantry"]')).toBeTruthy();
+
+    const toggle = screen.getByRole("button", { name: "讲解" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByTestId("sunzi-page")).toHaveAttribute("data-explain", "false");
+  });
+
+  it("支持用 view 参数直接打开三十六计", () => {
+    window.history.pushState({}, "", "/china/sunzi-bingfa?view=stratagems");
+    try {
+      render(<SunziPage />);
+      expect(screen.getByTestId("sunzi-stratagems")).toBeInTheDocument();
+      expect(screen.queryByTestId("sunzi-board")).not.toBeInTheDocument();
+    } finally {
+      window.history.pushState({}, "", "/china/sunzi-bingfa");
+    }
+  });
+
+  it("三十六计全量收录，原文与出处可读，并可跳回对应沙盘一幕", () => {
+    render(<SunziPage />);
+    const modes = screen.getByRole("navigation", { name: "内容模式" });
+    fireEvent.click(within(modes).getByRole("button", { name: "三十六计" }));
+
+    const atlas = screen.getByTestId("sunzi-stratagems");
+    const sets = within(atlas).getByRole("group", { name: "六套计名" });
+    expect(within(sets).getAllByRole("button")).toHaveLength(36);
+    expect(atlas).toHaveTextContent("瞒天过海");
+    expect(atlas).toHaveTextContent("走为上计");
+    expect(atlas).toHaveTextContent("共敌不如分敌，敌阳不如敌阴");
+
+    const links = within(atlas).getAllByRole("link");
+    expect(links).toHaveLength(3);
+    expect(links[0]).toHaveAttribute("href", expect.stringContaining("https://"));
+
+    fireEvent.click(within(sets).getByRole("button", { name: "2. 围魏救赵" }));
+    expect(atlas).toHaveTextContent("敌阳不如敌阴");
+    fireEvent.click(within(atlas).getByRole("button", { name: "在沙盘中看这一幕" }));
+    expect(boardLabel()).toContain("桂陵之战");
+    expect(boardLabel()).toContain("直趋大梁");
+  });
 });

@@ -31,7 +31,18 @@ export interface River {
   points: readonly BoardPoint[];
 }
 
+export type UnitBranch = "infantry" | "chariot" | "cavalry" | "crossbow" | "navy";
+
+export const BRANCH_LABEL: Record<UnitBranch, string> = {
+  cavalry: "骑兵",
+  chariot: "车兵",
+  crossbow: "弩手",
+  infantry: "步卒",
+  navy: "水师",
+};
+
 export interface Unit {
+  branch: UnitBranch;
   id: string;
   label: string;
   side: Side;
@@ -66,6 +77,8 @@ export interface BattleScenario {
   period: string;
   commander: string;
   summary: string;
+  /** verified primary sources for this battle, shown in the reading rail */
+  sources: string;
   forces: readonly ForceMeta[];
   places: readonly Place[];
   regions: readonly Region[];
