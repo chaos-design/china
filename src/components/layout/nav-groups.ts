@@ -88,6 +88,12 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         label: "科举与仕途",
         to: "/china/imperial-exam",
       },
+      {
+        dimensions: ["军事", "历史"],
+        highlights: ["三役四幕复盘", "3D 沙盘推演", "兵法原文与白话"],
+        label: "孙子兵法沙盘",
+        to: "/china/sunzi-bingfa",
+      },
     ],
     label: "编年与制度",
     mapZone: "north",

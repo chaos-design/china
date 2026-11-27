@@ -22,4 +22,5 @@ export const ROUTE_LAYOUT_CONFIGS: RouteLayoutConfig[] = [
   { path: "/china/institutions/:topicId" },
   { path: "/china/imperial-exam" },
   { path: "/china/imperial-exam/:sectionId" },
+  { path: "/china/sunzi-bingfa" },
 ];
