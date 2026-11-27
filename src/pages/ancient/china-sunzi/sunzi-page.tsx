@@ -3,6 +3,7 @@ import { useEffect, useState, type WheelEvent } from "react";
 import { cn } from "../../../lib/utils";
 import { BATTLES } from "./battles";
 import { ExplainPanel } from "./explain-panel";
+import { CASE_BY_NUMBER } from "./historical-cases";
 import { PRINCIPLE_BY_ID } from "./principles";
 import { SandTable } from "./sand-table";
 import { STRATAGEM_BY_NUMBER, STRATAGEM_SETS, STRATAGEM_SOURCES, STRATAGEMS } from "./stratagems";
@@ -192,6 +193,39 @@ export function SunziPage() {
               </button>
             ) : null}
 
+            {CASE_BY_NUMBER[selectedNumber] ? (
+              <section className="sunzi-note mt-5" data-testid="sunzi-historical-case">
+                <h3 className="sunzi-note__head">史实案例</h3>
+                <p className="mt-1 font-kai text-base text-ink">
+                  {CASE_BY_NUMBER[selectedNumber].title}
+                  <span className="ml-2 font-body text-xs text-muted-foreground">
+                    {CASE_BY_NUMBER[selectedNumber].period}
+                  </span>
+                </p>
+                <p className="sunzi-note__body mt-2">{CASE_BY_NUMBER[selectedNumber].summary}</p>
+                {CASE_BY_NUMBER[selectedNumber].quote ? (
+                  <blockquote className="sunzi-quote mt-3 font-kai text-sm leading-relaxed text-ink">
+                    {CASE_BY_NUMBER[selectedNumber].quote}
+                  </blockquote>
+                ) : null}
+                <p className="mt-2 font-body text-xs">
+                  <a
+                    className="text-vermillion underline underline-offset-2"
+                    href={CASE_BY_NUMBER[selectedNumber].url}
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    {CASE_BY_NUMBER[selectedNumber].source}
+                  </a>
+                </p>
+                {CASE_BY_NUMBER[selectedNumber].note ? (
+                  <p className="mt-2 font-body text-xs leading-relaxed text-muted-foreground">
+                    {CASE_BY_NUMBER[selectedNumber].note}
+                  </p>
+                ) : null}
+              </section>
+            ) : null}
+
             <footer className="sunzi-source mt-6 border-ink/10 border-t pt-4">
               <h3 className="sunzi-note__head">文献出处</h3>
               <ul className="mt-2 flex flex-col gap-2">
@@ -215,13 +249,18 @@ export function SunziPage() {
             </footer>
           </div>
         ) : (
-          <ExplainPanel
-            battleName={scene.name}
-            sources={BATTLES[battleIndex].sources}
-            step={step}
-            stepIndex={stepIndex}
-            totalSteps={scene.steps.length}
-          />
+          <>
+            <p className="sunzi-scope-note" data-testid="sunzi-scope-note">
+              桂陵之战即第二计「围魏救赵」的出处；柏举之战早于《三十六计》成书，马陵之战是「减灶诱敌」的战例，二者都不是三十六计条目。
+            </p>
+            <ExplainPanel
+              battleName={scene.name}
+              sources={BATTLES[battleIndex].sources}
+              step={step}
+              stepIndex={stepIndex}
+              totalSteps={scene.steps.length}
+            />
+          </>
         )}
       </aside>
 

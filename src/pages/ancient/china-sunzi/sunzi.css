@@ -177,6 +177,24 @@
   perspective: 1200px;
 }
 
+.sunzi-board__webgl {
+  inset: 0;
+  position: absolute;
+  touch-action: none;
+}
+
+.sunzi-board__hint {
+  bottom: 5.8rem;
+  color: var(--sunzi-ink-soft);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  left: 1rem;
+  margin: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
 .sunzi-board__scene {
   --sunzi-spin: -8deg;
   --sunzi-tilt: 48deg;
@@ -453,6 +471,17 @@
 
 .sunzi-detail {
   padding: 0.9rem 1rem 1.4rem;
+}
+
+.sunzi-scope-note {
+  background: var(--sunzi-soft);
+  border-bottom: 1px solid var(--sunzi-line);
+  color: hsl(var(--ink));
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  line-height: 1.65;
+  margin: 0;
+  padding: 0.7rem 1rem;
 }
 
 /* Four fixed regions around one persistent board: left index, right reading,

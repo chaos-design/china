@@ -1,6 +1,7 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 
 import { centroid, polygonPath, routePath, smoothPath } from "./board-geometry";
+import { createSandTableScene, type SceneHandle } from "./sand-table-scene";
 import { type BattleStep, BRANCH_LABEL, type MapScene } from "./types";
 import { UnitGlyph } from "./unit-figure";
 
@@ -22,6 +23,42 @@ const RIDGES = [
 /** The signature: one tilted board that shows control, routes and decisions for a single step. */
 export function SandTable({ battle, playing, step, view, zoom }: SandTableProps) {
   const sceneStyle = { "--sunzi-zoom": zoom } as CSSProperties;
+  const [webgl, setWebgl] = useState(false);
+  const [ready, setReady] = useState(false);
+  const mountRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<SceneHandle | null>(null);
+
+  useEffect(() => {
+    if (typeof WebGLRenderingContext === "undefined") {
+      setWebgl(false);
+      return;
+    }
+    try {
+      const probe = document.createElement("canvas");
+      setWebgl(Boolean(probe.getContext("webgl2") ?? probe.getContext("webgl")));
+    } catch {
+      setWebgl(false);
+    }
+  }, []);
+
+  // The WebGL scene is created once; every later change goes through update().
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional create-once lifecycle
+  useEffect(() => {
+    if (!webgl || !mountRef.current) return;
+    const handle = createSandTableScene(mountRef.current, { battle, playing, step, view, zoom });
+    handleRef.current = handle;
+    setReady(Boolean(handle));
+    return () => {
+      handle?.dispose();
+      handleRef.current = null;
+    };
+  }, [webgl]);
+
+  useEffect(() => {
+    if (!ready) return;
+    handleRef.current?.update({ battle, playing, step, view, zoom });
+  }, [ready, battle, step, playing, view, zoom]);
+
   const deployment = step.units
     .map((unit) => `${unit.label}（${BRANCH_LABEL[unit.branch]}）`)
     .join("，");
@@ -32,10 +69,17 @@ export function SandTable({ battle, playing, step, view, zoom }: SandTableProps)
       className="sunzi-board h-full w-full"
       data-playing={playing}
       data-testid="sunzi-board"
+      data-three={ready}
       data-view={view}
       role="img"
     >
-      <div className="sunzi-board__scene" style={sceneStyle}>
+      {webgl ? <div aria-hidden="true" className="sunzi-board__webgl" ref={mountRef} /> : null}
+      {ready ? (
+        <p aria-hidden="true" className="sunzi-board__hint">
+          真实立体沙盘 · 拖拽旋转
+        </p>
+      ) : null}
+      <div className="sunzi-board__scene" hidden={ready} style={sceneStyle}>
         <svg
           aria-hidden="true"
           className="sunzi-board__ground"

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { BATTLES } from "./battles";
+import { CASE_BY_NUMBER, HISTORICAL_CASES } from "./historical-cases";
 import { PRINCIPLE_BY_ID, PRINCIPLES, THREAD } from "./principles";
 import { STRATAGEM_BY_NUMBER, STRATAGEM_SETS, STRATAGEMS } from "./stratagems";
 import { buildStratagemScene, patternOf, stratagemScene } from "./tactical-scenes";
@@ -77,6 +78,19 @@ describe("孙子兵法沙盘数据", () => {
     expect(new Set(THREAD.map((entry) => entry.principleId))).toEqual(
       new Set(PRINCIPLES.map((principle) => principle.id)),
     );
+  });
+
+  it("史实案例都有出处与可查链接，且只挂在存在的计目上", () => {
+    expect(HISTORICAL_CASES.length).toBeGreaterThanOrEqual(8);
+    expect(new Set(HISTORICAL_CASES.map((item) => item.number)).size).toBe(HISTORICAL_CASES.length);
+
+    for (const item of HISTORICAL_CASES) {
+      expect(STRATAGEM_BY_NUMBER[item.number]).toBeDefined();
+      expect(item.source).toContain("《");
+      expect(item.url).toMatch(/^https:\/\//);
+      expect(item.summary.length).toBeGreaterThan(10);
+      expect(CASE_BY_NUMBER[item.number]).toBe(item);
+    }
   });
 
   it("三十六计每计都有一张四幕沙盘，军种与控区引用有效", () => {

@@ -127,6 +127,28 @@ describe("SunziPage 三十六计沙盘", () => {
     expect(board).toHaveAttribute("data-view", "sand");
   });
 
+  it("右侧给出有正史出处的案例，并说明史籍三役与三十六计的关系", () => {
+    render(<SunziPage />);
+    const left = screen.getByRole("navigation", { name: "三十六计目录" });
+
+    const caseBlock = screen.getByTestId("sunzi-historical-case");
+    expect(caseBlock).toHaveTextContent("桂陵之战");
+    expect(caseBlock).toHaveTextContent("《史记·孙子吴起列传》");
+    expect(within(caseBlock).getByRole("link", { name: "《史记·孙子吴起列传》" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("https://"),
+    );
+
+    fireEvent.click(within(left).getByRole("button", { name: "24. 假道伐虢" }));
+    expect(screen.getByTestId("sunzi-historical-case")).toHaveTextContent("晋假道于虞以伐虢");
+    expect(screen.getByTestId("sunzi-historical-case")).toHaveTextContent("《左传·僖公五年》");
+
+    fireEvent.click(within(left).getByRole("button", { name: "柏举之战" }));
+    expect(screen.getByTestId("sunzi-scope-note")).toHaveTextContent(
+      "柏举之战早于《三十六计》成书",
+    );
+  });
+
   it("悬停沙盘会停止自动播放", () => {
     vi.useFakeTimers();
     render(<SunziPage />);
