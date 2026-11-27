@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { BATTLES } from "./battles";
 import { PRINCIPLE_BY_ID, PRINCIPLES, THREAD } from "./principles";
 import { STRATAGEM_BY_NUMBER, STRATAGEM_SETS, STRATAGEMS } from "./stratagems";
+import { buildStratagemScene, patternOf, stratagemScene } from "./tactical-scenes";
 import { BRANCH_LABEL } from "./types";
 
 describe("孙子兵法沙盘数据", () => {
@@ -76,6 +77,40 @@ describe("孙子兵法沙盘数据", () => {
     expect(new Set(THREAD.map((entry) => entry.principleId))).toEqual(
       new Set(PRINCIPLES.map((principle) => principle.id)),
     );
+  });
+
+  it("三十六计每计都有一张四幕沙盘，军种与控区引用有效", () => {
+    const regionIds = new Set(["r-west", "r-center", "r-north", "r-east"]);
+
+    for (const item of STRATAGEMS) {
+      const scene = buildStratagemScene(item.number, item.name);
+      expect(scene.steps).toHaveLength(4);
+      expect(scene.forces).toHaveLength(2);
+      expect(patternOf(item.number)).toBeTruthy();
+      const cached = stratagemScene(item.number, item.name);
+      expect(cached).toStrictEqual(scene);
+      expect(stratagemScene(item.number, item.name)).toBe(cached);
+      expect(scene.steps.map((step) => step.id)).toEqual([
+        "formation",
+        "signal",
+        "decisive",
+        "settle",
+      ]);
+
+      for (const step of scene.steps) {
+        expect(step.units.length).toBeGreaterThan(0);
+        for (const unit of step.units) {
+          expect(Object.keys(BRANCH_LABEL)).toContain(unit.branch);
+          expect(unit.x).toBeGreaterThan(0);
+          expect(unit.x).toBeLessThan(1000);
+          expect(unit.y).toBeGreaterThan(0);
+          expect(unit.y).toBeLessThan(640);
+        }
+        for (const region of step.held) {
+          expect(regionIds.has(region)).toBe(true);
+        }
+      }
+    }
   });
 
   it("三十六计六套各六计，编号连续且原文与白话齐备", () => {

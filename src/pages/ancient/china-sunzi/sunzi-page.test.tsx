@@ -7,7 +7,7 @@ function boardLabel() {
   return screen.getByTestId("sunzi-board").getAttribute("aria-label") ?? "";
 }
 
-function scene() {
+function sceneStyle() {
   return screen.getByTestId("sunzi-board").querySelector(".sunzi-board__scene") as HTMLElement;
 }
 
@@ -15,195 +15,130 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("SunziPage 沙盘演练", () => {
-  it("首屏呈现柏举之战、四幕时间轴与读图讲解", () => {
+describe("SunziPage 三十六计沙盘", () => {
+  it("四周布局齐备，默认打开围魏救赵的机理沙盘", () => {
     render(<SunziPage />);
 
-    expect(screen.getByTestId("sunzi-page")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "孙子兵法沙盘演练" })).toBeInTheDocument();
-    expect(boardLabel()).toContain("柏举之战");
-    expect(boardLabel()).toContain("弃舟登陆");
+    expect(screen.getByTestId("sunzi-left")).toBeInTheDocument();
+    expect(screen.getByTestId("sunzi-center")).toBeInTheDocument();
+    expect(screen.getByTestId("sunzi-right")).toBeInTheDocument();
+    expect(screen.getByTestId("sunzi-bottom")).toBeInTheDocument();
 
-    const timeline = screen.getByTestId("sunzi-timeline");
-    expect(within(timeline).getAllByRole("button")).toHaveLength(4);
-    expect(within(timeline).getByRole("button", { name: /弃舟登陆/ })).toHaveAttribute(
-      "aria-current",
-      "step",
-    );
+    const left = screen.getByRole("navigation", { name: "三十六计目录" });
+    expect(within(left).getAllByRole("button")).toHaveLength(39);
 
-    expect(screen.getByTestId("sunzi-explain")).toHaveTextContent("战场态势");
-    expect(screen.getByTestId("sunzi-explain")).toHaveTextContent("关键决策");
-    expect(screen.getByTestId("sunzi-explain")).toHaveTextContent("结果变化");
+    const detail = screen.getByTestId("sunzi-stratagem-detail");
+    expect(detail).toHaveTextContent("围魏救赵");
+    expect(detail).toHaveTextContent("共敌不如分敌，敌阳不如敌阴");
+    expect(detail).toHaveTextContent("攻其必救");
+    expect(boardLabel()).toContain("围魏救赵");
+    expect(boardLabel()).toContain("布势");
   });
 
-  it("切换战役回到第一幕，并同步沙盘地名", () => {
+  it("切换计谋会换沙盘、回到第一幕并更新详解", () => {
     render(<SunziPage />);
-    const menu = screen.getByRole("navigation", { name: "战役选择" });
+    const left = screen.getByRole("navigation", { name: "三十六计目录" });
+    const bottom = screen.getByTestId("sunzi-bottom");
 
-    fireEvent.click(within(menu).getByRole("button", { name: "桂陵之战" }));
+    fireEvent.click(within(bottom).getByRole("button", { name: "下一步" }));
+    expect(boardLabel()).toContain("示形");
+
+    fireEvent.click(within(left).getByRole("button", { name: "36. 走为上计" }));
+    expect(boardLabel()).toContain("走为上计");
+    expect(boardLabel()).toContain("布势");
+    expect(screen.getByTestId("sunzi-stratagem-detail")).toHaveTextContent("全师避敌");
+    expect(screen.getByTestId("sunzi-stratagem-detail")).toHaveTextContent("全师而退");
+  });
+
+  it("史籍三役仍是真实战史沙盘，并能由计谋跳回对应一幕", () => {
+    render(<SunziPage />);
+    const detail = screen.getByTestId("sunzi-stratagem-detail");
+    fireEvent.click(within(detail).getByRole("button", { name: "看对应战役的史籍沙盘" }));
+
     expect(boardLabel()).toContain("桂陵之战");
-    expect(boardLabel()).toContain("魏围邯郸");
-    expect(screen.getByTestId("sunzi-board")).toHaveTextContent("大梁");
+    expect(boardLabel()).toContain("直趋大梁");
+    expect(screen.getByTestId("sunzi-explain")).toHaveTextContent("《史记·孙子吴起列传》");
 
-    fireEvent.click(within(menu).getByRole("button", { name: "马陵之战" }));
-    expect(boardLabel()).toContain("马陵之战");
-    expect(boardLabel()).toContain("韩求救于齐");
+    const battles = screen.getByRole("navigation", { name: "战役选择" });
+    fireEvent.click(within(battles).getByRole("button", { name: "柏举之战" }));
+    expect(boardLabel()).toContain("柏举之战");
+    expect(screen.getByTestId("sunzi-explain")).toHaveTextContent("《左传·定公四年》");
   });
 
-  it("逐步推进与回退，并守住首尾禁用边界", () => {
+  it("底部操作可逐幕推进，播放到末幕自动停止", () => {
+    vi.useFakeTimers();
     render(<SunziPage />);
-    const controls = screen.getByRole("group", { name: "复盘控制" });
-    const previous = within(controls).getByRole("button", { name: "上一步" });
-    const next = within(controls).getByRole("button", { name: "下一步" });
+    const bottom = screen.getByTestId("sunzi-bottom");
+    const previous = within(bottom).getByRole("button", { name: "上一步" });
+    const next = within(bottom).getByRole("button", { name: "下一步" });
 
     expect(previous).toBeDisabled();
     fireEvent.click(next);
-    expect(boardLabel()).toContain("穿隘疾进");
+    expect(boardLabel()).toContain("示形");
     expect(previous).toBeEnabled();
 
-    fireEvent.click(previous);
-    expect(boardLabel()).toContain("弃舟登陆");
-
-    const timeline = screen.getByTestId("sunzi-timeline");
-    fireEvent.click(within(timeline).getByRole("button", { name: /五战入郢/ }));
-    expect(boardLabel()).toContain("五战入郢");
+    fireEvent.click(within(bottom).getByRole("button", { name: "播放" }));
+    act(() => vi.advanceTimersByTime(2600));
+    expect(boardLabel()).toContain("决胜");
+    act(() => vi.advanceTimersByTime(2600));
+    expect(boardLabel()).toContain("收局");
+    expect(within(bottom).getByRole("button", { name: "播放" })).toBeInTheDocument();
     expect(next).toBeDisabled();
   });
 
-  it("播放逐幕推进，悬停与聚焦时间轴都会暂停", () => {
-    vi.useFakeTimers();
+  it("中央沙盘支持按钮与滚轮缩放，并有边界与复位", () => {
     render(<SunziPage />);
+    const bottom = screen.getByTestId("sunzi-bottom");
+    const enlarge = within(bottom).getByRole("button", { name: "放大沙盘" });
+    const shrink = within(bottom).getByRole("button", { name: "缩小沙盘" });
 
-    fireEvent.click(screen.getByRole("button", { name: "播放" }));
-    expect(screen.getByRole("button", { name: "暂停" })).toBeInTheDocument();
+    expect(sceneStyle().style.getPropertyValue("--sunzi-zoom")).toBe("1");
+    fireEvent.click(enlarge);
+    expect(sceneStyle().style.getPropertyValue("--sunzi-zoom")).toBe("1.1");
+    expect(bottom).toHaveTextContent("110%");
 
-    act(() => vi.advanceTimersByTime(2600));
-    expect(boardLabel()).toContain("穿隘疾进");
+    fireEvent.wheel(screen.getByTestId("sunzi-center"), { deltaY: -100 });
+    expect(sceneStyle().style.getPropertyValue("--sunzi-zoom")).toBe("1.2");
 
-    fireEvent.mouseEnter(screen.getByTestId("sunzi-stage"));
-    expect(screen.getByRole("button", { name: "播放" })).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(5200));
-    expect(boardLabel()).toContain("穿隘疾进");
-
-    fireEvent.click(screen.getByRole("button", { name: "播放" }));
-    fireEvent.focus(screen.getByTestId("sunzi-timeline"));
-    expect(screen.getByRole("button", { name: "播放" })).toBeInTheDocument();
-  });
-
-  it("播放到最后一幕自动停止", () => {
-    vi.useFakeTimers();
-    render(<SunziPage />);
-    const timeline = screen.getByTestId("sunzi-timeline");
-    fireEvent.click(within(timeline).getByRole("button", { name: /柏举决战/ }));
-
-    fireEvent.click(screen.getByRole("button", { name: "播放" }));
-    act(() => vi.advanceTimersByTime(2600));
-    expect(boardLabel()).toContain("五战入郢");
-    expect(screen.getByRole("button", { name: "播放" })).toBeInTheDocument();
-  });
-
-  it("视角与缩放有边界，复位回到沙盘视角", () => {
-    render(<SunziPage />);
-    const board = screen.getByTestId("sunzi-board");
-    const views = screen.getByRole("group", { name: "视角" });
-    const zoom = screen.getByRole("group", { name: "缩放" });
-
-    fireEvent.click(within(views).getByRole("button", { name: "俯视" }));
-    expect(board).toHaveAttribute("data-view", "top");
-    expect(scene().style.getPropertyValue("--sunzi-zoom")).toBe("1");
-
-    const enlarge = within(zoom).getByRole("button", { name: "放大沙盘" });
-    for (let index = 0; index < 4; index += 1) fireEvent.click(enlarge);
-    expect(scene().style.getPropertyValue("--sunzi-zoom")).toBe("1.6");
+    for (let index = 0; index < 12; index += 1) fireEvent.click(enlarge);
+    expect(sceneStyle().style.getPropertyValue("--sunzi-zoom")).toBe("2.2");
     expect(enlarge).toBeDisabled();
 
-    const shrink = within(zoom).getByRole("button", { name: "缩小沙盘" });
-    for (let index = 0; index < 5; index += 1) fireEvent.click(shrink);
-    expect(scene().style.getPropertyValue("--sunzi-zoom")).toBe("0.85");
+    for (let index = 0; index < 30; index += 1) fireEvent.click(shrink);
+    expect(sceneStyle().style.getPropertyValue("--sunzi-zoom")).toBe("0.7");
     expect(shrink).toBeDisabled();
 
-    fireEvent.click(within(zoom).getByRole("button", { name: "复位" }));
-    expect(board).toHaveAttribute("data-view", "sand");
-    expect(scene().style.getPropertyValue("--sunzi-zoom")).toBe("1");
+    fireEvent.click(within(bottom).getByRole("button", { name: "复位" }));
+    expect(sceneStyle().style.getPropertyValue("--sunzi-zoom")).toBe("1");
   });
 
-  it("讲解栏随幕次更新兵法原文与贯穿表高亮", () => {
-    render(<SunziPage />);
-    const explain = screen.getByTestId("sunzi-explain");
-    expect(explain).toHaveTextContent("兵之胜，避实而击虚");
-
-    fireEvent.click(screen.getByRole("button", { name: "下一步" }));
-    expect(explain).toHaveTextContent("故善战者，致人而不致于人");
-    expect(explain).toHaveTextContent("主动权易手");
-
-    const current = within(explain)
-      .getAllByRole("listitem")
-      .filter((row) => row.getAttribute("data-current") === "true");
-    expect(current).toHaveLength(1);
-    expect(current[0]).toHaveTextContent("致人而不致于人");
-  });
-
-  it("沙盘给出当前幕的无障碍说明与播放态", () => {
+  it("沙盘小人按军种区分，视角可切换", () => {
     render(<SunziPage />);
     const board = screen.getByTestId("sunzi-board");
+    const bottom = screen.getByTestId("sunzi-bottom");
+
     expect(board).toHaveAttribute("role", "img");
-    expect(board).toHaveAttribute("data-playing", "false");
-
-    fireEvent.click(screen.getByRole("button", { name: "播放" }));
-    expect(board).toHaveAttribute("data-playing", "true");
-    expect(board.querySelector('[data-kind="advance"]')).toBeTruthy();
-    expect(board.querySelector('[data-region="r-wu"]')).toHaveAttribute("data-held", "a");
-  });
-
-  it("军种小人按兵种区分，讲解栏可收起", () => {
-    render(<SunziPage />);
-    const board = screen.getByTestId("sunzi-board");
-    expect(board.querySelector('[data-branch="navy"]')).toBeTruthy();
     expect(board.querySelector('[data-branch="chariot"]')).toBeTruthy();
-    expect(board.getAttribute("aria-label")).toContain("水师");
-
-    fireEvent.click(screen.getByRole("button", { name: "下一步" }));
-    expect(board.querySelector('[data-branch="navy"]')).toBeFalsy();
     expect(board.querySelector('[data-branch="infantry"]')).toBeTruthy();
 
-    const toggle = screen.getByRole("button", { name: "讲解" });
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByTestId("sunzi-page")).toHaveAttribute("data-explain", "false");
+    fireEvent.click(within(bottom).getByRole("button", { name: "俯视" }));
+    expect(board).toHaveAttribute("data-view", "top");
+    fireEvent.click(within(bottom).getByRole("button", { name: "沙盘" }));
+    expect(board).toHaveAttribute("data-view", "sand");
   });
 
-  it("支持用 view 参数直接打开三十六计", () => {
-    window.history.pushState({}, "", "/china/sunzi-bingfa?view=stratagems");
-    try {
-      render(<SunziPage />);
-      expect(screen.getByTestId("sunzi-stratagems")).toBeInTheDocument();
-      expect(screen.queryByTestId("sunzi-board")).not.toBeInTheDocument();
-    } finally {
-      window.history.pushState({}, "", "/china/sunzi-bingfa");
-    }
-  });
-
-  it("三十六计全量收录，原文与出处可读，并可跳回对应沙盘一幕", () => {
+  it("悬停沙盘会停止自动播放", () => {
+    vi.useFakeTimers();
     render(<SunziPage />);
-    const modes = screen.getByRole("navigation", { name: "内容模式" });
-    fireEvent.click(within(modes).getByRole("button", { name: "三十六计" }));
+    const bottom = screen.getByTestId("sunzi-bottom");
 
-    const atlas = screen.getByTestId("sunzi-stratagems");
-    const sets = within(atlas).getByRole("group", { name: "六套计名" });
-    expect(within(sets).getAllByRole("button")).toHaveLength(36);
-    expect(atlas).toHaveTextContent("瞒天过海");
-    expect(atlas).toHaveTextContent("走为上计");
-    expect(atlas).toHaveTextContent("共敌不如分敌，敌阳不如敌阴");
+    fireEvent.click(within(bottom).getByRole("button", { name: "播放" }));
+    act(() => vi.advanceTimersByTime(2600));
+    expect(boardLabel()).toContain("示形");
 
-    const links = within(atlas).getAllByRole("link");
-    expect(links).toHaveLength(3);
-    expect(links[0]).toHaveAttribute("href", expect.stringContaining("https://"));
-
-    fireEvent.click(within(sets).getByRole("button", { name: "2. 围魏救赵" }));
-    expect(atlas).toHaveTextContent("敌阳不如敌阴");
-    fireEvent.click(within(atlas).getByRole("button", { name: "在沙盘中看这一幕" }));
-    expect(boardLabel()).toContain("桂陵之战");
-    expect(boardLabel()).toContain("直趋大梁");
+    fireEvent.mouseEnter(screen.getByTestId("sunzi-center"));
+    expect(within(bottom).getByRole("button", { name: "播放" })).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(5200));
+    expect(boardLabel()).toContain("示形");
   });
 });

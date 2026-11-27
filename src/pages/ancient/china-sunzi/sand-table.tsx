@@ -1,11 +1,11 @@
 import type { CSSProperties } from "react";
 
 import { centroid, polygonPath, routePath, smoothPath } from "./board-geometry";
-import { type BattleScenario, type BattleStep, BRANCH_LABEL } from "./types";
+import { type BattleStep, BRANCH_LABEL, type MapScene } from "./types";
 import { UnitGlyph } from "./unit-figure";
 
 export interface SandTableProps {
-  battle: BattleScenario;
+  battle: MapScene;
   playing: boolean;
   step: BattleStep;
   view: "sand" | "top";

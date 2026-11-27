@@ -1,7 +1,7 @@
 /* Hallmark · v2.0.0 · shape: app screen · genre: editorial · theme: 水下兵书 (in-system water-ink, by request; catalog deal waived per AGENTS.md)
  * pre-emit critique: P4 H4 E5 S5 R4 V4 · weakest: V — a full-bleed tilted board replaces the project's usual left-rail shell
  * signature: a full-bleed sand table with branch-specific soldier figures, plus all thirty-six stratagems with sourced text
- * nav: the project's four-column mega menu · footer: none here; sources live in the explain rail and the stratagem atlas
+ * nav: the project's four-column mega menu · footer: none here; left index, centre board, right reading, bottom controls
  * posture: restrained · built in-system · v2.0.0
  */
 .sunzi-page {
@@ -26,47 +26,68 @@
   outline-offset: 2px;
 }
 
-.sunzi-head {
-  background: var(--sunzi-panel);
-}
-
-.sunzi-overlay-top {
+.sunzi-center {
+  grid-area: center;
+  min-height: 0;
   position: relative;
-  z-index: 10;
 }
 
-.sunzi-explain-rail {
+.sunzi-left {
+  background: var(--sunzi-panel);
+  border-right: 1px solid var(--sunzi-line);
+  display: flex;
+  flex-direction: column;
+  grid-area: left;
+  min-height: 0;
+}
+
+.sunzi-left__head {
+  border-bottom: 1px solid var(--sunzi-line);
+  padding: 0.8rem 0.9rem;
+}
+
+.sunzi-left__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.6rem 0.9rem 1rem;
+}
+
+.sunzi-right {
+  background: var(--sunzi-panel);
+  border-left: 1px solid var(--sunzi-line);
+  grid-area: right;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sunzi-bottom {
+  align-items: center;
   background: var(--sunzi-panel);
   border-top: 1px solid var(--sunzi-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  grid-area: bottom;
+  padding: 0.55rem 0.9rem;
 }
 
-.sunzi-stratagems {
-  background: hsl(var(--paper));
-  min-height: 100%;
-  position: relative;
-  z-index: 12;
+.sunzi-bottom__meta {
+  min-width: 9rem;
 }
 
-.sunzi-stratagem-grid {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: minmax(0, 1fr);
-  margin-top: 1.25rem;
+.sunzi-bottom__meta p {
+  margin: 0;
 }
 
 .sunzi-set + .sunzi-set {
   border-top: 1px solid var(--sunzi-line);
-  margin-top: 0.9rem;
-  padding-top: 0.9rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
 }
 
 .sunzi-set__head {
-  margin-bottom: 0.5rem;
-}
-
-.sunzi-stratagem-detail {
-  border-top: 1px solid var(--sunzi-line);
-  padding-top: 1.25rem;
+  margin-bottom: 0.4rem;
 }
 
 .sunzi-chip {
@@ -426,76 +447,56 @@
   padding: 0;
 }
 
-.sunzi-stage {
-  flex: 0 0 auto;
-  height: 62svh;
-  min-height: 380px;
-  position: relative;
-}
-
 .sunzi-timeline {
-  border-top: 1px solid var(--sunzi-line);
+  min-width: 12rem;
 }
 
-/* The map owns the viewport on large screens; every panel is a floating card
-   over it, so the "core area" never shrinks when the rail or timeline opens. */
+.sunzi-detail {
+  padding: 0.9rem 1rem 1.4rem;
+}
+
+/* Four fixed regions around one persistent board: left index, right reading,
+   bottom operations, centre sand table. The board never unmounts on selection. */
 @media (min-width: 1024px) {
   .sunzi-page {
+    display: grid;
+    grid-template-areas:
+      "left center right"
+      "bottom bottom bottom";
+    grid-template-columns: 15rem minmax(0, 1fr) 20rem;
+    grid-template-rows: minmax(0, 1fr) auto;
     height: 100%;
-    overflow: hidden;
-    position: relative;
-  }
-  .sunzi-stage {
-    height: auto;
-    inset: 0;
     min-height: 0;
-    position: absolute;
+    overflow: hidden;
   }
-  .sunzi-overlay-top {
-    inset: 0 0 auto;
-    pointer-events: none;
-    position: absolute;
+  .sunzi-center {
+    height: 100%;
   }
-  .sunzi-overlay-top > * {
-    pointer-events: auto;
+  .sunzi-left,
+  .sunzi-right {
+    height: 100%;
   }
-  .sunzi-head,
-  .sunzi-controls {
-    background: hsl(var(--paper) / 0.82);
+}
+
+@media (max-width: 1023px) {
+  .sunzi-page {
+    display: grid;
+    grid-template-areas:
+      "center"
+      "left"
+      "right"
+      "bottom";
+    grid-template-columns: minmax(0, 1fr);
   }
-  .sunzi-timeline {
-    inset: auto 0 0;
-    position: absolute;
+  .sunzi-center {
+    height: 62svh;
+    min-height: 360px;
   }
-  .sunzi-explain-rail {
-    border-left: 1px solid var(--sunzi-line);
-    border-top: 0;
-    bottom: 6.5rem;
-    overflow-y: auto;
-    position: absolute;
-    right: 0;
-    top: 9.5rem;
-    transition: transform 260ms ease;
-    width: 21rem;
+  .sunzi-left__scroll {
+    max-height: 24rem;
   }
-  .sunzi-page[data-explain="false"] .sunzi-explain-rail {
-    transform: translateX(100%);
-  }
-  .sunzi-stratagems {
-    inset: 0;
-    overflow-y: auto;
-    padding-top: 9rem;
-    position: absolute;
-    z-index: 9;
-  }
-  .sunzi-stratagem-grid {
-    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
-  }
-  .sunzi-board__north {
-    bottom: 5.5rem;
-  }
-  .sunzi-board__scale {
-    bottom: 5.7rem;
+  .sunzi-right {
+    max-height: 34rem;
   }
 }
 

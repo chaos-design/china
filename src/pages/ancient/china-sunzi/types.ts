@@ -71,19 +71,23 @@ export interface BattleStep {
   held: readonly string[];
 }
 
-export interface BattleScenario {
+/** The common substrate both real battle reconstructions and stratagem mechanism boards render on. */
+export interface MapScene {
   id: string;
   name: string;
-  period: string;
-  commander: string;
-  summary: string;
-  /** verified primary sources for this battle, shown in the reading rail */
-  sources: string;
   forces: readonly ForceMeta[];
   places: readonly Place[];
   regions: readonly Region[];
   rivers: readonly River[];
   steps: readonly BattleStep[];
+}
+
+export interface BattleScenario extends MapScene {
+  period: string;
+  commander: string;
+  summary: string;
+  /** verified primary sources for this battle, shown in the reading rail */
+  sources: string;
 }
 
 export interface Principle {
