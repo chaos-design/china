@@ -16,7 +16,7 @@ export function RouteLoading() {
           <span className="absolute bottom-0 left-0 h-1.5 w-[1.1rem] -translate-x-[1px] rounded-[50%] border border-ink/30 bg-[hsl(var(--scroll-jade)/0.7)]" />
           <span className="absolute top-0 right-0 h-1.5 w-[1.1rem] translate-x-[1px] rounded-[50%] border border-ink/30 bg-[hsl(var(--scroll-jade)/0.75)]" />
           <span className="absolute right-0 bottom-0 h-1.5 w-[1.1rem] translate-x-[1px] rounded-[50%] border border-ink/30 bg-[hsl(var(--scroll-jade)/0.7)]" />
-          <span className="absolute top-1 left-1/2 h-0.5 w-[92%] -translate-x-1/2 bg-[linear-gradient(90deg,transparent,hsl(var(--vermillion)/0.55),transparent)]" />
+          <span className="route-scroll-sweep absolute top-1 left-1/2 h-0.5 w-1/2 bg-[linear-gradient(90deg,transparent,hsl(var(--vermillion)/0.75),transparent)]" />
         </div>
         <div className="flex flex-col gap-1">
           <span className="font-brush text-xl text-ink">正在铺展卷轴</span>

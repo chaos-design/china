@@ -219,7 +219,7 @@ The page is a canvas-rendered 3D "沙盘" (the old SVG engine was replaced): a h
 
 ### The header mega menu
 
-The header has a single trigger (「全览地图」) that opens a **hover mega dropdown** anchored under the navigation bar (modeled on the Claude.ai nav): category columns side by side (four at present), each listing its entries by name only (no subtitle, no visible path; long names truncate to one line), plus a decorative hand-drawn China map strip on the right edge. Files:
+The header has a single trigger (「全览地图」) that opens a **hover mega dropdown** anchored under the navigation bar (modeled on the Claude.ai nav): category columns side by side (five at present), each listing its entries by name only (no subtitle, no visible path; long names truncate to one line), plus a decorative hand-drawn China map strip on the right edge. Files:
 
 | File | Role |
 | --- | --- |

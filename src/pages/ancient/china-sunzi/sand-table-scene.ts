@@ -141,6 +141,12 @@ export function createSandTableScene(
   let lastFrameStamp = -1;
   let currentStepId: string | null = null;
   let currentBattleId: string | null = null;
+  // 沙粒纹理只生成一次：换幕重建地形时复用，避免每次阻塞主线程做 65k 像素噪点。
+  let sandMap: THREE.CanvasTexture | null = null;
+  const getSandMap = () => {
+    sandMap ??= makeSandTexture();
+    return sandMap;
+  };
   const unitGroups = new Map<string, THREE.Group>();
   const flowMarkers: Array<{
     mesh: THREE.Mesh;
@@ -152,7 +158,8 @@ export function createSandTableScene(
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+  // 正弦缓入缓出：首尾更柔，换幕推进没有 cubic 那种突然加速的顿感。
+  const easeInOut = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 
   // 暖白主光是物理光，不随明暗主题换色；地形与兵力才由 CSS 令牌重着色。
   const hemi = new THREE.HemisphereLight(new THREE.Color(0xfff6e8), new THREE.Color(0xece6da), 0.7);
@@ -235,11 +242,13 @@ export function createSandTableScene(
         const material = object.material as THREE.Material | THREE.Material[] | undefined;
         if (Array.isArray(material))
           material.forEach((item) => {
-            (item as THREE.MeshStandardMaterial).map?.dispose();
+            const texture = (item as THREE.MeshStandardMaterial).map;
+            if (texture && texture !== sandMap) texture.dispose();
             item.dispose();
           });
         else if (material) {
-          (material as THREE.MeshStandardMaterial).map?.dispose();
+          const texture = (material as THREE.MeshStandardMaterial).map;
+          if (texture && texture !== sandMap) texture.dispose();
           material.dispose();
         }
       }
@@ -260,7 +269,7 @@ export function createSandTableScene(
     const active = transition;
     if (!active || document.hidden) return;
     const now = performance.now();
-    if (now - lastFrameStamp < 12) return;
+    if (now - lastFrameStamp < 16) return;
     lastFrameStamp = now;
     const t = Math.min(1, (now - active.start) / active.duration);
     const eased = easeInOut(t);
@@ -330,13 +339,14 @@ export function createSandTableScene(
     if (from.size === 0) return;
     transition = {
       start: performance.now(),
-      duration: 1500 / Math.max(0.5, data.speed),
+      duration: 1900 / Math.max(0.5, data.speed),
       from,
       targets,
     };
     lastFrameStamp = -1;
     rafId = requestAnimationFrame(tick);
-    fallbackId = window.setInterval(tick, 40);
+    // 只在 rAF 被后台节流停摆时兜底；16ms 去重让正常帧率始终由 rAF 决定。
+    fallbackId = window.setInterval(tick, 100);
   }
 
   /** 城池间的驿道：淡色路基 + 赭色虚线 + 中途驿站，比单根细虚线更像沙盘路网。 */
@@ -481,7 +491,7 @@ export function createSandTableScene(
     }
     geometry.setAttribute("color", new THREE.Float32BufferAttribute(vertexColors, 3));
     geometry.computeVertexNormals();
-    const sandMap = makeSandTexture();
+    const sandTexture = getSandMap();
     const ground = new THREE.Mesh(
       geometry,
       new THREE.MeshStandardMaterial({
@@ -489,8 +499,8 @@ export function createSandTableScene(
         roughness: 0.93,
         metalness: 0.02,
         flatShading: true,
-        map: sandMap,
-        bumpMap: sandMap,
+        map: sandTexture,
+        bumpMap: sandTexture,
         bumpScale: 0.08,
       }),
     );
@@ -698,6 +708,7 @@ export function createSandTableScene(
       canvas.removeEventListener("pointerup", onUp);
       canvas.removeEventListener("pointercancel", onUp);
       disposeContent();
+      sandMap?.dispose();
       renderer.dispose();
       canvas.remove();
     },

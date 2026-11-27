@@ -329,8 +329,8 @@ describe("<App /> routing", () => {
     fireEvent.click(within(nav).getByRole("button", { name: /全览目录/ }));
     const panel = await screen.findByLabelText("全览目录");
 
-    // 四列分类 + 右缘地图带，全部挂在顶栏 DOM 里
-    expect(panel.querySelectorAll(".mega-col")).toHaveLength(4);
+    // 五列分类 + 右缘地图带，全部挂在顶栏 DOM 里
+    expect(panel.querySelectorAll(".mega-col")).toHaveLength(5);
     expect(panel.querySelector(".mega-map")).toBeInTheDocument();
     // 装饰地图不进无障碍树
     expect(panel.querySelector(".hand-drawn-map")).toHaveAttribute("aria-hidden", "true");

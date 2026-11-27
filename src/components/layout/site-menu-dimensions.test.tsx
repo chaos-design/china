@@ -22,7 +22,7 @@ describe("<SiteMenu /> 维度化筛选", () => {
       "aria-selected",
       "true",
     );
-    expect(panel.querySelectorAll(".mega-col")).toHaveLength(4);
+    expect(panel.querySelectorAll(".mega-col")).toHaveLength(5);
     expect(within(panel).getByRole("link", { name: /朝代时间长河/ })).toBeInTheDocument();
     expect(within(panel).getByRole("link", { name: /中华非遗技艺/ })).toBeInTheDocument();
     // 三个近似名称的职官入口已收敛为一个总目
@@ -35,7 +35,7 @@ describe("<SiteMenu /> 维度化筛选", () => {
 
     fireEvent.click(within(panel).getByRole("tab", { name: "军事" }));
 
-    expect(panel.querySelectorAll(".mega-col")).toHaveLength(3);
+    expect(panel.querySelectorAll(".mega-col")).toHaveLength(4);
     expect(within(panel).getByRole("link", { name: /解放战争沙盘/ })).toBeInTheDocument();
     expect(within(panel).getByRole("link", { name: /朝代政策/ })).toBeInTheDocument();
     expect(within(panel).queryByRole("link", { name: /中华非遗技艺/ })).not.toBeInTheDocument();
@@ -53,6 +53,6 @@ describe("<SiteMenu /> 维度化筛选", () => {
     expect(panel.querySelector(".map-zone-active")).toHaveAttribute("data-zone", "culture");
 
     fireEvent.click(within(panel).getByRole("tab", { name: "全部" }));
-    expect(panel.querySelectorAll(".mega-col")).toHaveLength(4);
+    expect(panel.querySelectorAll(".mega-col")).toHaveLength(5);
   });
 });
