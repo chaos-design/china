@@ -14,10 +14,11 @@ export const ROUTE_LAYOUT_CONFIGS: RouteLayoutConfig[] = [
   { path: "/china/atlas/territory" },
   { path: "/china/atlas/migration" },
   { path: "/china/atlas/frontier" },
-  // 品级纵横：官位品级八朝对比，默认布局（无页脚、无调色器）。
-  { path: "/china/ranks" },
-  // 历代官制图谱：按朝代切换的信息图长页，默认布局（无页脚、无调色器）。
-  { path: "/china/qing-officials" },
+  // 职官制度：总目与三个视图，默认布局（无页脚、无调色器）。
+  { path: "/china/officials" },
+  { path: "/china/officials/evolution" },
+  { path: "/china/officials/structure" },
+  { path: "/china/officials/grades" },
   { path: "/china/institutions" },
   { path: "/china/institutions/:topicId" },
   { path: "/china/imperial-exam" },

@@ -15,7 +15,7 @@ export function RanksStageHeader({
     <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex items-start justify-between gap-3 lg:inset-x-5 lg:top-4">
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-baseline gap-x-3">
-          <h1 className="font-brush text-3xl text-ink lg:text-4xl">品级纵横</h1>
+          <h1 className="font-brush text-3xl text-ink lg:text-4xl">历代品级对照</h1>
           <span className="hidden rounded-full border border-ink/15 bg-paper/80 px-3 py-0.5 font-body text-muted-foreground text-xs tracking-widest sm:inline">
             职官 · 品阶 · 朝代对照
           </span>

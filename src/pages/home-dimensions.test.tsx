@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
@@ -53,33 +53,44 @@ function renderHome() {
   );
 }
 
+/** 首屏 CTA 与卡片都会带条目名，链接断言只数轮播舞台里的卡片。 */
+function carousel() {
+  return within(screen.getByRole("region", { name: "核心入口与后续专题" }));
+}
+
 describe("<HomePage /> 维度化入口轮播", () => {
   it("默认「全部」保留全部入口与原有顺序", () => {
     renderHome();
 
     expect(screen.getByRole("tab", { name: "全部" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getAllByRole("link", { name: /入口/ })).toHaveLength(4);
+    expect(carousel().getAllByRole("link", { name: /入口/ })).toHaveLength(4);
     expect(screen.getByText("01 / 04")).toBeInTheDocument();
+    // 主 CTA 跟随当前维度的第一个可进入条目
+    expect(screen.getByRole("link", { name: /进入军事入口甲/ })).toHaveAttribute(
+      "href",
+      "/liberation-war",
+    );
   });
 
   it("按军事 / 历史 / 非物质文化遗产分别展示对应入口", () => {
     renderHome();
 
     fireEvent.click(screen.getByRole("tab", { name: "军事" }));
-    expect(screen.getAllByRole("link", { name: /入口/ })).toHaveLength(2);
-    expect(screen.getByRole("link", { name: /军事入口甲/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /军事历史入口丁/ })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /非遗入口丙/ })).not.toBeInTheDocument();
+    expect(carousel().getAllByRole("link", { name: /入口/ })).toHaveLength(2);
+    expect(carousel().getByRole("link", { name: /军事入口甲/ })).toBeInTheDocument();
+    expect(carousel().getByRole("link", { name: /军事历史入口丁/ })).toBeInTheDocument();
+    expect(carousel().queryByRole("link", { name: /非遗入口丙/ })).not.toBeInTheDocument();
     expect(screen.getByText("01 / 02")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "非物质文化遗产" }));
-    expect(screen.getAllByRole("link", { name: /入口/ })).toHaveLength(1);
-    expect(screen.getByRole("link", { name: /非遗入口丙/ })).toBeInTheDocument();
+    expect(carousel().getAllByRole("link", { name: /入口/ })).toHaveLength(1);
+    expect(carousel().getByRole("link", { name: /非遗入口丙/ })).toBeInTheDocument();
     expect(screen.getByText("01 / 01")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /进入非遗入口丙/ })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "历史" }));
-    expect(screen.getAllByRole("link", { name: /入口/ })).toHaveLength(2);
-    expect(screen.getByRole("link", { name: /历史入口乙/ })).toBeInTheDocument();
+    expect(carousel().getAllByRole("link", { name: /入口/ })).toHaveLength(2);
+    expect(carousel().getByRole("link", { name: /历史入口乙/ })).toBeInTheDocument();
   });
 
   it("切换维度后按当前分组的首张截图重置 LCP 优先级", () => {

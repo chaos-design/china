@@ -5,6 +5,7 @@ export const officialSystemTopic: InstitutionTopic = {
   id: "official-system",
   slug: "official-system",
   name: "官制",
+  path: "/china/officials/evolution",
   scope: "职官 · 品级 · 央地结构",
   description: "从世卿世禄到三公九卿、三省六部、内阁军机处，梳理职官设置、品级沿革与央地权力制衡。",
   intro:

@@ -74,7 +74,9 @@ describe("<RanksPage /> — 单屏沉浸舞台 + 悬浮面板 + 资料抽屉", (
   it("renders the full-viewport stage: full-bleed canvas, top title strip, bottom-left menu, open drawer", () => {
     render(<RanksPage />);
 
-    const article = screen.getByRole("heading", { level: 1, name: "品级纵横" }).closest("article");
+    const article = screen
+      .getByRole("heading", { level: 1, name: "历代品级对照" })
+      .closest("article");
     expect(article).toHaveClass("h-full", "overflow-hidden");
 
     // 全幅画布宿主（timeline #cv 的对应物）

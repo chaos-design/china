@@ -7,7 +7,7 @@ const geographyResource = {
       dimensions: ["历史", "军事"],
       path: "/china/atlas",
       status: "available",
-      title: "历史地理图谱",
+      title: "疆域与民族图谱",
       description:
         "疆域变迁、民族迁徙与边疆治理三谱同图：真实省界底图上按朝代切换断面，看边界、人群与治所的变化。",
       screenshot: "atlas.jpg",

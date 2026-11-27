@@ -57,7 +57,7 @@ describe("NAV_GROUPS 菜单数据治理", () => {
 
   it("菜单分组保持四列编辑顺序，避免后续新增时悄悄挤掉旧列", () => {
     const labels = NAV_GROUPS.map((group: NavGroup) => group.label);
-    expect(labels).toEqual(["编年与制度", "历史地理", "文化与交通", "地域与近代"]);
+    expect(labels).toEqual(["编年与制度", "疆域与民族", "文化与交通", "区域与近代"]);
   });
 
   it("每个菜单条目都有已知维度，三个维度都有落点", () => {

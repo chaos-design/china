@@ -55,7 +55,7 @@ describe("html resource metadata", () => {
           resource: expect.objectContaining({
             homeEntries: [
               expect.objectContaining({
-                title: "中华非遗二十项瑰宝",
+                title: "中华非遗技艺",
               }),
             ],
           }),
@@ -66,7 +66,7 @@ describe("html resource metadata", () => {
           resource: expect.objectContaining({
             homeEntries: [
               expect.objectContaining({
-                title: "解放战争历史地理交互图",
+                title: "解放战争沙盘",
               }),
             ],
           }),
@@ -88,7 +88,7 @@ describe("html resource metadata", () => {
           resource: expect.objectContaining({
             homeEntries: [
               expect.objectContaining({
-                title: "台湾 · 山海之间",
+                title: "台湾史地",
               }),
             ],
           }),
@@ -358,7 +358,7 @@ describe("html resource metadata", () => {
         expect.objectContaining({
           path: "/intangible-culture-heritage",
           status: "available",
-          title: "中华非遗二十项瑰宝",
+          title: "中华非遗技艺",
         }),
         expect.objectContaining({
           path: "/silk-road",
@@ -368,12 +368,12 @@ describe("html resource metadata", () => {
         expect.objectContaining({
           path: "/liberation-war",
           status: "available",
-          title: "解放战争历史地理交互图",
+          title: "解放战争沙盘",
         }),
         expect.objectContaining({
           path: "/taiwan",
           status: "available",
-          title: "台湾 · 山海之间",
+          title: "台湾史地",
         }),
       ]),
     );

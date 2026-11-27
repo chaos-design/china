@@ -173,7 +173,7 @@ export function HomeEntryCarousel({ children, label }: HomeEntryCarouselProps) {
         }
       }}
     >
-      <ol className="home-carousel-stage">
+      <ol className="home-carousel-stage" data-direction={direction}>
         {slides.map((slide, index) => (
           <li
             key={index}

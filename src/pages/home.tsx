@@ -78,6 +78,11 @@ export function HomePage() {
   );
   // 当前维度下的首张截图才是 LCP 候选，切换维度后优先抓取的图随之更新。
   const firstScreenshotIndex = entries.findIndex((entry) => Boolean(entry.screenshot));
+  // 主 CTA 跟随当前维度的第一个可进入条目：切到「军事」就指向军事专题，
+  // 不必先滑一轮轮播才知道入口在哪；没有可进入条目时回落到时间长河。
+  const primaryEntry = entries.find((entry) => entry.status === "available" && entry.path);
+  const primaryPath = primaryEntry?.path ?? "/china/timeline";
+  const primaryLabel = primaryEntry ? `进入${primaryEntry.title}` : "进入时间长河";
 
   return (
     <div
@@ -120,8 +125,8 @@ export function HomePage() {
             asChild
             className="btn-ink rounded-sm bg-vermillion px-6 font-kai text-sm font-semibold text-primary-foreground hover:bg-vermillion"
           >
-            <Link to="/china/timeline">
-              进入时间长河
+            <Link to={primaryPath}>
+              {primaryLabel}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -132,7 +137,7 @@ export function HomePage() {
           >
             <Link to="/china/policies">
               <BookOpen className="mr-2 h-4 w-4" />
-              查看政策全览
+              浏览历代治国政策
             </Link>
           </Button>
         </div>
@@ -224,7 +229,7 @@ export function HomePage() {
                       </span>
                     </div>
                   ) : null}
-                  <span className="mt-auto flex items-center gap-1.5 font-kai text-xs text-vermillion sm:text-sm">
+                  <span className="home-feature-enter mt-auto flex items-center gap-1.5 font-kai text-xs text-vermillion sm:text-sm">
                     进入专题
                     <ArrowRight
                       aria-hidden="true"

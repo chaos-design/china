@@ -23,6 +23,8 @@ export interface InstitutionTopic {
   intro: string;
   keyTerms: readonly InstitutionTerm[];
   name: string;
+  /** 专题路由；缺省时用 /china/institutions/<slug>。官制已迁入职官制度总目下。 */
+  path?: string;
   scope: string;
   slug: string;
 }

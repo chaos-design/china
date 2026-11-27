@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -31,7 +31,9 @@ describe("<HomePage /> 核心入口分区", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("link", { name: /朝代时间长河/ })).toHaveAttribute(
+    // 首屏 CTA 也会指向同一条目，链接断言限定在轮播舞台内。
+    const carousel = within(screen.getByRole("region", { name: "核心入口与后续专题" }));
+    expect(carousel.getByRole("link", { name: /朝代时间长河/ })).toHaveAttribute(
       "href",
       "/china/timeline",
     );

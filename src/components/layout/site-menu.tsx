@@ -265,7 +265,7 @@ export function SiteMenu({ activeRouteGroupId }: { activeRouteGroupId: string | 
         type="button"
       >
         <Compass aria-hidden="true" className="h-4 w-4 text-primary" />
-        全览地图
+        全览目录
       </button>
 
       {open ? (

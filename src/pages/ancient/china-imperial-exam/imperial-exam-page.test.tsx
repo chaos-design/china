@@ -19,13 +19,13 @@ describe("<ImperialExamPage /> 共用外壳", () => {
   it("renders the pinned header with badge, milestones and the section menu", () => {
     renderSection("stages");
 
-    expect(screen.getByRole("heading", { level: 1, name: "科举之路" })).toBeInTheDocument();
-    const header = screen.getByRole("heading", { level: 1, name: "科举之路" }).closest("header");
+    expect(screen.getByRole("heading", { level: 1, name: "科举与仕途" })).toBeInTheDocument();
+    const header = screen.getByRole("heading", { level: 1, name: "科举与仕途" }).closest("header");
     expect(header).not.toBeNull();
     expect(within(header as HTMLElement).getByText("入仕 · 晋升 · 官途")).toBeInTheDocument();
     expect(within(header as HTMLElement).getByLabelText("制度里程碑")).toBeInTheDocument();
 
-    const menu = within(screen.getByRole("navigation", { name: "科举之路目录" }));
+    const menu = within(screen.getByRole("navigation", { name: "科举与仕途目录" }));
     for (const section of IMPERIAL_EXAM_SECTIONS) {
       expect(menu.getByRole("link", { name: new RegExp(`^${section.name}`) })).toHaveAttribute(
         "href",
@@ -38,7 +38,7 @@ describe("<ImperialExamPage /> 共用外壳", () => {
   it("marks the active menu entry per section", () => {
     renderSection("dynasties");
 
-    const menu = within(screen.getByRole("navigation", { name: "科举之路目录" }));
+    const menu = within(screen.getByRole("navigation", { name: "科举与仕途目录" }));
     expect(menu.getByRole("link", { name: /^历代官途/ })).toHaveAttribute("aria-current", "page");
     expect(menu.getByRole("link", { name: /^登科之阶/ })).not.toHaveAttribute("aria-current");
   });
@@ -47,7 +47,7 @@ describe("<ImperialExamPage /> 共用外壳", () => {
     renderSection("nonexistent");
 
     expect(screen.getByRole("heading", { name: "条目尚未收录" })).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: "科举之路目录" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "科举与仕途目录" })).not.toBeInTheDocument();
   });
 });
 
@@ -75,7 +75,7 @@ describe("<ImperialExamPage /> 登科之阶", () => {
     expect(funnel.className).toContain("lg:sticky");
     expect(funnel.className).toContain("lg:top-0");
     expect(funnel.className).toContain("lg:overflow-y-auto");
-    expect(screen.getByText(/科举之路时间线 · 每三年一科/)).toBeInTheDocument();
+    expect(screen.getByText(/科举与仕途时间线 · 每三年一科/)).toBeInTheDocument();
     expect(within(ladder).getByText("第一年 · 八月")).toBeInTheDocument();
     expect(within(ladder).getByText("朝廷铨选，授以官职")).toBeInTheDocument();
     // 五个考试站各带「考试科目 / 考试方式」双栏块

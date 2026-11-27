@@ -49,7 +49,7 @@ describe("<AtlasExplorer /> 统一功能页", () => {
   it("顶部只留一张菜单：四个专题铺平、三个专题不再收进选择器", () => {
     const { map } = renderExplorer();
 
-    expect(screen.getByRole("heading", { level: 1, name: "历史地理图谱" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "疆域与民族图谱" })).toBeInTheDocument();
     expect(screen.getByText("三谱同图 · 汉唐宋元")).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "专题图层" })).not.toBeInTheDocument();
     for (const { label } of ATLAS_LAYER_OPTIONS) {

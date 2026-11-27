@@ -26,10 +26,10 @@ describe("<InstitutionTopicPage />", () => {
     expect(within(header).getByText(/职官 · 品级 · 央地结构/)).toBeInTheDocument();
     expect(screen.getByText(/官制是王朝的骨架/)).toBeInTheDocument();
     // 左侧目录：当前条目以 aria-current 标记为当前页
-    const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
+    const menu = within(screen.getByRole("navigation", { name: "制度沿革目录" }));
     const activeLink = menu.getByRole("link", { name: /^官制/ });
     expect(activeLink).toHaveAttribute("aria-current", "page");
-    expect(activeLink).toHaveAttribute("href", "/china/institutions/official-system");
+    expect(activeLink).toHaveAttribute("href", "/china/officials/evolution");
     for (const other of INSTITUTION_TOPICS.filter((item) => item.id !== topic.id)) {
       expect(menu.getByRole("link", { name: new RegExp(`^${other.name}`) })).not.toHaveAttribute(
         "aria-current",
