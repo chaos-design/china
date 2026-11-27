@@ -10,48 +10,50 @@ function openMenu() {
       <SiteMenu activeRouteGroupId={undefined} />
     </MemoryRouter>,
   );
-  fireEvent.click(screen.getByRole("button", { name: /全览地图/ }));
+  fireEvent.click(screen.getByRole("button", { name: /全览目录/ }));
   return screen.getByLabelText("全览目录");
 }
 
-describe("<SiteMenu /> 按现有菜单分组筛选", () => {
-  it("默认「全览」展示所有列与既有菜单项", () => {
+describe("<SiteMenu /> 维度化筛选", () => {
+  it("默认「全部」展示所有列与既有菜单项", () => {
     const panel = openMenu();
 
-    expect(within(panel).getByRole("tab", { name: "全览" })).toHaveAttribute(
+    expect(within(panel).getByRole("tab", { name: "全部" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
     expect(panel.querySelectorAll(".mega-col")).toHaveLength(4);
     expect(within(panel).getByRole("link", { name: /朝代时间长河/ })).toBeInTheDocument();
-    expect(within(panel).getByRole("link", { name: /中华非遗瑰宝/ })).toBeInTheDocument();
-    expect(within(panel).getByRole("link", { name: /四渡赤水交互沙盘/ })).toBeInTheDocument();
+    expect(within(panel).getByRole("link", { name: /中华非遗技艺/ })).toBeInTheDocument();
+    // 三个近似名称的职官入口已收敛为一个总目
+    expect(within(panel).getByRole("link", { name: /职官制度/ })).toBeInTheDocument();
+    expect(within(panel).queryByRole("link", { name: /品级对照/ })).not.toBeInTheDocument();
   });
 
-  it("选中分组后只留该列，列内条目与全览时完全一致", () => {
+  it("军事维度只留下归属军事的列与条目", () => {
     const panel = openMenu();
 
-    fireEvent.click(within(panel).getByRole("tab", { name: "地域与近代" }));
+    fireEvent.click(within(panel).getByRole("tab", { name: "军事" }));
 
-    expect(panel.querySelectorAll(".mega-col")).toHaveLength(1);
-    expect(within(panel).getByRole("link", { name: /台湾专题/ })).toBeInTheDocument();
-    expect(within(panel).getByRole("link", { name: /解放战争交互图/ })).toBeInTheDocument();
+    expect(panel.querySelectorAll(".mega-col")).toHaveLength(3);
+    expect(within(panel).getByRole("link", { name: /解放战争沙盘/ })).toBeInTheDocument();
     expect(within(panel).getByRole("link", { name: /四渡赤水交互沙盘/ })).toBeInTheDocument();
-    expect(within(panel).queryByRole("link", { name: /朝代政策全览/ })).not.toBeInTheDocument();
-    expect(panel.querySelector(".map-zone-active")).toHaveAttribute("data-zone", "islands");
+    expect(within(panel).getByRole("link", { name: /朝代政策/ })).toBeInTheDocument();
+    expect(within(panel).queryByRole("link", { name: /中华非遗技艺/ })).not.toBeInTheDocument();
+    expect(within(panel).queryByRole("link", { name: /科举与仕途/ })).not.toBeInTheDocument();
   });
 
-  it("文化与交通维度同步收敛地图高亮，切回全览恢复四列", () => {
+  it("非物质文化遗产维度只留下非遗入口，地图高亮同步收敛", () => {
     const panel = openMenu();
 
-    fireEvent.click(within(panel).getByRole("tab", { name: "文化与交通" }));
+    fireEvent.click(within(panel).getByRole("tab", { name: "非物质文化遗产" }));
 
     expect(panel.querySelectorAll(".mega-col")).toHaveLength(1);
-    expect(within(panel).getByRole("link", { name: /中华非遗瑰宝/ })).toBeInTheDocument();
-    expect(within(panel).queryByRole("link", { name: /台湾专题/ })).not.toBeInTheDocument();
+    expect(within(panel).getByRole("link", { name: /中华非遗技艺/ })).toBeInTheDocument();
+    expect(within(panel).queryByRole("link", { name: /台湾史地/ })).not.toBeInTheDocument();
     expect(panel.querySelector(".map-zone-active")).toHaveAttribute("data-zone", "culture");
 
-    fireEvent.click(within(panel).getByRole("tab", { name: "全览" }));
+    fireEvent.click(within(panel).getByRole("tab", { name: "全部" }));
     expect(panel.querySelectorAll(".mega-col")).toHaveLength(4);
   });
 });

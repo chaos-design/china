@@ -85,25 +85,26 @@ describe("<App /> routing", () => {
     renderAt("/");
 
     expect(await screen.findByRole("heading", { name: "核心入口与后续专题" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /朝代时间长河/ })).toHaveAttribute(
+    // 首屏 CTA 也会指向第一个条目，卡片链接断言限定在轮播舞台内。
+    const carousel = within(screen.getByRole("region", { name: "核心入口与后续专题" }));
+    expect(carousel.getByRole("link", { name: /朝代时间长河/ })).toHaveAttribute(
       "href",
       "/china/timeline",
     );
     expect(screen.queryByRole("link", { name: /帝王政策全览/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /朝代政策全览/ })).toHaveAttribute(
+    expect(carousel.getByRole("link", { name: /朝代政策/ })).toHaveAttribute(
       "href",
       "/china/policies",
     );
-    expect(screen.getByRole("link", { name: /丝绸之路与海疆发展史/ })).toHaveAttribute(
+    expect(carousel.getByRole("link", { name: /丝绸之路与海疆发展史/ })).toHaveAttribute(
       "href",
       "/silk-road",
     );
-    expect(screen.getByRole("link", { name: /解放战争历史地理交互图/ })).toHaveAttribute(
+    expect(carousel.getByRole("link", { name: /解放战争沙盘/ })).toHaveAttribute(
       "href",
       "/liberation-war",
     );
-    // 「历史地理图谱」三条主题合并为一张入口卡，直达统一图谱页
-    expect(screen.getByRole("link", { name: /历史地理图谱/ })).toHaveAttribute(
+    expect(carousel.getByRole("link", { name: /疆域与民族图谱/ })).toHaveAttribute(
       "href",
       "/china/atlas",
     );
@@ -114,18 +115,24 @@ describe("<App /> routing", () => {
     ]) {
       expect(document.querySelector(`a[href="${topicPath}"]`)).toBeNull();
     }
-    // 典章制度已开放：可进入，页内五类条目全部落地为专题页
-    expect(screen.getByRole("link", { name: /^典章制度/ })).toHaveAttribute(
+    // 制度沿革含官制在内的五个专题；职官制度只收两个不重复的视图
+    expect(carousel.getByRole("link", { name: /^制度沿革/ })).toHaveAttribute(
       "href",
       "/china/institutions",
     );
-    // 历代官制图谱：按朝代切换的独立入口
-    expect(screen.getByRole("link", { name: /历代官制图谱/ })).toHaveAttribute(
+    expect(carousel.getByRole("link", { name: /^职官制度/ })).toHaveAttribute(
       "href",
-      "/china/qing-officials",
+      "/china/officials",
     );
-    // 科举之路已开放：独立专题页
-    expect(screen.getByRole("link", { name: /^科举之路/ })).toHaveAttribute(
+    expect(carousel.getByRole("link", { name: /^职官图谱/ })).toHaveAttribute(
+      "href",
+      "/china/officials/structure",
+    );
+    expect(carousel.getByRole("link", { name: /^品级对照/ })).toHaveAttribute(
+      "href",
+      "/china/officials/grades",
+    );
+    expect(carousel.getByRole("link", { name: /^科举与仕途/ })).toHaveAttribute(
       "href",
       "/china/imperial-exam",
     );
@@ -157,7 +164,7 @@ describe("<App /> routing", () => {
     expect(screen.queryByRole("link", { name: /about/i })).not.toBeInTheDocument();
 
     // 顶部菜单是单一入口的下拉面板，不是每个分类一个下拉
-    const trigger = within(nav).getByRole("button", { name: /全览地图/ });
+    const trigger = within(nav).getByRole("button", { name: /全览目录/ });
     expect(trigger).toHaveAttribute("aria-haspopup", "true");
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByLabelText("全览目录")).not.toBeInTheDocument();
@@ -171,10 +178,10 @@ describe("<App /> routing", () => {
   it("lists every destination inside the header mega menu", async () => {
     renderAt("/");
     const nav = await screen.findByRole("navigation");
-    fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
+    fireEvent.click(within(nav).getByRole("button", { name: /全览目录/ }));
     const panel = await screen.findByLabelText("全览目录");
 
-    for (const group of ["编年与制度", "历史地理", "文化与交通", "地域与近代"]) {
+    for (const group of ["编年与制度", "疆域与民族", "文化与交通", "区域与近代"]) {
       expect(
         Array.from(panel.querySelectorAll(".mega-col .mega-col-title")).some(
           (node) => node.textContent === group,
@@ -182,17 +189,18 @@ describe("<App /> routing", () => {
       ).toBe(true);
     }
 
-    // 下拉四列同时可见：八个入口一次点齐，visited 计数防空转
+    // 下拉四列同时可见：收敛后的入口一次点齐，visited 计数防空转
     const destinations = [
       ["/china/timeline", /朝代时间长河/],
-      ["/china/policies", /朝代政策全览/],
-      ["/china/atlas", /历史地理图谱/],
-      ["/china/institutions", /典章制度/],
-      ["/china/imperial-exam", /科举之路/],
-      ["/intangible-culture-heritage", /中华非遗瑰宝/],
+      ["/china/policies", /朝代政策/],
+      ["/china/officials", /职官制度/],
+      ["/china/atlas", /疆域与民族图谱/],
+      ["/china/institutions", /制度沿革/],
+      ["/china/imperial-exam", /科举与仕途/],
+      ["/intangible-culture-heritage", /中华非遗技艺/],
       ["/silk-road", /丝绸之路与海疆/],
-      ["/taiwan", /台湾专题/],
-      ["/liberation-war", /解放战争交互图/],
+      ["/taiwan", /台湾史地/],
+      ["/liberation-war", /解放战争沙盘/],
     ] as const;
     let visited = 0;
     for (const [path, name] of destinations) {
@@ -230,10 +238,10 @@ describe("<App /> routing", () => {
     renderAt("/china/atlas");
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "历史地理图谱" }),
+      await screen.findByRole("heading", { level: 1, name: "疆域与民族图谱" }),
     ).toBeInTheDocument();
     expect(screen.getByText("三谱同图 · 汉唐宋元")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /历史地理图谱综合地图/ })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /疆域与民族图谱综合地图/ })).toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
@@ -249,8 +257,26 @@ describe("<App /> routing", () => {
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
-  it("renders the officials atlas at /china/qing-officials", async () => {
-    renderAt("/china/qing-officials");
+  it("renders the officials hub at /china/officials", async () => {
+    renderAt("/china/officials");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "职官制度" })).toBeInTheDocument();
+    const views = within(screen.getByRole("navigation", { name: "职官制度视图" }));
+    // 沿革不再另开入口，避免与制度沿革的官制专题重复
+    expect(views.queryByRole("link", { name: /职官沿革/ })).not.toBeInTheDocument();
+    expect(views.getByRole("link", { name: /职官图谱/ })).toHaveAttribute(
+      "href",
+      "/china/officials/structure",
+    );
+    expect(views.getByRole("link", { name: /品级对照/ })).toHaveAttribute(
+      "href",
+      "/china/officials/grades",
+    );
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it("renders the officials atlas at /china/officials/structure", async () => {
+    renderAt("/china/officials/structure");
 
     expect(await screen.findByRole("heading", { level: 1, name: "官制图谱" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "官职制度" })).toHaveAttribute("aria-selected", "true");
@@ -258,7 +284,7 @@ describe("<App /> routing", () => {
   });
 
   it("loads a dynasty from the URL query parameter", async () => {
-    renderAt("/china/qing-officials?dynasty=han");
+    renderAt("/china/officials/structure?dynasty=han");
 
     expect(await screen.findByRole("heading", { level: 1, name: "官制图谱" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "汉" })).toHaveAttribute("aria-pressed", "true");
@@ -300,7 +326,7 @@ describe("<App /> routing", () => {
   it("anchors the mega menu under the header with the decorative map strip", async () => {
     renderAt("/");
     const nav = await screen.findByRole("navigation");
-    fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
+    fireEvent.click(within(nav).getByRole("button", { name: /全览目录/ }));
     const panel = await screen.findByLabelText("全览目录");
 
     // 四列分类 + 右缘地图带，全部挂在顶栏 DOM 里
@@ -313,7 +339,7 @@ describe("<App /> routing", () => {
   it("highlights the map region that owns the current route", async () => {
     renderAt("/taiwan");
     const nav = await screen.findByRole("navigation");
-    fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
+    fireEvent.click(within(nav).getByRole("button", { name: /全览目录/ }));
     const panel = await screen.findByLabelText("全览目录");
 
     // 当前路由 /taiwan 属于「地域与近代」，地图上台湾一带保持点亮
@@ -337,9 +363,9 @@ describe("<App /> routing", () => {
 
     expect(document.querySelector("#loading")).toBeInTheDocument();
 
-    fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
+    fireEvent.click(within(nav).getByRole("button", { name: /全览目录/ }));
     const panel = await screen.findByLabelText("全览目录");
-    fireEvent.click(within(panel).getByRole("link", { name: /朝代政策全览/ }));
+    fireEvent.click(within(panel).getByRole("link", { name: /朝代政策/ }));
 
     // 路由切换成功：政策页的朝代标题出现，且时间轴已卸载
     expect(await screen.findByRole("heading", { name: /秦/ })).toBeInTheDocument();
@@ -422,26 +448,24 @@ describe("<App /> routing", () => {
   });
 
   it("redirects /china/institutions to the first topic page", async () => {
-    // 本节没有总览页：索引路径直接落到官制专题
+    // 官制是本节第一个专题，索引路径仍落到它——不再另设职官沿革页
     renderAt("/china/institutions");
 
     expect(await screen.findByRole("heading", { level: 1, name: "官制" })).toBeInTheDocument();
     expect(screen.getByLabelText("编年沿革时间轴")).toBeInTheDocument();
-    const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
+    const menu = within(screen.getByRole("navigation", { name: "制度沿革目录" }));
     expect(menu.getByRole("link", { name: /^官制/ })).toHaveAttribute("aria-current", "page");
     expect(menu.queryByRole("link", { name: /^总览/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
-  it("renders the institutions topic route", async () => {
+  it("renders the official-system topic inside 制度沿革", async () => {
     renderAt("/china/institutions/official-system");
 
     expect(await screen.findByRole("heading", { level: 1, name: "官制" })).toBeInTheDocument();
-    // 编年时间轴 + 左侧目录（当前条目 aria-current）
     expect(screen.getByLabelText("编年沿革时间轴")).toBeInTheDocument();
-    // 官制现为 8 个沿革节点（先秦世卿世禄 → 清军机处）
     expect(document.querySelectorAll("[data-era-dot]")).toHaveLength(8);
-    const menu = within(screen.getByRole("navigation", { name: "典章制度目录" }));
+    const menu = within(screen.getByRole("navigation", { name: "制度沿革目录" }));
     expect(menu.getByRole("link", { name: /^官制/ })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
@@ -449,10 +473,12 @@ describe("<App /> routing", () => {
   it("redirects /china/imperial-exam to the first section", async () => {
     renderAt("/china/imperial-exam");
 
-    expect(await screen.findByRole("heading", { level: 1, name: "科举之路" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "科举与仕途" }),
+    ).toBeInTheDocument();
     // 索引路径落到登科之阶：七站链 + 左侧条目目录（当前条目 aria-current）
     expect(screen.getByLabelText("登科之阶")).toBeInTheDocument();
-    const menu = within(screen.getByRole("navigation", { name: "科举之路目录" }));
+    const menu = within(screen.getByRole("navigation", { name: "科举与仕途目录" }));
     expect(menu.getByRole("link", { name: /^登科之阶/ })).toHaveAttribute("aria-current", "page");
     // 页面自带的「图片出处」脚注存在；站点页脚在此路由不渲染
     expect(screen.getByText("图片出处")).toBeInTheDocument();
@@ -462,10 +488,12 @@ describe("<App /> routing", () => {
   it("renders the imperial exam dynasty section at its own route", async () => {
     renderAt("/china/imperial-exam/dynasties");
 
-    expect(await screen.findByRole("heading", { level: 1, name: "科举之路" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "科举与仕途" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("article", { name: "先秦官途" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "清" })).toBeInTheDocument();
-    const menu = within(screen.getByRole("navigation", { name: "科举之路目录" }));
+    const menu = within(screen.getByRole("navigation", { name: "科举与仕途目录" }));
     expect(menu.getByRole("link", { name: /^历代官途/ })).toHaveAttribute("aria-current", "page");
   });
 

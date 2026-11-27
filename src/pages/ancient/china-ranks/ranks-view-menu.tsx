@@ -61,9 +61,7 @@ export function RanksViewMenu({
       className="absolute bottom-3 left-3 z-20 flex max-h-[calc(100%-1.5rem)] w-[min(360px,calc(100%-1.5rem))] flex-col gap-3 overflow-y-auto rounded-2xl border border-ink/15 bg-paper/85 p-4 shadow-[0_18px_48px_hsl(var(--ink)/0.14)] backdrop-blur-xl lg:bottom-5 lg:left-5 lg:w-[360px]"
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
-          对照 · 视图
-        </span>
+        <span className="font-body text-xs text-muted-foreground">对照与视图</span>
         <button
           aria-expanded={!collapsed}
           className="rounded-full border border-ink/15 bg-card/70 px-2.5 py-0.5 font-body text-[0.7rem] text-muted-foreground transition-colors hover:border-vermillion/30 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -78,16 +76,14 @@ export function RanksViewMenu({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-2">
             <DynastyChips ariaLabel="朝代选择" currentId={dynastyId} onSelect={onChooseMain} />
-            <span className="font-mono-tech text-[0.7rem] text-muted-foreground">
-              {gradeCount} 级 · {officeCount} 官{compareLabel ? ` / ${compareLabel}` : ""}
+            <span className="font-body text-xs text-muted-foreground">
+              {gradeCount} 级 / {officeCount} 官{compareLabel ? `，${compareLabel}` : ""}
             </span>
           </div>
 
           <div className="flex flex-col gap-2">
             <fieldset aria-label="双朝并置" className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
-                双朝并置
-              </span>
+              <span className="font-body text-xs text-muted-foreground">双朝并置</span>
               <div className="flex gap-2">
                 <OptionPill
                   active={!compareEnabled}
@@ -127,11 +123,11 @@ export function RanksViewMenu({
               </span>
               <span className="flex items-center gap-1.5">
                 <span aria-hidden="true" className="h-px w-3 bg-ink/40" />
-                双枝 · 品级台
+                双枝与品级台
               </span>
             </div>
-            <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.08em]">
-              {span === "band" ? "品序轴 · 超品↓流外" : "层级轴 · 等距"} ·{" "}
+            <span className="font-body text-xs text-muted-foreground">
+              {span === "band" ? "品序轴，超品至流外" : "层级轴，等距"}，
               {split === "branch" ? "文武分列" : "文武合列"}
             </span>
           </div>
@@ -139,9 +135,7 @@ export function RanksViewMenu({
           {/* 立体树视图控件：分列 / 层高 / 视角。 */}
           <div className="flex flex-col gap-2.5 border-ink/10 border-t pt-2.5">
             <fieldset aria-label="分列模式" className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
-                分列
-              </span>
+              <span className="font-body text-xs text-muted-foreground">分列</span>
               <div className="flex flex-wrap gap-2">
                 {SPLIT_OPTIONS.map((option) => (
                   <OptionPill
@@ -157,9 +151,7 @@ export function RanksViewMenu({
               </div>
             </fieldset>
             <fieldset aria-label="层高模式" className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
-                层高
-              </span>
+              <span className="font-body text-xs text-muted-foreground">层高</span>
               <div className="flex flex-wrap gap-2">
                 {SPAN_OPTIONS.map((option) => (
                   <OptionPill
@@ -175,9 +167,7 @@ export function RanksViewMenu({
               </div>
             </fieldset>
             <fieldset aria-label="视角预设" className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="font-mono-tech text-[0.7rem] text-muted-foreground tracking-[0.2em]">
-                视角
-              </span>
+              <span className="font-body text-xs text-muted-foreground">视角</span>
               <div className="flex flex-wrap gap-2">
                 {PRESET_OPTIONS.map((option) => (
                   <OptionPill

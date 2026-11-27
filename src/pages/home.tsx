@@ -70,7 +70,7 @@ export function HomePage() {
   const hasEnteredHome = outletContext?.homeEntered ?? true;
 
   const [dimension, setDimension] = useState<ResourceDimensionFilter>(ALL_RESOURCE_DIMENSIONS);
-  // 维度只筛选项，不生成新条目；「全览」仍保持原有顺序与数量。
+  // 维度只筛选项，不生成新条目；「全部」仍保持原有顺序与数量。
   const entries = useMemo(
     () =>
       HOME_ENTRY_ROUTES.filter((entry) => matchesResourceDimension(entry.dimensions, dimension)),
@@ -78,6 +78,11 @@ export function HomePage() {
   );
   // 当前维度下的首张截图才是 LCP 候选，切换维度后优先抓取的图随之更新。
   const firstScreenshotIndex = entries.findIndex((entry) => Boolean(entry.screenshot));
+  // 主 CTA 跟随当前维度的第一个可进入条目：切到「军事」就指向军事专题，
+  // 不必先滑一轮轮播才知道入口在哪；没有可进入条目时回落到时间长河。
+  const primaryEntry = entries.find((entry) => entry.status === "available" && entry.path);
+  const primaryPath = primaryEntry?.path ?? "/china/timeline";
+  const primaryLabel = primaryEntry ? `进入${primaryEntry.title}` : "进入时间长河";
 
   return (
     <div
@@ -118,48 +123,57 @@ export function HomePage() {
         >
           <Button
             asChild
-            className="btn-ink rounded-sm bg-vermillion px-6 font-kai text-sm font-semibold text-primary-foreground hover:bg-vermillion"
+            className="btn-ink rounded-sm bg-vermillion px-6 font-kai text-sm font-semibold text-primary-foreground hover:bg-vermillion active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Link to="/china/timeline">
-              进入时间长河
+            <Link to={primaryPath}>
+              {primaryLabel}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
           <Button
             asChild
             variant="ghost"
-            className="rounded-sm font-kai text-sm font-semibold text-ink underline-offset-4 hover:bg-transparent hover:underline"
+            className="rounded-sm font-kai text-sm font-semibold text-ink underline-offset-4 hover:bg-transparent hover:underline active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Link to="/china/policies">
               <BookOpen className="mr-2 h-4 w-4" />
-              查看政策全览
+              浏览朝代政策
             </Link>
           </Button>
         </div>
       </header>
 
       <section
-        className="home-section-panel reveal flex flex-col gap-8"
+        className="home-section-panel home-scroll-frame reveal flex flex-col gap-8"
         style={{ animationDelay: "280ms" }}
       >
+        <div aria-hidden="true" className="home-scroll-rods">
+          <span />
+          <span />
+        </div>
         <div className="flex max-w-2xl flex-col gap-3">
-          <h2 className="font-brush text-4xl text-ink">核心入口与后续专题</h2>
+          <div className="flex items-center gap-3">
+            <span aria-hidden="true" className="home-section-seal">
+              览
+            </span>
+            <h2 className="font-brush text-4xl text-ink">核心入口与后续专题</h2>
+          </div>
           <p className="max-w-md text-muted-foreground">
             逐一预览各专题的真实页面：每张截图附读图注释，点击可直接进入；筹备中的新专题只作预告。
           </p>
         </div>
 
         <div aria-label="入口维度" className="home-dimension-tabs" role="tablist">
-          {RESOURCE_DIMENSION_FILTERS.map(({ id, label }) => (
+          {RESOURCE_DIMENSION_FILTERS.map((item) => (
             <button
-              aria-selected={dimension === id}
-              className={cn("home-dimension-tab", dimension === id && "is-active")}
-              key={id}
-              onClick={() => setDimension(id)}
+              aria-selected={dimension === item}
+              className={cn("home-dimension-tab", dimension === item && "is-active")}
+              key={item}
+              onClick={() => setDimension(item)}
               role="tab"
               type="button"
             >
-              {label}
+              {item}
             </button>
           ))}
         </div>
@@ -224,7 +238,7 @@ export function HomePage() {
                       </span>
                     </div>
                   ) : null}
-                  <span className="mt-auto flex items-center gap-1.5 font-kai text-xs text-vermillion sm:text-sm">
+                  <span className="home-feature-enter mt-auto flex items-center gap-1.5 font-kai text-xs text-vermillion sm:text-sm">
                     进入专题
                     <ArrowRight
                       aria-hidden="true"

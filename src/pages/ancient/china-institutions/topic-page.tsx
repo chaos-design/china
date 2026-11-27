@@ -12,7 +12,7 @@ export function InstitutionTopicPage({ topicId }: { topicId: string }) {
   if (!topic) {
     return (
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-20">
-        <span className="eyebrow">典章制度</span>
+        <span className="eyebrow">制度沿革</span>
         <h1 className="font-brush text-4xl text-ink sm:text-5xl">条目尚未收录</h1>
         <p className="max-w-xl text-muted-foreground leading-relaxed">
           这一条目还没有对应专题页。可以从左侧目录选择已开放的条目。

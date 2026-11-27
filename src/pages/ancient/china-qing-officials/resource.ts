@@ -3,11 +3,11 @@ import type { PageResourceConfig } from "../../page-resources";
 const chinaQingOfficialsResource = {
   homeEntries: [
     {
-      path: "/china/qing-officials",
-      dimensions: ["chronology"],
+      path: "/china/officials/structure",
+      dimensions: ["历史"],
       icon: "crown",
       status: "available",
-      title: "历代官制图谱",
+      title: "职官图谱",
       description:
         "秦汉至明清八朝官制对照：每朝的官署层级、品秩阶梯与章服礼制，清代部分按《清朝官职制度》《九品十八级》两图重绘。",
       screenshot: "officials.jpg",

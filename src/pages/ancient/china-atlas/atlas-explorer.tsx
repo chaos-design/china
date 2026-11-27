@@ -30,7 +30,7 @@ const LAYER_META: Record<AtlasLayerId, LayerMeta> = {
     menuLabel: "图谱条目目录",
     overviewLabel: "全览 · 全部图谱",
     tagline: "一图三谱",
-    title: "历史地理图谱",
+    title: "疆域与民族图谱",
   },
   territory: {
     badge: "首批六幅快照 · 汉唐宋元",
@@ -243,7 +243,7 @@ function groupsForLayer(layerId: AtlasLayerId, dynasty: AtlasDynastyId | null): 
 }
 
 /**
- * 「历史地理图谱」统一功能页。
+ * 「疆域与民族图谱」统一功能页。
  *
  * 四条旧路由都渲染这一份组件，只在 initialLayer 上不同；页内切换专题、
  * 朝代或条目都是纯 state 变化，不换路由、不重挂载 SVG。底图恒为现代疆域，

@@ -1,4 +1,4 @@
-import type { ResourceDimensionId } from "../lib/resource-dimensions";
+import type { ResourceDimension } from "../lib/resource-dimensions";
 
 export type HomeEntryIcon =
   | "book-open"
@@ -26,8 +26,8 @@ export type HomeEntryIcon =
 
 export interface HomeEntryRoute {
   description: string;
-  /** 所属全览菜单分组 id；缺省条目只在「全览」中出现。 */
-  dimensions?: readonly ResourceDimensionId[];
+  /** 展示层筛选维度；缺省条目只在「全部」中出现。 */
+  dimensions?: readonly ResourceDimension[];
   icon: HomeEntryIcon;
   /** 针对该页面截图的读图注释，替代原先脱离上下文的「如何阅读」长段。 */
   note?: string;

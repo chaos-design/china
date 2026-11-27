@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { cn } from "../../../lib/utils";
+import { OfficialsBackLink } from "../china-officials/officials-back-link";
 import { DYNASTY_ATLASES, getDynastyAtlas, resolveDynastyAtlas } from "./data";
 import { QingOfficeTree } from "./qing-office-tree";
 import { QingRankLadder } from "./qing-rank-ladder";
@@ -41,6 +42,7 @@ export function QingOfficialsPage() {
     <article className="bg-paper paper-backdrop flex h-full min-h-0 flex-col overflow-hidden px-4 py-4 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-2 border-ink/10 border-b pb-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <OfficialsBackLink />
           <h1 className="font-brush text-2xl text-ink sm:text-3xl">官制图谱</h1>
           <fieldset aria-label="朝代选择" className="flex flex-wrap items-center gap-1.5">
             {DYNASTY_ATLASES.map((entry) => {

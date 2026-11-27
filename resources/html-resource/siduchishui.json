@@ -2,7 +2,7 @@
   "homeEntries": [
     {
       "icon": "swords",
-      "dimensions": ["region"],
+      "dimensions": ["军事", "历史"],
       "status": "available",
       "title": "四渡赤水战役交互沙盘",
       "description": "以地图沙盘复现 1935 年 1 月至 5 月中央红军四渡赤水的十个阶段：红军与川军、黔军、中央军、滇军的部署和渡口行军路线，可播放、拖时间轴并逐阶段查看战况速报与兵力对比。",

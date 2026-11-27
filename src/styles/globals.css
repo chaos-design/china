@@ -374,6 +374,60 @@
   mask-image: linear-gradient(90deg, transparent, black 16%, black 84%, transparent);
 }
 
+/* 卷轴装裱：上下轴头 + 左右细边，首页的入口区像摊开的一卷纸。
+   轴头用真实元素而不是伪元素，避开 .home-section-panel::before 的纸纹层。 */
+.home-scroll-frame {
+  position: relative;
+  isolation: isolate;
+  border-inline: 1px solid hsl(var(--ink) / 0.14);
+}
+
+.home-scroll-rods {
+  position: absolute;
+  inset-inline: -0.55rem;
+  inset-block: -0.35rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.home-scroll-rods span {
+  position: absolute;
+  inset-inline: 0;
+  height: 0.7rem;
+  border: 1px solid hsl(var(--ink) / 0.5);
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    hsl(var(--ink) / 0.68),
+    hsl(var(--ink) / 0.3) 46%,
+    hsl(var(--ink) / 0.6)
+  );
+  box-shadow: inset 0 1px 0 hsl(var(--paper) / 0.5);
+}
+
+.home-scroll-rods span:first-child {
+  top: 0;
+}
+
+.home-scroll-rods span:last-child {
+  bottom: 0;
+}
+
+/* 栏目名前的朱印：与读图注释、维度签共用同一枚印章语言。 */
+.home-section-seal {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 2px solid hsl(var(--vermillion) / 0.62);
+  border-radius: 2px;
+  color: hsl(var(--vermillion));
+  font-family: var(--font-brush);
+  font-size: 1.15rem;
+  line-height: 1;
+  transform: rotate(-6deg);
+}
+
 .index-card {
   position: relative;
   background: hsl(var(--card));
@@ -488,8 +542,8 @@
 
 .home-dimension-tab {
   padding: 0.3rem 0.85rem;
-  border: 1px solid hsl(var(--ink) / 0.25);
-  border-radius: 999px;
+  border: 1px solid hsl(var(--ink) / 0.3);
+  border-radius: 0.2rem;
   color: hsl(var(--ink) / 0.8);
   font-family: var(--font-kai);
   font-size: 0.875rem;
@@ -497,7 +551,9 @@
   transition:
     border-color 0.18s ease,
     background-color 0.18s ease,
-    color 0.18s ease;
+    box-shadow 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
 }
 
 .home-dimension-tab:hover {
@@ -506,9 +562,15 @@
 }
 
 .home-dimension-tab.is-active {
-  border-color: hsl(var(--vermillion) / 0.65);
-  background: hsl(var(--vermillion) / 0.1);
-  color: hsl(var(--vermillion));
+  border-color: hsl(var(--vermillion));
+  background: hsl(var(--vermillion));
+  color: hsl(var(--paper));
+  box-shadow: 2px 2px 0 0 hsl(var(--ink) / 0.35);
+  transform: translate(-1px, -1px);
+}
+
+.home-dimension-tab.is-active:hover {
+  color: hsl(var(--paper));
 }
 
 .home-dimension-tab:focus-visible {
@@ -516,16 +578,29 @@
   outline-offset: 2px;
 }
 
+.home-dimension-tab:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.home-dimension-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .home-carousel-slide {
   display: flex;
   grid-area: 1 / 1;
   opacity: 0;
   pointer-events: none;
-  /* 淡出略快于淡入，并让旧片轻微退后、新片轻微浮起：
-     交叉淡入不再像两张纸互相盖章，而是同一张册页翻过去。 */
-  transform: scale(0.985) translateY(0.35rem);
+  /* 册页翻页：旧片从纸面掀起、轻微退后并去饱和，新片落回原位。
+     横向位移只在视觉层，不做整屏滑动；方向由 stage 上的 data-direction 决定。 */
+  transform: perspective(1400px) rotateY(-3.5deg) translateX(1.2rem) scale(0.975);
+  transform-origin: left center;
+  filter: saturate(0.82) brightness(0.97);
   transition:
     opacity 0.7s ease,
+    filter 0.8s ease,
     transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -535,15 +610,17 @@
   will-change: opacity, transform;
 }
 
-/* 反向翻页时新片从上方落回，与前翻的下沉形成方向感；两向都仍是交叉淡入。 */
+/* 反向翻页从另一侧掀起，与前翻形成方向感；两向都仍是交叉淡入。 */
 .home-carousel-stage[data-direction="previous"] .home-carousel-slide {
-  transform: scale(0.985) translateY(-0.35rem);
+  transform: perspective(1400px) rotateY(3.5deg) translateX(-1.2rem) scale(0.975);
+  transform-origin: right center;
 }
 
 .home-carousel-stage .home-carousel-slide.is-active {
   opacity: 1;
   pointer-events: auto;
   transform: none;
+  filter: none;
 }
 
 /* 键盘 Tab 进入未展示的幻灯片时浮出，避免焦点落在不可见的链接上 */
@@ -552,6 +629,7 @@
   opacity: 1;
   pointer-events: auto;
   transform: none;
+  filter: none;
 }
 
 .home-feature-card {
@@ -593,6 +671,22 @@
   height: 100%;
   object-fit: cover;
   object-position: top center;
+}
+
+/* 当前页截图极缓慢推近：静止时几乎看不出，切换时给新页一点呼吸感。
+   只对当前页挂载，避免十来张图同时跑动画；减少动效时整段关闭。
+   放在基础 img 规则之后，避免选择器专一度降序告警。 */
+.home-carousel-slide.is-active .home-feature-shot img {
+  animation: home-shot-drift 18s ease-in-out infinite alternate;
+}
+
+@keyframes home-shot-drift {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
 }
 
 /* 截图像摊在案头的一页：内缘细线与底部淡墨让图片不直接贴着纸框。 */
@@ -640,6 +734,25 @@
 .home-feature-note .font-kai::after {
   content: "」";
   margin-left: 0.1rem;
+}
+
+/* 卡片底部的进入口：做成纸面小按钮，悬停时朱色实底，和上方维度印签同一套语法。 */
+.home-feature-enter {
+  width: fit-content;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid hsl(var(--vermillion) / 0.45);
+  border-radius: 999px;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.group:hover .home-feature-enter,
+.home-feature-card:focus-visible .home-feature-enter {
+  border-color: hsl(var(--vermillion));
+  background: hsl(var(--vermillion));
+  color: hsl(var(--paper));
 }
 
 .home-carousel-controls {
@@ -1091,10 +1204,20 @@
     transform: none;
   }
 
+  .home-carousel-slide {
+    filter: none;
+  }
+
+  .home-carousel-slide.is-active .home-feature-shot img {
+    animation: none;
+    transform: none;
+  }
+
   .home-carousel-dot,
   .home-carousel-arrow,
   .home-dimension-tab,
-  .mega-dimension-tab {
+  .mega-dimension-tab,
+  .home-feature-enter {
     transition: none;
   }
 

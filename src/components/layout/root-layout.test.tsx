@@ -28,7 +28,7 @@ function openMenu(path = "/") {
   renderLayout(path);
   // RootLayout 是静态渲染，nav 与面板都不涉及异步，同步查询即可
   const nav = screen.getByRole("navigation");
-  fireEvent.click(within(nav).getByRole("button", { name: /全览地图/ }));
+  fireEvent.click(within(nav).getByRole("button", { name: /全览目录/ }));
   return screen.getByLabelText("全览目录");
 }
 
@@ -45,7 +45,7 @@ describe("<RootLayout /> menu trigger", () => {
     // 旧版是三个分类各一个下拉按钮。现在只有一个入口，展开后所有分类并排成列。
     const triggers = within(nav).getAllByRole("button", { expanded: false });
     expect(triggers).toHaveLength(1);
-    expect(triggers[0]).toHaveTextContent("全览地图");
+    expect(triggers[0]).toHaveTextContent("全览目录");
     // 下拉是披露控件，不是菜单控件
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
@@ -60,7 +60,7 @@ describe("<RootLayout /> menu trigger", () => {
   it("reports its collapsed state through aria-expanded", async () => {
     renderLayout("/");
     const nav = await screen.findByRole("navigation");
-    const trigger = within(nav).getByRole("button", { name: /全览地图/ });
+    const trigger = within(nav).getByRole("button", { name: /全览目录/ });
 
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(trigger);
@@ -72,7 +72,7 @@ describe("<RootLayout /> menu trigger", () => {
     vi.useFakeTimers();
     renderLayout("/");
     const nav = screen.getByRole("navigation");
-    const trigger = within(nav).getByRole("button", { name: /全览地图/ });
+    const trigger = within(nav).getByRole("button", { name: /全览目录/ });
 
     fireEvent.mouseEnter(trigger);
     // 扫过顶栏不该立刻闪面板
@@ -88,7 +88,7 @@ describe("<RootLayout /> menu trigger", () => {
     vi.useFakeTimers();
     renderLayout("/");
     const trigger = within(screen.getByRole("navigation")).getByRole("button", {
-      name: /全览地图/,
+      name: /全览目录/,
     });
 
     fireEvent.mouseEnter(trigger);
@@ -116,7 +116,7 @@ describe("<SiteMenu /> columns and content", () => {
       (col) => col.querySelector(".mega-col-title")?.textContent,
     );
 
-    expect(titles).toEqual(["编年与制度", "历史地理", "文化与交通", "地域与近代"]);
+    expect(titles).toEqual(["编年与制度", "疆域与民族", "文化与交通", "区域与近代"]);
   });
 
   it("sets category titles in a different typeface from the entries, with no counters", async () => {
@@ -140,14 +140,15 @@ describe("<SiteMenu /> columns and content", () => {
 
     const expected: [string, RegExp][] = [
       ["/china/timeline", /朝代时间长河/],
-      ["/china/policies", /朝代政策全览/],
-      ["/china/atlas", /历史地理图谱/],
-      ["/china/institutions", /典章制度/],
-      ["/china/imperial-exam", /科举之路/],
-      ["/intangible-culture-heritage", /中华非遗瑰宝/],
+      ["/china/policies", /朝代政策/],
+      ["/china/officials", /职官制度/],
+      ["/china/atlas", /疆域与民族图谱/],
+      ["/china/institutions", /制度沿革/],
+      ["/china/imperial-exam", /科举与仕途/],
+      ["/intangible-culture-heritage", /中华非遗技艺/],
       ["/silk-road", /丝绸之路与海疆/],
-      ["/taiwan", /台湾专题/],
-      ["/liberation-war", /解放战争交互图/],
+      ["/taiwan", /台湾史地/],
+      ["/liberation-war", /解放战争沙盘/],
     ];
 
     let visited = 0;
@@ -184,7 +185,7 @@ describe("<SiteMenu /> columns and content", () => {
 
   it("moves the map highlight to the hovered column", async () => {
     const panel = await openMenu("/");
-    const column = within(panel).getByRole("heading", { name: "地域与近代" }).closest(".mega-col");
+    const column = screen.getByText("区域与近代").closest(".mega-col");
     expect(column).not.toBeNull();
 
     // 列的 hover 高亮走 wrapper 上的 mouseover 委托
@@ -202,7 +203,7 @@ describe("<SiteMenu /> keyboard and dismissal", () => {
   it("closes on Escape and returns focus to the trigger", async () => {
     renderLayout("/");
     const nav = await screen.findByRole("navigation");
-    const trigger = within(nav).getByRole("button", { name: /全览地图/ });
+    const trigger = within(nav).getByRole("button", { name: /全览目录/ });
     fireEvent.click(trigger);
     await screen.findByLabelText("全览目录");
 
@@ -238,7 +239,7 @@ describe("<SiteMenu /> keyboard and dismissal", () => {
     vi.useFakeTimers();
     renderLayout("/");
     const trigger = within(screen.getByRole("navigation")).getByRole("button", {
-      name: /全览地图/,
+      name: /全览目录/,
     });
     fireEvent.click(trigger);
     const panel = screen.getByLabelText("全览目录");
@@ -265,7 +266,7 @@ describe("<SiteMenu /> keyboard and dismissal", () => {
 
   it("closes when focus leaves the trigger and the panel", () => {
     const panel = openMenu();
-    const link = within(panel).getByRole("link", { name: /台湾专题/ });
+    const link = within(panel).getByRole("link", { name: /台湾史地/ });
     link.focus();
     expect(screen.getByLabelText("全览目录")).toBeInTheDocument();
 

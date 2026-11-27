@@ -3,11 +3,11 @@ import type { PageResourceConfig } from "../../page-resources";
 const chinaRanksResource = {
   homeEntries: [
     {
-      path: "/china/ranks",
-      dimensions: ["chronology"],
+      path: "/china/officials/grades",
+      dimensions: ["历史"],
       icon: "scale",
       status: "available",
-      title: "品级纵横",
+      title: "品级对照",
       description:
         "八朝官位品级立体树：3D 层级从属、双朝同品并置，辅以阶梯、六条职系追踪与同品断面。",
       screenshot: "ranks.jpg",

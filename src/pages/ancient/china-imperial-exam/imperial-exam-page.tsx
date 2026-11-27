@@ -396,7 +396,7 @@ function StagesSection() {
       {/* 一科三年的节奏轴 */}
       <div className="flex flex-col gap-4 rounded-xl border border-ink/15 bg-card/80 p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="font-brush text-ink text-xl">科举之路时间线 · 每三年一科</h3>
+          <h3 className="font-brush text-ink text-xl">科举与仕途时间线 · 每三年一科</h3>
           <span className="font-mono-tech text-muted-foreground text-[0.7rem] tracking-[0.15em]">
             一科跨两年 · 三年一个轮回 · 落第者从乡试再来一遍
           </span>
@@ -824,10 +824,10 @@ export function ImperialExamPage({ sectionId }: { sectionId: string }) {
   if (!section) {
     return (
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-20">
-        <span className="eyebrow">科举之路</span>
+        <span className="eyebrow">科举与仕途</span>
         <h1 className="font-brush text-4xl text-ink sm:text-5xl">条目尚未收录</h1>
         <p className="max-w-xl text-muted-foreground leading-relaxed">
-          这一条目还没有对应专题页。可以从「全览地图」进入已开放的条目。
+          这一条目还没有对应专题页。可以从「全览目录」进入已开放的条目。
         </p>
       </section>
     );

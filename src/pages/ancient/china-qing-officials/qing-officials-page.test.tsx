@@ -36,7 +36,7 @@ vi.mock("./office-tree-scene", () => ({
 import { DYNASTY_ATLASES } from "./data";
 import { QingOfficialsPage } from "./qing-officials-page";
 
-function renderAt(entry = "/china/qing-officials") {
+function renderAt(entry = "/china/officials/structure") {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <QingOfficialsPage />
@@ -62,6 +62,10 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     renderAt();
 
     expect(screen.getByRole("heading", { level: 1, name: "官制图谱" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /返回职官制度/ })).toHaveAttribute(
+      "href",
+      "/china/officials",
+    );
     expect(screen.getByText("皇帝")).toBeInTheDocument();
     for (const title of ["中枢部", "佐理部", "帝室部", "行省", "藩部", "府州县"]) {
       expect(screen.getByRole("heading", { level: 3, name: title })).toBeInTheDocument();
@@ -90,7 +94,7 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
   it.each(
     DYNASTY_ATLASES.map((atlas) => [atlas.id, atlas.name] as const),
   )("loads dynasty %s (%s) from the URL", (id, name) => {
-    renderAt(`/china/qing-officials?dynasty=${id}`);
+    renderAt(`/china/officials/structure?dynasty=${id}`);
     const picker = screen.getByLabelText("朝代选择");
     expect(within(picker).getByRole("button", { name })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("heading", { level: 1, name: "官制图谱" })).toBeInTheDocument();
@@ -99,7 +103,7 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
   });
 
   it("falls back to Qing with a notice for an unknown dynasty", () => {
-    renderAt("/china/qing-officials?dynasty=not-a-dynasty");
+    renderAt("/china/officials/structure?dynasty=not-a-dynasty");
 
     expect(screen.getByText(/未收录该朝代/)).toBeInTheDocument();
     const picker = screen.getByLabelText("朝代选择");
@@ -432,7 +436,7 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
   });
 
   it("folds salaries of non-silver dynasties into the same map", () => {
-    renderAt("/china/qing-officials?dynasty=han");
+    renderAt("/china/officials/structure?dynasty=han");
     fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
 
     const salary = screen.getByLabelText("俸禄阶梯");
@@ -490,7 +494,7 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     unmount();
 
     // 明代走明制补子（八品黄鹂、九品鹌鹑，与清制不同），武官仍狮子居首。
-    const ming = renderAt("/china/qing-officials?dynasty=ming");
+    const ming = renderAt("/china/officials/structure?dynasty=ming");
     fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
     const mingCivil = screen.getByLabelText("文官补子 · 飞禽");
     expect(mingCivil).toHaveTextContent("黄鹂");
@@ -499,14 +503,14 @@ describe("<QingOfficialsPage /> — 朝代数据驱动 + 立体树", () => {
     expect(screen.getByLabelText("武官补子 · 走兽")).toHaveTextContent("狮子");
     ming.unmount();
 
-    renderAt("/china/qing-officials?dynasty=han");
+    renderAt("/china/officials/structure?dynasty=han");
     fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
     expect(screen.queryByLabelText("文官补子 · 飞禽")).toBeNull();
     expect(screen.getByLabelText("补子制度")).toHaveTextContent("补子尚未出现");
   });
 
   it("clicks a real photograph to open the lightbox and closes it", () => {
-    const { unmount } = renderAt("/china/qing-officials?dynasty=qing");
+    const { unmount } = renderAt("/china/officials/structure?dynasty=qing");
     fireEvent.click(screen.getByRole("tab", { name: "品级礼制" }));
 
     // 顶戴全谱里宝石顶是真图（img，标题带「点击放大」）；单击图片即弹 lightbox，

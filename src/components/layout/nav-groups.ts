@@ -1,4 +1,4 @@
-import { RESOURCE_DIMENSION_LABELS, type ResourceDimensionId } from "../../lib/resource-dimensions";
+import type { ResourceDimension } from "../../lib/resource-dimensions";
 import { HOME_ENTRY_ROUTES } from "../../pages/page-resources";
 
 export type { MapZoneId } from "./china-map-geometry";
@@ -6,12 +6,21 @@ export type { MapZoneId } from "./china-map-geometry";
 import type { MapZoneId } from "./china-map-geometry";
 
 /**
- * 菜单分区。三条线索各占一块地图区域：长城与中原、丝路与江南、海南与台湾。
+ * 菜单分区。沿用「编年 / 疆域 / 文化 / 区域」四条线索，各占一块地图区域。
  *
  * 分组是硬编码的：它表达的是编辑判断（哪些内容属于同一类、该落在地图哪一块），
  * 放进资源元数据反而会让数据层承担分类职责。
+ *
+ * 扩展约定（后续新增专题时按此办，不要为单个条目新建分组）：
+ * - 在对应分组的 items 里追加一条 NavLeaf，路径必须在首页资源里可用；
+ * - 新分组只需在此数组追加一个 NavGroup，列数由 site-menu 的
+ *   --mega-column-count 驱动，地图高亮由 mapZone 决定，无需改布局代码；
+ * - 组名表达「内容对象」，条目名表达「读什么」，两者不得同名词（旧「历史地理」
+ *   组与「历史地理图谱」条目重名已按此纠正）。
  */
 export interface NavLeaf {
+  /** 与首页入口共用的展示维度，菜单按它筛选；缺省条目只在「全部」中出现。 */
+  dimensions?: readonly ResourceDimension[];
   /** 右侧面板里的短标签，让条目不止于一句话说明。 */
   highlights: readonly string[];
   label: string;
@@ -21,14 +30,13 @@ export interface NavLeaf {
 export interface NavGroup {
   /**
    * 只用于判定「当前分组」的路径，不在菜单里渲染链接。
-   * 兼容入口（如图谱的三个预设图层）收敛成一个菜单条目后仍要高亮所属分组。
+   * 兼容入口（如图谱预设图层、职官制度三个子视图）收敛成一个菜单条目后仍要高亮所属分组。
    */
   activePaths?: readonly string[];
   blurb: string;
-  /** 分组 id 即首页筛选维度 id，无需再给每个叶子重复标注。 */
-  id: ResourceDimensionId;
+  id: string;
   items: readonly NavLeaf[];
-  label: (typeof RESOURCE_DIMENSION_LABELS)[ResourceDimensionId];
+  label: string;
   mapZone: MapZoneId;
 }
 
@@ -36,6 +44,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     activePaths: [
       "/china/institutions/official-system",
+      "/china/officials/structure",
+      "/china/officials/grades",
       "/china/institutions/taxation",
       "/china/institutions/legal-code",
       "/china/institutions/examinations",
@@ -49,37 +59,37 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "chronology",
     items: [
       {
+        dimensions: ["历史"],
         highlights: ["3D 朝代浮岛", "更替节点", "民族迁徙线索"],
         label: "朝代时间长河",
         to: "/china/timeline",
       },
       {
+        dimensions: ["历史", "军事"],
         highlights: ["385 条政策卡片", "按朝代筛选", "机构与人物"],
-        label: "朝代政策全览",
+        label: "朝代政策",
         to: "/china/policies",
       },
       {
-        highlights: ["文武双枝官职树", "完整名录与名臣名将", "同品序八朝断面"],
-        label: "品级纵横",
-        to: "/china/ranks",
+        dimensions: ["历史"],
+        highlights: ["沿革 / 职官树 / 品级三视图", "八朝官署与名录", "品秩礼制与章服"],
+        label: "职官制度",
+        to: "/china/officials",
       },
       {
-        highlights: ["八朝官制按朝代切换", "官署层级与品秩阶梯", "章服补子与朝会礼序"],
-        label: "历代官制图谱",
-        to: "/china/qing-officials",
-      },
-      {
-        highlights: ["五大制度专题", "沿革与关键条目", "专题检索"],
-        label: "典章制度",
+        dimensions: ["历史"],
+        highlights: ["赋役律令科举礼制", "编年沿革", "关键条目表"],
+        label: "制度沿革",
         to: "/china/institutions",
       },
       {
+        dimensions: ["历史"],
         highlights: ["明清登科全阶", "历代入仕途径", "真实官员履历"],
-        label: "科举之路",
+        label: "科举与仕途",
         to: "/china/imperial-exam",
       },
     ],
-    label: RESOURCE_DIMENSION_LABELS.chronology,
+    label: "编年与制度",
     mapZone: "north",
   },
   {
@@ -88,12 +98,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "atlas",
     items: [
       {
+        dimensions: ["历史", "军事"],
         highlights: ["三类图谱同图", "按朝代切换疆域", "选中局部放大"],
-        label: "历史地理图谱",
+        label: "疆域与民族图谱",
         to: "/china/atlas",
       },
     ],
-    label: RESOURCE_DIMENSION_LABELS.atlas,
+    label: "疆域与民族",
     mapZone: "north",
   },
   {
@@ -102,17 +113,19 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "culture",
     items: [
       {
+        dimensions: ["非物质文化遗产", "历史"],
         highlights: ["二十项传统技艺", "工序拆解", "匠人与故事"],
-        label: "中华非遗瑰宝",
+        label: "中华非遗技艺",
         to: "/intangible-culture-heritage",
       },
       {
+        dimensions: ["历史"],
         highlights: ["陆上丝路", "海上丝路", "海疆经略"],
         label: "丝绸之路与海疆",
         to: "/silk-road",
       },
     ],
-    label: RESOURCE_DIMENSION_LABELS.culture,
+    label: "文化与交通",
     mapZone: "culture",
   },
   {
@@ -121,22 +134,25 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "region",
     items: [
       {
+        dimensions: ["历史"],
         highlights: ["五卷分页", "地形剖面与投影地图", "1895—1945 日治"],
-        label: "台湾专题",
+        label: "台湾史地",
         to: "/taiwan",
       },
       {
+        dimensions: ["军事", "历史"],
         highlights: ["四阶段时间轴", "战役地点与解放区", "进军箭头与行军路线"],
-        label: "解放战争交互图",
+        label: "解放战争沙盘",
         to: "/liberation-war",
       },
       {
+        dimensions: ["军事", "历史"],
         highlights: ["十阶段战役沙盘", "四次渡河路线", "战况速报与兵力对比"],
         label: "四渡赤水交互沙盘",
         to: "/siduchishui",
       },
     ],
-    label: RESOURCE_DIMENSION_LABELS.region,
+    label: "区域与近代",
     mapZone: "islands",
   },
 ];

@@ -82,7 +82,7 @@ function DefenseRing({
 }
 
 const MAP_ARIA_LABEL: Record<AtlasLayerId, string> = {
-  all: "历史地理图谱综合地图：真实省界底图上的三类标注",
+  all: "疆域与民族图谱综合地图：真实省界底图上的三类标注",
   territory: "疆域变迁地图：真实省界底图上的历代疆域快照节点",
   migration: "民族迁徙路线图：真实省界底图上的历代迁徙路线",
   frontier: "边疆治理地图：真实省界底图上的历代边疆机构治所",

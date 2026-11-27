@@ -3,7 +3,7 @@
   "homeEntries": [
     {
       "icon": "landmark",
-      "dimensions": ["chronology"],
+      "dimensions": ["历史"],
       "status": "available",
       "title": "朝代浮岛旧版页",
       "description": "保留原始 HTML 版朝代浮岛页面，便于对照 React 时间长河的演进版本。"
