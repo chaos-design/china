@@ -360,8 +360,12 @@ export function SunziPage() {
               playing && "is-active",
             )}
             data-sunzi-play-toggle=""
-            onClick={() => setPlaying((current) => !current)}
-            title={playing ? "暂停" : "播放"}
+            onClick={() => {
+              // 末幕再点播放等于重播；否则 effect 会立刻把它按停，按钮看起来失灵。
+              if (!playing && stepIndex === lastStep) setStepIndex(0);
+              setPlaying((current) => !current);
+            }}
+            title={playing ? "暂停" : stepIndex === lastStep ? "重播" : "播放"}
             type="button"
           >
             {playing ? (

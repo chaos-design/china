@@ -339,31 +339,53 @@ export function createSandTableScene(
     fallbackId = window.setInterval(tick, 40);
   }
 
-  /** 城池间的驿道：虚线路网，给兵力推进一个可读的参照。 */
+  /** 城池间的驿道：淡色路基 + 赭色虚线 + 中途驿站，比单根细虚线更像沙盘路网。 */
   function buildRoads(current: SceneData, colors: SandPalette) {
     const places = [...current.battle.places].sort((a, b) => a.x - b.x);
     for (let index = 0; index < places.length - 1; index += 1) {
       const from = boardToWorld([places[index].x, places[index].y]);
       const to = boardToWorld([places[index + 1].x, places[index + 1].y]);
       const points: THREE.Vector3[] = [];
-      for (let step = 0; step <= 20; step += 1) {
-        const ratio = step / 20;
+      for (let step = 0; step <= 24; step += 1) {
+        const ratio = step / 24;
         const x = from.x + (to.x - from.x) * ratio;
-        const z = from.z + (to.z - from.z) * ratio + Math.sin(ratio * Math.PI) * 0.55;
-        points.push(new THREE.Vector3(x, surfaceHeight(x, z) + 0.055, z));
+        const z = from.z + (to.z - from.z) * ratio + Math.sin(ratio * Math.PI) * 0.62;
+        points.push(new THREE.Vector3(x, surfaceHeight(x, z) + 0.06, z));
       }
-      const road = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(points),
+      const curve = new THREE.CatmullRomCurve3(points);
+      content.add(
+        new THREE.Mesh(
+          new THREE.TubeGeometry(curve, 48, 0.075, 6, false),
+          new THREE.MeshStandardMaterial({
+            color: colors.ochre.clone().lerp(colors.paper, 0.55),
+            transparent: true,
+            opacity: 0.58,
+            roughness: 0.9,
+            depthWrite: false,
+          }),
+        ),
+      );
+      const raised = points.map((point) => point.clone().setY(point.y + 0.1));
+      const dashes = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(raised),
         new THREE.LineDashedMaterial({
-          color: colors.ochre,
-          dashSize: 0.32,
-          gapSize: 0.22,
+          color: colors.ochre.clone().lerp(colors.ink, 0.28),
+          dashSize: 0.38,
+          gapSize: 0.24,
           transparent: true,
-          opacity: 0.52,
+          opacity: 0.9,
         }),
       );
-      road.computeLineDistances();
-      content.add(road);
+      dashes.computeLineDistances();
+      content.add(dashes);
+
+      const station = raised[12];
+      const post = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.1, 0.1, 0.06, 8),
+        new THREE.MeshStandardMaterial({ color: colors.ochre, roughness: 0.7 }),
+      );
+      post.position.set(station.x, station.y + 0.02, station.z);
+      content.add(post);
     }
   }
 
@@ -547,7 +569,7 @@ export function createSandTableScene(
       stronghold.position.set(world.x, height + 0.02, world.z);
       content.add(stronghold);
 
-      const label = labelSprite(place.name, sideColor(placeSide(place), colors), 1.3);
+      const label = labelSprite(place.name, sideColor(placeSide(place), colors), 1.75);
       label.position.set(world.x, height + 1.25, world.z);
       content.add(label);
     }
@@ -564,7 +586,7 @@ export function createSandTableScene(
       unitGroups.set(unit.id, soldier);
 
       // 部队名牌压在脚下，与城池名牌分层，避免斜视镜头下叠成一团。
-      const label = labelSprite(unit.label, sideColor(unit.side, colors), 1.35);
+      const label = labelSprite(unit.label, sideColor(unit.side, colors), 1.8);
       label.position.set(world.x, height + 0.55, world.z);
       content.add(label);
     }
@@ -579,7 +601,7 @@ export function createSandTableScene(
       const deltaZ = to.z - from.z;
       const midpointX = (from.x + to.x) / 2 - deltaZ * 0.075;
       const midpointZ = (from.z + to.z) / 2 + deltaX * 0.075;
-      const label = labelSprite(moveLabel(move), sideColor(move.side, colors), 1.25);
+      const label = labelSprite(moveLabel(move), sideColor(move.side, colors), 1.6);
       label.position.set(midpointX, surfaceHeight(midpointX, midpointZ) + 1.05, midpointZ);
       content.add(label);
 

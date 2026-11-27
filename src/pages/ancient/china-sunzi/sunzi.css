@@ -220,7 +220,7 @@
   border-radius: 0.3rem;
   box-shadow: 0 6px 18px hsl(var(--ink) / 0.08);
   font-family: var(--font-body);
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   left: 1rem;
   padding: 0.5rem 0.65rem;
   pointer-events: none;
@@ -644,7 +644,7 @@
   }
   .sunzi-board__legend,
   .sunzi-board__readout {
-    font-size: 0.62rem;
+    font-size: 0.72rem;
     left: 0.5rem;
     padding: 0.4rem 0.5rem;
   }

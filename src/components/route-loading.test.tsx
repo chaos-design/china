@@ -8,6 +8,6 @@ describe("RouteLoading", () => {
 
     expect(screen.getByRole("status", { name: "页面加载中" })).toBeInTheDocument();
     expect(screen.getByText("正在铺展卷轴")).toBeInTheDocument();
-    expect(screen.getByText("Loading")).toBeInTheDocument();
+    expect(screen.getByText("墨迹未干，请稍候片刻")).toBeInTheDocument();
   });
 });
