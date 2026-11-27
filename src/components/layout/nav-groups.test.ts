@@ -1,5 +1,8 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { HOME_ENTRY_ROUTES } from "../../pages/page-resources";
 import { findNavGroupId, NAV_GROUPS, type NavGroup } from "./nav-groups";
 
 /** 与 routes.tsx 的嵌套路由匹配口径一致：本体或任意子路由都算命中。 */
@@ -72,5 +75,31 @@ describe("NAV_GROUPS 菜单数据治理", () => {
       }
     }
     expect([...covered].sort()).toEqual(["军事", "历史", "非物质文化遗产"].sort());
+  });
+
+  it("每个菜单入口都有轮播截图，且内容分类标签与首页入口一致", () => {
+    const entries = new Map(
+      HOME_ENTRY_ROUTES.filter(
+        (entry): entry is typeof entry & { path: string } => typeof entry.path === "string",
+      ).map((entry) => [entry.path, entry]),
+    );
+
+    for (const group of NAV_GROUPS) {
+      for (const item of group.items) {
+        const entry = entries.get(item.to);
+        expect(entry, `${group.id}/${item.to} 没有对应的首页入口`).toBeDefined();
+        expect(entry?.screenshot, `${item.to} 没有轮播截图`).toMatch(/^[a-z-]+\.jpg$/);
+        if (entry?.screenshot) {
+          expect(
+            existsSync(resolve("public/home-screenshots", entry.screenshot)),
+            `${entry.screenshot} 文件不存在`,
+          ).toBe(true);
+        }
+        expect(
+          [...(item.dimensions ?? [])].sort(),
+          `${item.to} 的菜单标签与首页入口不一致`,
+        ).toEqual([...(entry?.dimensions ?? [])].sort());
+      }
+    }
   });
 });

@@ -13,6 +13,9 @@ import type { MapZoneId } from "./china-map-geometry";
  *
  * 扩展约定（后续新增专题时按此办，不要为单个条目新建分组）：
  * - 在对应分组的 items 里追加一条 NavLeaf，路径必须在首页资源里可用；
+ * - 新增条目不是只改菜单：对应资源的 homeEntries 必须同步补 screenshot（首页轮播预览图）
+ *   与 dimensions（内容分类标签），且与这里的菜单项 dimensions 一致——菜单筛选与首页
+ *   轮播共用同一套维度词表，缺截图不会进轮播，标签不一致会让筛选对不上；
  * - 新分组只需在此数组追加一个 NavGroup，列数由 site-menu 的
  *   --mega-column-count 驱动，地图高亮由 mapZone 决定，无需改布局代码；
  * - 组名表达「内容对象」，条目名表达「读什么」，两者不得同名词（旧「历史地理」
