@@ -1,5 +1,6 @@
 import { useEffect, useState, type WheelEvent } from "react";
 
+import { SITE_TITLE, setDocumentTitle } from "../../../lib/page-title";
 import { cn } from "../../../lib/utils";
 import { BATTLES } from "./battles";
 import { ExplainPanel } from "./explain-panel";
@@ -11,6 +12,7 @@ import { PATTERN_LABEL, patternOf, stratagemScene } from "./tactical-scenes";
 import "./sunzi.css";
 
 const STEP_INTERVAL_MS = 2600;
+const SPEED_OPTIONS = [0.5, 1, 2] as const;
 const VIEW_LABEL = { sand: "沙盘", top: "俯视" } as const;
 const ZOOM_MIN = 0.7;
 const ZOOM_MAX = 2.2;
@@ -22,6 +24,7 @@ export function SunziPage() {
   const [battleIndex, setBattleIndex] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState<(typeof SPEED_OPTIONS)[number]>(1);
   const [view, setView] = useState<"sand" | "top">("sand");
   const [zoom, setZoom] = useState(1);
 
@@ -31,15 +34,43 @@ export function SunziPage() {
   const step = scene.steps[stepIndex];
   const lastStep = scene.steps.length - 1;
 
+  // 页内切换计谋 / 战役 / 幕时，标签标题跟上当前读图焦点。
+  useEffect(() => {
+    const focus = kind === "battle" ? scene.name : `第${selected.number}计 ${selected.name}`;
+    setDocumentTitle(`${focus} · ${step.title} · 孙子兵法沙盘 · ${SITE_TITLE}`);
+  }, [kind, scene.name, selected.number, selected.name, step.title]);
+
   useEffect(() => {
     if (!playing) return;
     if (stepIndex >= lastStep) {
       setPlaying(false);
       return;
     }
-    const timer = window.setTimeout(() => setStepIndex(stepIndex + 1), STEP_INTERVAL_MS);
+    const timer = window.setTimeout(() => setStepIndex(stepIndex + 1), STEP_INTERVAL_MS / speed);
     return () => window.clearTimeout(timer);
-  }, [playing, stepIndex, lastStep]);
+  }, [playing, stepIndex, lastStep, speed]);
+
+  // 复盘快捷键只在焦点不落在控件上时接管，否则按钮自身的 Space / 方向键会被抢走。
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const element = event.target as HTMLElement | null;
+      if (element?.closest("button, a, input, textarea, select, [contenteditable]")) return;
+      if (event.code === "Space") {
+        event.preventDefault();
+        setPlaying((current) => !current);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        setPlaying(false);
+        setStepIndex((current) => Math.max(0, current - 1));
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        setPlaying(false);
+        setStepIndex((current) => Math.min(lastStep, current + 1));
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lastStep]);
 
   function selectStratagem(number: number) {
     setSelectedNumber(number);
@@ -277,6 +308,15 @@ export function SunziPage() {
           className="sunzi-group sunzi-timeline"
           data-testid="sunzi-timeline"
         >
+          <div
+            aria-valuemax={scene.steps.length}
+            aria-valuemin={1}
+            aria-valuenow={stepIndex + 1}
+            className="sunzi-progress"
+            role="progressbar"
+          >
+            <span style={{ width: `${((stepIndex + 1) / scene.steps.length) * 100}%` }} />
+          </div>
           <ol className="grid grid-cols-4 gap-1">
             {scene.steps.map((item, index) => (
               <li key={item.id}>
@@ -319,6 +359,21 @@ export function SunziPage() {
           >
             下一步
           </button>
+        </fieldset>
+
+        <fieldset aria-label="播放速度" className="sunzi-group flex gap-1">
+          {SPEED_OPTIONS.map((option) => (
+            <button
+              aria-label={`播放速度 ${option} 倍`}
+              aria-pressed={speed === option}
+              className={cn("sunzi-chip font-body text-xs", speed === option && "is-active")}
+              key={option}
+              onClick={() => setSpeed(option)}
+              type="button"
+            >
+              {option}×
+            </button>
+          ))}
         </fieldset>
 
         <fieldset aria-label="视角" className="sunzi-group flex gap-1">

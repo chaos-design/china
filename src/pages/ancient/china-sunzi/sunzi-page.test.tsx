@@ -40,8 +40,12 @@ describe("SunziPage 三十六计沙盘", () => {
     const left = screen.getByRole("navigation", { name: "三十六计目录" });
     const bottom = screen.getByTestId("sunzi-bottom");
 
+    expect(document.title).toContain("第2计 围魏救赵");
+    expect(document.title).toContain("布势");
+
     fireEvent.click(within(bottom).getByRole("button", { name: "下一步" }));
     expect(boardLabel()).toContain("示形");
+    expect(document.title).toContain("示形");
 
     fireEvent.click(within(left).getByRole("button", { name: "36. 走为上计" }));
     expect(boardLabel()).toContain("走为上计");
@@ -84,6 +88,42 @@ describe("SunziPage 三十六计沙盘", () => {
     expect(boardLabel()).toContain("收局");
     expect(within(bottom).getByRole("button", { name: "播放" })).toBeInTheDocument();
     expect(next).toBeDisabled();
+  });
+
+  it("播放速度可调，进度条跟随当前幕次", () => {
+    vi.useFakeTimers();
+    render(<SunziPage />);
+    const bottom = screen.getByTestId("sunzi-bottom");
+    const progress = within(bottom).getByRole("progressbar");
+
+    expect(progress).toHaveAttribute("aria-valuenow", "1");
+    fireEvent.click(within(bottom).getByRole("button", { name: "播放速度 2 倍" }));
+    expect(within(bottom).getByRole("button", { name: "播放速度 2 倍" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    fireEvent.click(within(bottom).getByRole("button", { name: "播放" }));
+    act(() => vi.advanceTimersByTime(1300));
+    expect(progress).toHaveAttribute("aria-valuenow", "2");
+    act(() => vi.advanceTimersByTime(1300));
+    expect(progress).toHaveAttribute("aria-valuenow", "3");
+
+    fireEvent.click(within(bottom).getByRole("button", { name: "上一步" }));
+    expect(progress).toHaveAttribute("aria-valuenow", "2");
+  });
+
+  it("画面常驻阵营图例与本幕机动判读", () => {
+    render(<SunziPage />);
+    const board = screen.getByTestId("sunzi-board");
+    const readout = within(board).getByTestId("sunzi-board-readout");
+
+    expect(board.querySelectorAll(".sunzi-board__force[data-side]")).toHaveLength(2);
+    expect(readout).toHaveTextContent("本幕机动判读");
+    // 下一幕才有机动；图例与本幕机动随幕次更新，而不是固定文案。
+    fireEvent.click(
+      within(screen.getByTestId("sunzi-bottom")).getByRole("button", { name: "下一步" }),
+    );
+    expect(readout.textContent).toMatch(/推进|迂回|佯动|追击/);
   });
 
   it("中央沙盘支持按钮与滚轮缩放，并有边界与复位", () => {

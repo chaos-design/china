@@ -169,6 +169,21 @@
   background: var(--sunzi-panel);
 }
 
+.sunzi-progress {
+  background: hsl(var(--ink) / 0.12);
+  border-radius: 999px;
+  height: 3px;
+  margin-bottom: 0.45rem;
+  overflow: hidden;
+}
+
+.sunzi-progress span {
+  background: linear-gradient(90deg, var(--sunzi-b), var(--sunzi-a));
+  display: block;
+  height: 100%;
+  transition: width 240ms ease;
+}
+
 /* The board is a real CSS 3D surface: the scene tilts, the move layer floats
    above the ground plane, and controls only change transform variables. */
 .sunzi-board {
@@ -193,6 +208,110 @@
   pointer-events: none;
   position: absolute;
   z-index: 3;
+}
+
+/* 画面内的军语读图条：阵营口径与本幕机动性质常驻，不随 WebGL / SVG 路径改变。 */
+.sunzi-board__legend,
+.sunzi-board__readout {
+  background: hsl(var(--paper) / 0.88);
+  border: 1px solid var(--sunzi-line);
+  border-radius: 0.3rem;
+  box-shadow: 0 6px 18px hsl(var(--ink) / 0.08);
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  left: 1rem;
+  padding: 0.5rem 0.65rem;
+  pointer-events: none;
+  position: absolute;
+  z-index: 4;
+}
+
+.sunzi-board__legend {
+  top: 1rem;
+}
+
+.sunzi-board__force {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.sunzi-board__force + .sunzi-board__force {
+  margin-top: 0.35rem;
+}
+
+.sunzi-board__force-mark {
+  border-radius: 2px;
+  height: 0.62rem;
+  width: 0.62rem;
+}
+
+.sunzi-board__force[data-side="a"] .sunzi-board__force-mark {
+  background: var(--sunzi-a);
+}
+
+.sunzi-board__force[data-side="b"] .sunzi-board__force-mark {
+  background: var(--sunzi-b);
+}
+
+.sunzi-board__force strong {
+  color: hsl(var(--ink));
+  font-weight: 600;
+}
+
+.sunzi-board__force span:last-child {
+  color: var(--sunzi-ink-soft);
+}
+
+.sunzi-board__readout {
+  bottom: 8.2rem;
+  max-width: min(20rem, 46%);
+}
+
+.sunzi-board__readout-head {
+  border-bottom: 1px solid var(--sunzi-line);
+  color: hsl(var(--ink));
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  padding-bottom: 0.3rem;
+}
+
+.sunzi-board__readout ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sunzi-board__readout li {
+  align-items: center;
+  color: var(--sunzi-ink-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sunzi-board__move-side {
+  border-radius: 0.2rem;
+  font-weight: 600;
+  padding: 0.05rem 0.3rem;
+}
+
+.sunzi-board__readout li[data-side="a"] .sunzi-board__move-side {
+  background: color-mix(in srgb, var(--sunzi-a) 22%, transparent);
+  color: var(--sunzi-a);
+}
+
+.sunzi-board__readout li[data-side="b"] .sunzi-board__move-side {
+  background: color-mix(in srgb, var(--sunzi-b) 22%, transparent);
+  color: var(--sunzi-b);
+}
+
+.sunzi-board__move-to {
+  color: hsl(var(--ink));
 }
 
 .sunzi-board__scene {
@@ -520,6 +639,16 @@
   .sunzi-center {
     height: 62svh;
     min-height: 360px;
+  }
+  .sunzi-board__legend,
+  .sunzi-board__readout {
+    font-size: 0.62rem;
+    left: 0.5rem;
+    padding: 0.4rem 0.5rem;
+  }
+  .sunzi-board__readout {
+    bottom: 2.4rem;
+    max-width: 60%;
   }
   .sunzi-left__scroll {
     max-height: 24rem;

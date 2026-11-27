@@ -13,6 +13,14 @@ export interface SandTableProps {
   zoom: number;
 }
 
+/** 机动性质的军用读图口径：与 Move.kind 一一对应，不凭空添加战果。 */
+const MOVE_KIND_LABEL = {
+  advance: "正面推进",
+  flank: "侧翼迂回",
+  feint: "佯动诱敌",
+  pursuit: "乘势追击",
+} as const;
+
 const GRATICULE = [160, 320, 480, 640, 800];
 const RIDGES = [
   "M300 150 L340 132 L380 148 L420 128 L460 146",
@@ -62,6 +70,14 @@ export function SandTable({ battle, playing, step, view, zoom }: SandTableProps)
   const deployment = step.units
     .map((unit) => `${unit.label}（${BRANCH_LABEL[unit.branch]}）`)
     .join("，");
+  const forceName = (side: "a" | "b") =>
+    battle.forces.find((force) => force.side === side)?.name ?? (side === "a" ? "我方" : "对方");
+  const nearestPlace = (point: readonly [number, number]) =>
+    battle.places.reduce<{ name: string; distance: number } | null>((best, place) => {
+      const distance = Math.hypot(place.x - point[0], place.y - point[1]);
+      if (distance > 130) return best;
+      return best === null || distance < best.distance ? { name: place.name, distance } : best;
+    }, null)?.name ?? null;
 
   return (
     <div
@@ -76,9 +92,35 @@ export function SandTable({ battle, playing, step, view, zoom }: SandTableProps)
       {webgl ? <div aria-hidden="true" className="sunzi-board__webgl" ref={mountRef} /> : null}
       {ready ? (
         <p aria-hidden="true" className="sunzi-board__hint">
-          真实立体沙盘 · 拖拽旋转
+          立体态势沙盘 · 拖拽旋转 / 滚轮缩放
         </p>
       ) : null}
+      {/* 读图注释与 3D / SVG 两套渲染无关，常驻在画面上：阵营口径 + 本幕机动性质。
+          战术口径只描述 move.kind 已记录的机动，不编造战果或兵力实数。 */}
+      <div aria-hidden="true" className="sunzi-board__legend">
+        {battle.forces.map((force) => (
+          <p className="sunzi-board__force" data-side={force.side} key={force.id}>
+            <span className="sunzi-board__force-mark" />
+            <strong>{force.name}</strong>
+            <span>{force.hint}</span>
+          </p>
+        ))}
+      </div>
+      <div aria-hidden="true" className="sunzi-board__readout" data-testid="sunzi-board-readout">
+        <p className="sunzi-board__readout-head">本幕机动判读</p>
+        <ul>
+          {step.moves.map((move) => {
+            const destination = nearestPlace(move.to);
+            return (
+              <li data-side={move.side} key={move.id}>
+                <span className="sunzi-board__move-side">{forceName(move.side)}</span>
+                <span className="sunzi-board__move-kind">{MOVE_KIND_LABEL[move.kind]}</span>
+                {destination ? <span className="sunzi-board__move-to">→ {destination}</span> : null}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
       <div className="sunzi-board__scene" hidden={ready} style={sceneStyle}>
         <svg
           aria-hidden="true"
