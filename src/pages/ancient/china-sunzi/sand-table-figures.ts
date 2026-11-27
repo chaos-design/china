@@ -464,25 +464,25 @@ const MOVE_LABEL: Record<Move["kind"], string> = {
 /** 纸底阵营色标签，屏幕外仍可读；文字牌统一置顶，不被地形挡住。 */
 export function labelSprite(text: string, tone: THREE.Color, width = 2.3): THREE.Sprite {
   const canvas = document.createElement("canvas");
-  canvas.width = 384;
-  canvas.height = 96;
+  canvas.width = 448;
+  canvas.height = 112;
   const context = canvas.getContext("2d");
   if (context) {
     context.fillStyle = "rgba(244, 241, 234, 0.93)";
     context.beginPath();
-    if (typeof context.roundRect === "function") context.roundRect(5, 9, 374, 78, 12);
-    else context.rect(5, 9, 374, 78);
+    if (typeof context.roundRect === "function") context.roundRect(6, 10, 436, 92, 14);
+    else context.rect(6, 10, 436, 92);
     context.fill();
     context.fillStyle = `#${tone.getHexString()}`;
-    context.fillRect(5, 9, 11, 78);
+    context.fillRect(6, 10, 12, 92);
     context.strokeStyle = "rgba(30, 30, 30, 0.28)";
     context.lineWidth = 3;
     context.stroke();
     context.fillStyle = "#20201d";
-    context.font = '600 46px "Songti SC", "Noto Serif CJK SC", serif';
+    context.font = '600 54px "Songti SC", "Noto Serif CJK SC", serif';
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.fillText(text, 196, 49, 342);
+    context.fillText(text, 224, 57, 398);
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.encoding = THREE.sRGBEncoding;

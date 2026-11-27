@@ -569,7 +569,7 @@ export function createSandTableScene(
       stronghold.position.set(world.x, height + 0.02, world.z);
       content.add(stronghold);
 
-      const label = labelSprite(place.name, sideColor(placeSide(place), colors), 1.75);
+      const label = labelSprite(place.name, sideColor(placeSide(place), colors), 2);
       label.position.set(world.x, height + 1.25, world.z);
       content.add(label);
     }
@@ -586,7 +586,7 @@ export function createSandTableScene(
       unitGroups.set(unit.id, soldier);
 
       // 部队名牌压在脚下，与城池名牌分层，避免斜视镜头下叠成一团。
-      const label = labelSprite(unit.label, sideColor(unit.side, colors), 1.8);
+      const label = labelSprite(unit.label, sideColor(unit.side, colors), 2.1);
       label.position.set(world.x, height + 0.55, world.z);
       content.add(label);
     }
@@ -601,7 +601,7 @@ export function createSandTableScene(
       const deltaZ = to.z - from.z;
       const midpointX = (from.x + to.x) / 2 - deltaZ * 0.075;
       const midpointZ = (from.z + to.z) / 2 + deltaX * 0.075;
-      const label = labelSprite(moveLabel(move), sideColor(move.side, colors), 1.6);
+      const label = labelSprite(moveLabel(move), sideColor(move.side, colors), 1.9);
       label.position.set(midpointX, surfaceHeight(midpointX, midpointZ) + 1.05, midpointZ);
       content.add(label);
 

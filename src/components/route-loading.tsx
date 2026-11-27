@@ -9,9 +9,9 @@ export function RouteLoading() {
       <div className="soft-card flex flex-col items-center gap-4 px-10 py-8">
         {/* 微缩装裱卷轴：宣纸画芯、紫檀轴杆、铜箍与玉轴头，取色同首页入场画卷。 */}
         <div aria-hidden="true" className="relative h-10 w-44">
-          <div className="absolute inset-y-1 right-2 left-2 bg-[linear-gradient(180deg,hsl(var(--scroll-paper)),hsl(var(--scroll-paper-deep)))] shadow-[inset_0_0_14px_hsl(var(--ochre)/0.3)]" />
-          <div className="absolute inset-y-0 left-0 w-3 rounded-full bg-[linear-gradient(90deg,hsl(var(--scroll-wood)/0.85),hsl(var(--scroll-bronze)/0.55),hsl(var(--scroll-wood)))]" />
-          <div className="absolute inset-y-0 right-0 w-3 rounded-full bg-[linear-gradient(270deg,hsl(var(--scroll-wood)/0.85),hsl(var(--scroll-bronze)/0.55),hsl(var(--scroll-wood)))]" />
+          <div className="route-scroll-paper absolute inset-y-1 right-2 left-2 bg-[linear-gradient(180deg,hsl(var(--scroll-paper)),hsl(var(--scroll-paper-deep)))] shadow-[inset_0_0_14px_hsl(var(--ochre)/0.3)]" />
+          <div className="route-scroll-roll--left absolute inset-y-0 left-0 w-3 rounded-full bg-[linear-gradient(90deg,hsl(var(--scroll-wood)/0.85),hsl(var(--scroll-bronze)/0.55),hsl(var(--scroll-wood)))]" />
+          <div className="route-scroll-roll--right absolute inset-y-0 right-0 w-3 rounded-full bg-[linear-gradient(270deg,hsl(var(--scroll-wood)/0.85),hsl(var(--scroll-bronze)/0.55),hsl(var(--scroll-wood)))]" />
           <span className="absolute top-0 left-0 h-1.5 w-[1.1rem] -translate-x-[1px] rounded-[50%] border border-ink/30 bg-[hsl(var(--scroll-jade)/0.75)]" />
           <span className="absolute bottom-0 left-0 h-1.5 w-[1.1rem] -translate-x-[1px] rounded-[50%] border border-ink/30 bg-[hsl(var(--scroll-jade)/0.7)]" />
           <span className="absolute top-0 right-0 h-1.5 w-[1.1rem] translate-x-[1px] rounded-[50%] border border-ink/30 bg-[hsl(var(--scroll-jade)/0.75)]" />
