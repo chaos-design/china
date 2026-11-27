@@ -1,3 +1,4 @@
+import { Pause, Play, RotateCcw, SkipBack, SkipForward, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useState, type WheelEvent } from "react";
 
 import { SITE_TITLE, setDocumentTitle } from "../../../lib/page-title";
@@ -315,7 +316,7 @@ export function SunziPage() {
             className="sunzi-progress"
             role="progressbar"
           >
-            <span style={{ width: `${((stepIndex + 1) / scene.steps.length) * 100}%` }} />
+            <span style={{ transform: `scaleX(${(stepIndex + 1) / scene.steps.length})` }} />
           </div>
           <ol className="grid grid-cols-4 gap-1">
             {scene.steps.map((item, index) => (
@@ -335,29 +336,42 @@ export function SunziPage() {
 
         <fieldset aria-label="复盘控制" className="sunzi-group flex gap-1">
           <button
-            className="sunzi-chip font-body text-xs"
+            aria-label="上一步"
+            className="sunzi-chip inline-flex items-center justify-center"
             disabled={stepIndex === 0}
             onClick={() => goToStep(stepIndex - 1)}
+            title="上一步"
             type="button"
           >
-            上一步
+            <SkipBack aria-hidden="true" className="h-3.5 w-3.5" />
           </button>
           <button
+            aria-label={playing ? "暂停" : "播放"}
             aria-pressed={playing}
-            className={cn("sunzi-chip sunzi-chip--play font-body text-xs", playing && "is-active")}
+            className={cn(
+              "sunzi-chip sunzi-chip--play inline-flex items-center justify-center",
+              playing && "is-active",
+            )}
             data-sunzi-play-toggle=""
             onClick={() => setPlaying((current) => !current)}
+            title={playing ? "暂停" : "播放"}
             type="button"
           >
-            {playing ? "暂停" : "播放"}
+            {playing ? (
+              <Pause aria-hidden="true" className="h-3.5 w-3.5" />
+            ) : (
+              <Play aria-hidden="true" className="h-3.5 w-3.5" />
+            )}
           </button>
           <button
-            className="sunzi-chip font-body text-xs"
+            aria-label="下一步"
+            className="sunzi-chip inline-flex items-center justify-center"
             disabled={stepIndex === lastStep}
             onClick={() => goToStep(stepIndex + 1)}
+            title="下一步"
             type="button"
           >
-            下一步
+            <SkipForward aria-hidden="true" className="h-3.5 w-3.5" />
           </button>
         </fieldset>
 
@@ -393,27 +407,35 @@ export function SunziPage() {
         <fieldset aria-label="缩放" className="sunzi-group flex items-center gap-1">
           <button
             aria-label="缩小沙盘"
-            className="sunzi-chip font-body text-xs"
+            className="sunzi-chip inline-flex items-center justify-center"
             disabled={zoom <= ZOOM_MIN}
             onClick={() => changeZoom(-0.1)}
+            title="缩小沙盘"
             type="button"
           >
-            缩小
+            <ZoomOut aria-hidden="true" className="h-3.5 w-3.5" />
           </button>
           <span className="font-mono-tech text-xs text-muted-foreground">
             {Math.round(zoom * 100)}%
           </span>
           <button
             aria-label="放大沙盘"
-            className="sunzi-chip font-body text-xs"
+            className="sunzi-chip inline-flex items-center justify-center"
             disabled={zoom >= ZOOM_MAX}
             onClick={() => changeZoom(0.1)}
+            title="放大沙盘"
             type="button"
           >
-            放大
+            <ZoomIn aria-hidden="true" className="h-3.5 w-3.5" />
           </button>
-          <button className="sunzi-chip font-body text-xs" onClick={resetView} type="button">
-            复位
+          <button
+            aria-label="复位"
+            className="sunzi-chip inline-flex items-center justify-center"
+            onClick={resetView}
+            title="复位"
+            type="button"
+          >
+            <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
           </button>
         </fieldset>
       </div>

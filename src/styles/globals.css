@@ -31,6 +31,14 @@
   --blueprint: 210 16% 40%;
   --ochre: 38 30% 55%;
 
+  /* 卷轴装裱：宣纸、绫绢、紫檀、铜箍、玉轴，供入场画卷统一取色。 */
+  --scroll-veil: 40 22% 92%;
+  --scroll-paper: 40 42% 85%;
+  --scroll-paper-deep: 32 32% 72%;
+  --scroll-wood: 26 40% 22%;
+  --scroll-bronze: 42 56% 70%;
+  --scroll-jade: 160 22% 56%;
+
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -66,6 +74,13 @@
   --paper: 220 16% 8%;
   --blueprint: 210 18% 56%;
   --ochre: 38 32% 60%;
+
+  --scroll-veil: 220 18% 7%;
+  --scroll-paper: 34 24% 18%;
+  --scroll-paper-deep: 30 20% 12%;
+  --scroll-wood: 26 28% 12%;
+  --scroll-bronze: 42 38% 48%;
+  --scroll-jade: 160 18% 40%;
 }
 
 @theme inline {

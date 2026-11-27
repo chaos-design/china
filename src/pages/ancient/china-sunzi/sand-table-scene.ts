@@ -34,6 +34,44 @@ export interface SceneHandle {
   dispose(): void;
 }
 
+/**
+ * 确定性沙粒纹理：同一张沙盘每次重建得到同一张沙面，
+ * 不用外部图片，也不让切幕时沙纹闪变。
+ */
+function makeSandTexture(): THREE.CanvasTexture {
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext("2d");
+  if (context) {
+    let seed = 20261127;
+    const random = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+    const image = context.createImageData(size, size);
+    for (let index = 0; index < image.data.length; index += 4) {
+      const grain = 226 + random() * 28;
+      image.data[index] = grain;
+      image.data[index + 1] = grain - 5;
+      image.data[index + 2] = grain - 14;
+      image.data[index + 3] = 255;
+    }
+    context.putImageData(image, 0, 0);
+    for (let index = 0; index < 420; index += 1) {
+      context.fillStyle = `rgba(118, 92, 58, ${0.05 + random() * 0.12})`;
+      context.fillRect(random() * size, random() * size, 1, 1);
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(10, 7);
+  texture.encoding = THREE.sRGBEncoding;
+  return texture;
+}
+
 function readColors(): SandPalette {
   const styles = getComputedStyle(document.documentElement);
   // three r128 only parses comma-separated hsl(); the design tokens are channel triples.
@@ -168,9 +206,13 @@ export function createSandTableScene(
         const material = object.material as THREE.Material | THREE.Material[] | undefined;
         if (Array.isArray(material))
           material.forEach((item) => {
+            (item as THREE.MeshStandardMaterial).map?.dispose();
             item.dispose();
           });
-        else material?.dispose();
+        else if (material) {
+          (material as THREE.MeshStandardMaterial).map?.dispose();
+          material.dispose();
+        }
       }
     });
     content.clear();
@@ -238,6 +280,7 @@ export function createSandTableScene(
     }
     geometry.setAttribute("color", new THREE.Float32BufferAttribute(vertexColors, 3));
     geometry.computeVertexNormals();
+    const sandMap = makeSandTexture();
     const ground = new THREE.Mesh(
       geometry,
       new THREE.MeshStandardMaterial({
@@ -245,6 +288,9 @@ export function createSandTableScene(
         roughness: 0.93,
         metalness: 0.02,
         flatShading: true,
+        map: sandMap,
+        bumpMap: sandMap,
+        bumpScale: 0.08,
       }),
     );
     // 地形法线明暗已经够立体；接收投影会在山脊上留下大块灰色阴影斑。

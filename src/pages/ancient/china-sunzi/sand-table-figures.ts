@@ -113,6 +113,32 @@ function mount(tone: THREE.Color, palette: SandPalette): THREE.Group {
     [-0.48, 0, 0],
   );
   add(horse, new THREE.BoxGeometry(0.2, 0.17, 0.3), standard(coat, 0.78), [0, 0.76, 0.5]);
+  // 鬃毛、鞍鞯与缰绳：斜视镜头下也要读得出是一匹披甲战马。
+  for (const offset of [0.02, 0.12, 0.22]) {
+    add(
+      horse,
+      new THREE.ConeGeometry(0.055, 0.22, 5),
+      standard(tone.clone().lerp(palette.ink, 0.5), 0.8),
+      [0, 0.78 - offset, 0.24 + offset * 0.6],
+      [-0.6, 0, 0],
+    );
+  }
+  add(
+    horse,
+    new THREE.BoxGeometry(0.36, 0.06, 0.42),
+    standard(palette.ink, 0.72),
+    [0, 0.66, -0.04],
+  );
+  add(horse, new THREE.BoxGeometry(0.4, 0.04, 0.1), standard(tone, 0.72), [0, 0.6, -0.24]);
+  add(
+    horse,
+    new THREE.CylinderGeometry(0.008, 0.008, 0.5, 4),
+    standard(palette.ochre),
+    [0.06, 0.68, 0.32],
+    [-0.6, 0, 0.3],
+  );
+  add(horse, new THREE.SphereGeometry(0.025, 6, 5), palette.ink, [-0.08, 0.78, 0.62]);
+  add(horse, new THREE.SphereGeometry(0.025, 6, 5), palette.ink, [0.08, 0.78, 0.62]);
   for (const x of [-0.22, 0.22]) {
     for (const z of [-0.21, 0.21]) {
       add(horse, new THREE.CylinderGeometry(0.045, 0.045, 0.4, 6), standard(coat, 0.8), [
@@ -215,7 +241,62 @@ function boat(tone: THREE.Color, palette: SandPalette): THREE.Group {
   return vessel;
 }
 
-/** 一支部队 = 阵营地台 + 拟人军士 + 兵种坐具 / 兵器 + 旗号。 */
+/** 单个战斗员与坐具，不含旗号，便于复制成队列。 */
+function formationUnit(unit: Unit, tone: THREE.Color, palette: SandPalette): THREE.Group {
+  const figure = new THREE.Group();
+  if (unit.branch === "infantry" || unit.branch === "crossbow") {
+    figure.add(human(tone, palette));
+  } else if (unit.branch === "cavalry") {
+    figure.add(mount(tone, palette));
+  } else if (unit.branch === "chariot") {
+    figure.add(chariot(tone, palette));
+  } else {
+    figure.add(boat(tone, palette));
+  }
+
+  if (unit.branch === "infantry") {
+    add(
+      figure,
+      new THREE.CylinderGeometry(0.022, 0.022, 1.18, 6),
+      standard(palette.ink, 0.8),
+      [0.3, 0.72, 0.06],
+      [0, 0, -0.18],
+    );
+    add(figure, new THREE.ConeGeometry(0.07, 0.22, 6), standard(tone), [0.41, 1.3, 0.06]);
+    add(
+      figure,
+      new THREE.BoxGeometry(0.24, 0.05, 0.05),
+      standard(tone),
+      [0.32, 1.18, 0.06],
+      [0, 0, 0.35],
+    );
+  }
+  if (unit.branch === "crossbow") {
+    add(
+      figure,
+      new THREE.BoxGeometry(0.34, 0.12, 0.12),
+      standard(palette.ink, 0.7),
+      [0.28, 0.62, 0.14],
+    );
+    add(
+      figure,
+      new THREE.CylinderGeometry(0.016, 0.016, 0.6, 6),
+      standard(tone),
+      [0.28, 0.62, 0.14],
+      [0, 0, Math.PI / 2],
+    );
+    add(
+      figure,
+      new THREE.CylinderGeometry(0.01, 0.01, 0.46, 5),
+      standard(palette.ochre),
+      [0.28, 0.62, 0.34],
+      [Math.PI / 2, 0, 0],
+    );
+  }
+  return figure;
+}
+
+/** 一支部队 = 阵营地台 + 三人为伍的拟人队列 + 一面旗号。 */
 export function buildSoldier(unit: Unit, palette: SandPalette, facing: number): THREE.Group {
   const group = new THREE.Group();
   const tone = sideColor(unit.side, palette);
@@ -241,55 +322,17 @@ export function buildSoldier(unit: Unit, palette: SandPalette, facing: number): 
   );
   rim.castShadow = false;
 
-  const figure = human(tone, palette);
-  if (unit.branch === "infantry" || unit.branch === "crossbow") {
-    group.add(figure);
-  } else if (unit.branch === "cavalry") {
-    group.add(mount(tone, palette));
-  } else if (unit.branch === "chariot") {
-    group.add(chariot(tone, palette));
-  } else {
-    group.add(boat(tone, palette));
-  }
-
-  if (unit.branch === "infantry") {
-    add(
-      group,
-      new THREE.CylinderGeometry(0.022, 0.022, 1.18, 6),
-      standard(palette.ink, 0.8),
-      [0.3, 0.72, 0.06],
-      [0, 0, -0.18],
-    );
-    add(group, new THREE.ConeGeometry(0.07, 0.22, 6), standard(tone), [0.41, 1.3, 0.06]);
-    add(
-      group,
-      new THREE.BoxGeometry(0.24, 0.05, 0.05),
-      standard(tone),
-      [0.32, 1.18, 0.06],
-      [0, 0, 0.35],
-    );
-  }
-  if (unit.branch === "crossbow") {
-    add(
-      group,
-      new THREE.BoxGeometry(0.34, 0.12, 0.12),
-      standard(palette.ink, 0.7),
-      [0.28, 0.62, 0.14],
-    );
-    add(
-      group,
-      new THREE.CylinderGeometry(0.016, 0.016, 0.6, 6),
-      standard(tone),
-      [0.28, 0.62, 0.14],
-      [0, 0, Math.PI / 2],
-    );
-    add(
-      group,
-      new THREE.CylinderGeometry(0.01, 0.01, 0.46, 5),
-      standard(palette.ochre),
-      [0.28, 0.62, 0.34],
-      [Math.PI / 2, 0, 0],
-    );
+  const lead = formationUnit(unit, tone, palette);
+  group.add(lead);
+  const mate = lead.clone(true);
+  mate.scale.setScalar(0.78);
+  mate.position.set(-0.32, 0, -0.26);
+  group.add(mate);
+  if (unit.branch !== "chariot" && unit.branch !== "navy") {
+    const trailing = lead.clone(true);
+    trailing.scale.setScalar(0.72);
+    trailing.position.set(0.34, 0, -0.32);
+    group.add(trailing);
   }
   if (unit.branch !== "navy") group.add(banner(tone, palette));
   group.rotation.y = facing;
