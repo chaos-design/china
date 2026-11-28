@@ -50,6 +50,9 @@ export default defineConfig({
         "src/pages/ancient/china-ranks/rank-tree-scene.ts",
         // 官制立体树场景同为 WebGL 命令式对象；布局在 office-tree-layout.ts（已测）。
         "src/pages/ancient/china-qing-officials/office-tree-scene.ts",
+        // Leaflet 场景：jsdom 无真实瓦片环境（getBoundingClientRect 全零、无网络）。
+        // 纯几何/规格在 territory-overlays.ts（已测），页面测试 mock 本模块。
+        "src/pages/ancient/china-territory/leaflet-scene.ts",
       ],
     },
   },
