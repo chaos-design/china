@@ -1,14 +1,21 @@
 import { cn } from "../../../lib/utils";
-import { CHRONICLE_PERIODS } from "./registry";
-import { ERA_LABELS } from "./types";
+import { CHRONICLE_PERIODS, periodsOfEra } from "./registry";
+import type { TimeStop } from "./territory-overlays";
+import { type ChronicleEra, ERA_LABELS } from "./types";
 
 /**
- * 底部编年时间轴：20 期刻度的滑杆 + 上一步/自动播放/下一步 + 倍速。
- * 刻度按时代着色，当前期读出名称与年代（tabular numerals，避免抖动）。
+ * 底部年度时间轴（紧凑单行）：滑杆逐「停止点」推进——每一站是一期疆域切换
+ * 或一场战役开战。刻度按类型分（期=竖杠，战=圆点），时代起点标朝代名。
+ * 年份读出用 tabular numerals，避免推进时抖动。
  */
 
+export function formatYear(year: number): string {
+  return year < 0 ? `前${-year}` : `${year}`;
+}
+
 interface ChronicleTimelineProps {
-  periodIndex: number;
+  stops: readonly TimeStop[];
+  stopIndex: number;
   playing: boolean;
   speed: 0.5 | 1 | 2;
   onSeek: (index: number) => void;
@@ -17,8 +24,27 @@ interface ChronicleTimelineProps {
   onSpeedChange: (speed: 0.5 | 1 | 2) => void;
 }
 
+const ERA_ORDER: readonly ChronicleEra[] = [
+  "pre-qin",
+  "qin-han",
+  "wei-jin",
+  "sui-tang",
+  "song-yuan",
+  "ming-qing",
+];
+
+/** 时代起点期的 id（时间轴上只给这些期标文字，避免 20 个标签互相压字）。 */
+const ERA_FIRST_IDS = new Set(
+  ERA_ORDER.flatMap((era) =>
+    periodsOfEra(era)
+      .slice(0, 1)
+      .map((period) => period.id),
+  ),
+);
+
 export function ChronicleTimeline({
-  periodIndex,
+  stops,
+  stopIndex,
   playing,
   speed,
   onSeek,
@@ -26,8 +52,16 @@ export function ChronicleTimeline({
   onStep,
   onSpeedChange,
 }: ChronicleTimelineProps) {
-  const period = CHRONICLE_PERIODS[periodIndex];
-  const last = CHRONICLE_PERIODS.length - 1;
+  const last = stops.length - 1;
+  const stop = stops[stopIndex];
+  const eraStripStarts = ERA_ORDER.map((era) => {
+    const firstIndex = stops.findIndex(
+      (entry) =>
+        entry.kind === "period" &&
+        entry.periodIndex === CHRONICLE_PERIODS.findIndex((p) => p.era === era),
+    );
+    return { era, firstIndex: Math.max(0, firstIndex) };
+  });
   return (
     <footer className="tch-timeline">
       <div className="tch-timeline-controls">
@@ -35,24 +69,26 @@ export function ChronicleTimeline({
           type="button"
           className="tch-tool-btn"
           onClick={() => onStep(-1)}
-          disabled={periodIndex === 0}
+          disabled={stopIndex === 0}
+          aria-label="上一个时间点"
         >
-          ◀ 上一步
+          ◀
         </button>
         <button
           type="button"
           className={cn("tch-tool-btn", "tch-play-btn", playing && "is-playing")}
           onClick={onTogglePlay}
         >
-          {playing ? "❚❚ 暂停" : "▶ 自动播放"}
+          {playing ? "❚❚" : "▶"}
         </button>
         <button
           type="button"
           className="tch-tool-btn"
           onClick={() => onStep(1)}
-          disabled={periodIndex === last}
+          disabled={stopIndex === last}
+          aria-label="下一个时间点"
         >
-          下一步 ▶
+          ▶
         </button>
         <label className="tch-speed">
           <span className="sr-only">播放速度</span>
@@ -73,41 +109,51 @@ export function ChronicleTimeline({
           min={0}
           max={last}
           step={1}
-          value={periodIndex}
-          aria-label="选择编年时期"
-          aria-valuetext={`${period.display ?? period.name} ${period.yearLabel}`}
+          value={stopIndex}
+          aria-label="推进时间轴（按年份停止点）"
+          aria-valuetext={`${formatYear(stop.year)} ${stop.label}`}
           onChange={(event) => onSeek(Number(event.target.value))}
         />
         <div className="tch-ticks" aria-hidden="true">
-          {CHRONICLE_PERIODS.map((entry, index) => {
-            // 20 个标签挤在一条轴上会互相压字：只在时代起始期与当前期显示文字
-            const isFirstOfEra = CHRONICLE_PERIODS.findIndex((p) => p.era === entry.era) === index;
-            const showLabel = isFirstOfEra || index === periodIndex;
+          {stops.map((entry, index) => {
+            const periodAtStop = CHRONICLE_PERIODS[entry.periodIndex];
+            const showLabel = entry.kind === "period" && ERA_FIRST_IDS.has(periodAtStop.id);
             return (
               <span
-                key={entry.id}
-                className={cn("tch-tick", index === periodIndex && "is-current")}
+                key={`${entry.kind}-${entry.warId ?? periodAtStop.id}-${index}`}
+                className={cn(
+                  "tch-tick",
+                  entry.kind === "war" && "is-war",
+                  index === stopIndex && "is-current",
+                )}
                 style={{ left: `${(index / last) * 100}%` }}
-                data-era={entry.era}
+                data-era={periodAtStop.era}
               >
-                {showLabel ? <i className="tch-tick-label">{entry.display ?? entry.name}</i> : null}
+                {showLabel ? (
+                  <i className="tch-tick-label">{periodAtStop.display ?? periodAtStop.name}</i>
+                ) : null}
               </span>
             );
           })}
         </div>
         <div className="tch-era-strip" aria-hidden="true">
-          {(["pre-qin", "qin-han", "wei-jin", "sui-tang", "song-yuan", "ming-qing"] as const).map(
-            (era) => (
-              <span key={era} data-era={era}>
-                {ERA_LABELS[era]}
-              </span>
-            ),
-          )}
+          {eraStripStarts.map(({ era, firstIndex }) => (
+            <span
+              key={era}
+              data-era={era}
+              style={{ position: "absolute", left: `${(firstIndex / last) * 100}%` }}
+            >
+              {ERA_LABELS[era]}
+            </span>
+          ))}
         </div>
       </div>
       <div className="tch-timeline-readout">
-        <strong>{period.display ?? period.name}</strong>
-        <span>{period.yearLabel}</span>
+        <strong className="tch-year">{formatYear(stop.year)}</strong>
+        <span className="tch-stop-label">
+          {stop.kind === "war" ? "⚔ " : ""}
+          {stop.label}
+        </span>
       </div>
     </footer>
   );

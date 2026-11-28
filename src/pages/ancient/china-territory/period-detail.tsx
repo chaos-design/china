@@ -9,17 +9,29 @@ import type { ChroniclePeriod } from "./types";
 
 interface PeriodDetailProps {
   period: ChroniclePeriod;
+  /** 当前年份（年度时间轴读数），显示在朝代名旁。 */
+  currentYear: number;
   selectedWarId: string | null;
   onSelectWar: (warId: string | null) => void;
 }
 
-export function PeriodDetail({ period, selectedWarId, onSelectWar }: PeriodDetailProps) {
+export function PeriodDetail({
+  period,
+  currentYear,
+  selectedWarId,
+  onSelectWar,
+}: PeriodDetailProps) {
   const warList = buildWarList(period);
   return (
     <aside className="tch-detail" aria-label="当朝详情">
       <div className="tch-detail-body">
         <header className="tch-detail-head">
-          <h2>{period.display ?? period.name}</h2>
+          <h2>
+            {period.display ?? period.name}
+            <span className="tch-detail-now">
+              {currentYear < 0 ? `前${-currentYear}年` : `${currentYear}年`}
+            </span>
+          </h2>
           <p className="tch-detail-years">{period.yearLabel}</p>
         </header>
 

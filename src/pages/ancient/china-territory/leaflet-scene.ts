@@ -3,6 +3,7 @@ import "leaflet/dist/leaflet.css";
 
 import {
   buildCapitalSpecs,
+  buildCitySpecs,
   buildCoreRegionSpecs,
   buildDefenseSpecs,
   buildDivisionSpecs,
@@ -32,7 +33,8 @@ export interface TerritorySceneCallbacks {
 
 export interface TerritoryScene {
   setPeriod(period: ChroniclePeriod, animate: boolean): void;
-  setSelectedWar(war: WarEvent | null): void;
+  /** 年度推进的战争层：activeWar 画完整部署（箭头/包围圈/战场），pastWars 只留战场标记。 */
+  setWarState(activeWar: WarEvent | null, pastWars: readonly WarEvent[]): void;
   setLayerVisible(key: TerritoryLayerKey, visible: boolean): void;
   setModernLabels(visible: boolean): void;
   flyToWar(war: WarEvent): void;
@@ -76,6 +78,13 @@ function coreRegionIcon(name: string): L.DivIcon {
   return L.divIcon({
     className: "tch-label-anchor",
     html: `<span class="tch-core-label">${escapeHtml(name)}</span>`,
+  });
+}
+
+function cityIcon(name: string): L.DivIcon {
+  return L.divIcon({
+    className: "tch-label-anchor",
+    html: `<span class="tch-city"><i></i>${escapeHtml(name)}</span>`,
   });
 }
 
@@ -146,43 +155,74 @@ export function createTerritoryScene(
     wars: true,
   };
   let currentPeriod: ChroniclePeriod | null = null;
-  let selectedWarId: string | null = null;
+  let hasWarContent = false;
 
   function applyGroupVisibility(): void {
     const zoom = map.getZoom();
     defenseGroup[layerVisible.defenses && zoom >= DEFENSE_ZOOM ? "addTo" : "removeFrom"](map);
     divisionGroup[layerVisible.divisions && zoom >= DIVISION_ZOOM ? "addTo" : "removeFrom"](map);
     baseGroup[layerVisible.territory ? "addTo" : "removeFrom"](map);
-    warGroup[layerVisible.wars && selectedWarId ? "addTo" : "removeFrom"](map);
+    warGroup[layerVisible.wars && hasWarContent ? "addTo" : "removeFrom"](map);
   }
 
   map.on("zoomend", applyGroupVisibility);
 
-  function renderWarLayer(period: ChroniclePeriod): void {
+  function renderWarState(activeWar: WarEvent | null, pastWars: readonly WarEvent[]): void {
     warGroup.clearLayers();
-    if (!selectedWarId) return;
-    const war = period.wars.find((entry) => entry.id === selectedWarId);
-    if (!war) {
-      selectedWarId = null;
+    // 历史战场：淡化圆点累积显示，标记「打过哪里」
+    for (const past of pastWars) {
+      const spec = buildWarSpec(past);
+      for (const battle of spec.battles) {
+        const marker = L.marker(battle.latlng, {
+          icon: battleIcon(battle.side),
+          opacity: 0.45,
+        });
+        marker.bindTooltip(tooltipHtml(`${battle.name}（${past.year}）`), {
+          className: "tch-tip",
+          direction: "top",
+          offset: [0, -10],
+        });
+        marker.on("click", () => callbacks.onWarElementClick?.(past.id));
+        warGroup.addLayer(marker);
+      }
+    }
+    if (!activeWar) {
+      hasWarContent = false;
+      applyGroupVisibility();
       return;
     }
-    const spec = buildWarSpec(war);
+    hasWarContent = true;
+    const spec = buildWarSpec(activeWar);
+    // 军事推进箭头：advance 为锥形箭杆 + 倒钩箭头的多边形；retreat 为虚线撤退线
     for (const arrow of spec.arrows) {
       const color = arrow.side === 1 ? "#ff6b52" : "#59a7ff";
-      const line = L.polyline(arrow.latlngs, {
-        color,
-        weight: 3,
-        opacity: 0.9,
-        dashArray: "none",
-      });
-      line.bindTooltip(tooltipHtml(arrow.name), { className: "tch-tip", direction: "top" });
-      line.on("click", () => callbacks.onWarElementClick?.(war.id));
-      warGroup.addLayer(line);
-      const tip = L.marker(arrow.tipAt, {
-        icon: arrowTipIcon(arrow.side, arrow.tipAngleDeg),
-        interactive: false,
-      });
-      warGroup.addLayer(tip);
+      if (arrow.kind === "advance" && arrow.ring) {
+        const polygon = L.polygon(arrow.ring, {
+          color,
+          weight: 1.5,
+          opacity: 0.95,
+          fillColor: color,
+          fillOpacity: 0.8,
+        });
+        polygon.bindTooltip(tooltipHtml(arrow.name), { className: "tch-tip", sticky: true });
+        polygon.on("click", () => callbacks.onWarElementClick?.(activeWar.id));
+        warGroup.addLayer(polygon);
+      } else {
+        const line = L.polyline(arrow.path, {
+          color,
+          weight: 2.5,
+          opacity: 0.9,
+          dashArray: arrow.kind === "retreat" ? "7 6" : undefined,
+        });
+        line.bindTooltip(tooltipHtml(arrow.name), { className: "tch-tip", direction: "top" });
+        line.on("click", () => callbacks.onWarElementClick?.(activeWar.id));
+        warGroup.addLayer(line);
+        const tip = L.marker(arrow.tipAt, {
+          icon: arrowTipIcon(arrow.side, arrow.tipAngleDeg),
+          interactive: false,
+        });
+        warGroup.addLayer(tip);
+      }
     }
     for (const encircle of spec.encircles) {
       const ring = L.polygon(encircle.latlngs, {
@@ -193,7 +233,7 @@ export function createTerritoryScene(
         opacity: 0.9,
       });
       ring.bindTooltip(tooltipHtml(encircle.name), { className: "tch-tip", direction: "top" });
-      ring.on("click", () => callbacks.onWarElementClick?.(war.id));
+      ring.on("click", () => callbacks.onWarElementClick?.(activeWar.id));
       warGroup.addLayer(ring);
     }
     for (const battle of spec.battles) {
@@ -203,7 +243,7 @@ export function createTerritoryScene(
         direction: "top",
         offset: [0, -10],
       });
-      marker.on("click", () => callbacks.onWarElementClick?.(war.id));
+      marker.on("click", () => callbacks.onWarElementClick?.(activeWar.id));
       warGroup.addLayer(marker);
     }
     applyGroupVisibility();
@@ -217,10 +257,10 @@ export function createTerritoryScene(
     for (const polity of buildPolitySpecs(period)) {
       const polygon = L.polygon(polity.ring, {
         color: polity.color,
-        weight: 2,
-        opacity: 0.9,
+        weight: 2.2,
+        opacity: 0.95,
         fillColor: polity.color,
-        fillOpacity: 0.18,
+        fillOpacity: 0.26,
       });
       polygon.bindTooltip(tooltipHtml(polity.name, polity.note), {
         className: "tch-tip",
@@ -304,6 +344,16 @@ export function createTerritoryScene(
       }
     }
 
+    for (const city of buildCitySpecs(period)) {
+      const marker = L.marker(city.latlng, { icon: cityIcon(city.name) });
+      marker.bindTooltip(tooltipHtml(`${city.name} · ${city.polityName}`, city.note), {
+        className: "tch-tip",
+        direction: "top",
+        offset: [0, -8],
+      });
+      defenseGroup.addLayer(marker);
+    }
+
     for (const division of buildDivisionSpecs(period)) {
       const marker = L.marker(division.latlng, { icon: divisionIcon(division.name) });
       marker.bindTooltip(tooltipHtml(`${division.name} · ${division.kind}`, division.note), {
@@ -314,7 +364,7 @@ export function createTerritoryScene(
       divisionGroup.addLayer(marker);
     }
 
-    renderWarLayer(period);
+    renderWarState(null, []);
     applyGroupVisibility();
 
     const bounds = getPeriodBounds(period);
@@ -330,12 +380,11 @@ export function createTerritoryScene(
   return {
     setPeriod(period, animate) {
       currentPeriod = period;
-      selectedWarId = null;
+      hasWarContent = false;
       renderPeriod(period, animate);
     },
-    setSelectedWar(war) {
-      selectedWarId = war?.id ?? null;
-      if (currentPeriod) renderWarLayer(currentPeriod);
+    setWarState(activeWar, pastWars) {
+      renderWarState(activeWar, pastWars);
     },
     setLayerVisible(key, visible) {
       layerVisible[key] = visible;

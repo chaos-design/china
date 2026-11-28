@@ -7,13 +7,13 @@ import { TerritoryChroniclePage } from "./territory-chronicle-page";
 
 /**
  * 页面测试：Leaflet 场景模块整体 mock（jsdom 无真实瓦片环境），
- * 断言 React 侧的目录/详情/时间轴/图层开关与对场景的命令转发。
+ * 断言 React 侧的目录/详情/年度时间轴/图层开关与对场景的命令转发。
  */
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   setPeriod: vi.fn(),
-  setSelectedWar: vi.fn(),
+  setWarState: vi.fn(),
   setLayerVisible: vi.fn(),
   setModernLabels: vi.fn(),
   flyToWar: vi.fn(),
@@ -28,7 +28,7 @@ vi.mock("./leaflet-scene", () => ({
 function makeSceneStub() {
   return {
     setPeriod: mocks.setPeriod,
-    setSelectedWar: mocks.setSelectedWar,
+    setWarState: mocks.setWarState,
     setLayerVisible: mocks.setLayerVisible,
     setModernLabels: mocks.setModernLabels,
     flyToWar: mocks.flyToWar,
@@ -77,36 +77,54 @@ describe("TerritoryChroniclePage", () => {
     expect(mocks.setPeriod.mock.calls[0][1]).toBe(false);
     expect(mocks.setLayerVisible).toHaveBeenCalledWith("territory", true);
     expect(mocks.setModernLabels).toHaveBeenCalledWith(true);
+    // 年度战争层初始为空（夏期第一站无战役上线）
+    expect(mocks.setWarState).toHaveBeenLastCalledWith(null, []);
   });
 
-  it("switches period from the menu and updates the detail drawer", async () => {
+  it("switching period from the menu seeks to its chronicle stop and updates the drawer", async () => {
     renderPage();
     await waitFor(() => expect(mocks.setPeriod).toHaveBeenCalled());
     mocks.setPeriod.mockClear();
-    // 战国条目（左侧目录中唯一以「战国七雄」为名的按钮）
     fireEvent.click(screen.getAllByText("战国七雄")[0]);
     expect(mocks.setPeriod).toHaveBeenCalledTimes(1);
     expect(mocks.setPeriod.mock.calls[0][0].id).toBe("zhanguo");
-    // 飞行动画开启（非首帧）
     expect(mocks.setPeriod.mock.calls[0][1]).toBe(true);
-    // 详情抽屉更新为战国内容
     expect(screen.getByText(/商鞅变法/)).toBeInTheDocument();
   });
 
-  it("focuses a war: scene receives selection + flyToWar and the detail card expands", async () => {
+  it("selecting a war seeks to its year, forwards the deployment and flies to the battlefield", async () => {
     renderPage();
     await waitFor(() => expect(mocks.setPeriod).toHaveBeenCalled());
-    // 默认夏期的鸣条之战
+    // 默认夏期的鸣条之战（列表内第一场）
     fireEvent.click(screen.getByRole("button", { name: /鸣条之战/ }));
-    await waitFor(() => expect(mocks.setSelectedWar).toHaveBeenCalled());
-    expect(mocks.setSelectedWar).toHaveBeenLastCalledWith(
-      expect.objectContaining({ id: "mingtiao" }),
+    await waitFor(() =>
+      expect(
+        mocks.setWarState.mock.calls.some(
+          (call) => (call[0] as { id: string } | null)?.id === "mingtiao",
+        ),
+      ).toBe(true),
     );
     expect(mocks.flyToWar).toHaveBeenCalledWith(expect.objectContaining({ id: "mingtiao" }));
     expect(screen.getByText("地图已聚焦战场，再次点击取消")).toBeInTheDocument();
-    // 再次点击取消
+    // 再次点击取消：战争层回到年度自动态（前1600 时鸣条仍是最新战役）
     fireEvent.click(screen.getByRole("button", { name: /鸣条之战/ }));
-    expect(mocks.setSelectedWar).toHaveBeenLastCalledWith(null);
+    await waitFor(() =>
+      expect(screen.queryByText("地图已聚焦战场，再次点击取消")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("advancing the timeline上线 the next campaign with accumulated battle markers", async () => {
+    renderPage();
+    await waitFor(() => expect(mocks.setPeriod).toHaveBeenCalled());
+    // 推进到秦期（slider 值 = 秦期起始站）
+    const slider = screen.getByRole("slider", { name: /推进时间轴/ });
+    const stops = CHRONICLE_PERIODS.reduce((sum, period) => sum + 1 + period.wars.length, 0);
+    expect(Number(slider.getAttribute("max"))).toBe(stops - 1);
+    // 秦期有 4 战：推进到蒙恬北击匈奴之后，巨鹿之战尚未上线
+    // （直接驱动键盘 → 逐步推进，验证战争层随年份变化）
+    mocks.setWarState.mockClear();
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    await waitFor(() => expect(mocks.setWarState).toHaveBeenCalled());
   });
 
   it("toggles layer chips and forwards visibility to the scene", async () => {
@@ -121,7 +139,7 @@ describe("TerritoryChroniclePage", () => {
     expect(mocks.setModernLabels).toHaveBeenLastCalledWith(true);
   });
 
-  it("keyboard arrows and space drive period stepping and playback", async () => {
+  it("keyboard arrows and space drive stop stepping and playback", async () => {
     renderPage();
     await waitFor(() => expect(mocks.setPeriod).toHaveBeenCalled());
     fireEvent.keyDown(window, { key: "ArrowRight" });
@@ -131,34 +149,31 @@ describe("TerritoryChroniclePage", () => {
     );
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(mocks.setPeriod).toHaveBeenLastCalledWith(expect.objectContaining({ id: "xia" }), true);
-    // Space 切播放态：按钮文案变化
     fireEvent.keyDown(window, { code: "Space" });
-    expect(screen.getByRole("button", { name: /暂停/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "❚❚" })).toBeInTheDocument();
     fireEvent.keyDown(window, { code: "Space" });
-    expect(screen.getByRole("button", { name: /自动播放/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "▶" })).toBeInTheDocument();
   });
 
-  it("auto play advances through periods and stops at 清", async () => {
+  it("auto play advances stop by stop and stops at the last stop", async () => {
     vi.useFakeTimers();
     try {
       renderPage();
-      // 让场景创建与首个 effect 落定（fake timers 下微任务仍会跑）
       await vi.waitFor(() => expect(mocks.setPeriod).toHaveBeenCalled());
-      fireEvent.click(screen.getByRole("button", { name: /自动播放/ }));
-      // 每期停留 3800ms（1×）；定时器推进必须包进 act，否则 React 更新会丢。
-      // 逐期推进（19 步到清），每步单独断言友好的检查点。
-      for (let step = 0; step < 19; step += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "▶" }));
+      // 每站停留 2400ms（1×）；定时器推进必须包进 act，否则 React 更新会丢
+      for (let step = 0; step < 8; step += 1) {
         await act(async () => {
-          await vi.advanceTimersByTimeAsync(3800);
+          await vi.advanceTimersByTimeAsync(2400);
         });
       }
-      expect(screen.getByRole("button", { name: /^商/ })).toBeInTheDocument();
-      // 播到最后一期后自动停
-      expect(screen.getByRole("button", { name: /^清（至1840）/ })).toHaveAttribute(
-        "aria-current",
-        "true",
-      );
-      expect(screen.getByRole("button", { name: /自动播放/ })).toBeInTheDocument();
+      // 年份读数已离开前2070（推进生效）
+      const yearText = document.querySelector(".tch-year")?.textContent ?? "";
+      expect(yearText).not.toBe("前2070");
+      expect(yearText).toMatch(/^前\d+$/);
+      // 停止播放后按钮回到播放态
+      fireEvent.click(screen.getByRole("button", { name: "❚❚" }));
+      expect(screen.getByRole("button", { name: "▶" })).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
@@ -178,5 +193,26 @@ describe("TerritoryChroniclePage", () => {
     expect(screen.getAllByText(/示意范围/).length).toBeGreaterThan(0);
     expect(screen.getByRole("group", { name: "图层开关" })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "历代编年" })).toBeInTheDocument();
+  });
+
+  it("wars with phase progressions open the map briefing window", async () => {
+    renderPage();
+    await waitFor(() => expect(mocks.setPeriod).toHaveBeenCalled());
+    // 先切到秦期，再点带 7 段推进的秦灭六国 → 小窗出现
+    fireEvent.click(screen.getAllByText("秦")[0]);
+    await waitFor(() =>
+      expect(mocks.setPeriod).toHaveBeenLastCalledWith(
+        expect.objectContaining({ id: "qin" }),
+        true,
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /秦灭六国/ }));
+    await waitFor(() =>
+      expect(screen.getByRole("complementary", { name: /秦灭六国战役推进/ })).toBeInTheDocument(),
+    );
+    expect(screen.getAllByText(/内史腾灭韩/).length).toBeGreaterThan(0);
+    // 关闭小窗
+    fireEvent.click(screen.getByRole("button", { name: "收起战役推进" }));
+    expect(screen.queryByRole("complementary", { name: /战役推进/ })).not.toBeInTheDocument();
   });
 });

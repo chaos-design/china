@@ -2,16 +2,24 @@ import { describe, expect, it } from "vitest";
 
 import { CHRONICLE_PERIODS, getChroniclePeriod } from "./registry";
 import {
+  buildArrowPolygon,
   buildCapitalSpecs,
+  buildCitySpecs,
   buildCoreRegionSpecs,
   buildDefenseSpecs,
   buildDivisionSpecs,
   buildPolitySpecs,
+  buildTimeStops,
   buildWarList,
   buildWarSpec,
   DEFENSE_ZOOM,
   DIVISION_ZOOM,
+  findRingSelfIntersection,
   getPeriodBounds,
+  latestWarAtOrBefore,
+  parseWarYearRange,
+  pastWarsAtOrBefore,
+  smoothRing,
   toLatLng,
 } from "./territory-overlays";
 
@@ -108,14 +116,21 @@ describe("territory-overlays", () => {
     expect(ming.filter((d) => d.kind === "边镇")).toHaveLength(9);
   });
 
-  it("war spec derives arrows with tips, battles, encircles and a padded bounds box", () => {
+  it("war spec derives arrow polygons with tips, battles, encircles and a padded bounds box", () => {
     const ans = getChroniclePeriod("tang").wars.find((w) => w.id === "anshi-zhiluan");
     expect(ans).toBeDefined();
     const spec = buildWarSpec(ans!);
     expect(spec.arrows.length).toBeGreaterThanOrEqual(2);
     for (const arrow of spec.arrows) {
-      expect(arrow.latlngs.length).toBeGreaterThanOrEqual(2);
+      expect(arrow.path.length).toBeGreaterThanOrEqual(2);
       expect(Number.isFinite(arrow.tipAngleDeg)).toBe(true);
+      if (arrow.kind === "advance") {
+        expect(arrow.ring).toBeDefined();
+        expect(arrow.ring!.length).toBeGreaterThanOrEqual(8);
+        expect(arrow.ring![0]).toEqual(arrow.ring![arrow.ring!.length - 1]);
+      } else {
+        expect(arrow.ring).toBeUndefined();
+      }
     }
     const [[s, w], [n, e]] = spec.bounds;
     expect(s).toBeLessThan(n);
@@ -126,6 +141,114 @@ describe("territory-overlays", () => {
     expect(n).toBeGreaterThan(luoyangLat);
     // 回纥助唐的箭头北至漠北（lat 45），包围盒应覆盖
     expect(n).toBeGreaterThan(44.5);
+  });
+
+  it("special wars carry phase progressions; 安史之乱 has 9 phases", () => {
+    const spec = buildWarSpec(
+      getChroniclePeriod("tang").wars.find((w) => w.id === "anshi-zhiluan")!,
+    );
+    expect(spec.phases).toHaveLength(9);
+    expect(spec.phases![0].year).toBe("755 十一月");
+    const plain = buildWarSpec(getChroniclePeriod("tang").wars.find((w) => w.id === "huangchao")!);
+    expect(plain.phases).toBeUndefined();
+  });
+
+  it("smoothRing densifies rings into closed organic curves without self-intersection", () => {
+    for (const period of CHRONICLE_PERIODS) {
+      for (const polity of period.polities) {
+        const smooth = smoothRing(polity.territory, { seed: `${period.id}/${polity.id}` });
+        expect(smooth.length).toBeGreaterThanOrEqual(polity.territory.length * 5);
+        expect(smooth[0]).toEqual(smooth[smooth.length - 1]);
+        const crossing = findRingSelfIntersection(smooth);
+        expect(crossing, `${period.id}/${polity.id}: ${crossing ?? ""}`).toBeNull();
+        for (const [lng, lat] of smooth) {
+          expect(lng).toBeGreaterThan(70);
+          expect(lng).toBeLessThan(145);
+          expect(lat).toBeGreaterThan(14);
+          expect(lat).toBeLessThan(58);
+        }
+      }
+    }
+  });
+
+  it("buildArrowPolygon produces a closed ring hugging its path", () => {
+    const path: [number, number][] = [
+      [110.0, 35.0],
+      [112.0, 36.0],
+      [114.0, 37.0],
+    ];
+    const ring = buildArrowPolygon(path);
+    expect(ring.length).toBeGreaterThanOrEqual(16);
+    // 闭合
+    expect(ring[0][0]).toBeCloseTo(ring[ring.length - 1][0], 6);
+    expect(ring[0][1]).toBeCloseTo(ring[ring.length - 1][1], 6);
+    // 所有环点到路径线段的距离都在箭头宽度量级内
+    const pointSegDist = (
+      [px, py]: [number, number],
+      [ax, ay]: [number, number],
+      [bx, by]: [number, number],
+    ): number => {
+      const dx = bx - ax;
+      const dy = by - ay;
+      const lenSq = dx * dx + dy * dy || 1e-9;
+      const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+      return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+    };
+    for (const point of ring) {
+      const minDist = Math.min(
+        ...path.slice(0, -1).map((seg, i) => pointSegDist(point, seg, path[i + 1])),
+      );
+      expect(minDist).toBeLessThan(0.95);
+    }
+    // 短路径（两点）也可用
+    const short = buildArrowPolygon([
+      [110.0, 35.0],
+      [111.0, 35.5],
+    ]);
+    expect(short.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("parseWarYearRange handles BC, AD spans and slashes", () => {
+    expect(parseWarYearRange("约前1600")).toEqual([-1600, -1600]);
+    expect(parseWarYearRange("前260")).toEqual([-260, -260]);
+    expect(parseWarYearRange("前230 — 前221")).toEqual([-230, -221]);
+    expect(parseWarYearRange("前202 — 公元8")).toEqual([-202, 8]);
+    expect(parseWarYearRange("前354 / 前341")).toEqual([-354, -341]);
+    expect(parseWarYearRange("755 — 763")).toEqual([755, 763]);
+    expect(parseWarYearRange("1644")).toEqual([1644, 1644]);
+    expect(parseWarYearRange("23")).toEqual([23, 23]);
+  });
+
+  it("buildTimeStops sorts periods and wars into a monotonic year axis", () => {
+    const stops = buildTimeStops(CHRONICLE_PERIODS);
+    expect(stops.length).toBe(20 + CHRONICLE_PERIODS.reduce((sum, p) => sum + p.wars.length, 0));
+    for (let i = 1; i < stops.length; i += 1) {
+      expect(stops[i].year).toBeGreaterThanOrEqual(stops[i - 1].year);
+    }
+    expect(stops[0].kind).toBe("period");
+    expect(stops[0].label).toBe("夏");
+    const qingIndex = CHRONICLE_PERIODS.findIndex((p) => p.id === "qing");
+    const qingStops = stops.filter((s) => s.periodIndex === qingIndex);
+    expect(qingStops[0].year).toBe(1644);
+    expect(stops.some((s) => s.warId === "ru-guan" && s.year === 1644)).toBe(true);
+  });
+
+  it("latestWarAtOrBefore picks the most recent campaign for a year", () => {
+    const tang = getChroniclePeriod("tang");
+    expect(latestWarAtOrBefore(tang, 629)).toBeNull();
+    expect(latestWarAtOrBefore(tang, 630)?.id).toBe("mie-dongtujue");
+    expect(latestWarAtOrBefore(tang, 900)?.id).toBe("huangchao");
+    const past = pastWarsAtOrBefore(tang, 900, "huangchao");
+    expect(past.map((w) => w.id)).toEqual(["mie-dongtujue", "anshi-zhiluan"]);
+  });
+
+  it("city specs carry polity color; 战国秦 has 栎阳", () => {
+    const zhanguo = buildCitySpecs(getChroniclePeriod("zhanguo"));
+    expect(zhanguo.length).toBeGreaterThanOrEqual(15);
+    const liyang = zhanguo.find((c) => c.name === "栎阳");
+    expect(liyang?.polityName).toBe("秦国");
+    const qingCities = buildCitySpecs(getChroniclePeriod("qing"));
+    expect(qingCities.some((c) => c.name === "广州")).toBe(true);
   });
 
   it("襄阳 war yields an encircle ring and both sides' battles", () => {

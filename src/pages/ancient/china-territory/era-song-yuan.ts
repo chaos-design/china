@@ -101,6 +101,14 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
             note: "洛阳，退闲重臣所居",
           },
         ],
+        cities: [
+          { name: "应天府", ll: [115.65, 34.41], note: "南京商丘，太祖龙兴" },
+          { name: "大名府", ll: [115.15, 36.28], note: "北京大名，庆历北巡备辽" },
+          { name: "江宁府", ll: [118.8, 32.06], note: "江南东路治，六朝故都" },
+          { name: "成都府", ll: [104.06, 30.67], note: "交子诞生之地" },
+          { name: "广州", ll: [113.26, 23.13], note: "市舶司首设之港" },
+          { name: "泉州", ll: [118.58, 24.91], note: "「涨海声中万国商」" },
+        ],
         sources: ["《宋史·地理志》", "谭其骧《中国历史地图集》第六册"],
       },
       {
@@ -155,6 +163,11 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
             note: "1007年建，澶渊后宋使入辽首站",
           },
         ],
+        cities: [
+          { name: "辽阳", ll: [123.23, 41.27], note: "东京，渤海故地" },
+          { name: "大同", ll: [113.3, 40.09], note: "西京，幽云西端" },
+          { name: "黄龙府", ll: [125.18, 44.11], note: "农安，女真崛起之域" },
+        ],
         sources: ["《辽史·地理志》", "谭其骧《中国历史地图集》第六册"],
       },
       {
@@ -190,6 +203,12 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
             note: "今银川，元昊筑之「人骑驼行三日乃见其门」",
           },
         ],
+        cities: [
+          { name: "西平府", ll: [106.19, 38.11], note: "灵州，夏之腹地粮仓" },
+          { name: "甘州", ll: [100.45, 38.93], note: "河西重镇，回鹘故都" },
+          { name: "凉州", ll: [102.64, 37.93], note: "「大凉」，河西都会" },
+          { name: "黑水城", ll: [99.85, 41.77], note: "居延戍堡，西夏文书之库" },
+        ],
         sources: ["《宋史·夏国传》", "谭其骧《中国历史地图集》第六册"],
       },
       {
@@ -217,6 +236,11 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
         ],
         capitals: [
           { name: "羊苴咩城", ll: [100.22, 25.61], kind: "main", note: "今大理，崇圣寺三塔犹存" },
+        ],
+        cities: [
+          { name: "善阐", ll: [102.71, 25.04], note: "东都昆明" },
+          { name: "永昌", ll: [99.16, 25.11], note: "保山，永昌郡故地" },
+          { name: "剑川", ll: [99.9, 26.53], note: "北陲重镇" },
         ],
         sources: ["《宋史·外国传·大理》", "谭其骧《中国历史地图集》第六册"],
       },
@@ -500,6 +524,14 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
             note: "绍兴八年定都，「直把杭州作汴州」",
           },
         ],
+        cities: [
+          { name: "建康府", ll: [118.8, 32.06], note: "留都建康，长江防帅驻地" },
+          { name: "泉州", ll: [118.58, 24.91], note: "刺桐港，南宋海税半壁" },
+          { name: "明州", ll: [121.55, 29.87], note: "庆元港，高丽日本商路" },
+          { name: "广州", ll: [113.26, 23.13], note: "市舶大港" },
+          { name: "鄂州", ll: [114.3, 30.55], note: "武汉，荆湖门户" },
+          { name: "襄阳", ll: [112.15, 32.05], note: "「铁打的襄阳」" },
+        ],
         sources: ["《宋史·地理志》", "谭其骧《中国历史地图集》第六册"],
       },
       {
@@ -580,6 +612,13 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
             note: "金源故地，阿城白城遗址",
           },
         ],
+        cities: [
+          { name: "辽阳", ll: [123.23, 41.27], note: "东京，东北重镇" },
+          { name: "太原", ll: [112.55, 37.87], note: "河东雄镇" },
+          { name: "益都", ll: [118.48, 36.68], note: "山东东路治" },
+          { name: "洛阳", ll: [112.45, 34.62], note: "中京金昌府" },
+          { name: "归德", ll: [115.65, 34.41], note: "商丘，宣宗南迁后枢纽" },
+        ],
         sources: ["《金史·地理志》", "谭其骧《中国历史地图集》第六册"],
       },
       {
@@ -608,6 +647,12 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
           [97.0, 39.8],
         ],
         capitals: [{ name: "兴庆府", ll: [106.28, 38.47], kind: "main" }],
+        cities: [
+          { name: "西平府", ll: [106.19, 38.11], note: "灵州粮仓" },
+          { name: "甘州", ll: [100.45, 38.93], note: "河西重镇" },
+          { name: "凉州", ll: [102.64, 37.93], note: "河西都会" },
+          { name: "黑水城", ll: [99.85, 41.77], note: "居延戍堡" },
+        ],
         sources: ["《宋史·夏国传》", "《西夏书事》"],
       },
       {
@@ -669,6 +714,11 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
           [99.0, 24.5],
         ],
         capitals: [{ name: "羊苴咩城", ll: [100.22, 25.61], kind: "main" }],
+        cities: [
+          { name: "善阐", ll: [102.71, 25.04], note: "东都昆明" },
+          { name: "永昌", ll: [99.16, 25.11], note: "保山" },
+          { name: "剑川", ll: [99.9, 26.53], note: "北陲重镇" },
+        ],
         sources: ["《元史·地理志》", "谭其骧《中国历史地图集》第六册"],
       },
     ],
@@ -843,6 +893,13 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
           { kind: "battle", side: 1, name: "襄阳", ll: [112.15, 32.05] },
           { kind: "battle", side: 2, name: "樊城", ll: [112.18, 32.1] },
         ],
+        phases: [
+          { year: "1267", text: "刘整献策「攻宋当自襄阳始」，蒙古军临汉水" },
+          { year: "1268—1270", text: "筑鹿门、白河口诸堡，连城断粮道，围城合拢" },
+          { year: "1272", text: "张顺张贵率死士自清泥河入援——顺死贵入，旋败" },
+          { year: "1273 正月", text: "回回炮破樊城，守将牛富战死" },
+          { year: "1273 二月", text: "吕文焕以襄阳降，荆襄门户洞开" },
+        ],
         sources: ["《宋史·李庭芝传》", "《元史·刘整传》《元史·阿术传》"],
       },
       {
@@ -879,6 +936,14 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
             ],
           },
           { kind: "battle", side: 1, name: "崖山", ll: [113.1, 22.3] },
+        ],
+        phases: [
+          { year: "1276 二月", text: "元军入临安，谢太后奉表降；益王昰、广王昺出走" },
+          { year: "1276 五月", text: "立昰于福州，行朝自海上流转泉州、潮州" },
+          { year: "1278 四月", text: "帝昰病殂，卫王昺即位；文天祥被俘于五坡岭" },
+          { year: "1279 正月", text: "行朝泊崖山，张世杰结千余舰为寨" },
+          { year: "1279 二月", text: "张弘范南北夹攻断汲道，决战宋军溃" },
+          { year: "1279 三月", text: "陆秀夫负帝昺蹈海，从死者十余万（史载口径），宋亡" },
         ],
         sources: ["《宋史·二王传》", "《文山先生全集》"],
       },
@@ -990,6 +1055,13 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
             kind: "secondary",
             note: "忽必烈藩邸旧城，夏都避暑",
           },
+        ],
+        cities: [
+          { name: "杭州", ll: [120.16, 30.25], note: "江浙行省治，「天下税粮居其半」" },
+          { name: "泉州", ll: [118.58, 24.91], note: "马可·波罗笔下的世界大港" },
+          { name: "广州", ll: [113.26, 23.13], note: "市舶大港" },
+          { name: "扬州", ll: [119.42, 32.39], note: "运河与盐政中枢" },
+          { name: "成都", ll: [104.06, 30.67], note: "四川行省治" },
         ],
         sources: ["《元史·地理志》", "谭其骧《中国历史地图集》第七册"],
       },

@@ -39,6 +39,22 @@ export interface PolityCapital {
   note?: string;
 }
 
+/** 政权疆域内的重要城市（经济 / 军事 / 文化重镇，区别于都城与政区治所）。 */
+export interface PolityCity {
+  name: string;
+  ll: LngLat;
+  /** 一句话说明（地位 / 事件关联），可缺省。 */
+  note?: string;
+}
+
+/** 战役推进阶段（特殊战争的小窗叙事：按时间列出的推进节点）。 */
+export interface WarPhase {
+  /** 阶段时间表述（如「755 十一月」）。 */
+  year: string;
+  /** 该阶段发生了什么（一句话）。 */
+  text: string;
+}
+
 /** 一期之内的一个政权（统一王朝只有一个，分裂期每政权一份）。 */
 export interface ChroniclePolity {
   /** 期内唯一 id（如战国「qin-state」）。 */
@@ -53,6 +69,8 @@ export interface ChroniclePolity {
   /** 羁縻 / 势力范围（虚线绘制，可缺省）。 */
   looseTerritory?: readonly LngLat[];
   capitals: readonly PolityCapital[];
+  /** 重要城市采样（渲染为小圆点，放大后出现）；游牧政权可缺省。 */
+  cities?: readonly PolityCity[];
   sources: readonly string[];
 }
 
@@ -103,7 +121,7 @@ export interface WarOp {
 export interface WarEvent {
   id: string;
   name: string;
-  /** 年份表述（如「前260」或「755—763」）。 */
+  /** 年份表述（如「前260」或「755 — 763」）；机器可读区间由 parseWarYearRange 解析。 */
   year: string;
   sideA: string;
   sideB: string;
@@ -115,6 +133,8 @@ export interface WarEvent {
   detail: string;
   outcome: string;
   ops?: readonly WarOp[];
+  /** 战役推进阶段（特殊战争的地图小窗叙事），可缺省。 */
+  phases?: readonly WarPhase[];
   sources: readonly string[];
 }
 

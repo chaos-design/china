@@ -109,6 +109,13 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
             note: "大业元年营建东都，月役二百万人",
           },
         ],
+        cities: [
+          { name: "江都", ll: [119.42, 32.39], note: "炀帝三幸，隋亡于此" },
+          { name: "成都", ll: [104.06, 30.67], note: "蜀郡治所" },
+          { name: "太原", ll: [112.55, 37.87], note: "北门重镇，晋阳宫所在" },
+          { name: "广州", ll: [113.26, 23.13], note: "南海市舶所聚" },
+          { name: "张掖", ll: [100.45, 38.93], note: "裴矩经略西域之馆" },
+        ],
         sources: ["《隋书·地理志》", "谭其骧《中国历史地图集》第五册"],
       },
     ],
@@ -213,6 +220,14 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
           },
           { kind: "battle", side: 2, name: "萨水", ll: [125.0, 39.7] },
           { kind: "battle", side: 2, name: "辽东城", ll: [123.23, 41.27] },
+        ],
+        phases: [
+          {
+            year: "大业八年（612）",
+            text: "一征：百万大军渡辽水，宇文述九军败于萨水，三十万五千还者唯二千七百",
+          },
+          { year: "大业九年（613）", text: "二征：围辽东城不下，杨玄感起兵黎阳，炀帝撤军回讨" },
+          { year: "大业十年（614）", text: "三征：至怀远，来护儿败高丽兵，高丽乞降而还——天下已乱" },
         ],
         sources: ["《隋书·炀帝纪》", "《资治通鉴》卷一百八十一"],
       },
@@ -370,6 +385,14 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
           { name: "长安", ll: [108.94, 34.27], kind: "main", note: "百万人口国际都会，天宝极盛" },
           { name: "洛阳", ll: [112.45, 34.62], kind: "secondary", note: "东都，漕运枢纽" },
         ],
+        cities: [
+          { name: "太原", ll: [112.55, 37.87], note: "北都晋阳，李唐龙兴" },
+          { name: "扬州", ll: [119.42, 32.39], note: "「扬一益二」，淮南雄富" },
+          { name: "成都", ll: [104.06, 30.67], note: "剑南节度，玄宗避乱所幸" },
+          { name: "广州", ll: [113.26, 23.13], note: "市舶大港，蕃坊所聚" },
+          { name: "泉州", ll: [118.58, 24.91], note: "中晚唐海外贸易崛起" },
+          { name: "凉州", ll: [102.64, 37.93], note: "河西都会，陇右膏腴" },
+        ],
         sources: ["《旧唐书·地理志》", "《新唐书·地理志》", "谭其骧《中国历史地图集》第五册"],
       },
       {
@@ -408,6 +431,10 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
         capitals: [
           { name: "逻些", ll: [91.11, 29.66], kind: "main", note: "今拉萨，布达拉宫前身红山宫" },
         ],
+        cities: [
+          { name: "琼结", ll: [91.7, 29.15], note: "吐蕃发祥地，藏王墓所在" },
+          { name: "彭域", ll: [91.2, 30.05], note: "拉萨河谷牧场" },
+        ],
         sources: ["《旧唐书·吐蕃传》", "谭其骧《中国历史地图集》第五册"],
       },
       {
@@ -433,6 +460,7 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
         capitals: [
           { name: "牙帐", ll: [106.0, 45.5], kind: "main", note: "黑沙城牙帐，逐水草无定所" },
         ],
+        cities: [],
         sources: ["《旧唐书·突厥传》", "阙特勤碑", "谭其骧《中国历史地图集》第五册"],
       },
     ],
@@ -646,6 +674,17 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
           },
           { kind: "battle", side: 1, name: "香积寺", ll: [108.6, 34.2] },
         ],
+        phases: [
+          { year: "755 十一月", text: "安禄山反于范阳，十五万众号称二十万南下" },
+          { year: "755 十二月", text: "渡黄河陷洛阳；756 正月称大燕皇帝" },
+          { year: "756 六月", text: "哥舒翰被迫出关，灵宝之战十八万丧尽，潼关失守" },
+          { year: "756 七月", text: "玄宗奔蜀，马嵬驿兵变；肃宗即位灵武" },
+          { year: "757 九月", text: "郭子仪率唐军与回纥兵香积寺大战，收复长安" },
+          { year: "757 十月", text: "再收洛阳，安庆绪逃邺郡" },
+          { year: "759 三月", text: "九节度邺城溃败，史思明再陷洛阳" },
+          { year: "762 十月", text: "再收洛阳，史思明父子内乱先后败亡" },
+          { year: "763 正月", text: "史朝义走死温泉栅，八年之乱平" },
+        ],
         sources: ["《旧唐书·安禄山传》", "《资治通鉴》卷二百一十七至二百二十二"],
       },
       {
@@ -738,6 +777,11 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
           },
           { name: "洛阳", ll: [112.45, 34.62], kind: "secondary", note: "西京河南府" },
         ],
+        cities: [
+          { name: "太原", ll: [112.55, 37.87], note: "石敬瑭旧镇" },
+          { name: "宋州", ll: [115.65, 34.41], note: "归德军，漕运要冲" },
+          { name: "相州", ll: [114.35, 36.1], note: "彰德军，河北重镇" },
+        ],
         sources: ["《旧五代史·晋书》", "谭其骧《中国历史地图集》第五册"],
       },
       {
@@ -797,6 +841,10 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
             note: "938年升幽州为南京，燕云核心",
           },
         ],
+        cities: [
+          { name: "辽阳", ll: [123.23, 41.27], note: "东丹故地东京" },
+          { name: "云州", ll: [113.3, 40.09], note: "西京大同" },
+        ],
         sources: ["《辽史·地理志》", "谭其骧《中国历史地图集》第五册"],
       },
       {
@@ -837,6 +885,11 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
             note: "李昪筑城，秦淮河畔十国最富庶之都",
           },
         ],
+        cities: [
+          { name: "江都", ll: [119.42, 32.39], note: "东都扬州故地" },
+          { name: "洪州", ll: [115.89, 28.68], note: "南都南昌" },
+          { name: "润州", ll: [119.45, 32.2], note: "镇江，长江锁钥" },
+        ],
         sources: ["《南唐书》", "《十国春秋》"],
       },
       {
@@ -863,6 +916,11 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
             note: "钱镠筑罗城，「三面云山一面城」",
           },
         ],
+        cities: [
+          { name: "越州", ll: [120.58, 30.0], note: "东府绍兴" },
+          { name: "苏州", ll: [120.62, 31.32], note: "中吴军府" },
+          { name: "明州", ll: [121.55, 29.87], note: "海港宁波，东渡高丽日本" },
+        ],
         sources: ["《吴越备史》", "《新五代史·吴越世家》"],
       },
       {
@@ -882,6 +940,11 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
           [118.0, 26.4],
         ],
         capitals: [{ name: "长乐府（福州）", ll: [119.3, 26.08], kind: "main" }],
+        cities: [
+          { name: "建州", ll: [118.3, 27.03], note: "闽北重镇" },
+          { name: "泉州", ll: [118.58, 24.91], note: "「宁可开门作节度使」的海外贸易港" },
+          { name: "漳州", ll: [117.65, 24.51], note: "陈元光开漳之地" },
+        ],
         sources: ["《新五代史·闽世家》", "《十国春秋》"],
       },
       {
@@ -904,6 +967,11 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
           [109.0, 30.0],
         ],
         capitals: [{ name: "长沙府（潭州）", ll: [112.94, 28.23], kind: "main" }],
+        cities: [
+          { name: "朗州", ll: [111.69, 29.03], note: "常德，沅澧之会" },
+          { name: "衡州", ll: [112.61, 26.89], note: "衡阳，马殷铸币之地" },
+          { name: "岳州", ll: [113.1, 29.36], note: "岳阳，洞庭门户" },
+        ],
         sources: ["《旧五代史·马殷传》", "《十国春秋》"],
       },
       {
@@ -929,6 +997,11 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
           [106.0, 22.6],
         ],
         capitals: [{ name: "兴王府（广州）", ll: [113.26, 23.13], kind: "main" }],
+        cities: [
+          { name: "韶州", ll: [113.6, 24.81], note: "韶关，梅关道入岭南之口" },
+          { name: "桂州", ll: [110.29, 25.28], note: "桂林，静江军" },
+          { name: "邕州", ll: [108.32, 22.82], note: "南宁，西陲重镇" },
+        ],
         sources: ["《新五代史·南汉世家》", "《十国春秋》"],
       },
       {
@@ -954,6 +1027,11 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
         capitals: [
           { name: "成都府", ll: [104.06, 30.67], kind: "main", note: "城上遍植芙蓉，四十里如锦绣" },
         ],
+        cities: [
+          { name: "兴元", ll: [107.02, 33.07], note: "汉中，蜀之北门" },
+          { name: "梓州", ll: [105.09, 31.25], note: "三台，川中东路治" },
+          { name: "夔州", ll: [109.46, 31.02], note: "瞿塘要塞" },
+        ],
         sources: ["《旧五代史·孟知祥传》", "《十国春秋》"],
       },
       {
@@ -971,6 +1049,10 @@ export const SUI_TANG_PERIODS: ChroniclePeriod[] = [
           [110.8, 30.6],
         ],
         capitals: [{ name: "江陵府", ll: [112.18, 30.35], kind: "main" }],
+        cities: [
+          { name: "归州", ll: [110.98, 30.83], note: "秭归，屈子故里" },
+          { name: "峡州", ll: [111.29, 30.69], note: "宜昌，三峡之口" },
+        ],
         sources: ["《新五代史·南平世家》", "《十国春秋》"],
       },
     ],

@@ -57,6 +57,12 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
             note: "禹都安邑说，对应夏县禹王城",
           },
         ],
+        cities: [
+          { name: "平阳", ll: [111.52, 36.09], note: "尧都平阳，唐尧旧地" },
+          { name: "蒲坂", ll: [110.29, 34.89], note: "河曲重镇，舜都旧说" },
+          { name: "老丘", ll: [114.5, 34.8], note: "杼所居，夏都东扩" },
+          { name: "原", ll: [112.6, 35.07], note: "帝杼居原，济源之北" },
+        ],
         sources: ["《史记·夏本纪》", "《古本竹书纪年》", "谭其骧《中国历史地图集》第一册"],
       },
     ],
@@ -202,6 +208,12 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
             note: "早商军事重镇，或即「西亳」",
           },
         ],
+        cities: [
+          { name: "朝歌", ll: [114.19, 35.61], note: "纣之别都，鹿台所在" },
+          { name: "邢", ll: [114.5, 37.07], note: "祖乙迁邢，井方之地" },
+          { name: "奄", ll: [116.99, 35.6], note: "南庚迁奄，东方重邑" },
+          { name: "相", ll: [114.3, 35.85], note: "河亶甲居相" },
+        ],
         sources: ["《史记·殷本纪》", "殷墟甲骨卜辞", "谭其骧《中国历史地图集》第一册"],
       },
     ],
@@ -314,6 +326,11 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
             kind: "secondary",
             note: "周公营建东都，迁殷顽民于此，驻成周八师",
           },
+        ],
+        cities: [
+          { name: "岐邑", ll: [107.9, 34.38], note: "周原，周人兴起的根本" },
+          { name: "丰京", ll: [108.72, 34.22], note: "文王作丰，与镐隔沣相望" },
+          { name: "桃林", ll: [110.9, 34.5], note: "函谷之塞，守崤函之险" },
         ],
         sources: ["《史记·周本纪》", "何尊铭文", "谭其骧《中国历史地图集》第一册"],
       },
@@ -457,6 +474,7 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
           [112.0, 34.8],
         ],
         capitals: [{ name: "王城（洛邑）", ll: [112.42, 34.66], kind: "main" }],
+        cities: [{ name: "谷城", ll: [112.6, 34.75], note: "王畿小邑" }],
         sources: ["《史记·周本纪》", "谭其骧《中国历史地图集》第一册"],
       },
       {
@@ -480,6 +498,11 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
           [116.2, 37.6],
         ],
         capitals: [{ name: "临淄", ll: [118.35, 36.82], kind: "main" }],
+        cities: [
+          { name: "即墨", ll: [120.2, 36.77], note: "胶东大邑，田单复国之地" },
+          { name: "莒", ll: [118.83, 35.58], note: "东南重镇，乐毅伐齐仅存之二城" },
+          { name: "谭", ll: [117.53, 36.72], note: "齐所灭子国故地" },
+        ],
         sources: ["《史记·齐太公世家》", "《左传》僖公九年"],
       },
       {
@@ -503,6 +526,11 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
         capitals: [
           { name: "新田", ll: [111.37, 35.62], kind: "main", note: "景公迁都新田（侯马）" },
         ],
+        cities: [
+          { name: "绛", ll: [111.58, 35.5], note: "晋都新田旧称，春秋百年政治中枢" },
+          { name: "曲沃", ll: [111.58, 35.47], note: "桓叔之封，曲沃代翼之所自出" },
+          { name: "蒲", ll: [111.0, 36.4], note: "重耳奔蒲，北边重邑" },
+        ],
         sources: ["《史记·晋世家》", "《左传》僖公二十八年"],
       },
       {
@@ -525,6 +553,11 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
           [111.0, 33.2],
         ],
         capitals: [{ name: "郢（纪南城）", ll: [112.18, 30.35], kind: "main" }],
+        cities: [
+          { name: "鄢", ll: [112.25, 31.72], note: "楚之别都，宜城故郢" },
+          { name: "宛", ll: [112.53, 32.99], note: "铁器之乡，方城门户" },
+          { name: "陈", ll: [114.36, 33.75], note: "陈国故都，楚惠王灭陈后置县" },
+        ],
         sources: ["《史记·楚世家》", "《左传》宣公十二年"],
       },
       {
@@ -549,6 +582,11 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
         capitals: [
           { name: "雍", ll: [107.37, 34.5], kind: "main", note: "德公至悼公都雍（凤翔）" },
         ],
+        cities: [
+          { name: "平阳", ll: [107.34, 34.36], note: "武公所都" },
+          { name: "汧邑", ll: [106.86, 34.89], note: "襄公东进第一站" },
+          { name: "陈仓", ll: [107.37, 34.35], note: "秦蜀孔道，暗度陈仓之地" },
+        ],
         sources: ["《史记·秦本纪》", "《左传》僖公三十三年"],
       },
       {
@@ -568,6 +606,10 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
           [115.0, 40.5],
         ],
         capitals: [{ name: "蓟", ll: [116.1, 39.6], kind: "main" }],
+        cities: [
+          { name: "燕下都", ll: [115.83, 39.35], note: "易水之滨的中兴武备大城" },
+          { name: "襄平", ll: [123.23, 41.27], note: "辽东重镇，秦开却胡后经营" },
+        ],
         sources: ["《史记·燕召公世家》", "谭其骧《中国历史地图集》第一册"],
       },
       {
@@ -586,6 +628,11 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
           [119.0, 32.2],
         ],
         capitals: [{ name: "姑苏", ll: [120.58, 31.3], kind: "main" }],
+        cities: [
+          { name: "朱方", ll: [119.45, 32.2], note: "庆封奔吴所封，镇江故地" },
+          { name: "邗", ll: [119.42, 32.39], note: "吴城邗沟通江淮" },
+          { name: "延陵", ll: [119.97, 31.81], note: "季札封邑" },
+        ],
         sources: ["《史记·吴太伯世家》", "《左传》定公四年"],
       },
       {
@@ -603,6 +650,10 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
           [119.6, 30.4],
         ],
         capitals: [{ name: "会稽", ll: [120.58, 30.0], kind: "main" }],
+        cities: [
+          { name: "固陵", ll: [120.26, 30.16], note: "浙江要津，范蠡筑城" },
+          { name: "御儿", ll: [120.4, 30.6], note: "吴越界上" },
+        ],
         sources: ["《史记·越王勾践世家》", "《左传》哀公十七年"],
       },
     ],
@@ -824,6 +875,12 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
         capitals: [
           { name: "咸阳", ll: [108.72, 34.37], kind: "main", note: "孝公徙都咸阳，冀阙宫廷仿鲁卫" },
         ],
+        cities: [
+          { name: "栎阳", ll: [109.16, 34.77], note: "献公徙栎阳，商鞅变法之所" },
+          { name: "雍", ll: [107.37, 34.5], note: "秦都近三百年，蕲年宫所在" },
+          { name: "郑", ll: [109.5, 34.5], note: "郑国渠首，关中沃野" },
+          { name: "离宫", ll: [108.72, 34.37], note: "咸阳冀阙，孝公营之" },
+        ],
         sources: ["《史记·秦本纪》", "《史记·商君列传》"],
       },
       {
@@ -849,6 +906,11 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
           [110.8, 38.4],
         ],
         capitals: [{ name: "邯郸", ll: [114.49, 36.61], kind: "main" }],
+        cities: [
+          { name: "代", ll: [114.99, 39.84], note: "代国故地，赵襄子所灭" },
+          { name: "晋阳", ll: [112.55, 37.87], note: "赵氏根本，智伯水灌不降" },
+          { name: "武城", ll: [114.4, 36.4], note: "赵南疆军城" },
+        ],
         sources: ["《史记·赵世家》", "谭其骧《中国历史地图集》第一册"],
       },
       {
@@ -874,6 +936,11 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
         capitals: [
           { name: "大梁", ll: [114.35, 34.75], kind: "main", note: "惠王自安邑迁大梁（前361）" },
         ],
+        cities: [
+          { name: "安邑", ll: [111.22, 35.13], note: "魏国旧都，惠王迁大梁前所在" },
+          { name: "邺", ll: [114.5, 36.3], note: "西门豹治邺，破河伯娶妇" },
+          { name: "朝歌", ll: [114.19, 35.61], note: "殷纣故都，魏之别邑" },
+        ],
         sources: ["《史记·魏世家》", "《史记·孙子吴起列传》"],
       },
       {
@@ -892,6 +959,11 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
           [111.4, 35.2],
         ],
         capitals: [{ name: "新郑", ll: [113.73, 34.4], kind: "main" }],
+        cities: [
+          { name: "宜阳", ll: [111.79, 34.52], note: "「韩之武库」，天下铁山所在" },
+          { name: "阳翟", ll: [113.49, 34.15], note: "韩国旧都，吕不韦故里" },
+          { name: "成皋", ll: [113.37, 34.82], note: "虎牢之险，韩之门户" },
+        ],
         sources: ["《史记·韩世家》", "谭其骧《中国历史地图集》第一册"],
       },
       {
@@ -919,6 +991,10 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
           [114.6, 40.8],
         ],
         capitals: [{ name: "蓟", ll: [116.1, 39.6], kind: "main" }],
+        cities: [
+          { name: "燕下都", ll: [115.83, 39.35], note: "昭王千金市骨筑黄金台之地" },
+          { name: "襄平", ll: [123.23, 41.27], note: "辽东郡治，燕长城东端" },
+        ],
         sources: ["《史记·燕召公世家》", "《史记·匈奴列传》"],
       },
       {
@@ -942,6 +1018,11 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
           [116.0, 37.4],
         ],
         capitals: [{ name: "临淄", ll: [118.35, 36.82], kind: "main" }],
+        cities: [
+          { name: "即墨", ll: [120.2, 36.77], note: "田单火牛之所，齐东方支柱" },
+          { name: "莒", ll: [118.83, 35.58], note: "湣王走莒之地" },
+          { name: "薛", ll: [117.16, 35.09], note: "孟尝君封邑，食客三千" },
+        ],
         sources: ["《史记·田敬仲完世家》", "《史记·乐毅列传》"],
       },
       {
@@ -980,6 +1061,11 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
             kind: "main",
             note: "考烈王二十二年（前241）迁寿春，命曰郢",
           },
+        ],
+        cities: [
+          { name: "郢", ll: [112.18, 30.35], note: "白起拔郢前的八百年故都" },
+          { name: "陈", ll: [114.36, 33.75], note: "迁陈时期都城" },
+          { name: "宛", ll: [112.53, 32.99], note: "北方重镇，屈氏采邑" },
         ],
         sources: ["《史记·楚世家》", "《史记·白起王翦列传》"],
       },
@@ -1162,6 +1248,16 @@ export const PRE_QIN_PERIODS: ChroniclePeriod[] = [
             ],
           },
           { kind: "battle", side: 1, name: "长平", ll: [112.92, 35.8] },
+        ],
+        phases: [
+          { year: "前262", text: "韩上党守冯亭举十七城降赵，秦赵争端起" },
+          { year: "前260 四月", text: "王龁攻赵，廉颇坚壁丹河，相持对垒" },
+          { year: "前260 七月", text: "秦行反间，赵括代廉颇；秦密使白起为帅" },
+          { year: "前260 八月", text: "赵括出垒进攻，白起佯败诱敌，两万人绝其后，五千骑断粮道" },
+          {
+            year: "前260 九月",
+            text: "赵军断粮四十六日，赵括突围战死，四十余万降卒被坑（数目存争议口径）",
+          },
         ],
         sources: ["《史记·白起王翦列传》", "《史记·赵世家》", "谭其骧《中国历史地图集》第一册"],
       },
