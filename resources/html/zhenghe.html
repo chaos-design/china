@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>郑和下西洋 · 历史科普</title>
+<style>
+  :root{
+    --ink:#1a2a3a;
+    --ink-soft:#3d5266;
+    --gold:#c5872c;
+    --gold-soft:#e8b85a;
+    --sea:#1c5d7a;
+    --sea-deep:#0d3b54;
+    --sea-light:#3a8bb0;
+    --paper:#fbf6ec;
+    --paper-card:#fffdf8;
+    --line:#e3d7c0;
+    --shadow:rgba(28,93,122,.15);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.85;
+    font-size:16px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* 关键词高亮 + hover 解释 */
+  .kw{
+    position:relative;
+    color:var(--sea-deep);
+    font-weight:600;
+    background:linear-gradient(transparent 62%, var(--gold-soft) 62%);
+    cursor:help;
+    padding:0 1px;
+    transition:background .25s;
+  }
+  .kw:hover{background:linear-gradient(transparent 0%, rgba(232,184,90,.45) 100%);}
+  .kw .tip{
+    visibility:hidden;
+    opacity:0;
+    position:absolute;
+    left:50%;
+    bottom:135%;
+    transform:translateX(-50%) translateY(6px);
+    width:max-content;
+    max-width:280px;
+    background:var(--sea-deep);
+    color:#fff;
+    font-weight:400;
+    font-size:13.5px;
+    line-height:1.6;
+    padding:10px 13px;
+    border-radius:10px;
+    box-shadow:0 8px 24px rgba(13,59,84,.35);
+    z-index:50;
+    transition:opacity .25s, transform .25s;
+    pointer-events:none;
+    text-align:left;
+    white-space:normal;
+  }
+  .kw .tip::after{
+    content:"";
+    position:absolute;
+    top:100%;
+    left:50%;
+    transform:translateX(-50%);
+    border:7px solid transparent;
+    border-top-color:var(--sea-deep);
+  }
+  .kw:hover .tip{visibility:visible;opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* 顶部英雄区 */
+  header.hero{
+    position:relative;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(58,139,176,.35), transparent 55%),
+      radial-gradient(circle at 80% 70%, rgba(197,135,44,.28), transparent 50%),
+      linear-gradient(150deg, var(--sea-deep), var(--sea) 60%, var(--sea-light));
+    color:#fff;
+    padding:80px 24px 90px;
+    text-align:center;
+    overflow:hidden;
+  }
+  header.hero::before{
+    content:"";
+    position:absolute;inset:0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.04) 0 1px, transparent 1px 36px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 1px, transparent 1px 36px);
+    opacity:.5;
+  }
+  .hero-wave{
+    position:absolute;bottom:-2px;left:0;width:100%;line-height:0;
+  }
+  .hero h1{
+    position:relative;
+    font-size:clamp(34px,7vw,62px);
+    letter-spacing:.18em;
+    font-weight:800;
+    text-shadow:0 4px 18px rgba(0,0,0,.25);
+    margin-bottom:14px;
+  }
+  .hero .sub{
+    position:relative;
+    font-size:clamp(15px,3.5vw,20px);
+    letter-spacing:.08em;
+    opacity:.95;
+    font-weight:300;
+  }
+  .hero .meta{
+    position:relative;
+    margin-top:30px;
+    display:flex;
+    justify-content:center;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .hero .chip{
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.3);
+    backdrop-filter:blur(4px);
+    border-radius:999px;
+    padding:8px 18px;
+    font-size:14px;
+    letter-spacing:.05em;
+  }
+  .hero .chip b{color:var(--gold-soft);font-size:18px;}
+
+  /* 左侧菜单 + 右侧内容 布局 */
+  .layout{
+    display:flex;
+    align-items:flex-start;
+    max-width:1180px;
+    margin:0 auto;
+    gap:30px;
+    padding:0 22px;
+  }
+  nav{
+    position:sticky;
+    top:24px;
+    z-index:40;
+    flex:none;
+    width:220px;
+    margin-top:24px;
+    height:calc(100vh - 48px);
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:18px;
+    box-shadow:0 10px 30px var(--shadow);
+    padding:22px 16px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    overflow:auto;
+  }
+  nav a:first-of-type{margin-top:4px;}
+  nav .nav-title{
+    font-size:12px;
+    letter-spacing:.2em;
+    color:var(--gold);
+    font-weight:700;
+    text-transform:uppercase;
+    padding:4px 12px 10px;
+    border-bottom:1px dashed var(--line);
+    margin-bottom:6px;
+  }
+  nav a{
+    position:relative;
+    color:var(--ink-soft);
+    text-decoration:none;
+    font-size:15px;
+    font-weight:600;
+    padding:10px 14px;
+    border-radius:11px;
+    transition:all .2s;
+    letter-spacing:.03em;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    flex:1 1 0;
+    min-height:46px;
+    max-height:74px;
+  }
+  nav a .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--line);
+    transition:all .2s;
+    flex:none;
+  }
+  nav a:hover{background:var(--sea);color:#fff;}
+  nav a:hover .dot{background:#fff;}
+  nav a.active{
+    background:linear-gradient(135deg,var(--sea-deep),var(--sea));
+    color:#fff;
+    box-shadow:0 6px 16px rgba(13,59,84,.25);
+  }
+  nav a.active .dot{background:var(--gold-soft);transform:scale(1.3);}
+
+  /* 主体 */
+  main{flex:1;min-width:0;max-width:920px;padding:50px 0 70px;}
+  section{margin-bottom:64px;scroll-margin-top:30px;}
+  .sec-head{display:flex;align-items:center;gap:14px;margin-bottom:26px;}
+  .sec-num{
+    flex:none;
+    width:46px;height:46px;
+    border-radius:13px;
+    background:linear-gradient(140deg,var(--gold),var(--gold-soft));
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;font-weight:800;
+    box-shadow:0 6px 16px rgba(197,135,44,.3);
+  }
+  .sec-head h2{
+    font-size:clamp(22px,5vw,30px);
+    color:var(--sea-deep);
+    letter-spacing:.06em;
+    font-weight:800;
+  }
+  .sec-head .en{
+    display:block;
+    font-size:12px;
+    letter-spacing:.25em;
+    color:var(--gold);
+    font-weight:600;
+    text-transform:uppercase;
+    margin-top:2px;
+  }
+  .card{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:26px 28px;
+    box-shadow:0 10px 30px var(--shadow);
+  }
+  .card p{margin-bottom:14px;color:var(--ink-soft);}
+  .card p:last-child{margin-bottom:0;}
+
+  /* 时间线 */
+  .timeline{position:relative;padding-left:8px;}
+  /* 竖向虚线 + 闪烁流动效果,圆心 x=23.5px 与圆点对齐 */
+  .timeline::before{
+    content:"";position:absolute;left:22px;top:8px;bottom:8px;width:3px;
+    background-image:repeating-linear-gradient(
+      to bottom,
+      var(--sea) 0, var(--sea) 7px,
+      transparent 7px, transparent 14px);
+    background-size:3px 14px;
+    border-radius:3px;
+    opacity:.85;
+    animation:tlFlow 1.4s linear infinite, tlBlink 1.8s ease-in-out infinite;
+  }
+  @keyframes tlFlow{ to{ background-position:0 14px; } }
+  @keyframes tlBlink{ 0%,100%{opacity:.9;} 50%{opacity:.35;} }
+  .tl-item{position:relative;padding:0 0 26px 60px;}
+  .tl-item:last-child{padding-bottom:0;}
+  /* 圆点:圆心 left(13)+半径(10.5)=23.5px,与竖线圆心精确对齐 */
+  .tl-dot{
+    position:absolute;left:13px;top:2px;
+    width:21px;height:21px;border-radius:50%;
+    background:var(--paper);
+    border:4px solid var(--sea);
+    box-shadow:0 0 0 4px rgba(58,139,176,.18);
+    z-index:1;
+    animation:tlDot 1.8s ease-in-out infinite;
+  }
+  @keyframes tlDot{
+    0%,100%{box-shadow:0 0 0 4px rgba(58,139,176,.18);}
+    50%{box-shadow:0 0 0 7px rgba(58,139,176,.06);}
+  }
+  .tl-item .yr{
+    display:inline-block;
+    background:var(--sea-deep);color:#fff;
+    font-size:13px;font-weight:700;letter-spacing:.04em;
+    padding:3px 12px;border-radius:8px;margin-bottom:7px;
+  }
+  .tl-item h3{font-size:17px;color:var(--ink);margin-bottom:4px;}
+  .tl-item p{font-size:14.5px;color:var(--ink-soft);margin:0;}
+
+  /* 航线 */
+  .route-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;}
+  .route-card{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-left:5px solid var(--sea);
+    border-radius:12px;
+    padding:16px 18px;
+  }
+  .route-card h4{color:var(--sea-deep);font-size:16px;margin-bottom:6px;}
+  .route-card p{font-size:14px;color:var(--ink-soft);margin:0;}
+  .route-flow{
+    margin-top:20px;
+    background:linear-gradient(135deg,var(--sea-deep),var(--sea));
+    color:#fff;border-radius:14px;padding:20px 22px;
+  }
+  .route-flow .label{font-size:13px;letter-spacing:.15em;opacity:.85;margin-bottom:10px;text-transform:uppercase;}
+  .route-flow .path{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:14.5px;font-weight:600;}
+  .route-flow .node{background:rgba(255,255,255,.16);padding:5px 12px;border-radius:8px;}
+  .route-flow .arr{color:var(--gold-soft);font-weight:800;}
+
+  /* 意义 */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .feat{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:14px;padding:20px 22px;
+    transition:transform .25s, box-shadow .25s;
+  }
+  .feat:hover{transform:translateY(-4px);box-shadow:0 14px 30px var(--shadow);}
+  .feat .ic{font-size:26px;margin-bottom:8px;}
+  .feat h4{color:var(--sea-deep);font-size:17px;margin-bottom:6px;}
+  .feat p{font-size:14.5px;color:var(--ink-soft);margin:0;}
+
+  /* 航海地图 */
+  .map-wrap{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:18px;
+    box-shadow:0 10px 30px var(--shadow);
+  }
+  .map-toolbar{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;margin-bottom:14px;
+  }
+  .map-toolbar .ttl{font-size:14px;font-weight:700;color:var(--sea-deep);letter-spacing:.04em;}
+  .map-toolbar .ttl small{display:block;font-weight:400;font-size:11.5px;color:var(--ink-soft);opacity:.8;letter-spacing:0;margin-top:1px;}
+  .map-toolbar .sub{font-size:11.5px;color:var(--ink-soft);opacity:.85;letter-spacing:0;max-width:62%;text-align:right;line-height:1.5;}
+  .map-frame{position:relative;border-radius:12px;overflow:hidden;border:1px solid #a9cfe0;}
+  .map-svg{width:100%;height:auto;display:block;background:#bcdcec;}
+  .map-svg .land{transition:fill .2s;}
+  .map-svg .land-label{fill:#7a6a4a;font-weight:700;letter-spacing:.1em;opacity:.55;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;text-anchor:middle;font-size:11px;}
+  .map-svg .land-label.sm{font-size:7px;opacity:.5;letter-spacing:.05em;}
+  .map-svg .land-label.cn{fill:#c0392b;opacity:.8;}
+  .map-svg .sea-label{fill:#5a93b0;font-weight:700;letter-spacing:.16em;opacity:.72;
+    font-style:italic;font-family:"PingFang SC","Microsoft YaHei",sans-serif;text-anchor:middle;font-size:10.5px;}
+  .map-svg .sea-label.sm{font-size:7px;letter-spacing:.06em;}
+
+  /* 中国现今疆域:红色虚线(细) */
+  .map-svg .cn-fill{fill:#e74c3c;fill-opacity:.07;}
+  .map-svg .cn-line{stroke:#d0312d;stroke-width:0.9;stroke-dasharray:3 2.4;
+    stroke-linejoin:round;stroke-linecap:round;opacity:.92;}
+  .map-svg .cn-line.nine{stroke-width:1.3;stroke-dasharray:none;stroke-linecap:round;opacity:.95;}
+
+  /* 航线:实线,严格穿过港口点 + 流动/生长动效 */
+  .map-svg .route{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.95;}
+  .map-svg .route.dim{opacity:.05;}
+  .map-svg .route.hot{stroke-width:3;}
+  /* 流动虚线动效:全部显示时所有航线持续流动 */
+  .map-svg.flow .route{stroke-dasharray:14 10;animation:routeFlow 2.4s linear infinite;}
+  @keyframes routeFlow{ to{ stroke-dashoffset:-48; } }
+  /* 生长动画:轮播单条航线时,从起点逐段画出(pathLength=1000) */
+  .map-svg .route.draw{stroke-dasharray:1000;stroke-dashoffset:1000;animation:routeDraw 2.6s ease-in-out forwards;}
+  @keyframes routeDraw{ to{ stroke-dashoffset:0; } }
+  .map-svg .port circle{fill:#fff;stroke:var(--sea-deep);stroke-width:1.2;}
+  .map-svg .port text{font-size:7.5px;fill:var(--sea-deep);font-weight:700;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;paint-order:stroke;stroke:#fff;stroke-width:1.6px;stroke-linejoin:round;}
+  .map-svg .start circle{fill:var(--gold);stroke:#8a5a14;stroke-width:1.4;}
+  .map-svg .start text{fill:#8a5a14;}
+
+  /* 轮播信息条(叠加在地图左上角) */
+  .map-info{
+    position:absolute;left:14px;top:14px;z-index:3;
+    background:rgba(255,255,255,.92);backdrop-filter:blur(4px);
+    border:1px solid #cfe3ee;border-left:4px solid var(--sea-deep);
+    border-radius:10px;padding:9px 14px;min-width:166px;
+    box-shadow:0 6px 18px rgba(13,59,84,.12);
+    transition:border-left-color .3s;
+  }
+  .map-info .vno{font-size:13px;font-weight:800;color:var(--sea-deep);letter-spacing:.04em;}
+  .map-info .vyr{font-size:18px;font-weight:800;color:var(--gold-deep,#b07a14);margin-top:2px;
+    font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+  .map-info .vpath{font-size:11px;color:var(--ink-soft);margin-top:3px;line-height:1.5;opacity:.9;}
+  /* 轮播控制条 */
+  .map-controls{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    margin-top:14px;padding:8px 12px;border-radius:12px;
+    background:linear-gradient(90deg,rgba(13,59,84,.04),rgba(13,59,84,.0));
+    border:1px solid var(--line);
+  }
+  .map-controls button{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:12.5px;font-weight:700;color:#fff;
+    background:var(--sea-deep);border:none;border-radius:8px;
+    padding:7px 14px;cursor:pointer;transition:all .18s;letter-spacing:.03em;
+  }
+  .map-controls button:hover{filter:brightness(1.12);transform:translateY(-1px);}
+  .map-controls button.ghost{background:#fff;color:var(--sea-deep);border:1.5px solid var(--line);}
+  .map-controls .pgs{display:inline-flex;gap:6px;margin-left:auto;}
+  .map-controls .pg{width:9px;height:9px;border-radius:50%;background:#cdd9e0;cursor:pointer;transition:all .2s;}
+  .map-controls .pg.on{background:var(--sea-deep);transform:scale(1.25);}
+
+  /* 筛选项(优化版:彩色胶囊 + 形态多样) */
+  .map-filter{
+    display:flex;flex-wrap:wrap;gap:9px;
+    margin-top:16px;
+    padding:12px;
+    background:linear-gradient(180deg,rgba(13,59,84,.03),transparent);
+    border:1px solid var(--line);
+    border-radius:14px;
+  }
+  .map-filter .lg{
+    --c:var(--sea);
+    position:relative;
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;color:var(--ink-soft);font-weight:600;
+    background:#fff;
+    border:1.5px solid var(--line);
+    border-radius:999px;
+    padding:6px 14px 6px 10px;
+    cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);
+    user-select:none;
+    overflow:hidden;
+  }
+  .map-filter .lg::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:var(--c);transition:width .2s;
+  }
+  .map-filter .lg:hover{
+    border-color:var(--c);transform:translateY(-2px);
+    box-shadow:0 5px 14px rgba(13,59,84,.12);
+    color:var(--ink);
+  }
+  .map-filter .lg.active{
+    background:var(--c);color:#fff;border-color:var(--c);
+    box-shadow:0 6px 16px color-mix(in srgb,var(--c) 40%,transparent);
+    transform:translateY(-1px);
+  }
+  .map-filter .lg.active::before{width:0;}
+  /* 圆形色块图标 */
+  .map-filter .lg .sw{
+    width:12px;height:12px;border-radius:50%;flex:none;
+    background:var(--c);
+    box-shadow:0 0 0 2px #fff,0 0 0 3px var(--c);
+  }
+  .map-filter .lg.active .sw{box-shadow:0 0 0 2px var(--c),0 0 0 3px #fff;background:#fff;}
+  /* 年份徽章:小药丸形态 */
+  .map-filter .lg .yr{
+    font-size:11px;font-weight:700;margin-left:3px;
+    padding:1px 7px;border-radius:999px;
+    background:color-mix(in srgb,var(--c) 14%,#fff);
+    color:var(--c);
+    letter-spacing:.02em;
+    font-variant-numeric:tabular-nums;
+  }
+  .map-filter .lg.active .yr{background:rgba(255,255,255,.25);color:#fff;}
+  /* “全部显示”形态:菱形渐变图标 + 加粗 */
+  .map-filter .lg.all{font-weight:800;--c:var(--sea-deep);}
+  .map-filter .lg.all .sw{
+    border-radius:3px;transform:rotate(45deg);
+    background:linear-gradient(135deg,#e4572e,#2e933c,#6a4c93,#c5172e);
+    box-shadow:none;width:13px;height:13px;
+  }
+  .map-filter .lg.all.active .sw{background:linear-gradient(135deg,#e4572e,#2e933c,#6a4c93,#c5172e);box-shadow:0 0 0 2px rgba(255,255,255,.6);}
+  .map-note{
+    text-align:left;font-size:12px;color:var(--ink-soft);
+    margin-top:12px;opacity:.85;line-height:1.6;
+    border-top:1px dashed var(--line);padding-top:10px;
+  }
+
+  footer{
+    background:var(--sea-deep);color:rgba(255,255,255,.75);
+    text-align:center;padding:30px 20px;font-size:13px;letter-spacing:.04em;
+  }
+  footer .big{color:#fff;font-size:15px;font-weight:600;margin-bottom:6px;letter-spacing:.1em;}
+
+  /* 窄屏:侧栏变为顶部横向菜单 */
+  @media (max-width:900px){
+    .layout{flex-direction:column;gap:0;padding:0 16px;}
+    nav{
+      flex-direction:row;
+      width:auto;
+      height:auto;
+      margin-top:18px;
+      top:0;
+      padding:8px;
+      gap:4px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      -webkit-overflow-scrolling:touch;
+      box-shadow:0 4px 14px var(--shadow);
+    }
+    nav .nav-title{display:none;}
+    nav a{white-space:nowrap;padding:9px 13px;font-size:14px;flex:0 0 auto;min-height:0;max-height:none;}
+    nav a:first-of-type{margin-top:0;}
+    nav a .dot{display:none;}
+    main{max-width:none;padding:30px 0 60px;}
+    section{scroll-margin-top:70px;}
+  }
+  @media (max-width:680px){
+    body{font-size:15px;}
+    .card{padding:20px 18px;}
+    .route-grid{grid-template-columns:1fr;}
+    .grid2{grid-template-columns:1fr;}
+    .tl-item{padding-left:54px;}
+    .kw .tip{max-width:220px;font-size:13px;}
+    .hero{padding:60px 18px 70px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>郑 和 下 西 洋</h1>
+  <p class="sub">十五世纪世界航海史上的伟大壮举 · 大明王朝的远洋远征</p>
+  <div class="meta">
+    <span class="chip">起始 <b>1405</b> 年</span>
+    <span class="chip">共 <b>7</b> 次远航</span>
+    <span class="chip">历时 <b>28</b> 年</span>
+    <span class="chip">最远抵达 <b>东非</b></span>
+  </div>
+  <div class="hero-wave">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none" style="width:100%;height:60px;">
+      <path d="M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 L1440,80 L0,80 Z" fill="#fbf6ec"/>
+    </svg>
+  </div>
+</header>
+
+<div class="layout">
+
+<nav id="sideNav">
+  <div class="nav-title">目录</div>
+  <a href="#bg"><span class="dot"></span>基本背景</a>
+  <a href="#timeline"><span class="dot"></span>时间线</a>
+  <a href="#route"><span class="dot"></span>核心航线</a>
+  <a href="#map"><span class="dot"></span>航海地图</a>
+  <a href="#meaning"><span class="dot"></span>历史意义</a>
+</nav>
+
+<main>
+
+  <!-- 模块一：基本背景 -->
+  <section id="bg">
+    <div class="sec-head">
+      <div class="sec-num">壹</div>
+      <div><h2>基本背景<span class="en">Background</span></h2></div>
+    </div>
+    <div class="card">
+      <p>郑和下西洋,是明朝初年由航海家
+        <span class="kw">郑和<span class="tip">郑和(1371—1433),本姓马,小名三保,云南人,回族。明成祖朱棣的亲信宦官,被赐姓"郑",世称"三保太监"。他是七次远航船队的最高统帅。</span></span>
+        率领庞大船队进行的七次大规模远洋航行。这里的
+        <span class="kw">"西洋"<span class="tip">明代以今文莱(婆罗洲)以西的海域为"西洋",以东为"东洋"。郑和船队的活动范围主要在西洋,即南海以西、印度洋一带。</span></span>
+        ,指的是当时中国南海以西的海域,涵盖东南亚、南亚、阿拉伯半岛乃至非洲东海岸的广大地区。</p>
+      <p>这一壮举发生在
+        <span class="kw">明成祖<span class="tip">明成祖朱棣(1360—1424),年号"永乐"。他通过靖难之役夺取皇位,在位期间国力强盛,迁都北京、编修《永乐大典》,并派遣郑和远航。</span></span>
+        在位的永乐年间,以及后来明宣宗时期。明朝初期国力强盛、经济繁荣、造船与航海技术领先世界,为远航提供了坚实基础。出航的目的兼具多重考量:宣扬国威、建立和发展与海外各国的
+        <span class="kw">朝贡贸易<span class="tip">古代中国与周边国家的一种官方往来制度:外国遣使来华"朝贡"方物,中国则"回赐"丰厚礼物并允许通商,以建立宗藩与外交关系。</span></span>
+        关系、搜寻海外珍宝,同时加强明朝与西洋各国的政治与经济联系。</p>
+      <p>郑和船队规模空前。据史料记载,首航即有大小船只两百余艘、随行人员两万七千余人,其中最大的
+        <span class="kw">宝船<span class="tip">郑和船队中最大的主力海船,称"宝船",意为"运宝之船"。据《明史》等记载,大号宝船长约四十四丈、宽十八丈,是当时世界上最大的木帆船。</span></span>
+        是当时世界上规模最大、技术最先进的远洋木帆船,充分体现了明代高超的造船工艺和航海组织能力。</p>
+    </div>
+  </section>
+
+  <!-- 模块二:时间线 -->
+  <section id="timeline">
+    <div class="sec-head">
+      <div class="sec-num">贰</div>
+      <div><h2>七下西洋时间线<span class="en">Timeline</span></h2></div>
+    </div>
+    <div class="card">
+      <div class="timeline">
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <span class="yr">第一次 · 1405—1407</span>
+          <h3>首航启程</h3>
+          <p>永乐三年从江苏太仓刘家港出发,经占城、爪哇、苏门答腊,远抵
+            <span class="kw">古里<span class="tip">古里(Calicut),今印度西南海岸的科泽科德,是当时印度洋上重要的贸易港口,郑和多次以此为重要中转和折返地。</span></span>(今印度卡利卡特)后返航,途中在旧港剿灭海盗陈祖义。</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <span class="yr">第二次 · 1407—1409</span>
+          <h3>再赴西洋</h3>
+          <p>主要访问占城、爪哇、暹罗、古里等地,进一步巩固与南亚、东南亚各国的友好往来与贸易关系。</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <span class="yr">第三次 · 1409—1411</span>
+          <h3>经略要冲</h3>
+          <p>到访满剌加(马六甲)、锡兰(斯里兰卡)等地,在
+            <span class="kw">满剌加<span class="tip">满剌加即今马来西亚马六甲,扼守马六甲海峡。郑和在此设立"官厂"(仓库与中转基地),使其成为船队往返印度洋的关键补给站。</span></span>
+            设立官厂作为补给与中转基地。</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <span class="yr">第四次 · 1413—1415</span>
+          <h3>远涉波斯</h3>
+          <p>航程首次越过印度,抵达波斯湾的
+            <span class="kw">忽鲁谟斯<span class="tip">忽鲁谟斯即今霍尔木兹(Hormuz),位于波斯湾出口,是连接东西方的海上贸易枢纽,也是郑和船队向西航行的重要终点之一。</span></span>(今霍尔木兹),并分船队到达东非沿岸,带回长颈鹿等异域珍奇。</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <span class="yr">第五次 · 1417—1419</span>
+          <h3>远达东非</h3>
+          <p>护送多国使节回国,船队抵达阿拉伯半岛的阿丹(亚丁)以及东非的木骨都束、麻林等地。</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <span class="yr">第六次 · 1421—1422</span>
+          <h3>广送诸使</h3>
+          <p>继续护送各国使臣返国,遍访东南亚、南亚、阿拉伯及东非诸国,巩固既有航线与邦交。</p>
+        </div>
+        <div class="tl-item">
+          <span class="tl-dot"></span>
+          <span class="yr">第七次 · 1431—1433</span>
+          <h3>最后远航</h3>
+          <p>明宣宗时再度出海,这是规模最大的一次远航。郑和在归途中病逝于古里一带,船队由众将率领返回,七下西洋就此落下帷幕。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 模块三:核心航线 -->
+  <section id="route">
+    <div class="sec-head">
+      <div class="sec-num">叁</div>
+      <div><h2>核心航线<span class="en">Maritime Routes</span></h2></div>
+    </div>
+    <div class="card">
+      <p>郑和船队以中国东南沿海为起点,沿着成熟的季风航路向西穿越南海、马六甲海峡,进入辽阔的印度洋,最远抵达阿拉伯半岛和非洲东海岸。整条航线串联起当时世界上最繁忙的海上贸易网络。</p>
+      <div class="route-grid">
+        <div class="route-card">
+          <h4>① 起航地</h4>
+          <p>江苏太仓
+            <span class="kw">刘家港<span class="tip">刘家港位于今江苏太仓,明代是长江口的重要港口,船队在此集结、补给后正式出海,被称为"天下第一码头"。</span></span>
+            集结,经福建长乐五虎门候风出洋。</p>
+        </div>
+        <div class="route-card">
+          <h4>② 南海段</h4>
+          <p>沿途经过占城(越南)、爪哇、旧港、苏门答腊等东南亚要地。</p>
+        </div>
+        <div class="route-card">
+          <h4>③ 海峡枢纽</h4>
+          <p>穿越马六甲海峡,以满剌加为补给中转的核心基地。</p>
+        </div>
+        <div class="route-card">
+          <h4>④ 印度洋段</h4>
+          <p>跨越印度洋,抵达锡兰、古里等南亚重要港口。</p>
+        </div>
+        <div class="route-card">
+          <h4>⑤ 西亚段</h4>
+          <p>北上波斯湾忽鲁谟斯、阿拉伯半岛的阿丹、天方(麦加)。</p>
+        </div>
+        <div class="route-card">
+          <h4>⑥ 东非段</h4>
+          <p>分船队最远到达
+            <span class="kw">木骨都束<span class="tip">木骨都束即今索马里首都摩加迪沙一带,是郑和船队在非洲东海岸到达的最远地区之一,标志着航程的西端极限。</span></span>、麻林(今肯尼亚一带)。</p>
+        </div>
+      </div>
+      <div class="route-flow">
+        <div class="label">主航线示意</div>
+        <div class="path">
+          <span class="node">刘家港</span><span class="arr">→</span>
+          <span class="node">占城</span><span class="arr">→</span>
+          <span class="node">爪哇</span><span class="arr">→</span>
+          <span class="node">满剌加</span><span class="arr">→</span>
+          <span class="node">锡兰</span><span class="arr">→</span>
+          <span class="node">古里</span><span class="arr">→</span>
+          <span class="node">忽鲁谟斯</span><span class="arr">→</span>
+          <span class="node">东非海岸</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 模块 · 航海地图 -->
+  <section id="map">
+    <div class="sec-head">
+      <div class="sec-num">图</div>
+      <div><h2>七下西洋航海地图<span class="en">Voyage Map</span></h2></div>
+    </div>
+    <div class="map-wrap">
+      <div class="map-toolbar">
+        <span class="ttl">郑和七下西洋航线总图</span>
+        <span class="sub">真实国界轮廓 · 等距经纬度投影 · 可自动轮播逐次回放,或点击图例单独查看</span>
+      </div>
+      <div class="map-frame">
+      <div class="map-info" id="mapInfo" hidden>
+        <div class="vno" id="infoNo">第一次远航</div>
+        <div class="vyr" id="infoYr">1405–1407</div>
+        <div class="vpath" id="infoPath"></div>
+      </div>
+      <svg class="map-svg flow" id="mapSvg" viewBox="1194.4 255.6 516.7 322.2" preserveAspectRatio="xMidYMid meet" role="img" aria-label="郑和七下西洋航线地图(等距经纬度投影)">
+        <rect x="1194.4" y="255.6" width="516.7" height="322.2" fill="#bcdcec"/>
+        <g class="grid" stroke="#a9d0e2" stroke-width="0.6" opacity="0.55">
+          <line x1="1250.0" y1="255.6" x2="1250.0" y2="577.8"/>
+          <line x1="1333.3" y1="255.6" x2="1333.3" y2="577.8"/>
+          <line x1="1416.7" y1="255.6" x2="1416.7" y2="577.8"/>
+          <line x1="1500.0" y1="255.6" x2="1500.0" y2="577.8"/>
+          <line x1="1583.3" y1="255.6" x2="1583.3" y2="577.8"/>
+          <line x1="1666.7" y1="255.6" x2="1666.7" y2="577.8"/>
+          <line x1="1194.4" y1="555.6" x2="1711.1" y2="555.6"/>
+          <line x1="1194.4" y1="472.2" x2="1711.1" y2="472.2"/>
+          <line x1="1194.4" y1="388.9" x2="1711.1" y2="388.9"/>
+          <line x1="1194.4" y1="305.6" x2="1711.1" y2="305.6"/>
+        </g>
+        <path class="land" d="M2000.0,589.3L2000.0,592.0L1992.9,594.5L1992.2,592.4L2000.0,589.3Z M1188.4,505.3L1209.4,517.2L1217.8,526.0L1215.2,532.8L1219.1,538.0L1217.7,547.1L1224.0,557.3L1219.6,560.5L1202.9,565.1L1192.0,564.0L1187.4,552.3L1170.8,546.3L1164.6,536.2L1163.0,525.0L1170.8,518.7L1169.0,506.3L1188.4,505.3Z M951.9,346.4L951.7,356.2L933.5,355.9L933.7,370.1L928.5,370.6L928.2,381.5L905.2,383.3L905.4,381.0L918.1,380.6L922.8,368.4L930.6,362.4L933.2,355.4L936.7,350.6L951.1,349.3L951.9,346.4Z M317.6,227.8L302.1,219.9L292.0,217.6L289.7,209.3L282.6,206.9L281.6,202.4L274.9,198.4L277.7,189.4L268.3,185.8L247.4,167.8L236.4,172.8L227.6,166.7L216.7,165.0L216.7,112.7L241.6,117.2L278.9,110.0L282.7,112.3L288.1,108.4L301.4,114.0L308.8,110.2L309.5,114.4L325.2,112.2L359.7,117.2L367.2,120.0L359.4,122.8L369.5,124.0L389.2,122.3L395.1,125.7L401.2,122.8L395.5,120.5L399.1,118.6L410.3,117.8L436.4,124.2L453.1,123.4L452.5,120.0L457.4,119.0L466.0,120.9L466.0,126.1L469.5,121.7L474.0,121.9L476.5,116.3L464.0,110.6L464.5,104.5L471.1,100.4L484.0,103.8L491.6,110.0L486.6,112.8L497.0,113.9L496.9,119.6L504.4,115.2L511.0,118.8L509.3,122.9L514.7,126.7L524.6,117.9L524.9,111.8L541.0,113.0L548.4,115.8L544.6,121.5L547.9,127.2L537.0,131.0L523.5,130.2L514.9,140.1L496.1,146.6L495.7,150.2L489.3,150.9L476.4,161.7L474.0,172.5L482.1,173.4L487.2,182.8L495.0,181.8L527.7,192.8L542.9,193.6L543.7,204.0L556.0,215.5L563.3,208.0L556.5,196.3L574.8,185.9L570.5,177.5L563.8,173.3L570.4,167.5L566.1,153.8L589.8,153.1L603.5,160.3L613.4,160.8L615.1,172.5L624.2,176.6L641.2,164.8L658.9,183.5L656.7,187.0L681.5,196.5L690.2,204.1L690.6,210.3L666.5,220.9L631.1,221.0L605.0,239.9L618.6,231.7L638.6,226.5L643.5,229.2L638.2,232.9L641.8,243.1L649.0,245.9L658.2,245.1L663.8,238.8L667.8,244.9L636.9,258.1L632.6,257.7L632.4,253.0L642.1,248.4L627.0,249.2L623.4,246.1L623.4,238.5L615.3,236.4L602.7,250.0L584.1,250.0L573.2,257.6L562.7,257.6L561.4,261.9L542.0,268.5L538.1,266.8L543.7,257.9L541.4,248.1L509.0,231.7L490.9,232.6L475.9,229.6L473.2,225.6L317.6,227.8Z M533.4,153.0L537.5,150.5L545.1,150.5L538.5,154.7L533.4,153.0Z M556.8,95.5L550.9,90.6L566.3,90.8L576.4,95.4L556.8,95.5Z M479.9,83.4L476.9,85.6L462.1,83.7L473.1,79.7L479.9,83.4Z M478.7,69.3L465.7,69.1L464.2,67.6L475.4,67.7L478.7,69.3Z M452.0,61.8L469.1,64.3L459.4,67.5L452.0,61.8Z M510.3,86.7L486.5,84.2L483.9,78.4L478.4,76.0L460.4,73.6L462.5,71.3L491.1,73.5L504.5,79.9L549.3,79.4L556.5,83.8L510.3,86.7Z M369.3,68.2L389.7,66.7L377.5,69.9L369.3,68.2Z M380.6,61.9L390.8,63.3L374.8,64.4L380.6,61.9Z M691.1,214.9L684.5,223.3L688.1,221.4L691.8,222.6L689.9,224.5L702.9,226.4L701.2,230.5L705.1,229.5L707.5,235.9L705.2,240.8L699.0,240.0L698.7,234.7L692.2,239.5L688.9,239.3L692.8,236.7L687.5,235.4L670.7,235.5L673.4,231.9L670.9,230.4L681.3,218.2L691.1,214.9Z M522.9,134.8L546.9,144.6L555.0,146.0L550.0,147.7L538.3,143.9L524.9,149.7L523.0,146.5L515.4,147.0L520.3,144.2L522.9,134.8Z M551.4,99.7L567.6,95.8L588.3,103.7L598.7,102.5L617.9,108.2L627.9,115.6L617.7,118.2L656.4,128.5L644.9,138.9L629.3,131.2L622.1,131.9L621.4,135.1L637.1,142.3L640.7,147.8L638.8,151.8L617.9,145.9L632.4,155.9L617.3,153.7L584.3,140.7L563.6,141.3L567.2,137.2L589.1,136.4L589.2,131.6L596.4,126.2L592.7,121.8L572.9,117.3L576.5,115.8L561.3,110.2L548.3,112.5L507.3,108.8L502.7,106.9L508.5,104.3L500.6,104.3L498.9,98.7L508.8,91.5L523.2,90.0L519.1,93.6L523.5,97.0L528.6,92.6L542.7,90.3L552.2,96.0L551.4,99.7Z M475.0,88.1L486.6,88.3L497.2,89.7L476.3,99.9L469.9,99.7L466.6,92.0L475.0,88.1Z M317.5,77.1L338.3,69.4L354.5,68.6L349.4,74.8L317.5,77.1Z M260.1,199.1L268.1,199.3L266.4,205.6L271.2,210.1L260.8,203.3L260.1,199.1Z M413.9,59.4L439.9,62.2L446.3,67.2L415.7,64.6L421.1,62.9L413.9,59.4Z M313.8,230.5L301.9,228.7L288.6,222.3L286.9,217.9L301.4,220.6L313.8,230.5Z M306.0,87.3L346.9,87.9L358.3,91.8L337.7,97.1L330.8,103.4L316.2,106.1L300.4,100.7L311.4,90.7L306.0,87.3Z M401.0,78.6L411.8,77.9L412.8,80.7L376.5,86.6L367.4,84.9L378.9,82.4L346.1,82.1L358.9,75.1L394.1,80.7L386.1,75.4L391.2,73.4L401.0,78.6Z M397.8,93.9L414.4,96.3L419.6,105.6L439.0,111.0L438.4,113.4L429.3,113.9L432.8,116.0L430.9,118.0L411.3,115.7L370.5,119.2L348.1,111.3L375.5,109.1L345.0,108.1L342.0,106.1L354.9,103.8L336.7,102.5L345.2,96.1L360.1,92.7L365.7,93.8L363.0,96.4L375.3,94.7L383.1,97.5L389.3,94.7L399.0,101.9L401.7,99.6L397.8,93.9Z M442.0,96.1L435.9,92.4L459.0,90.2L455.3,94.5L463.7,96.9L462.7,101.9L453.6,104.0L430.6,97.2L442.0,96.1Z M407.8,91.1L415.2,90.9L419.4,92.1L414.6,95.8L407.8,91.1Z M452.8,73.8L457.0,76.4L454.7,83.3L430.5,80.2L430.2,75.9L452.8,73.8Z M462.7,54.7L486.6,48.6L523.3,59.2L505.4,65.1L484.0,64.8L478.0,62.5L482.5,59.0L462.7,54.7Z M491.2,45.0L525.0,40.8L537.9,42.7L559.4,38.2L656.4,41.0L624.1,47.2L636.2,47.2L604.6,56.7L572.7,59.3L580.4,60.0L576.6,61.0L581.1,63.7L556.9,71.1L567.3,73.5L552.4,76.8L502.8,75.2L502.1,72.5L512.4,71.2L509.7,67.2L527.9,69.2L511.3,64.6L527.3,59.2L517.0,54.2L545.3,53.0L513.3,52.7L491.2,45.0Z M582.1,125.3L572.3,127.2L570.9,124.5L578.4,120.6L582.7,122.2L582.1,125.3Z M454.3,110.3L468.6,116.1L465.2,118.0L445.6,114.4L454.3,110.3Z M641.6,222.9L650.8,223.9L656.6,227.2L646.7,225.6L641.6,222.9Z M644.4,238.7L646.3,241.4L655.5,242.0L650.7,244.6L643.7,242.3L644.4,238.7Z M317.6,227.8L473.2,225.6L475.9,229.6L490.9,232.6L509.0,231.7L541.4,248.1L543.7,257.9L538.2,266.2L540.6,268.5L561.4,261.9L562.7,257.6L573.2,257.6L584.1,250.0L602.7,250.0L615.3,236.4L623.4,238.5L623.4,246.1L628.0,251.1L610.5,257.3L606.5,264.8L611.3,268.7L590.5,272.6L600.3,272.6L589.2,273.6L583.9,283.7L580.4,280.6L583.0,286.6L578.1,293.2L575.8,282.5L575.9,288.4L572.3,287.6L576.1,289.3L579.3,302.5L548.1,325.3L555.2,350.7L553.4,360.0L546.1,356.3L534.9,333.7L527.2,335.4L520.0,331.1L502.3,332.4L503.3,338.0L473.9,336.2L460.3,345.4L458.2,356.4L449.9,353.5L439.1,336.8L430.7,334.7L427.2,339.1L422.6,337.4L408.3,323.6L383.2,325.9L362.7,318.2L349.3,319.2L341.6,311.0L329.9,307.7L308.9,276.0L311.7,247.1L307.3,232.3L316.0,233.1L319.0,238.4L317.6,227.8Z M136.7,388.4L140.0,391.6L135.1,394.9L132.9,390.5L136.7,388.4Z M148.7,178.0L154.8,180.0L141.6,183.4L140.7,180.8L148.7,178.0Z M216.7,112.7L216.7,165.0L227.6,166.7L236.4,172.8L247.4,167.8L268.3,185.8L277.7,189.4L274.8,195.5L266.8,191.7L255.1,177.1L241.0,176.6L223.0,169.2L182.7,161.8L176.5,162.9L177.7,166.8L157.1,171.4L158.8,162.6L163.2,159.5L144.3,170.3L148.4,173.0L143.2,177.0L119.8,188.9L83.7,196.8L118.4,183.2L127.5,172.7L100.2,174.0L100.7,168.7L97.1,166.7L89.9,167.8L81.4,163.8L77.1,158.3L79.3,155.1L85.8,149.2L106.8,145.7L102.7,142.2L106.8,140.1L83.6,142.0L66.1,135.2L86.3,130.1L101.8,132.7L73.5,120.2L76.6,117.3L86.5,117.1L100.5,109.3L130.1,103.6L142.5,107.2L216.7,112.7Z M45.9,145.7L52.8,146.1L62.8,148.3L58.2,150.1L45.9,145.7Z M1485.3,226.6L1476.5,230.8L1473.1,238.9L1462.1,237.1L1458.1,247.0L1444.3,250.5L1449.3,260.1L1445.4,261.6L1445.9,264.7L1412.3,259.5L1408.3,263.9L1395.5,262.8L1381.3,274.1L1370.6,271.3L1367.2,261.1L1360.6,257.1L1344.5,258.3L1325.0,246.7L1310.7,250.0L1310.9,270.5L1300.4,264.9L1291.7,267.9L1291.7,262.3L1285.2,260.4L1279.5,252.2L1294.7,248.6L1294.7,239.7L1284.4,238.6L1272.8,242.2L1267.0,234.8L1258.1,231.1L1264.2,219.7L1269.9,222.9L1270.6,218.9L1282.0,212.8L1309.5,218.8L1340.8,217.8L1342.2,215.2L1333.2,211.3L1342.8,205.7L1338.8,201.9L1341.3,200.0L1383.7,192.3L1393.7,193.5L1395.4,199.3L1408.4,199.8L1407.9,202.8L1427.2,197.3L1425.1,199.0L1444.6,217.4L1447.6,214.5L1455.3,217.7L1463.2,216.3L1485.3,226.6Z M1310.9,270.5L1310.7,250.0L1325.0,246.7L1344.5,258.3L1360.6,257.1L1367.2,261.1L1370.6,271.3L1379.2,274.1L1394.2,265.2L1391.2,269.3L1405.9,273.0L1398.7,277.0L1392.2,276.6L1392.6,272.4L1385.2,273.7L1380.8,280.4L1376.1,280.1L1374.7,282.6L1380.0,288.0L1376.8,293.6L1369.5,292.4L1369.7,289.0L1356.5,283.9L1346.5,277.5L1343.8,271.8L1335.9,271.0L1333.2,265.4L1325.7,262.5L1316.3,267.6L1317.2,270.4L1310.9,270.5Z M1783.3,514.4L1803.2,521.5L1811.0,530.4L1820.3,533.8L1821.6,536.7L1816.5,537.3L1817.7,541.0L1837.2,558.8L1821.7,556.3L1811.4,544.8L1804.1,542.4L1796.0,545.8L1796.7,549.9L1792.4,551.8L1783.5,550.7L1783.3,514.4Z M1846.2,527.0L1831.7,535.1L1824.0,531.9L1834.1,527.8L1837.8,530.3L1841.9,523.2L1845.2,523.0L1846.2,527.0Z M1859.8,529.7L1866.8,536.3L1866.0,537.9L1862.0,536.3L1859.8,529.7Z M1783.3,514.4L1783.5,550.7L1778.6,546.1L1764.5,546.7L1770.4,540.7L1766.3,530.0L1742.6,519.7L1738.8,522.8L1733.3,515.7L1742.8,512.3L1734.6,512.3L1725.1,505.2L1735.4,502.1L1744.4,504.3L1746.8,515.4L1752.5,518.7L1763.6,509.5L1783.3,514.4Z M1694.3,549.4L1691.3,556.3L1685.9,556.9L1688.8,551.6L1694.3,549.4Z M1654.9,477.0L1651.7,482.0L1661.1,495.0L1654.5,495.6L1652.9,504.5L1647.6,508.3L1645.3,522.3L1612.4,516.3L1605.3,497.7L1609.2,488.9L1614.0,495.7L1627.0,491.7L1632.3,493.2L1636.8,492.1L1643.7,476.1L1654.9,477.0Z M1711.9,515.8L1724.8,517.2L1726.9,521.4L1710.5,518.9L1711.9,515.8Z M1710.7,487.9L1714.9,493.7L1711.7,505.0L1707.8,494.4L1710.7,487.9Z M1682.9,495.1L1695.8,492.1L1687.1,498.7L1667.7,498.7L1666.9,502.9L1671.9,507.8L1685.2,503.4L1675.0,510.6L1684.2,529.7L1679.1,529.3L1681.8,524.8L1674.9,525.4L1672.1,514.6L1668.4,516.3L1669.1,530.7L1665.5,531.5L1663.9,519.4L1659.8,515.6L1665.7,499.1L1671.6,492.7L1682.9,495.1Z M1670.6,545.8L1677.8,547.0L1682.8,545.0L1682.0,548.1L1666.2,548.9L1670.6,545.8Z M1655.0,545.0L1661.8,548.4L1648.6,550.2L1655.0,545.0Z M1589.2,532.8L1625.6,538.6L1627.7,542.2L1642.8,546.5L1636.5,548.6L1585.4,538.1L1589.2,532.8Z M1579.8,506.0L1582.7,513.0L1589.5,517.0L1587.9,532.5L1581.7,532.6L1569.9,523.4L1547.8,489.9L1529.4,469.6L1541.6,470.9L1559.1,488.3L1569.4,492.2L1576.9,499.4L1574.7,504.0L1579.8,506.0Z M618.7,792.4L623.6,799.2L638.6,803.9L630.8,806.9L618.7,804.8L618.7,792.4Z M679.9,667.9L675.0,691.3L682.1,696.0L684.5,705.0L679.2,712.1L670.9,715.1L653.7,715.7L654.7,726.0L651.4,727.9L638.2,728.1L639.0,733.7L647.5,736.5L637.9,741.6L635.7,750.2L626.1,753.1L624.6,757.2L635.3,762.4L615.9,781.8L621.4,790.8L600.5,788.9L598.3,781.5L592.6,779.9L592.1,774.0L598.2,768.0L604.3,748.8L599.2,734.7L603.3,716.2L606.6,714.2L604.9,703.7L612.1,690.0L608.1,674.3L613.0,658.1L620.6,649.4L619.9,636.2L626.0,633.5L631.8,621.3L642.3,626.7L644.5,622.2L650.9,622.4L662.0,632.7L679.0,639.8L674.3,650.7L690.6,652.2L699.3,641.9L702.0,649.6L679.9,667.9Z M618.7,792.4L618.7,804.8L628.0,805.0L621.4,809.0L605.5,805.9L585.2,793.5L605.0,800.4L609.6,794.1L618.7,792.4Z M613.4,597.7L619.8,607.8L618.0,613.2L623.2,627.1L627.9,627.7L626.0,633.5L619.9,636.2L620.6,649.4L613.0,658.1L608.1,674.3L612.1,690.0L604.9,703.7L606.6,714.2L603.3,716.2L599.2,734.7L604.3,748.8L598.2,768.0L592.1,774.0L592.6,779.9L598.3,781.5L600.5,788.9L619.0,790.6L606.4,793.9L603.2,799.2L583.6,790.3L580.0,770.4L588.2,760.8L579.8,759.2L585.0,754.2L586.9,745.0L593.1,747.0L596.0,735.5L592.3,734.0L590.5,740.9L587.0,740.1L593.2,718.1L591.2,706.4L603.1,680.1L602.8,660.3L610.6,618.9L609.0,601.9L613.4,597.7Z M1161.2,515.8L1164.6,536.2L1170.8,546.3L1159.6,547.4L1157.6,565.5L1164.5,567.7L1165.0,573.7L1160.7,573.6L1150.9,564.5L1123.1,561.6L1120.7,540.5L1111.6,538.6L1105.6,544.4L1097.1,544.8L1090.7,532.7L1067.7,532.2L1075.6,525.0L1081.0,527.6L1088.9,519.6L1091.2,509.7L1098.0,502.4L1103.0,476.7L1108.2,472.0L1124.5,477.6L1126.9,473.8L1142.5,470.8L1152.1,470.9L1157.9,476.2L1165.1,474.4L1173.2,487.8L1166.0,496.7L1161.2,515.8Z M1231.0,509.4L1227.7,504.8L1227.7,484.5L1234.0,476.5L1249.8,472.2L1271.9,447.5L1271.9,436.6L1284.0,433.2L1280.8,448.9L1270.0,470.3L1231.0,509.4Z M1217.8,526.0L1209.4,517.2L1188.4,505.3L1188.3,499.4L1194.6,489.4L1188.9,476.4L1196.1,469.4L1211.8,480.0L1219.8,481.0L1226.5,476.3L1232.5,478.2L1227.7,484.5L1227.7,504.8L1231.0,509.4L1223.7,514.3L1217.8,526.0Z M1136.5,454.3L1132.3,451.9L1130.3,450.3L1130.9,443.9L1121.9,430.1L1127.9,412.9L1132.7,413.3L1132.5,388.9L1138.9,388.9L1138.9,377.8L1204.8,377.8L1208.2,396.6L1213.4,400.0L1204.7,405.8L1201.5,424.6L1190.3,440.9L1188.7,451.8L1184.5,432.3L1181.9,432.0L1178.2,433.5L1180.0,438.4L1174.2,445.5L1166.6,442.8L1160.9,447.8L1148.6,447.4L1143.3,442.2L1139.3,442.9L1132.7,452.1L1136.5,454.3Z M1132.4,391.2L1132.7,413.3L1127.9,412.9L1121.9,430.1L1127.0,438.1L1116.7,447.4L1104.5,450.1L1099.8,456.2L1084.9,458.8L1083.2,451.1L1077.5,446.9L1085.9,444.5L1081.1,425.9L1077.5,425.8L1075.2,420.2L1077.6,412.9L1084.7,407.6L1088.4,386.7L1082.5,373.0L1088.1,369.9L1132.4,391.2Z M601.6,390.5L601.6,399.8L586.3,398.1L598.1,396.3L593.4,389.4L601.6,390.5Z M603.3,402.2L602.3,389.5L620.5,396.6L607.4,397.6L603.3,402.2Z M1272.8,242.2L1259.3,252.2L1269.9,267.7L1265.6,271.4L1252.6,263.9L1222.0,258.7L1203.8,248.6L1212.4,243.1L1209.3,240.9L1217.5,238.6L1212.4,238.3L1212.5,235.9L1220.8,233.9L1222.6,224.4L1196.4,219.0L1187.5,209.2L1176.6,210.5L1173.9,205.1L1181.6,203.6L1170.9,195.5L1171.5,191.4L1156.5,187.9L1151.6,180.7L1152.3,173.8L1161.8,166.5L1155.9,163.9L1175.1,150.7L1166.9,146.9L1169.1,143.3L1164.1,139.2L1167.9,134.4L1161.4,128.1L1166.5,123.9L1158.0,120.2L1158.8,116.3L1178.5,111.6L1228.1,125.2L1228.5,128.9L1213.2,133.3L1184.4,129.8L1193.4,133.9L1194.1,142.1L1205.6,145.3L1203.0,140.2L1206.5,138.1L1220.0,141.6L1224.6,140.2L1220.9,136.1L1233.9,130.7L1244.2,132.9L1247.4,129.1L1242.8,125.8L1245.5,122.5L1241.4,119.1L1256.9,120.8L1260.1,123.9L1253.1,124.6L1253.1,127.7L1257.5,129.6L1298.4,117.5L1302.6,117.7L1297.1,121.1L1326.7,117.3L1333.0,120.7L1339.3,117.0L1333.5,113.8L1336.4,111.9L1380.6,121.7L1384.3,118.8L1371.8,114.1L1370.5,105.4L1388.6,94.2L1403.3,95.7L1404.4,98.8L1399.2,103.3L1404.4,108.9L1403.1,116.6L1409.3,120.0L1396.0,131.6L1402.4,132.4L1417.0,123.6L1413.7,120.4L1416.3,116.7L1408.9,113.2L1413.3,107.6L1406.1,103.1L1416.1,99.3L1414.8,95.4L1420.5,98.3L1418.3,103.7L1424.2,104.7L1421.7,100.7L1431.0,98.5L1452.8,101.4L1447.8,96.8L1447.3,90.8L1482.3,89.2L1477.8,86.3L1484.3,82.7L1559.8,75.4L1579.7,68.3L1595.8,75.1L1617.1,73.8L1634.1,78.6L1632.7,81.5L1607.8,87.9L1627.9,89.0L1630.7,92.6L1642.0,90.3L1684.4,94.6L1684.8,90.4L1705.4,91.3L1714.4,94.2L1717.0,97.8L1713.7,100.1L1729.4,106.7L1734.7,100.9L1777.1,102.8L1773.0,97.7L1780.4,95.3L1830.6,98.9L1849.8,106.4L1883.3,106.3L1887.9,108.6L1887.3,112.7L1894.1,114.2L1932.4,113.4L1942.1,118.4L1949.0,116.6L1944.5,113.0L1947.0,110.6L1976.2,111.8L2000.0,116.9L2000.0,139.0L1985.6,141.1L1996.5,150.1L1995.7,153.9L1985.4,152.7L1964.9,157.5L1946.3,167.3L1938.3,163.5L1923.9,167.8L1908.6,167.4L1900.1,176.4L1906.6,179.9L1905.9,188.0L1900.7,188.2L1898.3,192.9L1900.7,195.2L1890.9,198.1L1889.0,204.4L1880.7,205.8L1879.1,211.4L1871.1,216.6L1863.5,192.3L1866.2,184.6L1871.2,178.7L1879.8,177.5L1909.3,160.3L1913.7,152.5L1907.0,153.0L1889.6,163.6L1885.0,156.8L1870.7,158.7L1856.8,168.0L1861.4,171.4L1840.4,173.4L1840.8,169.4L1832.1,168.6L1790.0,172.0L1750.7,195.9L1767.6,201.4L1777.2,198.9L1785.3,205.1L1778.1,230.9L1749.3,258.9L1741.9,262.2L1734.9,259.5L1726.6,265.4L1727.9,250.2L1739.4,249.2L1750.1,230.7L1727.7,234.5L1718.9,225.3L1709.2,223.6L1699.7,206.7L1686.5,203.0L1667.7,206.9L1670.8,211.3L1662.7,221.4L1654.9,224.9L1635.3,220.8L1614.8,227.1L1602.6,226.2L1593.8,220.7L1576.0,221.7L1568.1,219.4L1567.0,215.2L1549.2,210.8L1543.5,216.6L1545.7,219.9L1540.3,223.7L1512.4,217.8L1485.3,226.6L1463.2,216.3L1455.3,217.7L1447.6,214.5L1444.6,217.4L1425.1,199.0L1427.2,197.3L1407.9,202.8L1408.4,199.8L1395.4,199.3L1393.7,193.5L1383.7,192.3L1341.3,200.0L1338.8,201.9L1342.8,205.7L1333.2,211.3L1342.2,215.2L1340.8,217.8L1309.5,218.8L1282.0,212.8L1270.6,218.9L1269.9,222.9L1264.2,219.7L1258.1,231.1L1267.0,234.8L1272.8,242.2Z M1506.6,53.7L1533.0,48.6L1556.6,56.8L1555.2,61.8L1543.1,62.5L1506.6,53.7Z M1562.6,59.8L1585.4,62.7L1552.4,67.1L1562.6,59.8Z M1771.3,77.0L1786.0,77.3L1806.0,80.2L1801.7,84.3L1772.0,85.5L1761.0,81.9L1771.3,77.0Z M1811.8,82.4L1837.4,82.9L1831.0,85.1L1811.8,82.4Z M1777.0,92.4L1789.2,89.7L1797.8,93.3L1789.4,93.3L1777.0,92.4Z M1249.1,52.3L1278.0,50.5L1286.2,51.7L1264.4,55.5L1258.3,54.2L1261.5,52.4L1249.1,52.3Z M1126.3,198.2L1116.1,198.3L1109.2,197.6L1118.2,193.4L1126.4,195.2L1126.3,198.2Z M1297.3,90.3L1310.6,85.4L1309.1,82.9L1339.8,76.4L1378.7,72.6L1382.5,74.8L1324.9,87.2L1307.9,97.9L1309.0,102.6L1319.6,107.1L1298.2,106.9L1286.7,102.9L1285.9,99.9L1291.5,98.7L1291.4,95.7L1302.4,91.0L1297.3,90.3Z M1794.0,201.6L1803.6,227.9L1795.4,226.1L1792.0,234.1L1797.3,243.7L1793.0,240.3L1789.4,244.6L1787.1,203.9L1792.3,201.3L1790.1,198.7L1794.0,201.6Z M28.2,126.6L27.7,130.1L31.4,131.5L30.2,127.4L45.2,128.3L56.1,133.5L41.5,136.5L39.1,143.0L21.1,136.9L9.1,136.7L7.3,132.7L0.6,134.0L3.2,136.6L0.0,139.0L0.0,116.9L28.2,126.6Z M13.5,104.1L0.0,106.5L0.0,102.7L13.5,104.1Z M1180.3,248.2L1187.2,243.2L1202.9,247.4L1188.2,253.5L1180.3,248.2Z M660.0,788.1L674.7,783.9L679.2,786.4L670.0,790.0L660.0,788.1Z M1058.0,57.5L1094.4,55.3L1119.7,61.4L1105.7,63.5L1095.1,73.3L1088.4,73.5L1076.5,70.1L1081.5,68.1L1058.0,57.5Z M1172.8,113.6L1158.8,116.3L1161.2,112.4L1154.1,110.2L1137.4,118.6L1118.0,114.6L1111.3,116.3L1110.4,120.0L1100.0,119.1L1075.3,140.1L1075.4,144.2L1069.9,144.1L1066.3,149.3L1066.6,156.7L1070.2,159.5L1068.3,166.0L1061.3,173.0L1057.5,169.6L1046.6,176.0L1031.5,174.5L1027.7,155.7L1058.5,141.7L1082.0,123.3L1106.6,112.1L1156.5,104.5L1173.9,108.6L1166.7,110.1L1172.8,113.6Z M1152.3,55.2L1127.9,58.9L1096.5,53.8L1127.3,51.9L1152.3,55.2Z M1137.4,67.5L1124.9,69.8L1115.1,68.5L1119.0,67.0L1115.6,65.3L1127.1,64.1L1137.4,67.5Z M740.2,41.0L785.4,35.8L849.4,36.0L884.2,40.4L822.8,43.3L877.4,45.9L871.3,49.2L912.4,44.9L932.2,48.4L888.6,54.6L901.5,54.8L890.5,62.5L890.7,68.7L897.4,72.3L879.6,74.3L889.8,77.2L891.1,82.0L885.2,82.5L892.4,87.2L880.0,87.6L886.5,89.9L884.7,91.9L869.1,92.7L876.1,99.0L862.3,98.2L877.0,103.0L879.1,107.4L869.2,108.5L858.1,103.2L860.0,106.9L853.5,109.9L875.8,110.4L845.8,119.6L823.5,121.6L810.0,129.6L778.8,136.3L771.2,147.3L762.1,151.8L764.4,156.1L759.0,166.1L731.9,161.9L713.1,146.5L700.2,126.7L705.7,120.2L714.0,118.2L717.4,111.5L703.0,115.1L696.2,113.3L698.0,106.5L714.5,107.9L689.8,101.9L696.0,96.7L674.5,80.5L659.6,77.2L619.4,77.4L603.3,72.2L629.1,70.1L592.8,66.4L634.9,58.9L637.1,56.9L622.1,54.9L654.3,48.2L651.9,45.7L705.3,45.1L720.1,42.0L752.7,46.3L739.4,43.3L740.2,41.0Z M1383.0,770.1L1391.8,772.6L1392.0,773.6L1381.9,776.5L1383.0,770.1Z M1694.3,549.4L1699.7,546.8L1707.4,546.7L1694.9,552.2L1694.3,549.4Z M1090.8,658.8L1093.5,656.0L1102.6,661.4L1110.5,658.1L1110.5,637.6L1116.1,649.0L1120.0,648.5L1129.5,640.4L1142.6,641.6L1150.7,631.0L1163.5,622.7L1173.3,623.6L1177.4,635.4L1176.9,643.6L1172.5,643.0L1170.5,648.6L1173.8,651.6L1182.4,648.6L1178.9,659.7L1156.8,682.1L1143.2,688.6L1125.4,688.1L1111.5,693.3L1102.1,689.6L1101.2,675.9L1090.8,658.8Z M1156.0,660.3L1162.9,662.5L1156.2,669.7L1150.0,666.0L1156.0,660.3Z M349.3,319.2L362.7,318.2L383.2,325.9L408.3,323.6L422.6,337.4L427.2,339.1L435.2,334.6L449.9,353.5L460.3,356.3L456.3,375.3L467.2,395.4L475.4,399.2L492.2,395.1L498.5,383.3L516.4,380.3L512.0,398.6L494.4,401.0L491.9,404.2L497.4,410.7L490.3,410.7L487.6,419.2L478.5,411.4L463.6,413.0L425.0,398.4L413.9,389.2L415.2,381.0L411.0,373.5L376.5,339.1L371.4,326.8L362.4,323.3L361.5,325.6L362.9,332.4L379.9,351.9L385.2,365.0L392.2,370.2L389.7,373.2L376.8,362.6L376.1,355.5L360.8,346.0L365.8,341.3L358.2,335.8L349.3,319.2Z M679.9,667.9L701.2,678.0L704.4,681.8L701.1,691.1L687.7,693.7L675.4,688.4L679.9,667.9Z M703.5,687.6L704.4,681.8L701.2,678.0L679.9,667.9L702.0,649.6L702.1,645.1L696.5,643.0L698.4,633.5L692.2,633.1L690.0,624.2L678.1,622.7L676.9,612.1L680.6,601.0L676.4,590.6L665.8,590.3L663.9,576.5L636.7,564.3L637.0,554.2L620.7,561.2L608.1,561.2L608.4,552.7L599.0,555.9L593.2,552.6L589.0,541.8L595.0,529.3L611.7,523.9L614.3,506.2L611.0,497.0L615.5,494.5L612.1,490.5L624.8,488.7L627.4,493.7L635.8,495.6L648.0,487.8L642.9,486.1L639.9,477.5L649.5,479.1L661.3,474.8L662.6,471.1L666.8,472.1L669.2,478.0L666.8,484.7L672.1,492.7L688.9,489.9L689.0,486.1L705.9,488.2L714.9,476.6L722.4,490.4L720.1,500.4L729.9,501.3L730.1,506.9L734.3,503.2L750.5,508.6L752.3,515.0L777.9,516.0L793.2,526.8L802.2,528.6L807.1,540.8L804.8,550.0L785.1,572.5L781.8,599.3L772.5,621.9L766.7,627.6L752.0,629.7L735.3,638.3L730.6,643.8L728.4,659.3L703.5,687.6Z M613.7,560.8L620.7,561.2L637.0,554.2L636.7,564.3L663.9,576.5L665.8,590.3L676.4,590.6L680.6,601.0L678.6,610.9L671.6,607.5L656.7,609.1L651.7,623.6L644.5,622.2L642.3,626.7L631.8,621.3L623.2,627.1L618.0,613.2L619.8,607.8L613.4,597.7L616.9,591.7L614.8,583.1L618.5,569.8L613.7,560.8Z M611.7,523.9L595.0,529.3L589.0,541.8L593.2,552.6L599.0,555.9L608.4,552.7L608.1,561.2L613.7,560.8L618.5,569.8L614.8,583.1L616.9,591.7L609.0,601.9L577.7,581.4L556.9,540.0L548.6,534.1L547.7,526.3L553.9,518.9L553.1,524.6L560.0,527.6L563.1,525.3L567.6,516.7L580.3,508.7L582.7,500.3L594.1,512.8L610.8,515.1L607.3,520.8L611.7,523.9Z M628.5,493.0L624.8,488.7L612.1,490.5L615.5,494.5L611.0,497.0L614.3,506.2L611.7,523.9L607.3,520.8L610.8,515.1L594.1,512.8L582.7,500.3L569.9,497.8L561.2,490.6L571.5,478.6L567.3,459.9L569.6,452.6L579.6,447.5L583.9,438.4L603.3,431.2L592.8,449.2L595.6,449.5L600.2,461.2L625.9,466.1L623.2,475.0L626.1,481.6L623.3,484.3L628.5,493.0Z M570.3,451.8L567.3,459.9L560.4,450.0L553.4,453.9L555.5,458.1L550.6,459.9L546.0,455.0L539.7,455.1L539.3,447.4L547.6,451.2L561.0,446.9L570.3,451.8Z M541.4,446.9L539.1,454.3L527.9,444.0L527.2,446.9L524.1,444.8L522.5,439.5L535.2,439.2L541.4,446.9Z M535.2,439.2L523.8,438.4L513.0,428.3L528.2,417.8L538.1,416.7L535.2,439.2Z M538.1,416.7L528.2,417.8L514.9,427.9L511.9,422.8L503.6,419.9L511.7,411.9L527.9,411.1L538.1,416.7Z M503.6,419.9L512.6,423.4L511.6,426.9L499.5,423.7L503.6,419.9Z M487.6,419.2L490.3,410.7L497.4,410.7L491.9,404.2L494.4,401.0L504.8,401.1L504.3,411.7L509.9,412.6L503.6,419.9L499.5,423.7L487.6,419.2Z M504.8,401.1L510.5,398.1L505.9,411.7L504.3,411.7L504.8,401.1Z M662.6,471.1L661.3,474.8L649.5,479.1L639.9,477.5L642.9,486.1L648.0,487.8L631.5,496.0L623.3,484.3L626.1,481.6L623.2,475.0L625.9,466.1L600.2,461.2L595.6,449.5L592.8,449.2L595.0,441.9L600.1,435.5L603.7,434.6L600.3,436.5L599.6,445.2L604.1,449.2L603.3,439.1L610.2,436.8L611.4,432.4L621.1,441.4L639.5,444.0L642.7,440.9L656.2,440.5L651.5,442.1L668.0,453.5L658.8,466.9L662.6,471.1Z M685.9,489.4L674.8,493.0L668.6,490.1L666.8,472.1L658.8,466.9L668.0,453.5L682.5,466.8L677.5,477.4L685.9,489.4Z M697.1,487.2L689.0,486.1L688.9,489.9L685.9,489.4L680.0,481.5L677.5,477.4L682.5,466.8L700.2,468.0L697.1,487.2Z M713.0,476.9L705.9,488.2L697.1,487.2L700.2,468.0L713.0,476.9Z M1014.0,215.8L1045.0,227.7L1041.5,235.4L1033.5,240.4L1038.0,244.5L1041.3,257.3L1036.3,260.4L1017.2,260.7L1016.6,264.0L1010.1,264.8L989.4,258.8L993.4,244.4L983.5,235.7L975.0,233.6L974.5,229.5L991.0,229.8L989.3,223.5L994.5,225.8L1014.0,215.8Z M1048.6,263.2L1052.2,261.1L1051.3,270.1L1048.8,269.0L1048.6,263.2Z M581.3,500.8L580.3,508.7L567.6,516.7L563.1,525.3L560.0,527.6L553.1,524.6L556.8,514.8L550.2,512.5L550.4,505.9L555.1,495.7L561.9,492.3L581.3,500.8Z M543.0,371.2L564.7,374.9L587.9,387.3L568.0,389.7L571.7,386.6L562.7,380.0L543.5,375.6L545.6,374.2L527.9,378.4L543.0,371.2Z M1173.3,623.6L1155.7,619.4L1140.4,598.5L1150.2,599.7L1168.2,586.2L1182.5,592.9L1181.4,612.8L1173.3,623.6Z M1163.5,622.7L1150.7,631.0L1142.6,641.6L1129.5,640.4L1120.0,648.5L1116.1,649.0L1110.5,637.6L1110.5,621.4L1116.0,621.2L1116.2,601.4L1140.4,598.5L1155.7,619.4L1163.5,622.7Z M1110.5,621.4L1110.5,658.1L1102.6,661.4L1093.5,656.0L1090.8,658.8L1084.5,650.5L1079.2,622.8L1065.2,596.1L1074.8,594.3L1118.8,599.6L1139.3,597.7L1131.0,601.6L1128.9,599.3L1116.2,601.4L1116.0,621.2L1110.5,621.4Z M907.1,424.5L902.1,418.2L910.4,408.6L919.0,407.8L932.4,418.8L936.0,430.9L907.3,431.2L906.4,426.9L923.1,425.0L907.1,424.5Z M936.0,430.9L932.4,418.8L935.2,414.5L969.2,413.9L964.1,361.4L972.6,361.3L1017.5,390.6L1017.5,394.1L1023.7,393.6L1023.7,406.4L1020.2,413.5L994.1,416.8L977.7,425.2L970.0,442.4L955.4,443.3L949.3,431.6L943.5,434.2L936.0,430.9Z M905.2,383.3L928.2,381.5L928.5,370.6L933.7,370.1L933.5,355.9L951.7,356.2L951.8,347.8L972.6,361.3L964.1,361.4L969.2,413.9L935.2,414.5L932.4,418.8L919.0,407.8L908.5,410.4L909.6,388.4L905.2,383.3Z M1015.0,465.2L1010.4,465.9L1009.2,449.3L1004.3,441.8L1015.8,432.0L1021.1,440.4L1015.1,452.7L1015.0,465.2Z M1082.5,373.0L1088.4,386.7L1084.7,407.6L1077.6,412.9L1075.2,420.2L1077.5,425.8L1081.1,425.9L1078.8,430.6L1072.7,424.5L1068.3,427.6L1061.1,425.6L1050.1,428.7L1030.2,423.0L1022.8,424.8L1020.1,435.2L1005.7,428.6L1002.1,417.1L1020.2,413.5L1023.7,406.4L1023.7,393.6L1066.7,369.6L1078.6,375.0L1082.5,373.0Z M1015.0,465.2L1015.1,452.7L1020.6,444.1L1020.4,430.3L1024.3,423.6L1050.1,428.7L1061.1,425.6L1068.3,427.6L1072.7,424.5L1081.0,432.9L1065.3,461.2L1051.3,464.2L1047.2,473.5L1032.8,476.3L1024.0,465.2L1015.0,465.2Z M1080.5,428.6L1085.9,444.5L1077.5,446.9L1085.8,457.3L1080.8,465.4L1080.4,473.7L1088.1,483.3L1088.6,490.4L1053.6,487.3L1054.4,482.9L1047.2,475.0L1048.7,469.6L1056.2,460.9L1065.3,461.2L1080.1,435.7L1080.5,428.6Z M1005.0,438.9L1010.4,465.9L1005.9,467.1L999.7,440.5L1005.0,438.9Z M1000.1,438.8L1005.9,467.1L989.1,473.8L984.1,472.3L983.7,439.1L1000.1,438.8Z M955.4,443.3L965.5,441.5L975.9,446.6L984.3,446.4L984.1,472.3L974.2,471.3L957.2,475.8L957.9,468.3L952.2,464.1L956.5,452.4L955.4,443.3Z M923.9,430.1L943.5,434.2L949.3,431.6L955.4,443.3L954.0,457.3L948.8,459.4L945.8,452.5L941.6,453.6L938.2,444.2L931.0,445.4L926.4,450.5L915.9,438.7L923.6,434.4L923.9,430.1Z M907.3,431.2L923.9,430.1L923.6,434.4L915.9,438.7L907.3,431.2Z M953.1,457.3L952.2,464.1L957.9,468.3L957.2,475.8L936.5,462.3L943.2,453.3L945.8,452.5L948.8,459.4L953.1,457.3Z M926.4,450.5L931.0,445.4L938.2,444.2L943.2,453.3L936.5,462.3L928.1,456.7L926.4,450.5Z M970.0,442.4L976.2,426.5L994.1,416.8L1002.1,417.1L1005.7,428.6L1012.1,429.9L1010.8,435.3L1005.0,438.9L983.7,439.1L984.3,446.4L975.9,446.6L970.0,442.4Z M1152.1,470.9L1135.6,471.6L1124.5,477.6L1108.2,472.0L1102.5,480.5L1095.2,479.3L1089.0,487.4L1080.3,469.7L1084.9,458.8L1099.8,456.2L1104.5,450.1L1116.7,447.4L1127.0,438.1L1130.3,450.3L1152.1,470.9Z M1102.5,480.5L1098.0,502.4L1091.2,509.7L1088.9,519.6L1081.0,527.6L1070.1,524.7L1066.2,528.0L1061.6,522.1L1065.9,519.0L1063.8,515.4L1069.9,510.8L1077.7,513.7L1080.1,507.4L1076.9,499.8L1079.3,493.4L1073.8,492.7L1072.6,487.4L1088.6,490.4L1095.2,479.3L1102.5,480.5Z M1062.6,487.4L1072.0,487.1L1073.8,492.7L1079.3,493.4L1076.9,499.8L1080.1,507.4L1077.7,513.7L1069.9,510.8L1063.8,515.4L1065.9,519.0L1061.6,522.1L1048.9,506.2L1052.7,494.4L1062.7,494.1L1062.6,487.4Z M1053.6,487.3L1062.6,487.4L1062.7,494.1L1052.7,494.4L1053.6,487.3Z M1170.8,546.3L1184.6,553.8L1185.0,569.1L1181.6,576.2L1184.5,577.6L1167.7,582.2L1168.2,586.2L1150.2,599.7L1129.0,597.4L1121.6,589.3L1121.9,571.7L1133.4,571.7L1132.8,560.7L1143.1,565.5L1150.9,564.5L1160.7,573.6L1165.0,573.7L1164.5,567.7L1157.6,565.5L1158.1,550.9L1161.1,546.7L1170.8,546.3Z M1182.0,551.3L1190.4,556.4L1192.0,575.4L1198.3,581.2L1198.7,588.3L1194.6,593.3L1191.0,589.9L1191.4,581.2L1181.6,576.2L1186.0,558.5L1182.0,551.3Z M1192.0,564.0L1208.2,564.3L1224.0,557.3L1226.5,581.6L1219.2,592.9L1193.3,609.9L1197.6,622.7L1197.0,634.0L1183.4,640.9L1182.4,648.6L1178.2,648.5L1173.3,623.6L1181.4,612.8L1182.5,592.9L1168.5,588.2L1167.7,582.2L1184.5,577.6L1191.4,581.2L1191.0,589.9L1194.6,593.3L1198.7,588.3L1198.3,581.2L1192.0,575.4L1192.0,564.0Z M1178.2,648.5L1173.8,651.6L1170.5,648.6L1172.5,643.0L1176.9,643.6L1178.2,648.5Z M1068.5,533.9L1090.7,532.7L1097.1,544.8L1105.6,544.4L1111.6,538.6L1120.7,540.5L1123.1,561.6L1133.4,562.4L1133.4,571.7L1121.9,571.7L1121.6,589.3L1129.0,597.4L1118.8,599.6L1074.8,594.3L1065.2,596.1L1067.6,580.3L1076.3,562.8L1068.5,533.9Z M1169.3,513.4L1170.8,518.7L1163.0,525.0L1161.2,515.8L1169.3,513.4Z M1199.0,315.1L1194.3,323.0L1196.8,327.2L1194.0,336.1L1190.4,326.6L1195.0,316.2L1199.0,315.1Z M1273.3,566.9L1279.9,587.3L1276.0,587.3L1276.5,593.8L1261.6,638.6L1252.3,642.2L1244.7,638.8L1240.8,626.5L1247.0,608.0L1244.2,596.7L1246.9,590.1L1257.3,587.7L1273.3,566.9Z M906.4,426.9L916.2,422.9L923.1,425.0L906.4,426.9Z M1052.7,331.6L1050.3,321.7L1041.8,310.6L1045.2,307.5L1046.8,294.7L1052.8,292.5L1056.6,296.0L1061.3,293.9L1060.0,306.5L1056.4,309.3L1063.8,315.9L1052.7,331.6Z M951.8,347.8L951.8,339.8L970.9,333.3L979.5,328.4L979.7,324.2L992.7,320.8L987.9,304.6L993.3,301.6L1008.1,296.6L1046.8,294.7L1045.2,307.5L1041.8,310.6L1050.3,321.7L1054.5,336.5L1051.8,355.0L1057.2,364.6L1066.7,369.6L1031.5,391.1L1017.5,394.1L1017.5,390.6L951.8,347.8Z M1197.5,320.0L1204.6,320.5L1215.5,314.6L1217.8,321.3L1205.6,325.0L1211.1,330.5L1200.4,337.8L1194.0,336.1L1197.5,320.0Z M1286.6,365.3L1300.0,366.0L1312.6,357.1L1313.3,361.5L1310.5,361.6L1305.6,375.0L1288.9,372.2L1286.6,365.3Z M1285.5,363.2L1281.9,358.4L1284.9,354.9L1286.7,359.9L1285.5,363.2Z M1266.5,333.5L1269.0,341.4L1258.7,338.3L1262.8,333.0L1266.5,333.5Z M1217.8,321.3L1215.5,314.6L1227.8,308.8L1229.4,298.0L1237.7,292.3L1248.7,293.5L1256.0,301.8L1252.3,311.3L1263.0,319.6L1269.8,333.7L1262.8,333.0L1258.7,338.3L1248.4,337.9L1232.7,326.7L1217.8,321.3Z M1306.7,373.8L1310.5,361.6L1313.3,361.5L1332.3,376.1L1321.3,387.5L1320.5,394.8L1304.4,405.8L1295.0,407.5L1288.9,394.4L1305.6,388.9L1309.3,377.8L1306.7,373.8Z M1575.0,440.9L1568.6,425.6L1572.2,421.0L1589.1,422.9L1591.6,419.1L1597.9,424.8L1597.2,431.5L1587.8,435.7L1590.3,439.1L1575.0,440.9Z M1584.5,420.7L1572.2,421.0L1568.6,425.6L1569.9,432.3L1556.1,425.5L1551.2,448.7L1554.9,448.8L1558.1,458.7L1567.5,465.4L1562.0,468.4L1545.3,453.6L1553.3,433.9L1545.5,416.0L1549.5,410.1L1541.0,397.5L1545.9,390.5L1556.2,386.6L1562.7,391.9L1561.4,402.7L1573.3,398.3L1581.8,403.2L1586.6,413.5L1584.5,420.7Z M1596.6,421.1L1584.5,420.7L1586.6,413.5L1577.5,398.7L1561.4,402.7L1562.7,391.9L1556.2,386.6L1562.1,380.9L1565.6,382.4L1564.7,376.0L1567.6,375.2L1573.4,384.6L1580.2,384.7L1582.3,389.5L1577.2,393.0L1583.9,396.3L1596.2,411.6L1596.6,421.1Z M1556.2,386.6L1545.9,390.5L1541.0,397.5L1549.5,410.1L1545.5,416.0L1553.3,433.9L1547.5,444.8L1547.3,427.1L1539.8,406.0L1529.8,412.7L1523.3,410.9L1524.0,398.8L1512.8,380.7L1517.6,376.2L1518.5,366.2L1522.8,367.5L1528.5,352.4L1539.6,349.5L1540.7,343.0L1548.2,347.2L1548.2,356.0L1542.9,360.6L1542.2,367.2L1548.1,366.3L1553.0,372.5L1551.3,377.1L1561.9,378.6L1556.2,386.6Z M1579.6,441.7L1590.3,439.1L1587.8,435.7L1597.2,431.5L1597.6,415.5L1583.9,396.3L1577.2,393.0L1582.3,389.5L1580.2,384.7L1573.4,384.6L1567.6,375.2L1585.2,370.3L1600.3,380.3L1587.0,394.1L1604.9,415.1L1606.7,435.2L1584.2,452.2L1583.8,444.9L1579.6,441.7Z M1725.8,264.5L1720.4,268.9L1720.6,272.9L1708.5,279.1L1712.3,286.8L1696.0,290.7L1692.8,288.3L1696.6,281.2L1690.4,278.2L1694.9,274.6L1704.8,267.7L1712.3,269.6L1711.4,266.7L1722.2,261.2L1725.8,264.5Z M1701.0,290.3L1713.1,285.5L1719.2,295.6L1717.2,305.1L1702.7,308.9L1700.7,296.0L1704.8,295.0L1701.0,290.3Z M1487.5,226.1L1512.4,217.8L1540.3,223.7L1545.7,219.9L1543.5,216.6L1549.2,210.8L1567.0,215.2L1568.1,219.4L1576.0,221.7L1593.8,220.7L1602.6,226.2L1614.8,227.1L1635.3,220.8L1648.2,222.8L1643.0,234.9L1655.9,233.0L1665.4,238.6L1652.3,240.7L1630.4,251.1L1621.5,249.4L1618.6,253.0L1621.3,257.0L1613.4,261.8L1583.1,268.9L1560.3,263.0L1535.3,262.6L1529.5,254.2L1505.3,248.4L1505.4,239.5L1489.0,230.0L1487.5,226.1Z M1540.7,343.0L1539.6,349.5L1528.5,352.4L1522.8,367.5L1518.5,366.2L1514.8,377.5L1511.9,368.7L1509.5,372.3L1506.4,369.4L1513.2,361.2L1499.6,359.6L1499.1,355.7L1492.0,353.1L1490.1,356.8L1494.1,359.8L1489.4,363.9L1492.8,365.4L1493.8,379.5L1483.2,380.6L1480.6,388.0L1472.6,391.8L1456.6,408.0L1446.2,411.7L1443.7,442.5L1430.8,455.7L1425.5,450.6L1408.5,411.2L1403.5,381.4L1391.5,384.0L1378.8,368.4L1382.5,364.7L1394.7,364.7L1386.2,350.3L1392.3,344.5L1398.8,344.9L1418.1,320.7L1409.7,309.3L1427.1,307.5L1432.4,302.8L1438.4,309.3L1437.4,324.9L1450.6,332.3L1444.9,340.0L1462.8,348.0L1489.2,353.3L1489.6,345.1L1492.9,344.0L1493.5,349.5L1498.6,351.6L1511.3,350.9L1509.4,345.7L1534.0,336.4L1534.7,342.2L1540.7,343.0Z M1514.8,377.5L1513.2,385.2L1507.9,373.5L1502.8,373.3L1501.5,378.7L1494.6,377.5L1492.8,365.4L1489.4,363.9L1494.1,359.8L1490.1,356.8L1492.0,353.1L1499.1,355.7L1499.6,359.6L1513.2,361.2L1506.4,369.4L1509.5,372.3L1511.9,368.7L1514.8,377.5Z M1509.4,345.7L1511.3,350.9L1493.5,349.5L1500.1,342.8L1509.4,345.7Z M1489.6,345.1L1489.2,353.3L1484.6,353.3L1444.9,340.0L1452.9,331.0L1476.8,343.3L1489.6,345.1Z M1432.4,302.8L1427.1,307.5L1409.7,309.3L1418.1,320.7L1398.8,344.9L1392.3,344.5L1386.2,350.3L1394.7,364.7L1382.5,364.7L1378.8,368.4L1368.7,358.7L1341.7,360.7L1343.7,354.2L1351.8,351.4L1348.5,343.0L1338.2,334.3L1347.5,337.1L1368.6,334.0L1371.9,326.1L1385.1,322.8L1390.7,314.7L1388.5,311.0L1393.8,311.2L1399.1,297.2L1417.5,293.7L1423.3,300.6L1432.4,302.8Z M1365.3,290.8L1384.4,293.6L1393.4,286.2L1399.1,295.9L1407.0,291.7L1417.5,293.7L1395.9,299.6L1397.9,304.7L1393.8,311.2L1388.5,311.0L1390.7,314.7L1385.1,322.8L1371.9,326.1L1368.6,334.0L1347.5,337.1L1338.2,334.3L1343.2,329.2L1336.3,316.8L1340.1,301.9L1349.9,303.3L1358.6,298.3L1359.7,293.8L1365.3,290.8Z M1376.8,293.6L1380.0,288.0L1374.7,282.6L1376.1,280.1L1392.6,272.4L1394.5,276.4L1386.4,277.2L1385.9,280.4L1409.3,280.9L1410.7,286.1L1415.9,286.8L1416.6,292.1L1407.0,291.7L1399.1,295.9L1393.4,286.2L1384.4,293.6L1376.8,293.6Z M1391.2,269.3L1399.1,262.0L1408.3,263.9L1412.3,259.5L1445.9,264.7L1425.1,275.4L1415.4,275.7L1409.3,280.9L1385.9,280.4L1386.4,277.2L1398.7,277.0L1405.9,273.0L1391.2,269.3Z M1291.7,267.9L1300.4,264.9L1308.1,270.8L1317.2,270.4L1316.3,267.6L1325.7,262.5L1333.2,265.4L1335.9,271.0L1343.8,271.8L1346.5,277.5L1356.5,283.9L1369.7,289.0L1369.5,292.4L1365.3,290.8L1358.6,298.3L1345.7,304.1L1340.1,301.9L1339.6,297.3L1318.5,288.7L1299.6,293.3L1299.3,283.6L1295.0,281.7L1296.4,277.9L1292.7,277.6L1294.0,272.9L1304.1,272.5L1298.5,266.0L1294.0,267.4L1293.4,271.5L1291.7,267.9Z M1269.8,333.7L1263.0,319.6L1252.3,311.3L1256.0,301.8L1245.7,289.0L1245.1,281.0L1248.9,279.4L1256.4,284.8L1267.0,280.1L1266.7,284.5L1273.3,291.2L1282.5,295.2L1299.0,294.6L1314.6,288.2L1339.6,297.3L1336.3,316.8L1343.2,329.2L1338.2,334.3L1348.5,343.0L1351.8,351.4L1343.7,354.2L1341.7,360.7L1318.9,357.0L1316.5,350.2L1297.2,351.0L1286.2,345.2L1278.4,332.5L1269.8,333.7Z M1198.4,318.3L1203.4,310.0L1199.5,303.3L1204.1,295.5L1235.3,293.2L1229.4,298.0L1227.8,308.8L1204.6,320.5L1198.4,318.3Z M1258.4,284.6L1242.5,276.4L1242.1,271.7L1253.1,273.3L1258.4,284.6Z M1061.3,173.0L1070.2,159.5L1066.6,156.7L1066.3,149.3L1069.9,144.1L1075.4,144.2L1075.3,140.1L1093.2,122.1L1110.4,120.0L1114.7,116.1L1130.8,122.6L1132.8,133.3L1123.2,134.9L1117.9,138.7L1118.7,142.1L1099.2,151.4L1095.1,159.2L1104.4,166.2L1099.3,172.5L1093.5,173.8L1088.2,188.3L1071.9,192.4L1061.3,173.0Z M1156.5,187.9L1171.5,191.4L1170.9,195.5L1181.6,203.6L1173.9,205.1L1176.6,210.5L1171.8,210.9L1169.8,214.9L1130.7,213.5L1130.5,200.5L1141.9,198.4L1147.2,191.0L1156.5,187.9Z M1171.8,210.9L1187.5,209.2L1196.4,219.0L1222.6,224.4L1220.8,233.9L1194.2,242.9L1194.5,245.9L1176.0,240.5L1170.8,241.2L1164.5,248.4L1159.3,248.3L1156.9,247.3L1160.3,242.0L1166.8,242.1L1159.3,232.7L1152.9,230.7L1138.1,234.8L1122.7,231.0L1132.9,219.9L1130.7,213.5L1169.8,214.9L1171.8,210.9Z M1130.5,200.5L1132.2,207.3L1128.9,208.4L1133.5,218.3L1125.1,225.1L1126.5,227.6L1110.1,226.6L1089.9,219.9L1083.4,216.1L1078.2,205.7L1078.4,201.3L1097.9,195.3L1130.5,200.5Z M1094.3,232.6L1089.0,240.6L1081.3,242.0L1052.7,238.3L1055.0,235.7L1071.8,236.3L1075.5,228.5L1091.7,229.0L1094.3,232.6Z M1122.7,231.0L1126.2,234.0L1116.8,242.7L1102.5,245.8L1090.0,239.7L1094.3,232.6L1099.2,234.7L1122.7,231.0Z M1147.9,232.1L1159.3,232.7L1166.8,242.1L1160.3,242.0L1156.9,247.3L1156.3,239.9L1147.9,232.1Z M1156.9,247.3L1164.5,248.4L1160.2,250.5L1158.7,257.2L1151.3,254.6L1127.5,256.5L1126.1,252.3L1119.8,251.3L1112.3,243.7L1128.6,232.8L1138.1,234.8L1147.9,232.1L1156.3,239.9L1156.9,247.3Z M1147.2,191.0L1141.9,198.4L1130.5,200.5L1126.4,195.2L1118.2,193.4L1117.0,188.7L1138.1,186.8L1147.2,191.0Z M1151.6,180.7L1156.5,187.9L1147.2,191.0L1138.1,186.8L1117.0,188.7L1119.9,181.0L1125.1,179.1L1129.5,183.3L1139.8,177.9L1151.6,180.7Z M1155.5,169.6L1151.6,180.7L1135.1,178.9L1135.7,175.6L1130.1,174.4L1129.7,171.2L1155.5,169.6Z M1078.4,201.3L1083.4,216.1L1068.0,220.7L1075.5,228.5L1071.8,236.3L1041.5,235.4L1045.0,227.7L1037.0,226.7L1033.6,221.5L1033.3,211.9L1038.0,209.8L1039.4,201.7L1045.1,202.6L1048.9,199.9L1047.4,194.7L1055.1,194.5L1060.8,200.0L1069.5,197.4L1078.4,201.3Z M1125.9,254.3L1127.5,256.5L1151.3,254.6L1158.7,257.2L1153.7,263.5L1155.5,266.6L1145.1,267.6L1145.0,270.4L1127.5,270.3L1124.3,264.9L1127.7,259.9L1125.9,254.3Z M1146.1,303.9L1137.4,306.0L1130.6,304.0L1131.7,301.6L1146.1,303.9Z M1116.8,273.1L1147.8,269.1L1144.8,273.2L1131.7,274.0L1135.6,277.1L1125.7,276.4L1133.6,290.8L1128.4,289.3L1128.6,297.7L1124.9,297.7L1120.4,295.3L1111.9,279.9L1116.8,273.1Z M1248.7,293.5L1204.1,295.5L1200.8,301.0L1200.9,296.4L1192.9,295.6L1189.0,298.8L1170.1,296.2L1165.0,299.2L1153.6,296.3L1146.2,287.7L1148.9,283.4L1145.4,280.8L1151.6,275.4L1160.1,275.2L1162.4,271.0L1173.0,271.7L1186.2,266.6L1213.0,272.5L1236.8,269.0L1248.9,279.4L1245.1,281.0L1248.7,293.5Z M1145.1,267.6L1155.5,266.6L1161.0,270.6L1146.4,276.9L1144.8,273.2L1147.8,269.1L1145.1,267.6Z M1116.8,273.1L1111.9,279.9L1107.8,276.4L1109.7,262.8L1116.8,273.1Z M1092.0,241.6L1107.7,248.7L1087.5,251.0L1102.5,264.0L1089.0,258.3L1082.8,249.6L1075.9,249.2L1085.2,247.5L1092.0,241.6Z M1053.3,236.0L1057.6,241.8L1040.4,245.7L1033.5,242.9L1037.4,235.9L1053.3,236.0Z M1034.2,217.8L1031.5,224.8L1014.0,215.8L1027.6,214.0L1034.2,217.8Z M1038.4,202.9L1038.0,209.8L1033.3,211.9L1034.2,217.8L1027.6,214.0L1018.4,214.7L1026.1,205.0L1038.4,202.9Z M949.8,267.3L954.1,265.1L964.5,270.1L958.3,279.8L960.9,288.5L956.4,295.3L950.6,295.2L950.9,287.4L947.1,284.8L951.3,273.6L949.8,267.3Z M958.6,293.9L960.9,288.5L958.3,279.8L964.5,270.1L954.1,265.1L949.8,267.3L947.8,261.0L955.7,257.0L1016.6,264.0L1011.6,271.0L1004.5,272.1L998.5,281.6L1000.6,284.8L988.1,296.3L975.7,296.2L970.1,300.3L958.6,293.9Z M965.6,200.7L966.5,204.7L962.3,209.7L944.6,212.1L949.1,206.3L946.2,200.7L957.9,193.7L957.9,199.7L965.6,200.7Z M1911.3,611.7L1928.4,623.1L1919.3,620.4L1911.3,611.7Z M1991.8,709.4L1977.8,729.4L1973.6,731.6L1970.3,729.3L1973.5,724.8L1965.7,719.5L1969.9,715.5L1970.5,707.7L1959.1,691.8L1968.5,695.9L1977.5,708.6L1991.8,709.4Z M1942.6,742.0L1960.0,725.0L1962.5,729.6L1966.4,727.4L1968.0,729.7L1959.5,741.0L1961.6,743.6L1952.5,745.8L1947.9,755.0L1940.7,759.1L1926.0,756.8L1928.0,750.6L1942.6,742.0Z M1804.1,726.1L1823.8,727.1L1821.7,740.1L1811.4,741.9L1804.1,726.1Z M1729.6,675.0L1690.1,683.1L1687.0,688.3L1666.1,688.8L1655.7,694.8L1639.0,690.0L1643.3,678.9L1629.7,645.1L1632.1,647.5L1630.2,642.3L1634.6,646.1L1630.0,635.5L1631.9,624.9L1634.2,620.9L1634.6,625.1L1648.4,615.0L1671.4,609.4L1683.4,591.1L1685.7,595.9L1688.1,594.8L1686.1,592.2L1698.3,579.1L1705.9,576.8L1713.1,582.6L1720.1,583.2L1718.9,580.1L1725.7,569.6L1736.5,567.3L1732.4,562.6L1735.3,561.8L1751.7,568.0L1758.3,565.9L1760.8,568.6L1755.3,574.0L1752.8,583.3L1779.0,598.4L1784.9,591.0L1787.1,568.9L1791.8,559.3L1799.6,580.8L1803.1,578.7L1807.6,583.2L1813.3,605.3L1826.9,613.3L1831.5,624.1L1837.4,624.5L1838.3,630.3L1849.2,640.4L1853.2,656.2L1849.4,675.8L1835.2,698.2L1833.3,707.9L1812.9,716.9L1804.9,713.4L1805.7,710.5L1797.8,715.6L1781.3,711.2L1775.4,700.8L1767.3,697.8L1767.8,691.0L1760.2,695.9L1765.6,682.8L1755.5,693.8L1746.0,681.2L1729.6,675.0Z M1454.4,458.2L1453.5,464.0L1446.4,466.8L1442.8,454.4L1445.3,445.4L1454.4,458.2Z M1613.0,396.2L1603.6,397.2L1603.5,392.4L1615.5,388.5L1613.0,396.2Z M1445.9,264.7L1445.4,261.6L1449.3,260.1L1444.3,250.5L1458.1,247.0L1462.1,237.1L1473.1,238.9L1476.5,230.8L1487.5,226.1L1489.0,230.0L1505.4,239.5L1505.3,248.4L1529.5,254.2L1535.3,262.6L1560.3,263.0L1583.1,268.9L1606.9,263.8L1621.3,257.0L1618.6,253.0L1621.5,249.4L1630.4,251.1L1652.3,240.7L1664.8,240.6L1655.9,233.0L1643.0,234.9L1641.6,232.6L1648.2,222.8L1654.9,224.9L1662.7,221.4L1670.8,211.3L1667.7,206.9L1679.1,203.2L1699.7,206.7L1709.2,223.6L1718.9,225.3L1727.7,234.5L1750.1,230.7L1739.4,249.2L1727.9,250.2L1728.6,261.5L1725.8,264.5L1722.2,261.2L1711.4,266.7L1712.3,269.6L1704.8,267.7L1690.4,278.2L1672.5,283.9L1678.7,275.4L1675.8,272.5L1653.0,284.8L1665.0,293.6L1671.2,289.6L1679.8,291.9L1680.7,294.8L1672.8,296.4L1662.0,306.1L1667.9,309.1L1677.3,323.9L1673.7,329.6L1678.3,334.3L1676.0,343.2L1659.2,363.6L1643.8,373.4L1615.5,381.1L1613.6,387.0L1610.5,387.3L1610.4,381.1L1594.7,378.8L1592.9,373.4L1585.2,370.3L1564.7,376.0L1565.6,382.4L1561.9,378.6L1551.3,377.1L1553.0,372.5L1548.1,366.3L1542.2,367.2L1542.9,360.6L1548.2,356.0L1548.2,347.2L1544.0,342.6L1534.7,342.2L1534.0,336.4L1525.4,337.3L1513.9,345.0L1500.1,342.8L1493.4,348.3L1492.9,344.0L1476.8,343.3L1437.4,324.9L1438.4,309.3L1432.4,302.8L1423.3,300.6L1409.3,280.9L1415.4,275.7L1425.1,275.4L1445.9,264.7Z M1675.0,359.5L1673.2,373.4L1670.8,377.9L1667.3,369.1L1675.0,359.5Z M1049.8,244.2L1067.5,238.2L1076.7,241.6L1077.4,246.7L1068.5,247.9L1069.9,255.0L1084.1,266.9L1102.1,275.8L1101.6,278.8L1093.7,275.3L1091.4,278.9L1094.7,283.9L1087.1,289.4L1089.5,283.5L1085.6,277.5L1062.2,264.7L1056.7,256.0L1049.4,253.5L1041.3,257.3L1038.0,244.5L1049.8,244.2Z M1069.8,288.2L1086.2,287.6L1083.9,296.6L1069.1,291.0L1069.8,288.2Z M1045.3,272.5L1051.2,271.1L1054.5,275.0L1053.7,282.3L1048.9,283.9L1045.3,272.5Z M1055.1,194.5L1047.4,194.7L1044.9,185.9L1058.8,179.3L1056.9,183.9L1060.6,186.3L1053.6,191.8L1055.1,194.5Z M1068.7,188.3L1070.5,191.1L1067.2,195.6L1061.4,192.4L1060.6,190.1L1068.7,188.3Z M965.6,200.7L957.9,199.7L957.9,193.7L968.5,196.9L965.6,200.7Z M982.8,203.3L979.8,196.6L971.8,194.1L972.0,190.1L969.0,192.7L965.8,184.5L972.2,174.3L983.3,174.2L977.4,180.3L989.1,179.5L982.7,189.0L988.4,189.4L1002.6,205.9L1009.3,207.0L1005.8,212.2L1008.1,215.1L967.9,221.3L981.0,214.3L970.7,211.2L976.5,209.4L974.6,202.8L982.8,203.3Z M919.4,130.8L918.1,134.4L924.4,138.2L896.4,147.2L873.5,144.7L879.0,142.2L866.9,139.5L876.5,136.8L864.9,135.5L877.0,131.1L885.7,134.8L919.4,130.8Z M1257.8,267.4L1265.6,271.4L1269.9,267.7L1280.0,276.4L1275.4,276.8L1271.6,287.1L1266.7,284.5L1267.0,280.1L1258.4,284.6L1258.2,280.8L1253.4,278.3L1249.8,270.8L1258.3,271.9L1257.8,267.4Z M1256.4,284.8L1252.5,284.0L1248.9,279.4L1254.1,280.7L1256.4,284.8Z M1222.0,258.7L1252.6,263.9L1259.1,271.2L1230.9,269.2L1230.3,263.1L1222.0,258.7Z M1673.7,432.2L1668.5,425.2L1675.2,427.4L1673.7,432.2Z M1683.3,449.9L1683.0,439.5L1686.1,439.2L1685.2,443.0L1689.3,437.6L1683.3,449.9Z M1696.7,445.8L1703.0,460.1L1701.1,465.1L1699.1,459.5L1696.5,462.3L1696.6,469.0L1690.1,465.8L1690.2,459.1L1686.7,456.5L1677.3,460.0L1686.0,451.7L1688.0,454.2L1697.1,450.1L1696.7,445.8Z M1664.9,441.4L1651.0,453.5L1664.0,436.8L1664.9,441.4Z M1679.6,398.8L1676.3,420.4L1688.6,423.4L1689.3,430.4L1682.9,424.7L1670.2,423.0L1672.2,419.3L1666.2,414.4L1670.6,397.2L1679.6,398.8Z M1677.8,442.0L1677.1,433.9L1684.0,435.6L1677.8,442.0Z M1697.2,432.4L1698.8,438.6L1694.5,437.2L1696.0,442.5L1693.3,443.7L1690.6,436.1L1693.8,434.5L1690.4,430.2L1697.2,432.4Z M1556.0,464.1L1562.0,468.4L1567.5,465.4L1572.0,469.3L1579.0,492.8L1563.3,484.7L1556.0,464.1Z M1654.9,477.0L1643.7,476.1L1636.8,492.1L1614.0,495.7L1610.2,492.6L1609.2,488.9L1617.6,489.7L1618.7,485.0L1627.8,482.8L1634.5,474.9L1637.0,477.7L1640.8,476.0L1641.4,469.7L1648.5,461.5L1662.1,470.0L1654.9,477.0Z M1641.4,469.7L1640.8,476.0L1637.0,477.7L1634.5,474.9L1641.4,469.7Z M1076.7,241.6L1090.0,239.7L1092.0,241.6L1085.2,247.5L1076.2,247.2L1076.7,241.6Z M1161.2,112.4L1158.0,120.2L1166.5,123.9L1161.4,128.1L1167.9,134.4L1164.1,139.2L1169.1,143.3L1166.9,146.9L1175.1,150.7L1173.0,153.6L1155.9,163.9L1127.1,167.5L1118.5,162.7L1117.0,152.2L1119.6,148.9L1141.1,138.3L1130.9,131.1L1130.8,122.6L1114.7,116.1L1137.4,118.6L1154.1,110.2L1161.2,112.4Z M1125.3,227.3L1121.5,231.6L1115.6,229.9L1099.2,234.7L1093.8,230.7L1103.1,225.0L1125.3,227.3Z M1083.4,216.1L1097.5,220.2L1104.7,225.0L1094.2,230.0L1084.7,227.6L1079.7,230.2L1069.6,224.7L1068.0,220.7L1083.4,216.1Z M1202.4,419.9L1204.7,405.8L1213.4,400.0L1218.1,411.5L1239.3,429.4L1235.3,430.3L1222.4,419.3L1210.6,416.9L1208.9,421.0L1202.4,419.9Z M1788.2,282.3L1783.1,287.9L1779.2,304.8L1762.3,307.7L1754.4,314.1L1750.4,307.8L1727.7,311.7L1733.3,315.8L1729.6,325.3L1726.0,327.6L1723.3,325.5L1724.7,320.4L1718.9,315.0L1736.8,303.1L1753.8,302.6L1759.6,292.8L1763.3,295.4L1774.6,287.7L1779.5,271.1L1785.4,270.1L1788.2,282.3Z M1803.4,255.8L1807.3,253.4L1808.6,259.7L1800.3,261.2L1795.5,266.7L1786.7,262.9L1783.7,269.0L1777.5,269.1L1776.8,263.5L1779.5,259.3L1785.4,259.0L1788.7,246.9L1803.4,255.8Z M1735.4,314.1L1743.9,309.1L1748.7,312.2L1739.0,318.3L1735.4,314.1Z M676.9,612.1L678.1,622.7L690.0,624.2L692.2,633.1L698.4,633.5L695.6,647.9L690.6,652.2L674.3,650.7L679.0,639.8L662.0,632.7L651.7,623.6L656.7,609.1L671.6,607.5L676.9,612.1Z M1288.9,394.4L1295.0,407.5L1289.8,413.3L1249.9,429.4L1241.6,429.8L1236.7,415.5L1241.0,402.3L1261.1,405.8L1272.9,396.6L1288.9,394.4Z M1194.2,336.9L1200.4,337.8L1208.4,333.3L1211.1,330.5L1205.6,325.0L1217.8,321.3L1232.7,326.7L1248.4,337.9L1263.7,338.9L1278.6,351.7L1279.1,357.7L1285.5,363.2L1288.9,372.2L1306.7,373.8L1309.3,377.8L1305.6,388.9L1272.9,396.6L1261.1,405.8L1241.0,402.3L1237.7,409.2L1217.4,381.7L1213.8,368.4L1192.4,344.1L1194.2,336.9Z M729.7,933.6L756.0,936.0L759.3,944.6L719.5,950.1L699.1,948.0L716.7,942.3L729.7,933.6Z M631.7,945.9L656.2,946.6L663.3,942.4L669.0,944.7L665.8,950.0L641.7,949.6L631.7,945.9Z M589.4,895.9L599.6,895.5L601.4,886.1L609.7,882.7L620.4,896.7L617.9,900.9L605.1,902.8L583.6,900.4L589.4,895.9Z M431.5,899.4L462.3,899.7L465.6,902.9L440.1,902.8L431.5,899.4Z M332.0,911.6L320.0,907.4L340.4,908.2L332.0,911.6Z M292.9,908.1L296.9,906.9L310.9,910.4L300.5,909.6L292.9,908.1Z M90.5,936.6L104.2,935.4L115.5,941.7L104.8,942.4L90.5,936.6Z M2000.0,970.6L2000.0,1000.0L0.0,1000.0L0.0,970.6L5.2,967.4L31.2,969.6L55.8,966.0L121.8,974.3L174.8,975.6L205.0,972.4L206.2,969.8L146.7,964.9L150.8,955.8L128.7,950.6L163.1,951.9L186.6,946.3L169.3,940.9L137.1,939.2L121.9,933.5L120.2,927.2L159.3,930.0L188.3,924.9L187.8,918.8L248.8,912.8L327.4,914.0L367.0,909.5L376.1,915.1L402.4,917.7L440.9,918.3L443.8,915.9L430.3,911.7L424.0,903.4L464.8,909.0L499.5,907.3L504.3,903.1L547.4,910.3L553.9,906.3L583.9,910.4L625.7,902.7L626.4,898.0L619.2,887.3L625.4,878.6L623.7,874.0L646.5,860.5L678.8,851.5L682.1,852.9L655.4,860.0L652.0,863.8L654.9,867.7L645.9,869.5L635.2,877.5L648.9,884.6L656.6,892.9L662.1,909.4L642.5,918.1L607.8,925.7L570.9,926.2L590.8,932.8L567.1,935.4L566.5,939.9L581.3,945.9L668.4,957.6L676.5,962.3L723.5,954.1L762.2,956.0L773.5,952.0L841.4,946.3L835.1,940.3L802.0,941.4L801.2,935.2L839.5,926.0L902.7,917.4L912.8,913.9L914.4,911.7L908.5,910.4L914.2,906.4L942.8,895.9L958.8,898.3L961.8,894.1L998.7,898.0L1043.0,888.3L1052.9,889.0L1060.1,893.5L1074.6,888.7L1150.5,891.5L1177.7,887.0L1188.2,880.6L1214.7,887.6L1303.0,865.7L1341.3,877.5L1355.8,874.5L1382.7,877.4L1387.1,884.6L1376.7,890.6L1383.7,892.7L1377.5,899.2L1388.2,901.5L1394.6,900.5L1410.4,888.2L1431.4,885.9L1439.5,879.6L1459.9,873.4L1482.0,873.1L1488.8,867.8L1498.2,873.1L1532.1,874.4L1554.0,873.6L1571.3,864.2L1589.9,871.9L1631.1,866.0L1665.7,873.7L1684.6,869.4L1715.6,870.9L1748.7,867.8L1750.4,862.8L1763.7,872.0L1808.3,871.8L1814.7,877.2L1826.9,879.9L1857.1,880.9L1897.6,892.1L1929.5,893.5L1951.1,898.3L1940.5,909.2L1922.7,913.2L1908.7,923.6L1908.3,928.1L1915.2,934.3L1927.8,937.5L1898.7,939.8L1887.7,949.7L1941.1,965.7L2000.0,970.6Z M1179.2,305.0L1185.5,304.7L1188.9,305.7L1183.2,307.9L1179.2,305.0Z M987.9,304.6L992.7,320.8L979.7,324.2L979.5,328.4L970.9,333.3L951.8,339.8L951.1,349.3L936.7,350.6L930.6,362.4L922.8,368.4L918.1,380.6L905.4,381.0L919.8,354.1L946.9,333.7L945.5,326.8L951.9,315.3L961.6,310.5L967.1,301.3L987.9,304.6Z M1204.8,377.8L1138.9,377.8L1137.2,333.1L1139.8,324.6L1160.6,328.5L1172.1,324.7L1177.6,328.1L1190.4,326.6L1194.0,336.1L1189.7,345.4L1179.6,334.7L1198.3,367.1L1197.4,371.7L1204.8,377.8Z M1138.5,322.8L1138.9,388.9L1132.4,391.2L1088.1,369.9L1078.6,375.0L1057.2,364.6L1051.8,355.0L1055.3,325.7L1063.5,320.2L1063.8,315.9L1084.7,320.7L1087.3,325.7L1106.0,331.9L1115.9,318.3L1138.5,322.8Z M1265.5,455.5L1249.8,472.2L1232.5,478.2L1226.5,476.3L1219.8,481.0L1200.9,475.3L1192.8,463.4L1183.1,456.8L1187.9,453.4L1190.3,440.9L1199.2,430.1L1202.4,419.9L1208.9,421.0L1210.6,416.9L1231.1,425.3L1235.3,430.3L1232.0,438.6L1237.6,439.3L1242.7,449.0L1265.5,455.5Z M1235.3,430.3L1240.7,431.2L1237.6,439.3L1232.0,438.6L1235.3,430.3Z M1271.9,436.6L1271.9,447.5L1265.5,455.5L1242.7,449.0L1236.4,441.3L1239.7,436.3L1245.1,442.0L1271.9,436.6Z M1188.4,505.3L1164.3,507.5L1166.0,496.7L1173.2,487.8L1171.0,487.0L1173.6,479.0L1188.9,476.4L1191.6,480.2L1194.6,489.4L1188.3,499.4L1188.4,505.3Z M1169.0,506.3L1170.9,512.7L1161.2,515.8L1162.7,509.0L1169.0,506.3Z M1103.1,263.1L1091.4,255.3L1088.7,248.7L1107.6,250.8L1108.1,258.0L1103.1,263.1Z M1124.3,264.9L1127.5,270.3L1114.5,271.7L1115.3,266.4L1124.3,264.9Z M1104.6,245.0L1112.3,243.7L1119.8,251.3L1126.1,252.3L1125.3,264.1L1119.9,265.3L1121.0,262.9L1115.6,259.6L1112.5,262.2L1106.8,258.2L1108.9,255.3L1104.6,245.0Z M1113.0,261.7L1107.6,267.3L1102.5,264.0L1106.8,258.2L1113.0,261.7Z M1114.4,267.5L1111.5,263.4L1114.6,259.9L1121.0,262.9L1114.4,267.5Z M1171.3,480.5L1165.1,474.4L1155.4,475.5L1132.7,452.1L1143.3,442.2L1148.6,447.4L1160.9,447.8L1166.6,442.8L1174.2,445.5L1180.0,438.4L1178.2,433.5L1184.5,432.3L1188.7,451.8L1183.1,456.8L1196.1,469.4L1185.5,478.9L1171.3,480.5Z" fill="#dceff8" stroke="#9bc8de" stroke-width="0.8" fill-rule="evenodd"/>
+        <!-- 中国现今疆域:红色虚线(含台湾、南海示意) -->
+        <g class="cn-border">
+          <path class="cn-fill" d="M1608.2,398.9L1603.6,397.2L1603.5,392.4L1615.5,388.5L1616.7,390.6L1613.0,396.2L1608.2,398.9Z M1445.9,264.7L1445.4,261.6L1449.3,260.1L1444.3,250.5L1458.1,247.0L1462.1,237.1L1473.1,238.9L1476.2,236.4L1476.5,230.8L1487.5,226.1L1489.0,230.0L1501.6,235.0L1505.4,239.5L1503.3,246.0L1505.3,248.4L1529.5,254.2L1535.3,262.6L1560.3,263.0L1583.1,268.9L1606.9,263.8L1621.3,257.0L1618.6,253.0L1621.5,249.4L1630.4,251.1L1652.3,240.7L1664.8,240.6L1665.4,238.6L1655.9,233.0L1643.0,234.9L1641.6,232.6L1648.2,222.8L1654.9,224.9L1662.7,221.4L1670.8,211.3L1670.7,208.2L1667.7,206.9L1679.1,203.2L1699.7,206.7L1709.2,223.6L1718.9,225.3L1725.5,229.3L1727.7,234.5L1750.1,230.7L1739.4,249.2L1727.9,250.2L1728.6,261.5L1725.7,261.6L1725.8,264.5L1722.2,261.2L1720.0,264.3L1711.4,266.7L1712.3,269.6L1704.8,267.7L1690.4,278.2L1672.5,283.9L1678.7,275.4L1675.8,272.5L1653.0,284.8L1665.0,293.6L1671.2,289.6L1679.8,291.9L1680.7,294.8L1672.8,296.4L1662.0,306.1L1667.9,309.1L1677.3,323.9L1677.2,328.1L1673.7,329.6L1678.3,334.3L1676.0,343.2L1672.9,343.7L1659.2,363.6L1643.8,373.4L1634.2,376.5L1632.3,374.7L1615.5,381.1L1613.6,387.0L1610.5,387.3L1610.4,381.1L1594.7,378.8L1592.0,376.6L1592.9,373.4L1585.2,370.3L1564.7,376.0L1565.6,382.4L1562.6,382.2L1561.9,378.6L1557.9,380.2L1551.3,377.1L1553.0,372.5L1549.4,371.4L1548.1,366.3L1542.2,367.2L1542.9,360.6L1548.2,356.0L1548.2,347.2L1544.0,342.6L1534.7,342.2L1536.6,339.8L1534.0,336.4L1530.0,338.7L1525.4,337.3L1513.9,345.0L1500.1,342.8L1493.4,348.3L1492.9,344.0L1476.8,343.3L1437.4,324.9L1435.9,318.8L1439.9,319.5L1440.0,316.7L1438.4,309.3L1432.4,302.8L1423.3,300.6L1416.6,292.1L1415.9,286.8L1410.7,286.1L1409.3,280.9L1415.4,275.7L1425.1,275.4L1427.2,271.9L1434.4,271.2L1445.9,264.7Z M1677.5,361.1L1673.2,373.4L1670.8,377.9L1667.3,369.1L1675.0,359.5L1677.5,361.1Z" fill="#f6dcd6" fill-opacity="0.5" stroke="none"/>
+          <path class="cn-line" d="M1608.2,398.9L1603.6,397.2L1603.5,392.4L1615.5,388.5L1616.7,390.6L1613.0,396.2L1608.2,398.9Z M1445.9,264.7L1445.4,261.6L1449.3,260.1L1444.3,250.5L1458.1,247.0L1462.1,237.1L1473.1,238.9L1476.2,236.4L1476.5,230.8L1487.5,226.1L1489.0,230.0L1501.6,235.0L1505.4,239.5L1503.3,246.0L1505.3,248.4L1529.5,254.2L1535.3,262.6L1560.3,263.0L1583.1,268.9L1606.9,263.8L1621.3,257.0L1618.6,253.0L1621.5,249.4L1630.4,251.1L1652.3,240.7L1664.8,240.6L1665.4,238.6L1655.9,233.0L1643.0,234.9L1641.6,232.6L1648.2,222.8L1654.9,224.9L1662.7,221.4L1670.8,211.3L1670.7,208.2L1667.7,206.9L1679.1,203.2L1699.7,206.7L1709.2,223.6L1718.9,225.3L1725.5,229.3L1727.7,234.5L1750.1,230.7L1739.4,249.2L1727.9,250.2L1728.6,261.5L1725.7,261.6L1725.8,264.5L1722.2,261.2L1720.0,264.3L1711.4,266.7L1712.3,269.6L1704.8,267.7L1690.4,278.2L1672.5,283.9L1678.7,275.4L1675.8,272.5L1653.0,284.8L1665.0,293.6L1671.2,289.6L1679.8,291.9L1680.7,294.8L1672.8,296.4L1662.0,306.1L1667.9,309.1L1677.3,323.9L1677.2,328.1L1673.7,329.6L1678.3,334.3L1676.0,343.2L1672.9,343.7L1659.2,363.6L1643.8,373.4L1634.2,376.5L1632.3,374.7L1615.5,381.1L1613.6,387.0L1610.5,387.3L1610.4,381.1L1594.7,378.8L1592.0,376.6L1592.9,373.4L1585.2,370.3L1564.7,376.0L1565.6,382.4L1562.6,382.2L1561.9,378.6L1557.9,380.2L1551.3,377.1L1553.0,372.5L1549.4,371.4L1548.1,366.3L1542.2,367.2L1542.9,360.6L1548.2,356.0L1548.2,347.2L1544.0,342.6L1534.7,342.2L1536.6,339.8L1534.0,336.4L1530.0,338.7L1525.4,337.3L1513.9,345.0L1500.1,342.8L1493.4,348.3L1492.9,344.0L1476.8,343.3L1437.4,324.9L1435.9,318.8L1439.9,319.5L1440.0,316.7L1438.4,309.3L1432.4,302.8L1423.3,300.6L1416.6,292.1L1415.9,286.8L1410.7,286.1L1409.3,280.9L1415.4,275.7L1425.1,275.4L1427.2,271.9L1434.4,271.2L1445.9,264.7Z" fill="none"/>
+          <path class="cn-line" d="M1677.5,361.1L1673.2,373.4L1670.8,377.9L1667.3,369.1L1675.0,359.5L1677.5,361.1Z" fill="none"/>
+          <path class="cn-line nine" d="M1601.1,383.3 L1600.0,398.9 M1603.3,408.3 L1607.8,426.7 M1611.1,440.0 L1617.8,455.6 M1622.2,465.6 L1631.1,471.1 M1638.9,468.9 L1646.7,458.3 M1651.1,446.7 L1655.6,433.3 M1658.9,421.1 L1662.2,408.3 M1665.6,397.2 L1668.9,386.7 M1672.2,380.0 L1674.4,374.4" fill="none"/>
+        </g>
+          <text class="land-label" x="1544.4" y="277.8">亚洲</text>
+          <text class="land-label" x="1238.9" y="466.7">非洲</text>
+          <text class="land-label sm" x="1438.9" y="377.8">印度</text>
+          <text class="land-label sm" x="1261.1" y="366.7">阿拉伯半岛</text>
+          <text class="land-label sm cn" x="1583.3" y="305.6">中国</text>
+          <text class="sea-label" x="1388.9" y="550.0">印度洋</text>
+          <text class="sea-label sm" x="1344.4" y="416.7">阿拉伯海</text>
+          <text class="sea-label sm" x="1488.9" y="416.7">孟加拉湾</text>
+          <text class="sea-label sm" x="1638.9" y="427.8">南海</text>
+        <g id="routes">
+          <path class="route r1" data-v="1" data-year="1405–1407" data-len="405.9" pathLength="1000" fill="none" stroke="#e4572e" d="M1672.8,325.0 L1606.7,423.3 L1581.7,516.6 L1568.1,487.8 L1444.4,459.4 L1421.0,437.5"/>
+          <path class="route r2" data-v="2" data-year="1407–1409" data-len="352.6" pathLength="1000" fill="none" stroke="#f3a712" d="M1672.8,325.0 L1606.7,423.3 L1568.1,487.8 L1444.4,459.4 L1421.0,437.5"/>
+          <path class="route r3" data-v="3" data-year="1409–1411" data-len="352.6" pathLength="1000" fill="none" stroke="#2e933c" d="M1672.8,325.0 L1606.7,423.3 L1568.1,487.8 L1444.4,459.4 L1421.0,437.5"/>
+          <path class="route r4" data-v="4" data-year="1413–1415" data-len="488.0" pathLength="1000" fill="none" stroke="#1c5d7a" d="M1672.8,325.0 L1606.7,423.3 L1568.1,487.8 L1421.0,437.5 L1313.6,349.4"/>
+          <path class="route r5" data-v="5" data-year="1417–1419" data-len="649.5" pathLength="1000" fill="none" stroke="#6a4c93" d="M1672.8,325.0 L1606.7,423.3 L1568.1,487.8 L1421.0,437.5 L1313.6,349.4 L1250.0,428.9 L1251.7,488.6"/>
+          <path class="route r6" data-v="6" data-year="1421–1422" data-len="729.0" pathLength="1000" fill="none" stroke="#0b8a8a" d="M1672.8,325.0 L1606.7,423.3 L1568.1,487.8 L1421.0,437.5 L1250.0,428.9 L1221.1,381.1 L1251.7,488.6 L1222.8,517.8"/>
+          <path class="route r7" data-v="7" data-year="1431–1433" data-len="771.7" pathLength="1000" fill="none" stroke="#c5172e" d="M1672.8,325.0 L1606.7,423.3 L1626.1,540.6 L1568.1,487.8 L1421.0,437.5 L1313.6,349.4 L1250.0,428.9 L1251.7,488.6"/>
+        </g>
+        <g class="ports">
+          <g class="port start"><circle cx="1672.8" cy="325.0" r="4"/><text x="1681.8" y="318.0">刘家港·起航</text></g>
+          <g class="port "><circle cx="1606.7" cy="423.3" r="3"/><text x="1613.7" y="427.3">占城</text></g>
+          <g class="port "><circle cx="1626.1" cy="540.6" r="3"/><text x="1633.1" y="552.6">爪哇</text></g>
+          <g class="port "><circle cx="1581.7" cy="516.6" r="3"/><text x="1551.7" y="530.6">旧港</text></g>
+          <g class="port "><circle cx="1568.1" cy="487.8" r="3"/><text x="1534.1" y="498.8">满剌加</text></g>
+          <g class="port "><circle cx="1444.4" cy="459.4" r="3"/><text x="1440.4" y="475.4">锡兰</text></g>
+          <g class="port "><circle cx="1421.0" cy="437.5" r="3"/><text x="1393.0" y="431.5">古里</text></g>
+          <g class="port "><circle cx="1313.6" cy="349.4" r="3"/><text x="1321.6" y="343.4">忽鲁谟斯</text></g>
+          <g class="port "><circle cx="1250.0" cy="428.9" r="3"/><text x="1226.0" y="422.9">阿丹</text></g>
+          <g class="port "><circle cx="1221.1" cy="381.1" r="3"/><text x="1191.1" y="375.1">天方·麦加</text></g>
+          <g class="port "><circle cx="1251.7" cy="488.6" r="3"/><text x="1259.7" y="492.6">木骨都束</text></g>
+          <g class="port "><circle cx="1222.8" cy="517.8" r="3"/><text x="1198.8" y="529.8">麻林</text></g>
+        </g>
+      </svg>
+      </div>
+
+      <div class="map-controls">
+        <button id="playBtn">▶ 自动轮播</button>
+        <button class="ghost" id="prevBtn">‹ 上一次</button>
+        <button class="ghost" id="nextBtn">下一次 ›</button>
+        <button class="ghost" id="allBtn">显示全部</button>
+        <span class="pgs" id="pgs"></span>
+      </div>
+
+      <div class="map-filter" id="legend">
+        <span class="lg all active" data-v="all"><span class="sw"></span>全部显示</span>
+        <span class="lg" data-v="1" style="--c:#e4572e"><span class="sw"></span>第一次<span class="yr">1405–07</span></span>
+        <span class="lg" data-v="2" style="--c:#f3a712"><span class="sw"></span>第二次<span class="yr">1407–09</span></span>
+        <span class="lg" data-v="3" style="--c:#2e933c"><span class="sw"></span>第三次<span class="yr">1409–11</span></span>
+        <span class="lg" data-v="4" style="--c:#1c5d7a"><span class="sw"></span>第四次<span class="yr">1413–15</span></span>
+        <span class="lg" data-v="5" style="--c:#6a4c93"><span class="sw"></span>第五次<span class="yr">1417–19</span></span>
+        <span class="lg" data-v="6" style="--c:#0b8a8a"><span class="sw"></span>第六次<span class="yr">1421–22</span></span>
+        <span class="lg" data-v="7" style="--c:#c5172e"><span class="sw"></span>第七次<span class="yr">1431–33</span></span>
+      </div>
+      <p class="map-note">说明:世界地图采用真实国界轮廓(等距经纬度投影);红色细虚线为中国现今疆域示意,含台湾岛及南海九段线(仅作位置指引,非精确划界)。各次航线严格穿过真实经纬度换算后的港口节点,点与线完全重合;默认航线呈流动虚线效果,点击「自动轮播」可按 1405—1433 年的时间顺序逐次生长回放,亦可用上/下一次切换或点击图例单独查看。</p>
+    </div>
+  </section>
+
+  <section id="meaning">
+    <div class="sec-head">
+      <div class="sec-num">肆</div>
+      <div><h2>历史意义<span class="en">Significance</span></h2></div>
+    </div>
+    <div class="grid2">
+      <div class="feat">
+        <div class="ic">🌏</div>
+        <h4>世界航海史的里程碑</h4>
+        <p>七下西洋比欧洲哥伦布、达·伽马的远航早数十年,在规模、技术与组织上都堪称当时世界之最,是15世纪航海史上的空前壮举。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">🤝</div>
+        <h4>促进中外友好交往</h4>
+        <p>船队以和平方式访问亚非三十多个国家和地区,建立并发展了广泛的外交与朝贡贸易关系,树立了和平交往的典范。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">🛳️</div>
+        <h4>展现先进的造船与航海技术</h4>
+        <p>巨型宝船、罗盘导航、牵星过洋等技术,集中体现了明代中国领先世界的造船工艺和远洋航行能力。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">📜</div>
+        <h4>留下宝贵的史地资料</h4>
+        <p>随行人员撰写的《瀛涯胜览》《星槎胜览》等著作,记录了沿途各国的风土人情与地理物产,是珍贵的历史地理文献。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">💱</div>
+        <h4>推动经济文化交流</h4>
+        <p>中国的丝绸、瓷器、茶叶远销海外,香料、珍宝、动植物等传入国内,促进了沿线各地的物产流通与文化互鉴。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">🧭</div>
+        <h4>扩大中国的国际影响</h4>
+        <p>远航极大提升了明朝在亚非地区的声望与影响力,巩固了海上交通网络,在中外关系史上写下了浓墨重彩的一笔。</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+</div>
+
+<footer>
+  <div class="big">郑和下西洋 · 1405—1433</div>
+  <div>七次远航 · 跨越亚非 · 和平交往的海上传奇</div>
+</footer>
+
+<script>
+(function(){
+  var svg=document.getElementById('mapSvg');
+  var legend=document.getElementById('legend');
+  if(!svg||!legend) return;
+  var routes=Array.prototype.slice.call(svg.querySelectorAll('#routes .route'));
+  var btns=legend.querySelectorAll('.lg');
+
+  // 各次航线途经港口(用于信息条展示)
+  var paths={
+    1:'刘家港 › 占城 › 旧港 › 满剌加 › 锡兰 › 古里',
+    2:'刘家港 › 占城 › 满剌加 › 锡兰 › 古里',
+    3:'刘家港 › 占城 › 满剌加 › 锡兰 › 古里',
+    4:'刘家港 › 占城 › 满剌加 › 古里 › 忽鲁谟斯',
+    5:'刘家港 › 占城 › 满剌加 › 古里 › 忽鲁谟斯 › 阿丹 › 木骨都束',
+    6:'刘家港 › 占城 › 满剌加 › 古里 › 阿丹 › 天方 › 木骨都束 › 麻林',
+    7:'刘家港 › 占城 › 爪哇 › 满剌加 › 古里 › 忽鲁谟斯 › 阿丹 › 木骨都束'
+  };
+  var cnNo={1:'第一次',2:'第二次',3:'第三次',4:'第四次',5:'第五次',6:'第六次',7:'第七次'};
+  var info=document.getElementById('mapInfo');
+  var infoNo=document.getElementById('infoNo'),infoYr=document.getElementById('infoYr'),infoPath=document.getElementById('infoPath');
+
+  function routeByV(v){ for(var i=0;i<routes.length;i++){ if(routes[i].getAttribute('data-v')===String(v)) return routes[i]; } return null; }
+  function setLegend(v){ btns.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v')===String(v)); }); }
+
+  // 显示全部:流动虚线,无信息条
+  function showAll(){
+    stopPlay();
+    svg.classList.add('flow');
+    routes.forEach(function(r){ r.classList.remove('dim','hot','draw'); });
+    if(info) info.hidden=true;
+    setLegend('all');
+    setDots(0);
+  }
+
+  // 单独显示某一次(带生长动画 + 时间信息)
+  function showOne(v, animate){
+    svg.classList.remove('flow');
+    routes.forEach(function(r){
+      var on=r.getAttribute('data-v')===String(v);
+      r.classList.toggle('dim', !on);
+      r.classList.toggle('hot', on);
+      r.classList.remove('draw');
+    });
+    var r=routeByV(v);
+    if(r&&animate){ void r.getBoundingClientRect(); r.classList.add('draw'); }
+    if(info&&r){
+      info.hidden=false;
+      info.style.borderLeftColor=r.getAttribute('stroke');
+      infoNo.textContent=cnNo[v]+'远航';
+      infoYr.textContent=r.getAttribute('data-year');
+      infoPath.textContent=paths[v]||'';
+    }
+    setLegend(v);
+    setDots(v);
+  }
+
+  // 图例点击
+  legend.addEventListener('click',function(e){
+    var lg=e.target.closest('.lg'); if(!lg) return;
+    var v=lg.getAttribute('data-v'); if(!v) return;
+    if(v==='all') showAll(); else showOne(parseInt(v,10), true);
+  });
+
+  // 轮播控制
+  var idx=0, timer=null, playBtn=document.getElementById('playBtn');
+  function stopPlay(){ if(timer){ clearInterval(timer); timer=null; } if(playBtn) playBtn.textContent='▶ 自动轮播'; }
+  function startPlay(){
+    if(timer){ stopPlay(); return; }
+    if(idx<1) idx=1;
+    showOne(idx, true);
+    if(playBtn) playBtn.textContent='⏸ 暂停轮播';
+    timer=setInterval(function(){ idx=idx>=7?1:idx+1; showOne(idx, true); }, 3000);
+  }
+  function step(d){ stopPlay(); idx=idx<1?1:idx; idx=idx+d; if(idx>7)idx=1; if(idx<1)idx=7; showOne(idx,true); }
+
+  document.getElementById('playBtn').addEventListener('click',startPlay);
+  document.getElementById('prevBtn').addEventListener('click',function(){ step(-1); });
+  document.getElementById('nextBtn').addEventListener('click',function(){ step(1); });
+  document.getElementById('allBtn').addEventListener('click',function(){ idx=0; showAll(); });
+
+  // 分页圆点
+  var pgs=document.getElementById('pgs');
+  if(pgs){
+    for(var i=1;i<=7;i++){
+      var d=document.createElement('span');
+      d.className='pg'; d.setAttribute('data-i',i); d.title=cnNo[i];
+      pgs.appendChild(d);
+    }
+    pgs.addEventListener('click',function(e){
+      var t=e.target.closest('.pg'); if(!t) return;
+      stopPlay(); idx=parseInt(t.getAttribute('data-i'),10); showOne(idx,true);
+    });
+  }
+  function setDots(v){
+    if(!pgs) return;
+    pgs.querySelectorAll('.pg').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-i')===String(v)); });
+  }
+
+  // 初始:全部显示 + 流动
+  showAll();
+})();
+
+// ===== 左侧菜单:平滑滚动 + 锚点联动(scroll-spy) =====
+(function(){
+  var nav=document.getElementById('sideNav');
+  if(!nav) return;
+  var links=Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
+  var map={}; // id -> link
+  var sections=[];
+  links.forEach(function(a){
+    var id=a.getAttribute('href').slice(1);
+    var sec=document.getElementById(id);
+    if(sec){ map[id]=a; sections.push(sec); }
+  });
+
+  function setActive(id){
+    links.forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('href')==='#'+id);
+    });
+  }
+
+  // 点击:平滑滚动到对应模块(不依赖默认锚点跳转,避免任何报错)
+  nav.addEventListener('click',function(e){
+    var a=e.target.closest('a[href^="#"]');
+    if(!a) return;
+    var id=a.getAttribute('href').slice(1);
+    var sec=document.getElementById(id);
+    if(!sec) return;
+    e.preventDefault();
+    sec.scrollIntoView({behavior:'smooth',block:'start'});
+    setActive(id);
+    if(history.replaceState) history.replaceState(null,'','#'+id);
+  });
+
+  // 滚动联动:用 IntersectionObserver 高亮当前可见模块
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting) setActive(en.target.id);
+      });
+    },{rootMargin:'-45% 0px -50% 0px',threshold:0});
+    sections.forEach(function(s){ io.observe(s); });
+  } else {
+    // 兜底:scroll 事件
+    window.addEventListener('scroll',function(){
+      var pos=window.scrollY+window.innerHeight*0.35, cur=sections[0];
+      sections.forEach(function(s){ if(s.offsetTop<=pos) cur=s; });
+      if(cur) setActive(cur.id);
+    },{passive:true});
+  }
+
+  setActive(sections.length?sections[0].id:'');
+})();
+</script>
+
+</body>
+</html>
