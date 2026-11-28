@@ -3,7 +3,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Link, matchPath, Outlet, useLocation } from "react-router-dom";
 import { useAccent } from "../../hooks/use-accent";
 import { hasFreshHomeEntranceMark, markHomeEntranceShown } from "../../lib/home-entrance-storage";
+import { pageTitleForPath, setDocumentTitle } from "../../lib/page-title";
 import { cn } from "../../lib/utils";
+import { HTML_RESOURCES } from "../../pages/html-resources/resource";
 import { ROUTE_LAYOUT_CONFIGS } from "../../route-layout-config";
 import { AccentPicker } from "../accent-picker";
 import { HomeEntranceAnimation } from "../home-entrance-animation";
@@ -75,6 +77,17 @@ export function RootLayout() {
   const handleEntranceComplete = useCallback(() => setHomeEntered(true), []);
 
   const homeEntrancePlaying = isHomeRoute && !homeEntered;
+
+  // 标签标题随路由切换。layout effect 先于页面自身的 passive effect 执行，
+  // 所以孙子兵法页可以再覆写一层「某计 · 某幕」的细标题而不被这里盖回去。
+  const htmlResource = HTML_RESOURCES.find((resource) => resource.path === location.pathname);
+  const htmlResourceTitle = htmlResource
+    ? (htmlResource.resource.homeEntries?.find((entry) => entry.path === location.pathname)
+        ?.title ?? htmlResource.path.slice(1))
+    : undefined;
+  useLayoutEffect(() => {
+    setDocumentTitle(pageTitleForPath(location.pathname, htmlResourceTitle));
+  }, [location.pathname, htmlResourceTitle]);
 
   // 切路由时把滚动位置清回顶部。外层 <main> 是所有路由共用的滚动容器，
   // 从一条 HTML 资源跳到另一条（iframe srcDoc）或跳到政策/时间页时，

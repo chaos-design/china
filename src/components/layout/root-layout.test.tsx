@@ -116,7 +116,7 @@ describe("<SiteMenu /> columns and content", () => {
       (col) => col.querySelector(".mega-col-title")?.textContent,
     );
 
-    expect(titles).toEqual(["编年与制度", "疆域与民族", "文化与交通", "区域与近代"]);
+    expect(titles).toEqual(["编年与制度", "军事", "疆域与民族", "文化与交通", "区域与近代"]);
   });
 
   it("sets category titles in a different typeface from the entries, with no counters", async () => {

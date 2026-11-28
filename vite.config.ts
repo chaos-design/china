@@ -50,6 +50,13 @@ export default defineConfig({
         "src/pages/ancient/china-ranks/rank-tree-scene.ts",
         // 官制立体树场景同为 WebGL 命令式对象；布局在 office-tree-layout.ts（已测）。
         "src/pages/ancient/china-qing-officials/office-tree-scene.ts",
+        // 孙子兵法沙盘的 Three.js 渲染器需要真实 WebGL；纯数据/机理场景已由数据测试覆盖。
+        "src/pages/ancient/china-sunzi/sand-table-scene.ts",
+        // 同上：军士/营垒/标图箭头都是 Three.js 命令式几何，纯地形数学在
+        // sand-table-terrain.ts 中独立测试。
+        "src/pages/ancient/china-sunzi/sand-table-figures.ts",
+        // jsdom 没有 2D canvas，烘焙画布不可执行；纯数学仍由 sand-table-map-skin.test.ts 守护。
+        "src/pages/ancient/china-sunzi/sand-table-map-skin.ts",
       ],
     },
   },

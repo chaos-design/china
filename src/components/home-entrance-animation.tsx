@@ -24,7 +24,7 @@ export function HomeEntranceAnimation({ onComplete }: HomeEntranceAnimationProps
       className={cn(
         // z-[100] 高于 header(z-20) 与 AccentPicker(z-50)，确保全屏覆盖顶部导航
         "fixed inset-0 z-[100] flex items-center justify-center overflow-hidden px-4 transition-opacity duration-700 [transform:translate3d(0,0,0)] sm:px-8",
-        "bg-[linear-gradient(180deg,hsl(40_22%_92%),hsl(36_20%_85%))]",
+        "bg-[linear-gradient(180deg,hsl(var(--scroll-veil)),hsl(var(--paper)))]",
         isLeaving && "pointer-events-none opacity-0",
       )}
       data-testid="home-entrance-animation"
@@ -92,11 +92,11 @@ export function HomeEntranceAnimation({ onComplete }: HomeEntranceAnimationProps
           <div className="relative flex min-h-[52vh] w-full flex-col items-center justify-center gap-7">
             <div
               aria-hidden="true"
-              className="absolute inset-x-0 top-2 h-36 bg-[radial-gradient(ellipse_at_center,hsl(var(--ink)/0.1),transparent_64%)] blur-2xl"
+              className="absolute inset-x-0 top-2 h-36 bg-[radial-gradient(ellipse_at_center,hsl(var(--ink)/0.07),transparent_68%)]"
             />
             <div
               aria-hidden="true"
-              className="absolute top-8 right-4 hidden border-r border-ink/20 pr-3 font-display text-ink/35 text-sm tracking-[0.35em] [writing-mode:vertical-rl] sm:block"
+              className="absolute top-8 right-4 hidden border-r border-ink/20 pr-3 font-display text-ink/35 text-sm [writing-mode:vertical-rl] sm:block"
             >
               通览古今兴废
             </div>

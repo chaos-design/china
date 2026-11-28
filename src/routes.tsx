@@ -57,6 +57,11 @@ const ImperialExamPage = lazy(() =>
     default: module.ImperialExamPage,
   })),
 );
+const SunziPage = lazy(() =>
+  import("./pages/ancient/china-sunzi/sunzi-page").then((module) => ({
+    default: module.SunziPage,
+  })),
+);
 const AncientChinaReactPage = lazy(() =>
   import("./pages/ancient/china").then((module) => ({
     default: module.AncientChinaReactPage,
@@ -144,6 +149,8 @@ export const routes: RouteObject[] = [
         path: "china/imperial-exam/compare",
         element: withSuspense(<ImperialExamPage sectionId="compare" />),
       },
+      // 孙子兵法沙盘：一张常驻 3D 底图，按战役与四幕切换，页内不换路由。
+      { path: "china/sunzi-bingfa", element: withSuspense(<SunziPage />) },
       ...htmlResourceRoutes,
       { path: "*", element: withSuspense(<NotFoundPage />) },
     ],

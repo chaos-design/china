@@ -6,7 +6,7 @@ export type { MapZoneId } from "./china-map-geometry";
 import type { MapZoneId } from "./china-map-geometry";
 
 /**
- * 菜单分区。沿用「编年 / 疆域 / 文化 / 区域」四条线索，各占一块地图区域。
+ * 菜单分区。沿用「编年 / 军事 / 疆域 / 文化 / 区域」五条线索，各占一块地图区域。
  *
  * 分组是硬编码的：它表达的是编辑判断（哪些内容属于同一类、该落在地图哪一块），
  * 放进资源元数据反而会让数据层承担分类职责。
@@ -90,6 +90,20 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       },
     ],
     label: "编年与制度",
+    mapZone: "north",
+  },
+  {
+    blurb: "以沙盘复盘用兵机理与可考战史：先读战场态势，再看决策如何改变结果。",
+    id: "military",
+    items: [
+      {
+        dimensions: ["军事", "历史"],
+        highlights: ["三役四幕复盘", "3D 沙盘推演", "兵法原文与白话"],
+        label: "孙子兵法沙盘",
+        to: "/china/sunzi-bingfa",
+      },
+    ],
+    label: "军事",
     mapZone: "north",
   },
   {

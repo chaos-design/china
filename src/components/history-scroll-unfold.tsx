@@ -61,6 +61,7 @@ export function HistoryScrollUnfold({
   const leftRollRef = useRef<HTMLDivElement>(null);
   const rightRollRef = useRef<HTMLDivElement>(null);
   const lightRef = useRef<HTMLDivElement>(null);
+  const inkRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     let pendingHold: gsap.core.Tween | null = null;
@@ -71,8 +72,9 @@ export function HistoryScrollUnfold({
     const leftRoll = leftRollRef.current;
     const rightRoll = rightRollRef.current;
     const light = lightRef.current;
+    const ink = inkRef.current;
 
-    if (!stage || !paper || !mask || !content || !leftRoll || !rightRoll || !light) return;
+    if (!stage || !paper || !mask || !content || !leftRoll || !rightRoll || !light || !ink) return;
 
     const offsets = getScrollRollOffsets(stage.offsetWidth, leftRoll.offsetWidth);
 
@@ -97,6 +99,7 @@ export function HistoryScrollUnfold({
         opacity: 1,
         scaleX: 1,
       });
+      gsap.set(ink, { opacity: 0.42 });
       onComplete?.();
       return;
     }
@@ -130,6 +133,7 @@ export function HistoryScrollUnfold({
         scaleX: 0.01,
         transformOrigin: "50% 50%",
       });
+      gsap.set(ink, { opacity: 0 });
 
       const timeline = gsap.timeline({
         defaults: { ease: animationConfig.ease },
@@ -169,6 +173,14 @@ export function HistoryScrollUnfold({
             scaleX: 1,
           },
           0,
+        )
+        .to(
+          ink,
+          {
+            duration: animationConfig.duration * 0.8,
+            opacity: 0.42,
+          },
+          animationConfig.duration * 0.18,
         )
         .to(
           content,
@@ -230,19 +242,22 @@ export function HistoryScrollUnfold({
         <div
           ref={paperRef}
           className={cn(
-            "absolute inset-x-10 top-7 bottom-7 overflow-hidden border border-ink/35 bg-[linear-gradient(160deg,hsl(40_42%_85%),hsl(36_36%_79%)_55%,hsl(32_32%_72%))] shadow-[0_30px_80px_hsl(var(--ink)/0.22),inset_0_0_120px_hsl(34_34%_56%/0.45)] [transform:translate3d(0,0,0)_scaleX(0.01)] [will-change:transform]",
+            "absolute inset-x-10 top-7 bottom-7 overflow-hidden border border-ink/35 bg-[linear-gradient(160deg,hsl(var(--scroll-paper)),hsl(var(--scroll-paper-deep))_55%,hsl(var(--scroll-paper)))] shadow-[0_30px_80px_hsl(var(--ink)/0.22),inset_0_0_120px_hsl(var(--ochre)/0.45)] [transform:translate3d(0,0,0)_scaleX(0.01)] [will-change:transform]",
             paperClassName,
           )}
         >
           {/* 宣纸纤维与水渍墨晕 */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_16%,hsl(var(--ink)/0.09),transparent_34%),radial-gradient(ellipse_at_84%_82%,hsl(var(--blueprint)/0.1),transparent_36%),radial-gradient(ellipse_at_64%_30%,hsl(28_40%_52%/0.24),transparent_40%),radial-gradient(ellipse_at_38%_88%,hsl(30_36%_46%/0.2),transparent_38%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_16%,hsl(var(--ink)/0.09),transparent_34%),radial-gradient(ellipse_at_84%_82%,hsl(var(--blueprint)/0.1),transparent_36%),radial-gradient(ellipse_at_64%_30%,hsl(var(--ochre)/0.24),transparent_40%),radial-gradient(ellipse_at_38%_88%,hsl(var(--scroll-paper-deep)/0.2),transparent_38%)]" />
           {/* 古纸做旧斑渍 */}
-          <div className="absolute inset-0 opacity-60 [background-image:radial-gradient(circle_at_12%_42%,hsl(32_40%_40%/0.16),transparent_8%),radial-gradient(circle_at_72%_18%,hsl(30_38%_44%/0.14),transparent_7%),radial-gradient(circle_at_88%_64%,hsl(28_36%_38%/0.15),transparent_9%),radial-gradient(circle_at_46%_76%,hsl(34_40%_42%/0.12),transparent_6%)]" />
+          <div className="absolute inset-0 opacity-60 [background-image:radial-gradient(circle_at_12%_42%,hsl(var(--ochre)/0.16),transparent_8%),radial-gradient(circle_at_72%_18%,hsl(var(--ochre)/0.14),transparent_7%),radial-gradient(circle_at_88%_64%,hsl(var(--ochre)/0.15),transparent_9%),radial-gradient(circle_at_46%_76%,hsl(var(--ochre)/0.12),transparent_6%)]" />
           <div className="absolute inset-0 opacity-45 [background-image:repeating-linear-gradient(115deg,hsl(var(--ink)/0.025)_0,hsl(var(--ink)/0.025)_1px,transparent_1px,transparent_6px)]" />
+          {/* 宣纸帘纹：竖细纹，做旧而不夺字。 */}
+          <div className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:repeating-linear-gradient(90deg,hsl(var(--ink)/0.45)_0,hsl(var(--ink)/0.45)_1px,transparent_1px,transparent_7px)]" />
           {/* 画芯卷入卷轴处的弧形内阴影，使画卷与画柄衔接紧密丝滑 */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-[linear-gradient(90deg,hsl(26_38%_20%/0.5),hsl(28_34%_40%/0.18)_45%,transparent)] sm:w-10" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-[linear-gradient(270deg,hsl(26_38%_20%/0.5),hsl(28_34%_40%/0.18)_45%,transparent)] sm:w-10" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-[linear-gradient(90deg,hsl(var(--scroll-wood)_/_0.5),hsl(var(--scroll-paper-deep)_/_0.18)_45%,transparent)] sm:w-10" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-[linear-gradient(270deg,hsl(var(--scroll-wood)_/_0.5),hsl(var(--scroll-paper-deep)_/_0.18)_45%,transparent)] sm:w-10" />
           {/* 内框线，模拟装裱边 */}
+          <div className="pointer-events-none absolute inset-[7px] border border-ochre/25" />
           <div className="pointer-events-none absolute inset-[10px] border border-ink/15" />
           <div className="pointer-events-none absolute inset-[14px] border border-vermillion/10" />
           <div
@@ -261,6 +276,12 @@ export function HistoryScrollUnfold({
               aria-hidden="true"
               className="absolute right-10 bottom-8 left-10 h-[30%] opacity-70 [background-image:radial-gradient(ellipse_44%_100%_at_18%_100%,hsl(var(--ink)/0.16),transparent_70%),radial-gradient(ellipse_50%_100%_at_48%_100%,hsl(var(--ink)/0.1),transparent_72%),radial-gradient(ellipse_42%_100%_at_78%_100%,hsl(var(--ink)/0.13),transparent_70%)] blur-[1px]"
             /> */}
+            {/* 墨香晕染：随卷轴铺展渐显的两处淡墨，古意来自层次而非噪声。 */}
+            <div
+              ref={inkRef}
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_26%_68%,hsl(var(--ink)/0.16),transparent_46%),radial-gradient(ellipse_at_74%_26%,hsl(var(--ochre)/0.14),transparent_42%)] opacity-0"
+            />
             <div
               aria-hidden="true"
               className="absolute inset-x-10 top-8 h-12 opacity-45 [background-image:repeating-radial-gradient(ellipse_at_center,hsl(var(--blueprint)/0.18)_0_1px,transparent_1px_16px)] [mask-image:linear-gradient(90deg,transparent,black_18%,black_82%,transparent)]"
@@ -361,21 +382,21 @@ export function HistoryScrollUnfold({
         <div
           ref={leftRollRef}
           aria-hidden="true"
-          className="absolute top-3 bottom-3 left-0 z-10 w-12 rounded-full bg-[linear-gradient(90deg,hsl(22_44%_10%)_0%,hsl(28_40%_24%)_16%,hsl(34_44%_52%)_42%,hsl(42_56%_80%)_50%,hsl(32_40%_30%)_70%,hsl(24_44%_14%)_88%,hsl(20_46%_8%)_100%)] shadow-[5px_0_20px_hsl(var(--ink)/0.34)] [will-change:transform] sm:w-14"
+          className="absolute top-3 bottom-3 left-0 z-10 w-12 rounded-full bg-[linear-gradient(90deg,hsl(var(--scroll-wood)/0.9)_0%,hsl(var(--scroll-wood))_16%,hsl(var(--scroll-bronze)/0.6)_42%,hsl(var(--paper))_50%,hsl(var(--scroll-bronze)/0.45)_70%,hsl(var(--scroll-wood))_88%,hsl(var(--scroll-wood)/0.95)_100%)] shadow-[5px_0_20px_hsl(var(--ink)/0.34)] [will-change:transform] sm:w-14"
         >
           {/* 木纹竖向高光 */}
-          <span className="absolute inset-y-2 left-[40%] w-px bg-[linear-gradient(180deg,transparent,hsl(46_60%_88%/0.55),transparent)]" />
-          <span className="absolute inset-y-3 right-[28%] w-px bg-[linear-gradient(180deg,transparent,hsl(22_40%_18%/0.5),transparent)]" />
+          <span className="absolute inset-y-2 left-[40%] w-px bg-[linear-gradient(180deg,transparent,hsl(var(--scroll-bronze)/0.55),transparent)]" />
+          <span className="absolute inset-y-3 right-[28%] w-px bg-[linear-gradient(180deg,transparent,hsl(var(--scroll-wood)/0.5),transparent)]" />
           {/* 上铜箍 */}
-          <span className="absolute top-2.5 left-1/2 h-2 w-[116%] -translate-x-1/2 rounded-[50%] bg-[linear-gradient(90deg,hsl(36_50%_30%),hsl(46_72%_70%),hsl(34_48%_28%))] shadow-[0_1px_3px_hsl(var(--ink)/0.5)]" />
-          <span className="absolute bottom-2.5 left-1/2 h-2 w-[116%] -translate-x-1/2 rounded-[50%] bg-[linear-gradient(90deg,hsl(36_50%_30%),hsl(46_72%_70%),hsl(34_48%_28%))] shadow-[0_1px_3px_hsl(var(--ink)/0.5)]" />
+          <span className="absolute top-2.5 left-1/2 h-2 w-[116%] -translate-x-1/2 rounded-[50%] bg-[linear-gradient(90deg,hsl(var(--scroll-bronze)/0.5),hsl(var(--scroll-bronze)),hsl(var(--scroll-bronze)/0.45))] shadow-[0_1px_3px_hsl(var(--ink)/0.5)]" />
+          <span className="absolute bottom-2.5 left-1/2 h-2 w-[116%] -translate-x-1/2 rounded-[50%] bg-[linear-gradient(90deg,hsl(var(--scroll-bronze)/0.5),hsl(var(--scroll-bronze)),hsl(var(--scroll-bronze)/0.45))] shadow-[0_1px_3px_hsl(var(--ink)/0.5)]" />
           {/* 上玉质轴头 */}
-          <span className="absolute -top-4 left-1/2 h-6 w-[164%] -translate-x-1/2 rounded-[50%] border border-ink/40 bg-[radial-gradient(ellipse_at_46%_30%,hsl(150_24%_82%),hsl(160_22%_56%)_58%,hsl(165_28%_34%))] shadow-[0_3px_8px_hsl(var(--ink)/0.45)]">
-            <span className="absolute top-1 left-1/2 h-1.5 w-1/2 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse,hsl(150_30%_94%/0.85),transparent)]" />
+          <span className="absolute -top-4 left-1/2 h-6 w-[164%] -translate-x-1/2 rounded-[50%] border border-ink/40 bg-[radial-gradient(ellipse_at_46%_30%,hsl(var(--scroll-jade)/0.85),hsl(var(--scroll-jade))_58%,hsl(var(--scroll-jade)/0.6))] shadow-[0_3px_8px_hsl(var(--ink)/0.45)]">
+            <span className="absolute top-1 left-1/2 h-1.5 w-1/2 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse,hsl(var(--scroll-jade)/0.85),transparent)]" />
           </span>
           {/* 下玉质轴头 */}
-          <span className="absolute -bottom-4 left-1/2 h-6 w-[164%] -translate-x-1/2 rounded-[50%] border border-ink/40 bg-[radial-gradient(ellipse_at_46%_70%,hsl(150_24%_82%),hsl(160_22%_56%)_58%,hsl(165_28%_34%))] shadow-[0_-3px_8px_hsl(var(--ink)/0.45)]">
-            <span className="absolute bottom-1 left-1/2 h-1.5 w-1/2 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse,hsl(150_30%_94%/0.8),transparent)]" />
+          <span className="absolute -bottom-4 left-1/2 h-6 w-[164%] -translate-x-1/2 rounded-[50%] border border-ink/40 bg-[radial-gradient(ellipse_at_46%_70%,hsl(var(--scroll-jade)/0.85),hsl(var(--scroll-jade))_58%,hsl(var(--scroll-jade)/0.6))] shadow-[0_-3px_8px_hsl(var(--ink)/0.45)]">
+            <span className="absolute bottom-1 left-1/2 h-1.5 w-1/2 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse,hsl(var(--scroll-jade)/0.8),transparent)]" />
           </span>
         </div>
 
@@ -383,21 +404,21 @@ export function HistoryScrollUnfold({
         <div
           ref={rightRollRef}
           aria-hidden="true"
-          className="absolute top-3 right-0 bottom-3 z-10 w-12 rounded-full bg-[linear-gradient(90deg,hsl(20_46%_8%)_0%,hsl(24_44%_14%)_12%,hsl(32_40%_30%)_30%,hsl(42_56%_80%)_50%,hsl(34_44%_52%)_58%,hsl(28_40%_24%)_84%,hsl(22_44%_10%)_100%)] shadow-[-5px_0_20px_hsl(var(--ink)/0.34)] [will-change:transform] sm:w-14"
+          className="absolute top-3 right-0 bottom-3 z-10 w-12 rounded-full bg-[linear-gradient(90deg,hsl(var(--scroll-wood)/0.95)_0%,hsl(var(--scroll-wood))_12%,hsl(var(--scroll-bronze)/0.45)_30%,hsl(var(--paper))_50%,hsl(var(--scroll-bronze)/0.6)_58%,hsl(var(--scroll-wood))_84%,hsl(var(--scroll-wood)/0.9)_100%)] shadow-[-5px_0_20px_hsl(var(--ink)/0.34)] [will-change:transform] sm:w-14"
         >
           {/* 木纹竖向高光 */}
-          <span className="absolute inset-y-2 right-[40%] w-px bg-[linear-gradient(180deg,transparent,hsl(46_60%_88%/0.55),transparent)]" />
-          <span className="absolute inset-y-3 left-[28%] w-px bg-[linear-gradient(180deg,transparent,hsl(22_40%_18%/0.5),transparent)]" />
+          <span className="absolute inset-y-2 right-[40%] w-px bg-[linear-gradient(180deg,transparent,hsl(var(--scroll-bronze)/0.55),transparent)]" />
+          <span className="absolute inset-y-3 left-[28%] w-px bg-[linear-gradient(180deg,transparent,hsl(var(--scroll-wood)/0.5),transparent)]" />
           {/* 上铜箍 */}
-          <span className="absolute top-2.5 left-1/2 h-2 w-[116%] -translate-x-1/2 rounded-[50%] bg-[linear-gradient(90deg,hsl(34_48%_28%),hsl(46_72%_70%),hsl(36_50%_30%))] shadow-[0_1px_3px_hsl(var(--ink)/0.5)]" />
-          <span className="absolute bottom-2.5 left-1/2 h-2 w-[116%] -translate-x-1/2 rounded-[50%] bg-[linear-gradient(90deg,hsl(34_48%_28%),hsl(46_72%_70%),hsl(36_50%_30%))] shadow-[0_1px_3px_hsl(var(--ink)/0.5)]" />
+          <span className="absolute top-2.5 left-1/2 h-2 w-[116%] -translate-x-1/2 rounded-[50%] bg-[linear-gradient(90deg,hsl(var(--scroll-bronze)/0.45),hsl(var(--scroll-bronze)),hsl(var(--scroll-bronze)/0.5))] shadow-[0_1px_3px_hsl(var(--ink)/0.5)]" />
+          <span className="absolute bottom-2.5 left-1/2 h-2 w-[116%] -translate-x-1/2 rounded-[50%] bg-[linear-gradient(90deg,hsl(var(--scroll-bronze)/0.45),hsl(var(--scroll-bronze)),hsl(var(--scroll-bronze)/0.5))] shadow-[0_1px_3px_hsl(var(--ink)/0.5)]" />
           {/* 上玉质轴头 */}
-          <span className="absolute -top-4 left-1/2 h-6 w-[164%] -translate-x-1/2 rounded-[50%] border border-ink/40 bg-[radial-gradient(ellipse_at_54%_30%,hsl(150_24%_82%),hsl(160_22%_56%)_58%,hsl(165_28%_34%))] shadow-[0_3px_8px_hsl(var(--ink)/0.45)]">
-            <span className="absolute top-1 left-1/2 h-1.5 w-1/2 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse,hsl(150_30%_94%/0.85),transparent)]" />
+          <span className="absolute -top-4 left-1/2 h-6 w-[164%] -translate-x-1/2 rounded-[50%] border border-ink/40 bg-[radial-gradient(ellipse_at_54%_30%,hsl(var(--scroll-jade)/0.85),hsl(var(--scroll-jade))_58%,hsl(var(--scroll-jade)/0.6))] shadow-[0_3px_8px_hsl(var(--ink)/0.45)]">
+            <span className="absolute top-1 left-1/2 h-1.5 w-1/2 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse,hsl(var(--scroll-jade)/0.85),transparent)]" />
           </span>
           {/* 下玉质轴头 */}
-          <span className="absolute -bottom-4 left-1/2 h-6 w-[164%] -translate-x-1/2 rounded-[50%] border border-ink/40 bg-[radial-gradient(ellipse_at_54%_70%,hsl(150_24%_82%),hsl(160_22%_56%)_58%,hsl(165_28%_34%))] shadow-[0_-3px_8px_hsl(var(--ink)/0.45)]">
-            <span className="absolute bottom-1 left-1/2 h-1.5 w-1/2 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse,hsl(150_30%_94%/0.8),transparent)]" />
+          <span className="absolute -bottom-4 left-1/2 h-6 w-[164%] -translate-x-1/2 rounded-[50%] border border-ink/40 bg-[radial-gradient(ellipse_at_54%_70%,hsl(var(--scroll-jade)/0.85),hsl(var(--scroll-jade))_58%,hsl(var(--scroll-jade)/0.6))] shadow-[0_-3px_8px_hsl(var(--ink)/0.45)]">
+            <span className="absolute bottom-1 left-1/2 h-1.5 w-1/2 -translate-x-1/2 rounded-[50%] bg-[radial-gradient(ellipse,hsl(var(--scroll-jade)/0.8),transparent)]" />
           </span>
         </div>
       </div>

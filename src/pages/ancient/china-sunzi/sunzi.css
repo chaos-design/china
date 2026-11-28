@@ -1,0 +1,784 @@
+/* Hallmark · v2.0.0 · shape: app screen · genre: editorial · theme: 水下兵书 (in-system water-ink, by request; catalog deal waived per AGENTS.md)
+ * pre-emit critique: P4 H4 E5 S5 R4 V4 · weakest: V — a full-bleed tilted board replaces the project's usual left-rail shell
+ * signature: a full-bleed sand table with branch-specific soldier figures, plus all thirty-six stratagems with sourced text
+ * nav: the project's four-column mega menu · footer: none here; left index, centre board, right reading, bottom controls
+ * posture: restrained · built in-system · v2.0.0
+ */
+.sunzi-page {
+  --sunzi-panel: hsl(var(--paper) / 0.9);
+  --sunzi-line: hsl(var(--ink) / 0.14);
+  --sunzi-a: hsl(var(--vermillion));
+  --sunzi-b: hsl(var(--blueprint));
+  --sunzi-soft: hsl(var(--ochre) / 0.12);
+  --sunzi-ink-soft: hsl(var(--ink) / 0.72);
+  caret-color: var(--sunzi-a);
+  scrollbar-color: hsl(var(--ink) / 0.25) transparent;
+}
+
+.sunzi-page ::selection {
+  color: hsl(var(--ink));
+  background: hsl(var(--vermillion) / 0.24);
+}
+
+.sunzi-page button:focus-visible,
+.sunzi-page a:focus-visible {
+  outline: 2px solid var(--sunzi-a);
+  outline-offset: 2px;
+}
+
+.sunzi-center {
+  grid-area: center;
+  min-height: 0;
+  position: relative;
+}
+
+.sunzi-left {
+  background: var(--sunzi-panel);
+  border-right: 1px solid var(--sunzi-line);
+  display: flex;
+  flex-direction: column;
+  grid-area: left;
+  min-height: 0;
+}
+
+.sunzi-left__head {
+  border-bottom: 1px solid var(--sunzi-line);
+  padding: 0.8rem 0.9rem;
+}
+
+.sunzi-left__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.6rem 0.9rem 1rem;
+}
+
+.sunzi-right {
+  background: var(--sunzi-panel);
+  border-left: 1px solid var(--sunzi-line);
+  grid-area: right;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sunzi-bottom {
+  align-items: center;
+  background: var(--sunzi-panel);
+  border-top: 1px solid var(--sunzi-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  grid-area: bottom;
+  padding: 0.55rem 0.9rem;
+}
+
+.sunzi-bottom__meta {
+  min-width: 9rem;
+}
+
+.sunzi-bottom__meta p {
+  margin: 0;
+}
+
+.sunzi-set + .sunzi-set {
+  border-top: 1px solid var(--sunzi-line);
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+}
+
+.sunzi-set__head {
+  margin-bottom: 0.4rem;
+}
+
+.sunzi-chip {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--sunzi-line);
+  border-radius: 0.25rem;
+  color: hsl(var(--ink));
+  display: inline-flex;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.25rem 0.6rem;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+  white-space: nowrap;
+}
+
+.sunzi-chip:hover {
+  background: var(--sunzi-soft);
+  border-color: hsl(var(--vermillion) / 0.4);
+}
+
+.sunzi-chip:active {
+  transform: translateY(1px);
+}
+
+.sunzi-chip.is-active {
+  background: hsl(var(--vermillion) / 0.08);
+  border-color: var(--sunzi-a);
+  color: var(--sunzi-a);
+}
+
+.sunzi-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.sunzi-chip--play {
+  border-color: var(--sunzi-a);
+  color: var(--sunzi-a);
+}
+
+.sunzi-chip--play.is-active {
+  background: var(--sunzi-a);
+  color: hsl(var(--paper));
+}
+
+/* 播放主键比其余控件醒目一档。 */
+.sunzi-chip--play:not(.is-active) {
+  background: hsl(var(--vermillion) / 0.08);
+}
+
+.sunzi-controls {
+  background: var(--sunzi-panel);
+}
+
+/* 倍速 / 视角分段控件：相邻按钮共边，选中段填朱。 */
+.sunzi-segment {
+  display: flex;
+}
+
+.sunzi-segment .sunzi-chip {
+  border-radius: 0;
+}
+
+.sunzi-segment .sunzi-chip:first-child {
+  border-radius: 0.25rem 0 0 0.25rem;
+}
+
+.sunzi-segment .sunzi-chip:last-child {
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.sunzi-segment .sunzi-chip + .sunzi-chip {
+  margin-left: -1px;
+}
+
+/* 键位提示：复盘快捷键写明，不靠猜。 */
+.sunzi-shortcut-hint {
+  color: hsl(var(--ink) / 0.5);
+  display: none;
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  gap: 0.45rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+@media (min-width: 1280px) {
+  .sunzi-shortcut-hint {
+    display: flex;
+  }
+}
+
+.sunzi-shortcut-hint kbd {
+  border: 1px solid var(--sunzi-line);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 0 0.28rem;
+}
+
+.sunzi-step {
+  border: 1px solid var(--sunzi-line);
+  border-top-color: transparent;
+  border-radius: 0.25rem;
+  padding: 0.45rem 0.55rem;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.sunzi-step:hover {
+  background: var(--sunzi-soft);
+}
+
+.sunzi-step:active {
+  transform: translateY(1px);
+}
+
+.sunzi-step.is-active {
+  background: hsl(var(--vermillion) / 0.08);
+  border-color: hsl(var(--vermillion) / 0.35);
+  border-top-color: var(--sunzi-a);
+}
+
+.sunzi-timeline {
+  background: var(--sunzi-panel);
+}
+
+.sunzi-progress {
+  background: hsl(var(--ink) / 0.12);
+  border-radius: 999px;
+  height: 3px;
+  margin-bottom: 0.45rem;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 幕刻度：进度条按幕数分格（--sunzi-steps 由页面按数据写入），读进度更准。 */
+.sunzi-progress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 calc(100% / var(--sunzi-steps, 4) - 1px),
+    hsl(var(--paper) / 0.9) calc(100% / var(--sunzi-steps, 4) - 1px)
+      calc(100% / var(--sunzi-steps, 4))
+  );
+  pointer-events: none;
+}
+
+.sunzi-progress span {
+  background: linear-gradient(90deg, var(--sunzi-b), var(--sunzi-a));
+  display: block;
+  height: 100%;
+  transform-origin: left center;
+  transition: transform 240ms ease;
+  width: 100%;
+}
+
+/* The board is a real CSS 3D surface: the scene tilts, the move layer floats
+   above the ground plane, and controls only change transform variables. */
+.sunzi-board {
+  background: hsl(var(--paper) / 0.55);
+  overflow: hidden;
+  perspective: 1200px;
+}
+
+.sunzi-board__webgl {
+  inset: 0;
+  position: absolute;
+  touch-action: none;
+}
+
+.sunzi-board__hint {
+  bottom: 5.8rem;
+  color: var(--sunzi-ink-soft);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  left: 1rem;
+  margin: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+/* 画面内的军语读图条：阵营口径、军标画法与本幕机动性质常驻，不随 WebGL / SVG 路径改变。 */
+.sunzi-board__legend,
+.sunzi-board__readout {
+  background: hsl(var(--paper) / 0.9);
+  border: 1px solid var(--sunzi-line);
+  border-radius: 0.3rem;
+  box-shadow:
+    0 6px 18px hsl(var(--ink) / 0.08),
+    inset 0 0 0 1px hsl(var(--paper));
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  left: 1rem;
+  padding: 0.5rem 0.65rem;
+  pointer-events: none;
+  position: absolute;
+  z-index: 4;
+}
+
+.sunzi-board__legend {
+  top: 1rem;
+}
+
+.sunzi-board__force {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.sunzi-board__force + .sunzi-board__force {
+  margin-top: 0.35rem;
+}
+
+.sunzi-board__force-mark {
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px hsl(var(--ink) / 0.25);
+  height: 0.62rem;
+  width: 0.62rem;
+}
+
+.sunzi-board__force[data-side="a"] .sunzi-board__force-mark {
+  background: var(--sunzi-a);
+}
+
+.sunzi-board__force[data-side="b"] .sunzi-board__force-mark {
+  background: var(--sunzi-b);
+}
+
+.sunzi-board__force strong {
+  color: hsl(var(--ink));
+  font-weight: 600;
+}
+
+.sunzi-board__force span:last-child {
+  color: var(--sunzi-ink-soft);
+}
+
+/* 军标画法一行小字：教读者看线型，不靠猜颜色。 */
+.sunzi-board__legend-reading {
+  border-top: 1px dashed var(--sunzi-line);
+  color: var(--sunzi-ink-soft);
+  font-size: 0.68rem;
+  margin: 0.45rem 0 0;
+  padding-top: 0.4rem;
+}
+
+.sunzi-board__readout {
+  bottom: 8.2rem;
+  max-width: min(21rem, 50%);
+}
+
+.sunzi-board__readout-head {
+  align-items: baseline;
+  border-bottom: 1px solid var(--sunzi-line);
+  color: hsl(var(--ink));
+  display: flex;
+  flex-wrap: wrap;
+  font-weight: 600;
+  gap: 0.2rem 0.6rem;
+  justify-content: space-between;
+  margin: 0 0 0.35rem;
+  padding-bottom: 0.3rem;
+}
+
+.sunzi-board__held {
+  color: var(--sunzi-ink-soft);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 400;
+}
+
+.sunzi-board__readout ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sunzi-board__readout li {
+  align-items: center;
+  color: var(--sunzi-ink-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sunzi-kind-glyph {
+  fill: none;
+  flex: none;
+  height: 0.62rem;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  width: 0.95rem;
+}
+
+.sunzi-board__readout li[data-side="a"] .sunzi-kind-glyph {
+  color: var(--sunzi-a);
+}
+
+.sunzi-board__readout li[data-side="b"] .sunzi-kind-glyph {
+  color: var(--sunzi-b);
+}
+
+.sunzi-board__move-side {
+  border-radius: 0.2rem;
+  font-weight: 600;
+  padding: 0.05rem 0.3rem;
+}
+
+.sunzi-board__readout li[data-side="a"] .sunzi-board__move-side {
+  background: color-mix(in srgb, var(--sunzi-a) 22%, transparent);
+  color: var(--sunzi-a);
+}
+
+.sunzi-board__readout li[data-side="b"] .sunzi-board__move-side {
+  background: color-mix(in srgb, var(--sunzi-b) 22%, transparent);
+  color: var(--sunzi-b);
+}
+
+.sunzi-board__move-to {
+  color: hsl(var(--ink));
+}
+
+.sunzi-board__scene {
+  --sunzi-spin: -8deg;
+  --sunzi-tilt: 48deg;
+  inset: 2% 1%;
+  position: absolute;
+  transform: rotateX(var(--sunzi-tilt)) rotateZ(var(--sunzi-spin)) scale(var(--sunzi-zoom, 1));
+  transform-origin: 50% 55%;
+  transform-style: preserve-3d;
+  transition: transform 420ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.sunzi-board__scene::before {
+  background: hsl(var(--paper));
+  box-shadow: 0 18px 36px hsl(var(--ink) / 0.16);
+  content: "";
+  inset: -1.5%;
+  position: absolute;
+  transform: translateZ(-16px);
+}
+
+.sunzi-board[data-view="top"] .sunzi-board__scene {
+  --sunzi-spin: 0deg;
+  --sunzi-tilt: 8deg;
+}
+
+.sunzi-board__ground,
+.sunzi-board__moves,
+.sunzi-board__figures {
+  height: 100%;
+  inset: 0;
+  overflow: visible;
+  position: absolute;
+  width: 100%;
+}
+
+.sunzi-board__moves {
+  transform: translateZ(26px);
+}
+
+.sunzi-board__figures {
+  transform: translateZ(54px);
+}
+
+.sunzi-graticule path {
+  fill: none;
+  stroke: hsl(var(--ink) / 0.06);
+  stroke-width: 1;
+}
+
+.sunzi-contour {
+  fill: none;
+  stroke: hsl(var(--ink) / 0.1);
+  stroke-dasharray: 4 7;
+  stroke-width: 1;
+}
+
+.sunzi-ridge {
+  fill: none;
+  stroke: hsl(var(--ink) / 0.22);
+  stroke-linecap: round;
+  stroke-width: 3;
+}
+
+.sunzi-board__north {
+  bottom: 0.75rem;
+  color: hsl(var(--ink) / 0.7);
+  left: 0.75rem;
+  pointer-events: none;
+  position: absolute;
+  width: 1.5rem;
+  z-index: 2;
+}
+
+.sunzi-board__north svg {
+  height: auto;
+  width: 100%;
+}
+
+.sunzi-board__north text {
+  fill: currentColor;
+  font-family: var(--font-kai);
+  font-size: 10px;
+}
+
+.sunzi-board__scale {
+  bottom: 0.9rem;
+  color: hsl(var(--ink) / 0.6);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  margin: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 1rem;
+  z-index: 2;
+}
+
+.sunzi-region {
+  fill: var(--sunzi-soft);
+  stroke: var(--sunzi-line);
+  stroke-width: 1.4;
+  transition:
+    fill 280ms ease,
+    stroke 280ms ease;
+}
+
+.sunzi-region[data-held="a"] {
+  fill: hsl(var(--vermillion) / 0.2);
+  stroke: hsl(var(--vermillion) / 0.55);
+}
+
+.sunzi-region[data-held="b"] {
+  fill: hsl(var(--blueprint) / 0.2);
+  stroke: hsl(var(--blueprint) / 0.55);
+}
+
+.sunzi-region-label,
+.sunzi-place-label,
+.sunzi-unit__label {
+  fill: var(--sunzi-ink-soft);
+  font-family: var(--font-kai);
+  paint-order: stroke;
+  pointer-events: none;
+  stroke: hsl(var(--paper));
+  stroke-width: 4px;
+}
+
+.sunzi-region-label {
+  font-size: 24px;
+  opacity: 0.7;
+}
+
+.sunzi-place-label {
+  font-size: 20px;
+}
+
+.sunzi-river {
+  fill: none;
+  stroke: hsl(var(--blueprint) / 0.55);
+  stroke-linecap: round;
+  stroke-width: 5;
+}
+
+.sunzi-place {
+  fill: hsl(var(--paper));
+  stroke: hsl(var(--ink) / 0.55);
+  stroke-width: 2;
+}
+
+.sunzi-place--capital {
+  fill: var(--sunzi-a);
+  stroke: hsl(var(--paper));
+}
+
+.sunzi-arrow {
+  fill: none;
+  opacity: 0.88;
+  stroke-dasharray: 7 6;
+  stroke-linecap: round;
+  stroke-width: 3.4;
+}
+
+.sunzi-arrow[data-side="a"] {
+  stroke: var(--sunzi-a);
+}
+
+.sunzi-arrow[data-side="b"] {
+  stroke: var(--sunzi-b);
+}
+
+.sunzi-arrowhead[data-side="a"] {
+  fill: var(--sunzi-a);
+}
+
+.sunzi-arrowhead[data-side="b"] {
+  fill: var(--sunzi-b);
+}
+
+.sunzi-board[data-playing="true"] .sunzi-arrow {
+  animation: sunzi-flow 1.4s linear infinite;
+}
+
+@keyframes sunzi-flow {
+  to {
+    stroke-dashoffset: -26;
+  }
+}
+
+.sunzi-unit {
+  color: var(--sunzi-a);
+}
+
+.sunzi-unit[data-side="b"] {
+  color: var(--sunzi-b);
+}
+
+.sunzi-unit__figure {
+  filter: drop-shadow(0 2px 2px hsl(var(--ink) / 0.35));
+  transform: scale(1.35);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.sunzi-unit__shadow {
+  fill: hsl(var(--ink) / 0.18);
+}
+
+.sunzi-unit__label {
+  fill: hsl(var(--ink));
+  font-size: 18px;
+  text-anchor: middle;
+}
+
+.sunzi-branch-label {
+  fill: hsl(var(--ink) / 0.72);
+  font-family: var(--font-body);
+  font-size: 13px;
+  text-anchor: middle;
+}
+
+.sunzi-note {
+  border-left: 1px solid var(--sunzi-line);
+  padding-left: 0.75rem;
+}
+
+.sunzi-note__head {
+  color: var(--sunzi-ink-soft);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.sunzi-note__body {
+  color: hsl(var(--ink));
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  line-height: 1.65;
+  margin-top: 0.35rem;
+}
+
+.sunzi-quote {
+  background: var(--sunzi-soft);
+  border: 1px solid var(--sunzi-line);
+  border-radius: 0.25rem;
+  padding: 0.9rem 1rem;
+}
+
+.sunzi-thread-row {
+  align-items: baseline;
+  border-bottom: 1px solid var(--sunzi-line);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  padding: 0.35rem 0.5rem;
+}
+
+.sunzi-thread-row[data-current="true"] {
+  background: hsl(var(--vermillion) / 0.08);
+}
+
+.sunzi-source {
+  color: var(--sunzi-ink-soft);
+}
+
+.sunzi-group {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.sunzi-timeline {
+  min-width: 12rem;
+}
+
+.sunzi-detail {
+  padding: 0.9rem 1rem 1.4rem;
+}
+
+.sunzi-scope-note {
+  background: var(--sunzi-soft);
+  border-bottom: 1px solid var(--sunzi-line);
+  color: hsl(var(--ink));
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  line-height: 1.65;
+  margin: 0;
+  padding: 0.7rem 1rem;
+}
+
+/* Four fixed regions around one persistent board: left index, right reading,
+   bottom operations, centre sand table. The board never unmounts on selection. */
+@media (min-width: 1024px) {
+  .sunzi-page {
+    display: grid;
+    grid-template-areas:
+      "left center right"
+      "bottom bottom bottom";
+    grid-template-columns: 15rem minmax(0, 1fr) 20rem;
+    grid-template-rows: minmax(0, 1fr) auto;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .sunzi-center {
+    height: 100%;
+  }
+  .sunzi-left,
+  .sunzi-right {
+    height: 100%;
+  }
+}
+
+@media (max-width: 1023px) {
+  .sunzi-page {
+    display: grid;
+    grid-template-areas:
+      "center"
+      "left"
+      "right"
+      "bottom";
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sunzi-center {
+    height: 62svh;
+    min-height: 360px;
+  }
+  .sunzi-board__legend,
+  .sunzi-board__readout {
+    font-size: 0.72rem;
+    left: 0.5rem;
+    padding: 0.4rem 0.5rem;
+  }
+  .sunzi-board__readout {
+    bottom: 2.4rem;
+    max-width: 60%;
+  }
+  .sunzi-left__scroll {
+    max-height: 24rem;
+  }
+  .sunzi-right {
+    max-height: 34rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sunzi-page .sunzi-board[data-playing="true"] .sunzi-arrow {
+    animation: none;
+  }
+  .sunzi-page .sunzi-chip,
+  .sunzi-page .sunzi-step,
+  .sunzi-page .sunzi-progress span,
+  .sunzi-page .sunzi-board__scene,
+  .sunzi-page .sunzi-region,
+  .sunzi-page .sunzi-explain-rail {
+    transition: none;
+  }
+}
