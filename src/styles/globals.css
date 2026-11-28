@@ -1369,3 +1369,231 @@
     transform: none;
   }
 }
+
+/* 古装裱挂轴加载态：全卷只展开一次；装饰件全部走 scroll-* / ink / vermillion 令牌，
+   帘纹与绫绢纹用 repeating 渐变，不用任何位图。 */
+.route-loading {
+  background:
+    repeating-linear-gradient(90deg, hsl(var(--ink) / 0.022) 0 1px, transparent 1px 7px),
+    radial-gradient(ellipse 72% 58% at 50% 46%, transparent 62%, hsl(var(--ink) / 0.05)),
+    hsl(var(--paper));
+}
+
+.route-loading__scroll {
+  filter: drop-shadow(0 10px 22px hsl(var(--ink) / 0.14));
+}
+
+.route-loading__brocade {
+  position: relative;
+  height: 0.9rem;
+  background:
+    repeating-linear-gradient(45deg, hsl(var(--scroll-jade) / 0.22) 0 5px, transparent 5px 10px),
+    repeating-linear-gradient(-45deg, hsl(var(--ink) / 0.1) 0 5px, transparent 5px 10px),
+    linear-gradient(180deg, hsl(var(--scroll-wood)), hsl(var(--scroll-wood) / 0.82));
+  border-block: 1px solid hsl(var(--ink) / 0.32);
+}
+
+.route-loading__brocade--head {
+  border-radius: 2px 2px 0 0;
+}
+
+.route-loading__brocade--foot {
+  border-radius: 0 0 2px 2px;
+}
+
+/* 惊燕：天绫下垂的两条绦带。 */
+.route-loading__ribbon {
+  position: absolute;
+  top: 0.9rem;
+  width: 5px;
+  height: 2.1rem;
+  background: linear-gradient(180deg, hsl(var(--vermillion) / 0.62), hsl(var(--vermillion) / 0.16));
+  z-index: 2;
+}
+
+.route-loading__ribbon--left {
+  left: 26%;
+}
+
+.route-loading__ribbon--right {
+  right: 26%;
+}
+
+.route-loading__paper {
+  position: relative;
+  width: 11rem;
+  height: 5.2rem;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(90deg, hsl(var(--ink) / 0.03) 0 1px, transparent 1px 5px),
+    linear-gradient(180deg, hsl(var(--scroll-paper)), hsl(var(--scroll-paper-deep)));
+  box-shadow:
+    inset 0 0 18px hsl(var(--ochre) / 0.38),
+    inset 0 0 3px hsl(var(--ink) / 0.18);
+}
+
+.route-loading__vein {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, hsl(var(--ink) / 0.026) 0 1px, transparent 1px 9px);
+}
+
+/* 墨晕：画心四周的淡墨渍，中心留白。 */
+.route-loading__mist {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 74% at 50% 44%, transparent 52%, hsl(var(--ink) / 0.1) 88%),
+    radial-gradient(circle 14% at 22% 20%, hsl(var(--ink) / 0.06), transparent);
+}
+
+.route-loading__hills {
+  position: absolute;
+  inset: auto 0.55rem 0.42rem 0.55rem;
+  width: calc(100% - 1.1rem);
+  fill: hsl(var(--ink) / 0.16);
+}
+
+.route-loading__hills path:last-child {
+  fill: hsl(var(--ink) / 0.24);
+}
+
+/* 朱文方印：右下压角。 */
+.route-loading__seal {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 2px;
+  background: hsl(var(--vermillion) / 0.86);
+  color: hsl(var(--paper));
+  box-shadow: inset 0 0 0 1.5px hsl(var(--paper) / 0.55);
+  font-family: var(--font-kai);
+}
+
+.route-loading__seal--char {
+  font-size: 0.5rem;
+  line-height: 1.05;
+}
+
+.route-loading__caption {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.7rem;
+  color: hsl(var(--ink) / 0.55);
+  font-size: 0.66rem;
+}
+
+.route-loading__sweep {
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  left: 0;
+  width: 42%;
+}
+
+/* 紫檀轴杆 + 铜箍 + 玉轴头。 */
+.route-loading__rod {
+  position: absolute;
+  top: -0.42rem;
+  bottom: -0.42rem;
+  width: 0.7rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--scroll-wood)),
+    hsl(var(--scroll-wood) / 0.62) 30%,
+    hsl(var(--scroll-bronze) / 0.4) 52%,
+    hsl(var(--scroll-wood) / 0.68) 74%,
+    hsl(var(--scroll-wood))
+  );
+  box-shadow:
+    0 2px 6px hsl(var(--ink) / 0.28),
+    inset 0 0 2px hsl(var(--paper) / 0.24);
+}
+
+.route-loading__rod--left {
+  left: -0.36rem;
+}
+
+.route-loading__rod--right {
+  right: -0.36rem;
+}
+
+.route-loading__ferrule {
+  position: absolute;
+  inset-inline: 0;
+  height: 0.5rem;
+  background: linear-gradient(180deg, hsl(var(--scroll-bronze)), hsl(var(--scroll-bronze) / 0.55));
+}
+
+.route-loading__rod .route-loading__ferrule:nth-of-type(1) {
+  top: 2px;
+}
+
+.route-loading__rod .route-loading__ferrule:nth-of-type(2) {
+  bottom: 2px;
+}
+
+.route-loading__knob {
+  position: absolute;
+  inset-inline: -0.12rem;
+  height: 0.66rem;
+  border-radius: 999px;
+  background: radial-gradient(
+    ellipse at 35% 34%,
+    hsl(var(--scroll-jade)),
+    hsl(var(--scroll-jade) / 0.62) 62%,
+    hsl(var(--scroll-wood) / 0.7)
+  );
+  border: 1px solid hsl(var(--ink) / 0.3);
+}
+
+.route-loading__rod--left .route-loading__knob {
+  left: -0.22rem;
+}
+
+.route-loading__rod--right .route-loading__knob {
+  right: -0.22rem;
+}
+
+/* 挂绳：弧形丝绦。 */
+.route-loading__cord {
+  position: absolute;
+  top: -0.85rem;
+  left: 12%;
+  right: 12%;
+  height: 1.4rem;
+  border-top: 2px solid hsl(var(--vermillion) / 0.5);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+
+.route-loading__title {
+  letter-spacing: 0.18em;
+}
+
+.route-loading__divider {
+  width: 6.5rem;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--vermillion) / 0.66) 30% 70%,
+    transparent
+  );
+  position: relative;
+}
+
+.route-loading__divider::after {
+  content: "";
+  position: absolute;
+  top: -2.5px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translateX(-50%) rotate(45deg);
+  background: hsl(var(--vermillion) / 0.8);
+}

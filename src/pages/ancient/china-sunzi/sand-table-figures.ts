@@ -20,8 +20,39 @@ export function placeSide(place: Place): Side {
   return place.x < 500 ? "a" : "b";
 }
 
+/* ------------------------------------------------------------------ */
+/* 几何与材质缓存：换幕重建高频发生，同参数的原件全场景共享一份。       */
+/* 共享原件打 shared 标记，场景销毁时跳过 dispose，避免复用已被释放的资源。 */
+/* ------------------------------------------------------------------ */
+
+const geometryCache = new Map<string, THREE.BufferGeometry>();
+
+function sharedGeometry(key: string, make: () => THREE.BufferGeometry): THREE.BufferGeometry {
+  let geometry = geometryCache.get(key);
+  if (!geometry) {
+    geometry = make();
+    geometry.userData.shared = true;
+    geometryCache.set(key, geometry);
+  }
+  return geometry;
+}
+
+const materialCache = new Map<string, THREE.MeshStandardMaterial>();
+
 function standard(color: THREE.Color, roughness = 0.62, metalness = 0.08) {
-  return new THREE.MeshStandardMaterial({ color, roughness, metalness, flatShading: true });
+  const key = `${color.getHexString()}-${roughness}-${metalness}`;
+  let material = materialCache.get(key);
+  if (!material) {
+    material = new THREE.MeshStandardMaterial({
+      color: color.clone(),
+      roughness,
+      metalness,
+      flatShading: true,
+    });
+    material.userData.shared = true;
+    materialCache.set(key, material);
+  }
+  return material;
 }
 
 function add(
@@ -30,6 +61,7 @@ function add(
   material: THREE.Material | THREE.Color,
   position: readonly [number, number, number],
   rotation?: readonly [number, number, number],
+  scale?: readonly [number, number, number],
 ) {
   const mesh = new THREE.Mesh(
     geometry,
@@ -37,276 +69,449 @@ function add(
   );
   mesh.position.set(position[0], position[1], position[2]);
   if (rotation) mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
+  if (scale) mesh.scale.set(scale[0], scale[1], scale[2]);
   mesh.castShadow = true;
   mesh.receiveShadow = false;
   group.add(mesh);
   return mesh;
 }
 
-/** 拟人化人形骨架：盔、面、颈、肩、躯干、双臂、双腿、靴，默认朝 +z。 */
+const box = (w: number, h: number, d: number) =>
+  sharedGeometry(`box${w}-${h}-${d}`, () => new THREE.BoxGeometry(w, h, d));
+const cyl = (rt: number, rb: number, h: number, seg = 8) =>
+  sharedGeometry(`cyl${rt}-${rb}-${h}-${seg}`, () => new THREE.CylinderGeometry(rt, rb, h, seg));
+const ball = (r: number, w = 10, h = 8, thetaLength?: number) =>
+  sharedGeometry(
+    `sph${r}-${w}-${h}-${thetaLength ?? Math.PI}`,
+    () => new THREE.SphereGeometry(r, w, h, 0, Math.PI * 2, 0, thetaLength ?? Math.PI),
+  );
+const cone = (r: number, h: number, seg = 6) =>
+  sharedGeometry(`cone${r}-${h}-${seg}`, () => new THREE.ConeGeometry(r, h, seg));
+const torus = (r: number, t: number, arc = Math.PI * 2) =>
+  sharedGeometry(`tor${r}-${t}-${arc}`, () => new THREE.TorusGeometry(r, t, 6, 18, arc));
+
+/** 由部队 id 派生的确定性微扰：同一次布阵每次重建完全一致。 */
+function unitJitter(id: string): number {
+  let seed = 2166136261;
+  for (let index = 0; index < id.length; index += 1) {
+    seed = (seed ^ id.charCodeAt(index)) >>> 0;
+    seed = (seed * 16777619) >>> 0;
+  }
+  return ((seed >>> 8) % 1000) / 1000;
+}
+
+/**
+ * 拟人化士兵：盔、面、颈、肩甲、胸甲两层、束腰、战裙、双臂两段、双腿、靴。
+ * 默认朝 +z，全 身高约 1.15 世界单位；持械由兵种单独挂载。
+ */
 function human(tone: THREE.Color, palette: SandPalette): THREE.Group {
   const figure = new THREE.Group();
-  const armor = tone.clone().lerp(palette.ink, 0.18);
-  const dark = tone.clone().lerp(palette.ink, 0.42);
+  const armor = tone.clone().lerp(palette.ink, 0.3);
+  const dark = tone.clone().lerp(palette.ink, 0.52);
+  const skin = palette.paper.clone().lerp(palette.ochre, 0.28);
 
-  add(figure, new THREE.CylinderGeometry(0.045, 0.05, 0.34, 6), dark, [-0.1, 0.22, 0]);
-  add(figure, new THREE.CylinderGeometry(0.045, 0.05, 0.34, 6), dark, [0.1, 0.22, 0]);
-  add(figure, new THREE.BoxGeometry(0.12, 0.07, 0.18), palette.ink, [-0.1, 0.06, 0.03]);
-  add(figure, new THREE.BoxGeometry(0.12, 0.07, 0.18), palette.ink, [0.1, 0.06, 0.03]);
-
-  add(figure, new THREE.CylinderGeometry(0.16, 0.2, 0.42, 8), tone, [0, 0.58, 0]);
-  add(figure, new THREE.CylinderGeometry(0.175, 0.175, 0.16, 8), armor, [0, 0.66, 0.01]);
-  add(figure, new THREE.SphereGeometry(0.09, 8, 6), armor, [-0.19, 0.76, 0]);
-  add(figure, new THREE.SphereGeometry(0.09, 8, 6), armor, [0.19, 0.76, 0]);
-  add(
-    figure,
-    new THREE.CylinderGeometry(0.042, 0.042, 0.36, 6),
-    tone,
-    [-0.24, 0.58, 0.03],
-    [0, 0, 0.22],
-  );
-  add(
-    figure,
-    new THREE.CylinderGeometry(0.042, 0.042, 0.36, 6),
-    tone,
-    [0.24, 0.58, 0.03],
-    [0, 0, -0.22],
-  );
-  add(figure, new THREE.CylinderGeometry(0.06, 0.06, 0.08, 8), palette.paper, [0, 0.83, 0]);
-  add(figure, new THREE.SphereGeometry(0.13, 12, 10), palette.paper, [0, 0.95, 0]);
-  add(
-    figure,
-    new THREE.SphereGeometry(0.152, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-    armor,
-    [0, 0.97, 0],
-  );
-  add(figure, new THREE.ConeGeometry(0.045, 0.19, 6), tone, [0, 1.15, 0]);
-  // 面向 +z 的两点墨色眼纹，让小人在斜视镜头下也能读出朝向。
-  add(figure, new THREE.SphereGeometry(0.018, 6, 5), palette.ink, [-0.05, 0.96, 0.116]);
-  add(figure, new THREE.SphereGeometry(0.018, 6, 5), palette.ink, [0.05, 0.96, 0.116]);
+  // 双腿微外八 + 靴
+  add(figure, cyl(0.03, 0.042, 0.24), dark, [-0.075, 0.17, 0], [0.03, 0, 0.06]);
+  add(figure, cyl(0.03, 0.042, 0.24), dark, [0.075, 0.17, 0], [0.03, 0, -0.06]);
+  add(figure, box(0.09, 0.06, 0.17), palette.ink, [-0.08, 0.045, 0.02]);
+  add(figure, box(0.09, 0.06, 0.17), palette.ink, [0.08, 0.045, 0.02]);
+  // 战裙与束腰
+  add(figure, cyl(0.13, 0.175, 0.2), tone.clone().lerp(palette.ink, 0.4), [0, 0.31, 0]);
+  add(figure, cyl(0.14, 0.14, 0.055), armor, [0, 0.42, 0]);
+  // 躯干与两层甲片
+  add(figure, cyl(0.115, 0.15, 0.3), tone, [0, 0.58, 0]);
+  add(figure, cyl(0.15, 0.155, 0.09), armor, [0, 0.64, 0]);
+  add(figure, cyl(0.155, 0.16, 0.07), armor, [0, 0.72, 0]);
+  for (const y of [0.62, 0.72]) {
+    add(figure, box(0.05, 0.02, 0.02), palette.ochre, [0, y, 0.155]);
+  }
+  // 护肩
+  add(figure, ball(0.07, 8, 6, Math.PI / 2), armor, [-0.17, 0.72, 0]);
+  add(figure, ball(0.07, 8, 6, Math.PI / 2), armor, [0.17, 0.72, 0]);
+  // 双臂：上臂外张、小臂下垂持械
+  add(figure, cyl(0.03, 0.033, 0.17), tone, [-0.21, 0.63, 0.01], [0, 0, 0.5]);
+  add(figure, cyl(0.026, 0.03, 0.16), tone, [-0.285, 0.5, 0.03], [0.12, 0, 0.14]);
+  add(figure, cyl(0.03, 0.033, 0.17), tone, [0.21, 0.63, 0.01], [0, 0, -0.5]);
+  add(figure, cyl(0.026, 0.03, 0.16), tone, [0.285, 0.5, 0.03], [0.12, 0, -0.14]);
+  add(figure, ball(0.034, 6, 5), skin, [-0.29, 0.41, 0.06]);
+  add(figure, ball(0.034, 6, 5), skin, [0.29, 0.41, 0.06]);
+  // 颈、头、面纹
+  add(figure, cyl(0.04, 0.048, 0.07), skin, [0, 0.775, 0]);
+  add(figure, ball(0.082, 10, 8), skin, [0, 0.87, 0]);
+  add(figure, ball(0.016, 5, 4), palette.ink, [-0.032, 0.89, 0.072]);
+  add(figure, ball(0.016, 5, 4), palette.ink, [0.032, 0.89, 0.072]);
+  // 盔：半圆盔体 + 盔檐 + 盔缨
+  add(figure, ball(0.092, 10, 6, Math.PI / 2), armor, [0, 0.885, 0]);
+  add(figure, torus(0.088, 0.014), dark, [0, 0.855, 0], [Math.PI / 2, 0, 0]);
+  add(figure, cone(0.024, 0.14, 5), tone, [0, 1.02, -0.01]);
+  add(figure, ball(0.026, 6, 5), palette.ochre, [0, 0.945, -0.01]);
   return figure;
 }
 
-function banner(tone: THREE.Color, palette: SandPalette): THREE.Group {
+/** 旗号：我军三角令旗 + 矛头旗杆顶，敌军燕尾方旗 + 铜环，剪影即可辨敌我。 */
+function banner(tone: THREE.Color, palette: SandPalette, side: Side): THREE.Group {
   const flag = new THREE.Group();
-  add(flag, new THREE.CylinderGeometry(0.016, 0.016, 0.96, 5), palette.ink, [-0.3, 0.62, -0.08]);
-  add(
-    flag,
-    new THREE.BoxGeometry(0.34, 0.24, 0.012),
-    standard(tone, 0.8, 0.02),
-    [-0.13, 0.94, -0.08],
-  );
-  add(flag, new THREE.ConeGeometry(0.03, 0.1, 4), palette.ochre, [-0.3, 1.14, -0.08]);
+  add(flag, cyl(0.015, 0.018, 1.0, 5), palette.ink, [-0.3, 0.62, -0.08]);
+  if (side === "a") {
+    add(flag, cone(0.055, 0.16, 4), standard(palette.ochre, 0.5, 0.4), [-0.3, 1.2, -0.08]);
+    add(flag, box(0.3, 0.2, 0.012), standard(tone, 0.8, 0.02), [-0.17, 0.92, -0.08]);
+    add(
+      flag,
+      cone(0.1, 0.26, 3),
+      standard(tone, 0.8, 0.02),
+      [-0.02, 0.92, -0.08],
+      [0, 0, -Math.PI / 2],
+    );
+    add(
+      flag,
+      box(0.02, 0.22, 0.008),
+      standard(tone.clone().lerp(palette.paper, 0.4), 0.9),
+      [-0.16, 0.78, -0.075],
+    );
+  } else {
+    add(flag, torus(0.045, 0.014), standard(palette.ochre, 0.5, 0.4), [-0.3, 1.18, -0.08]);
+    add(flag, box(0.34, 0.2, 0.012), standard(tone, 0.8, 0.02), [-0.15, 0.93, -0.08]);
+    add(flag, box(0.08, 0.2, 0.013), standard(palette.paper, 0.85, 0.02), [-0.04, 0.93, -0.08]);
+    add(
+      flag,
+      box(0.34, 0.03, 0.01),
+      standard(tone.clone().lerp(palette.ink, 0.35), 0.9),
+      [-0.15, 0.83, -0.08],
+    );
+  }
   return flag;
 }
 
-function mount(tone: THREE.Color, palette: SandPalette): THREE.Group {
+/** 战马：胸腹臀三段躯干、弯颈昂头、双耳双目、鬃毛、鞍鞯、束腹、四足带蹄、缰绳与尾。 */
+function mount(tone: THREE.Color, palette: SandPalette, jitter: number): THREE.Group {
   const horse = new THREE.Group();
-  const coat = tone.clone().lerp(palette.ink, 0.32);
-  const body = add(horse, new THREE.SphereGeometry(0.4, 10, 8), standard(coat, 0.78), [0, 0.44, 0]);
-  body.scale.set(1.24, 0.66, 0.78);
+  const coat = tone.clone().lerp(palette.ink, 0.34);
+  const coatAlt = coat.clone().offsetHSL(0, 0, (jitter - 0.5) * 0.05);
+  const mane = tone.clone().lerp(palette.ink, 0.55);
+
   add(
     horse,
-    new THREE.CylinderGeometry(0.1, 0.16, 0.44, 7),
-    standard(coat, 0.78),
-    [0, 0.62, 0.3],
-    [-0.48, 0, 0],
+    ball(0.26, 10, 8),
+    standard(coatAlt, 0.78),
+    [0.02, 0.46, 0.1],
+    undefined,
+    [1.15, 0.82, 1.0],
   );
-  add(horse, new THREE.BoxGeometry(0.2, 0.17, 0.3), standard(coat, 0.78), [0, 0.76, 0.5]);
-  // 鬃毛、鞍鞯与缰绳：斜视镜头下也要读得出是一匹披甲战马。
-  for (const offset of [0.02, 0.12, 0.22]) {
+  add(
+    horse,
+    ball(0.24, 10, 8),
+    standard(coatAlt, 0.78),
+    [-0.02, 0.45, -0.2],
+    undefined,
+    [1.05, 0.86, 1.05],
+  );
+  add(
+    horse,
+    cyl(0.19, 0.21, 0.34, 8),
+    standard(coatAlt, 0.78),
+    [0, 0.44, -0.03],
+    [Math.PI / 2, 0, 0],
+  );
+  // 昂起的颈与头
+  add(horse, cyl(0.09, 0.13, 0.34, 7), standard(coatAlt, 0.78), [0, 0.72, 0.24], [-0.52, 0, 0]);
+  add(horse, box(0.14, 0.13, 0.2), standard(coatAlt, 0.78), [0, 0.88, 0.4], [-0.15, 0, 0]);
+  add(
+    horse,
+    box(0.1, 0.08, 0.12),
+    standard(coat.clone().lerp(palette.ink, 0.2), 0.8),
+    [0, 0.82, 0.53],
+    [-0.15, 0, 0],
+  );
+  add(horse, cone(0.035, 0.09, 4), standard(coatAlt, 0.8), [-0.055, 0.97, 0.36], [-0.2, 0, 0.15]);
+  add(horse, cone(0.035, 0.09, 4), standard(coatAlt, 0.8), [0.055, 0.97, 0.36], [-0.2, 0, -0.15]);
+  add(horse, ball(0.02, 5, 4), palette.ink, [-0.055, 0.9, 0.49]);
+  add(horse, ball(0.02, 5, 4), palette.ink, [0.055, 0.9, 0.49]);
+  // 鬃毛与尾
+  for (let index = 0; index < 4; index += 1) {
     add(
       horse,
-      new THREE.ConeGeometry(0.055, 0.22, 5),
-      standard(tone.clone().lerp(palette.ink, 0.5), 0.8),
-      [0, 0.78 - offset, 0.24 + offset * 0.6],
-      [-0.6, 0, 0],
+      cone(0.045, 0.17, 4),
+      standard(mane, 0.82),
+      [0, 0.9 - index * 0.035, 0.28 - index * 0.075],
+      [-0.85, 0, 0],
     );
   }
+  add(horse, cone(0.05, 0.28, 5), standard(mane, 0.82), [0, 0.5, -0.36], [0.85, 0, 0]);
+  add(horse, cone(0.03, 0.16, 4), standard(mane, 0.82), [0, 0.3, -0.42], [0.5, 0, 0]);
+  // 鞍鞯、鞍桥与束腹
+  add(horse, box(0.3, 0.045, 0.34), standard(palette.ink, 0.7), [0, 0.63, -0.05]);
+  add(horse, box(0.34, 0.06, 0.4), standard(tone, 0.72), [0, 0.67, -0.05]);
   add(
     horse,
-    new THREE.BoxGeometry(0.36, 0.06, 0.42),
-    standard(palette.ink, 0.72),
-    [0, 0.66, -0.04],
+    box(0.36, 0.05, 0.03),
+    standard(tone.clone().lerp(palette.ochre, 0.4), 0.8),
+    [0, 0.56, 0.08],
   );
-  add(horse, new THREE.BoxGeometry(0.4, 0.04, 0.1), standard(tone, 0.72), [0, 0.6, -0.24]);
   add(
     horse,
-    new THREE.CylinderGeometry(0.008, 0.008, 0.5, 4),
-    standard(palette.ochre),
-    [0.06, 0.68, 0.32],
-    [-0.6, 0, 0.3],
+    cyl(0.21, 0.21, 0.05, 10),
+    standard(palette.ochre, 0.7, 0.2),
+    [0, 0.44, -0.03],
+    [Math.PI / 2, 0, 0],
   );
-  add(horse, new THREE.SphereGeometry(0.025, 6, 5), palette.ink, [-0.08, 0.78, 0.62]);
-  add(horse, new THREE.SphereGeometry(0.025, 6, 5), palette.ink, [0.08, 0.78, 0.62]);
-  for (const x of [-0.22, 0.22]) {
-    for (const z of [-0.21, 0.21]) {
-      add(horse, new THREE.CylinderGeometry(0.045, 0.045, 0.4, 6), standard(coat, 0.8), [
-        x,
-        0.2,
-        z,
-      ]);
+  // 四足带蹄
+  for (const x of [-0.13, 0.13]) {
+    for (const z of [-0.17, 0.2]) {
+      add(horse, cyl(0.035, 0.048, 0.3, 6), standard(coat, 0.8), [x, 0.18, z]);
+      add(horse, cyl(0.05, 0.05, 0.05, 6), standard(palette.ink, 0.85), [x, 0.03, z]);
     }
   }
+  // 缰绳、辔头
   add(
     horse,
-    new THREE.ConeGeometry(0.075, 0.34, 6),
-    standard(coat, 0.8),
-    [0, 0.5, -0.42],
-    [-0.5, 0, 0],
+    cyl(0.008, 0.008, 0.4, 4),
+    standard(palette.ochre, 0.6),
+    [-0.06, 0.72, 0.42],
+    [-0.9, 0, 0.2],
   );
+  add(
+    horse,
+    cyl(0.008, 0.008, 0.4, 4),
+    standard(palette.ochre, 0.6),
+    [0.06, 0.72, 0.42],
+    [-0.9, 0, -0.2],
+  );
+  add(
+    horse,
+    torus(0.06, 0.01),
+    standard(palette.ochre, 0.55, 0.3),
+    [0, 0.8, 0.44],
+    [Math.PI / 2, 0, 0],
+  );
+
   const rider = human(tone, palette);
-  rider.scale.setScalar(0.58);
-  rider.position.set(0, 0.58, -0.04);
+  rider.scale.setScalar(0.56);
+  rider.position.set(0, 0.6, -0.06);
+  rider.rotation.x = -0.08;
   horse.add(rider);
+  add(
+    horse,
+    cyl(0.014, 0.014, 0.62, 5),
+    standard(palette.ink, 0.7),
+    [0.22, 0.85, 0.18],
+    [-0.3, 0, 0],
+  );
+  add(horse, cone(0.05, 0.14, 5), standard(tone, 0.5, 0.3), [0.22, 1.15, 0.09], [-0.3, 0, 0]);
   return horse;
 }
 
-function chariot(tone: THREE.Color, palette: SandPalette): THREE.Group {
+/** 战车：双轮带辐条、车厢围栏、曲辀、双兵执戈。 */
+function chariot(tone: THREE.Color, palette: SandPalette, jitter: number): THREE.Group {
   const car = new THREE.Group();
-  add(car, new THREE.BoxGeometry(0.68, 0.32, 0.6), standard(tone, 0.7), [0, 0.38, 0]);
-  add(
-    car,
-    new THREE.BoxGeometry(0.7, 0.18, 0.05),
-    standard(tone.clone().lerp(palette.ink, 0.25)),
-    [0, 0.58, 0.28],
-  );
-  for (const x of [-0.4, 0.4]) {
+  const wood = palette.ochre.clone().lerp(palette.ink, 0.22 + jitter * 0.08);
+  const woodDark = palette.ochre.clone().lerp(palette.ink, 0.45);
+
+  add(car, box(0.62, 0.1, 0.5), standard(wood, 0.72), [0, 0.36, 0]);
+  // 车厢围栏：立柱 + 顶横
+  for (const x of [-0.29, 0, 0.29]) {
+    add(car, box(0.03, 0.2, 0.03), standard(woodDark, 0.75), [x, 0.5, 0.23]);
+    add(car, box(0.03, 0.2, 0.03), standard(woodDark, 0.75), [x, 0.5, -0.23]);
+  }
+  for (const z of [-0.29, 0.23]) {
+    add(car, box(0.64, 0.035, 0.03), standard(woodDark, 0.75), [0, 0.59, z]);
+    add(car, box(0.03, 0.035, 0.5), standard(woodDark, 0.75), [-0.31, 0.59, z]);
+    add(car, box(0.03, 0.035, 0.5), standard(woodDark, 0.75), [0.31, 0.59, z]);
+  }
+  // 双轮：辋 + 六辐 + 毂（轮面在 yz 平面，轴向沿 x）
+  for (const x of [-0.36, 0.36]) {
+    add(car, torus(0.26, 0.03), standard(palette.ink, 0.8), [x, 0.26, 0], [0, Math.PI / 2, 0]);
+    for (let index = 0; index < 3; index += 1) {
+      add(
+        car,
+        box(0.02, 0.5, 0.02),
+        standard(woodDark, 0.8),
+        [x, 0.26, 0],
+        [(index * Math.PI) / 3, 0, 0],
+      );
+    }
     add(
       car,
-      new THREE.CylinderGeometry(0.29, 0.29, 0.06, 12),
-      standard(palette.ink, 0.8),
-      [x, 0.3, 0],
+      cyl(0.05, 0.05, 0.08, 8),
+      standard(palette.ochre, 0.6, 0.25),
+      [x, 0.26, 0],
       [0, 0, Math.PI / 2],
     );
-    add(
-      car,
-      new THREE.CylinderGeometry(0.035, 0.035, 0.5, 5),
-      standard(palette.ochre),
-      [x, 0.3, 0],
-      [Math.PI / 2, 0, 0],
-    );
   }
+  // 曲辀（单辕）与衡
   add(
     car,
-    new THREE.CylinderGeometry(0.03, 0.03, 0.86, 6),
-    standard(palette.ochre),
-    [0, 0.3, 0.55],
-    [Math.PI / 2, 0, 0],
+    cyl(0.028, 0.032, 0.62, 6),
+    standard(woodDark, 0.8),
+    [0, 0.28, 0.48],
+    [Math.PI / 2 - 0.12, 0, 0],
   );
+  add(car, cyl(0.02, 0.02, 0.5, 5), standard(woodDark, 0.8), [0, 0.4, 0.72], [0, 0, Math.PI / 2]);
+  // 两名甲士：御者居中，戎右执戈
   const driver = human(tone, palette);
-  driver.scale.setScalar(0.62);
-  driver.position.set(0, 0.38, -0.02);
+  driver.scale.setScalar(0.56);
+  driver.position.set(-0.12, 0.4, -0.02);
   car.add(driver);
+  const halberdier = human(tone, palette);
+  halberdier.scale.setScalar(0.56);
+  halberdier.position.set(0.14, 0.4, -0.05);
+  car.add(halberdier);
+  add(
+    car,
+    cyl(0.013, 0.013, 0.78, 5),
+    standard(palette.ink, 0.7),
+    [0.28, 0.75, -0.05],
+    [0, 0, -0.12],
+  );
+  add(car, cone(0.05, 0.13, 5), standard(tone, 0.5, 0.3), [0.335, 1.14, -0.05], [0, 0, -0.12]);
   return car;
 }
 
-function boat(tone: THREE.Color, palette: SandPalette): THREE.Group {
+/** 战船：船体带舷缘与船尾楼、桅杆挂硬帆、双桨、艏尖。 */
+function boat(tone: THREE.Color, palette: SandPalette, jitter: number): THREE.Group {
   const vessel = new THREE.Group();
+  const hull = tone.clone().lerp(palette.ink, 0.32 + jitter * 0.06);
+
+  add(vessel, box(0.5, 0.14, 0.8), standard(hull, 0.78), [0, 0.14, 0]);
+  add(vessel, box(0.44, 0.12, 0.3), standard(hull, 0.78), [0, 0.16, -0.32], undefined, [1, 1, 1.2]);
   add(
     vessel,
-    new THREE.BoxGeometry(0.56, 0.16, 0.94),
-    standard(tone.clone().lerp(palette.ink, 0.3), 0.78),
-    [0, 0.14, 0],
-  );
-  add(
-    vessel,
-    new THREE.ConeGeometry(0.28, 0.42, 4),
-    standard(tone.clone().lerp(palette.ink, 0.3), 0.78),
-    [0, 0.14, 0.64],
+    cone(0.24, 0.34, 4),
+    standard(hull, 0.78),
+    [0, 0.15, 0.52],
     [Math.PI / 2, 0, Math.PI / 4],
   );
-  add(vessel, new THREE.BoxGeometry(0.5, 0.2, 0.1), standard(palette.ochre), [0, 0.22, -0.48]);
+  add(vessel, box(0.52, 0.03, 0.84), standard(palette.ochre, 0.7), [0, 0.22, 0]);
+  add(vessel, box(0.5, 0.05, 0.03), standard(palette.ochre, 0.7), [0, 0.25, 0.4]);
+  add(vessel, box(0.5, 0.05, 0.03), standard(palette.ochre, 0.7), [0, 0.25, -0.4]);
+  // 船尾楼
   add(
     vessel,
-    new THREE.CylinderGeometry(0.024, 0.024, 0.88, 6),
-    standard(palette.ink),
-    [0, 0.56, 0],
+    box(0.34, 0.14, 0.18),
+    standard(tone.clone().lerp(palette.ink, 0.15), 0.75),
+    [0, 0.3, -0.3],
   );
+  add(vessel, box(0.38, 0.03, 0.22), standard(palette.ochre, 0.7), [0, 0.39, -0.3]);
+  // 桅杆 + 硬帆（斜杠四道）+ 帆桁
+  add(vessel, cyl(0.02, 0.026, 0.85, 6), standard(palette.ink, 0.72), [0, 0.62, 0.02]);
   const sail = add(
     vessel,
-    new THREE.PlaneGeometry(0.5, 0.52),
+    sharedGeometry("boat-sail", () => new THREE.PlaneGeometry(0.44, 0.5)),
     new THREE.MeshStandardMaterial({
-      color: tone.clone().lerp(palette.paper, 0.5),
+      color: tone.clone().lerp(palette.paper, 0.45),
       roughness: 0.9,
       side: THREE.DoubleSide,
     }),
-    [0, 0.68, 0.02],
+    [0, 0.72, 0.06],
+    [0, 0, 0],
   );
   sail.castShadow = true;
+  for (let index = 0; index < 3; index += 1) {
+    add(vessel, box(0.44, 0.015, 0.01), standard(palette.ochre, 0.85), [
+      0,
+      0.58 + index * 0.14,
+      0.07,
+    ]);
+  }
+  add(
+    vessel,
+    cyl(0.012, 0.012, 0.5, 5),
+    standard(palette.ink, 0.72),
+    [0, 0.95, 0.06],
+    [0, 0, Math.PI / 2],
+  );
+  // 双桨与桨手
+  add(
+    vessel,
+    cyl(0.012, 0.012, 0.42, 5),
+    standard(palette.ink, 0.75),
+    [-0.26, 0.12, -0.02],
+    [0.4, 0.3, 0.9],
+  );
+  add(
+    vessel,
+    cyl(0.012, 0.012, 0.42, 5),
+    standard(palette.ink, 0.75),
+    [0.26, 0.12, -0.02],
+    [0.4, -0.3, 0.9],
+  );
   const rower = human(tone, palette);
-  rower.scale.setScalar(0.52);
-  rower.position.set(0, 0.2, -0.2);
+  rower.scale.setScalar(0.5);
+  rower.position.set(0, 0.26, -0.06);
   vessel.add(rower);
   return vessel;
 }
 
 /** 单个战斗员与坐具，不含旗号，便于复制成队列。 */
-function formationUnit(unit: Unit, tone: THREE.Color, palette: SandPalette): THREE.Group {
+function formationUnit(
+  unit: Unit,
+  tone: THREE.Color,
+  palette: SandPalette,
+  jitter: number,
+): THREE.Group {
   const figure = new THREE.Group();
   if (unit.branch === "infantry" || unit.branch === "crossbow") {
     figure.add(human(tone, palette));
   } else if (unit.branch === "cavalry") {
-    figure.add(mount(tone, palette));
+    figure.add(mount(tone, palette, jitter));
   } else if (unit.branch === "chariot") {
-    figure.add(chariot(tone, palette));
+    figure.add(chariot(tone, palette, jitter));
   } else {
-    figure.add(boat(tone, palette));
+    figure.add(boat(tone, palette, jitter));
   }
 
   if (unit.branch === "infantry") {
+    // 戈：长柲 + 内刃 + 援锋
     add(
       figure,
-      new THREE.CylinderGeometry(0.022, 0.022, 1.18, 6),
-      standard(palette.ink, 0.8),
-      [0.3, 0.72, 0.06],
-      [0, 0, -0.18],
+      cyl(0.014, 0.016, 1.05, 5),
+      standard(palette.ink, 0.72),
+      [0.32, 0.62, 0.08],
+      [0, 0, -0.1],
     );
-    add(figure, new THREE.ConeGeometry(0.07, 0.22, 6), standard(tone), [0.41, 1.3, 0.06]);
-    add(
-      figure,
-      new THREE.BoxGeometry(0.24, 0.05, 0.05),
-      standard(tone),
-      [0.32, 1.18, 0.06],
-      [0, 0, 0.35],
-    );
+    add(figure, box(0.03, 0.1, 0.2), standard(tone, 0.45, 0.35), [0.35, 1.06, 0.08], [0.25, 0, 0]);
+    add(figure, cone(0.045, 0.16, 5), standard(tone, 0.45, 0.35), [0.35, 1.16, 0.08]);
+    add(figure, cyl(0.02, 0.02, 0.12, 5), standard(palette.ochre, 0.5, 0.3), [0.32, 1.02, 0.08]);
   }
   if (unit.branch === "crossbow") {
+    // 弩：臂 + 弓弓 + 弦 + 箭
+    add(figure, box(0.3, 0.05, 0.07), standard(palette.ink, 0.66), [0.3, 0.6, 0.16], [0, -0.35, 0]);
     add(
       figure,
-      new THREE.BoxGeometry(0.34, 0.12, 0.12),
-      standard(palette.ink, 0.7),
-      [0.28, 0.62, 0.14],
-    );
-    add(
-      figure,
-      new THREE.CylinderGeometry(0.016, 0.016, 0.6, 6),
-      standard(tone),
-      [0.28, 0.62, 0.14],
+      torus(0.17, 0.016, Math.PI),
+      standard(tone, 0.45, 0.3),
+      [0.3, 0.6, 0.16],
       [0, 0, Math.PI / 2],
     );
     add(
       figure,
-      new THREE.CylinderGeometry(0.01, 0.01, 0.46, 5),
-      standard(palette.ochre),
-      [0.28, 0.62, 0.34],
+      cyl(0.008, 0.008, 0.34, 4),
+      standard(palette.paper, 0.85),
+      [0.3, 0.6, 0.0],
+      [0, 0, Math.PI / 2],
+    );
+    add(
+      figure,
+      cyl(0.009, 0.009, 0.3, 4),
+      standard(palette.ochre, 0.7),
+      [0.3, 0.6, 0.14],
       [Math.PI / 2, 0, 0],
     );
   }
   return figure;
 }
 
-/** 一支部队 = 阵营地台 + 三人为伍的拟人队列 + 一面旗号。 */
+/** 一支部队 = 阵营地台 + 三人为伍的拟人队列 + 本阵营旗号。 */
 export function buildSoldier(unit: Unit, palette: SandPalette, facing: number): THREE.Group {
   const group = new THREE.Group();
   const tone = sideColor(unit.side, palette);
+  const jitter = unitJitter(unit.id);
 
   const disc = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.34, 0.34, 0.045, 20),
+    sharedGeometry("unit-disc", () => new THREE.CylinderGeometry(0.34, 0.36, 0.05, 22)),
     new THREE.MeshStandardMaterial({
-      color: tone,
+      color: tone.clone(),
       transparent: true,
-      opacity: 0.42,
+      opacity: 0.4,
       roughness: 0.9,
       depthWrite: false,
     }),
@@ -315,14 +520,14 @@ export function buildSoldier(unit: Unit, palette: SandPalette, facing: number): 
   group.add(disc);
   const rim = add(
     group,
-    new THREE.TorusGeometry(0.35, 0.018, 6, 20),
-    standard(tone, 0.5, 0.2),
-    [0, 0.045, 0],
+    torus(0.35, 0.02),
+    standard(tone, 0.5, 0.25),
+    [0, 0.05, 0],
     [Math.PI / 2, 0, 0],
   );
   rim.castShadow = false;
 
-  const lead = formationUnit(unit, tone, palette);
+  const lead = formationUnit(unit, tone, palette, jitter);
   group.add(lead);
   const mate = lead.clone(true);
   mate.scale.setScalar(0.78);
@@ -334,47 +539,115 @@ export function buildSoldier(unit: Unit, palette: SandPalette, facing: number): 
     trailing.position.set(0.34, 0, -0.32);
     group.add(trailing);
   }
-  if (unit.branch !== "navy") group.add(banner(tone, palette));
+  if (unit.branch !== "navy") group.add(banner(tone, palette, unit.side));
   group.rotation.y = facing;
   return group;
 }
 
-/** 营垒：都邑有城楼与角楼，要道为小城，隘口是双塔关夆。 */
+/** 城楼屋顶：四棱攒尖 + 正脊，墨色压顶。 */
+function roof(group: THREE.Group, width: number, y: number, palette: SandPalette) {
+  add(
+    group,
+    cone(width * 0.78, width * 0.44, 4),
+    standard(palette.ink, 0.55),
+    [0, y + width * 0.22, 0],
+    [0, Math.PI / 4, 0],
+  );
+  add(group, box(width * 0.36, 0.03, 0.05), standard(palette.ochre, 0.6, 0.2), [
+    0,
+    y + width * 0.43,
+    0,
+  ]);
+}
+
+/** 营垒：都邑两层城楼带角楼，城邑单层门楼，隘口双塔关墙，均带城门墨门洞。 */
 export function buildStronghold(place: Place, palette: SandPalette): THREE.Group {
   const group = new THREE.Group();
   const tone = sideColor(placeSide(place), palette);
-  const stone = palette.paper.clone().lerp(palette.ink, 0.24);
+  const stone = palette.paper.clone().lerp(palette.ink, 0.22);
+  const stoneDark = palette.paper.clone().lerp(palette.ink, 0.4);
+  const gate = palette.ink.clone().lerp(palette.ochre, 0.18);
 
   if (place.kind === "pass") {
-    for (const x of [-0.3, 0.3]) {
-      add(group, new THREE.BoxGeometry(0.18, 0.5, 0.18), standard(stone, 0.9), [x, 0.25, 0]);
+    for (const x of [-0.32, 0.32]) {
+      add(group, box(0.24, 0.56, 0.2), standard(stone, 0.9), [x, 0.28, 0]);
+      roof(group, 0.3, 0.56, palette);
+      add(group, box(0.07, 0.05, 0.03), standard(tone, 0.6), [x, 0.62, 0.1]);
     }
-    add(group, new THREE.BoxGeometry(0.78, 0.11, 0.16), standard(tone, 0.7), [0, 0.53, 0]);
-  } else {
-    const big = place.kind === "capital";
-    const size = big ? 0.82 : 0.62;
-    add(group, new THREE.BoxGeometry(size, 0.14, size), standard(stone, 0.95), [0, 0.07, 0]);
+    add(group, box(0.5, 0.16, 0.14), standard(stoneDark, 0.92), [0, 0.1, 0]);
+    add(group, box(0.16, 0.12, 0.05), standard(gate, 0.85), [0, 0.09, 0.06]);
+    add(group, box(0.78, 0.05, 0.14), standard(stoneDark, 0.9), [0, 0.2, 0]);
+    add(group, box(0.1, 0.1, 0.03), standard(tone, 0.6), [-0.18, 0.27, 0.05]);
+    add(group, box(0.1, 0.1, 0.03), standard(tone, 0.6), [0.18, 0.27, 0.05]);
+    return group;
+  }
+
+  const big = place.kind === "capital";
+  const size = big ? 0.86 : 0.64;
+  const wallHeight = big ? 0.2 : 0.15;
+  add(group, box(size, wallHeight, size), standard(stone, 0.94), [0, wallHeight / 2, 0]);
+  add(group, box(size + 0.06, 0.045, size + 0.06), standard(stoneDark, 0.92), [
+    0,
+    wallHeight + 0.02,
+    0,
+  ]);
+  // 城门墨门洞
+  add(group, box(0.16, wallHeight * 0.72, 0.05), standard(gate, 0.85), [
+    0,
+    wallHeight * 0.36,
+    size / 2 - 0.01,
+  ]);
+  // 角楼与垛口
+  const corner = size / 2 - 0.08;
+  for (const x of [-corner, corner]) {
+    for (const z of [-corner, corner]) {
+      add(group, box(0.13, wallHeight + 0.14, 0.13), standard(stoneDark, 0.9), [
+        x,
+        (wallHeight + 0.14) / 2,
+        z,
+      ]);
+    }
+  }
+  const merlons = big ? 5 : 3;
+  for (let index = 0; index < merlons; index += 1) {
+    const offset = (index - (merlons - 1) / 2) * (size / (merlons + 1));
+    add(group, box(0.06, 0.07, 0.03), standard(stoneDark, 0.9), [
+      offset,
+      wallHeight + 0.06,
+      size / 2,
+    ]);
+    add(group, box(0.03, 0.07, 0.06), standard(stoneDark, 0.9), [
+      size / 2,
+      wallHeight + 0.06,
+      offset,
+    ]);
+  }
+  // 中央城楼（都邑双层）
+  const towerSize = big ? 0.4 : 0.32;
+  const towerHeight = big ? 0.34 : 0.26;
+  add(
+    group,
+    box(towerSize, towerHeight, towerSize),
+    standard(stone.clone().lerp(tone, 0.2), 0.88),
+    [0, wallHeight + towerHeight / 2 + 0.03, 0],
+  );
+  add(group, box(towerSize * 0.4, towerHeight * 0.5, 0.04), standard(gate, 0.85), [
+    0,
+    wallHeight + towerHeight * 0.28,
+    towerSize / 2,
+  ]);
+  roof(group, towerSize * 1.15, wallHeight + towerHeight + 0.03, palette);
+  if (big) {
+    const upperSize = towerSize * 0.72;
     add(
       group,
-      new THREE.BoxGeometry(size * 0.8, big ? 0.38 : 0.28, size * 0.8),
+      box(upperSize, towerHeight * 0.62, upperSize),
       standard(stone.clone().lerp(tone, 0.28), 0.88),
-      [0, big ? 0.32 : 0.27, 0],
+      [0, wallHeight + towerHeight + 0.24, 0],
     );
-    if (big) {
-      for (const x of [-0.29, 0.29]) {
-        for (const z of [-0.29, 0.29]) {
-          add(group, new THREE.BoxGeometry(0.15, 0.22, 0.15), standard(tone, 0.72), [x, 0.62, z]);
-        }
-      }
-      add(
-        group,
-        new THREE.BoxGeometry(0.3, 0.2, 0.3),
-        standard(tone.clone().lerp(palette.ink, 0.2)),
-        [0, 0.62, 0],
-      );
-    }
-    group.add(banner(tone, palette));
+    roof(group, upperSize * 1.2, wallHeight + towerHeight + 0.47, palette);
   }
+  group.add(banner(tone, palette, placeSide(place)));
   return group;
 }
 
@@ -406,7 +679,7 @@ export function buildMove(move: Move, palette: SandPalette): THREE.Group {
       ]);
       add(
         group,
-        new THREE.TubeGeometry(segment, 4, 0.045, 5, false),
+        new THREE.TubeGeometry(segment, 4, 0.042, 5, false),
         standard(tone, 0.6, 0.16),
         [0, 0, 0],
       );
@@ -414,7 +687,7 @@ export function buildMove(move: Move, palette: SandPalette): THREE.Group {
   } else {
     add(
       group,
-      new THREE.TubeGeometry(curve, 28, 0.055, 6, false),
+      new THREE.TubeGeometry(curve, 28, 0.052, 6, false),
       standard(tone, 0.55, 0.18),
       [0, 0, 0],
     );
@@ -431,26 +704,14 @@ export function buildMove(move: Move, palette: SandPalette): THREE.Group {
     }
   }
 
-  const head = add(group, new THREE.ConeGeometry(0.19, 0.52, 8), standard(tone, 0.5, 0.2), [
-    end.x,
-    end.y,
-    end.z,
-  ]);
+  const head = add(group, cone(0.19, 0.54, 8), standard(tone, 0.45, 0.25), [end.x, end.y, end.z]);
   head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), curve.getTangent(1).normalize());
-  const barbLeft = add(group, new THREE.ConeGeometry(0.075, 0.26, 5), standard(tone), [
-    end.x,
-    end.y,
-    end.z,
-  ]);
+  const barbLeft = add(group, cone(0.07, 0.28, 5), standard(tone), [end.x, end.y, end.z]);
   barbLeft.quaternion.copy(head.quaternion);
-  barbLeft.translateX(-0.16);
-  const barbRight = add(group, new THREE.ConeGeometry(0.075, 0.26, 5), standard(tone), [
-    end.x,
-    end.y,
-    end.z,
-  ]);
+  barbLeft.translateX(-0.17);
+  const barbRight = add(group, cone(0.07, 0.28, 5), standard(tone), [end.x, end.y, end.z]);
   barbRight.quaternion.copy(head.quaternion);
-  barbRight.translateX(0.16);
+  barbRight.translateX(0.17);
   return group;
 }
 
@@ -461,28 +722,67 @@ const MOVE_LABEL: Record<Move["kind"], string> = {
   pursuit: "追击",
 };
 
-/** 纸底阵营色标签，屏幕外仍可读；文字牌统一置顶，不被地形挡住。 */
-export function labelSprite(text: string, tone: THREE.Color, width = 2.3): THREE.Sprite {
+type PlaqueGlyph = "place" | "unit" | "move";
+
+/** 纸底军图名牌：外墨框内细框 + 阵营色条 + 前置图元（城郭 / 菱 / 锥形箭头）。 */
+export function labelSprite(
+  text: string,
+  tone: THREE.Color,
+  width = 2.3,
+  glyph: PlaqueGlyph = "place",
+): THREE.Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = 448;
   canvas.height = 112;
   const context = canvas.getContext("2d");
   if (context) {
-    context.fillStyle = "rgba(244, 241, 234, 0.93)";
+    context.fillStyle = "rgba(244, 241, 234, 0.94)";
     context.beginPath();
-    if (typeof context.roundRect === "function") context.roundRect(6, 10, 436, 92, 14);
-    else context.rect(6, 10, 436, 92);
+    if (typeof context.roundRect === "function") context.roundRect(4, 8, 440, 96, 10);
+    else context.rect(4, 8, 440, 96);
     context.fill();
-    context.fillStyle = `#${tone.getHexString()}`;
-    context.fillRect(6, 10, 12, 92);
-    context.strokeStyle = "rgba(30, 30, 30, 0.28)";
-    context.lineWidth = 3;
+    // 双线框：军事要图惯用的内外双框。
+    context.strokeStyle = "rgba(30, 30, 30, 0.55)";
+    context.lineWidth = 4;
+    if (typeof context.roundRect === "function") context.roundRect(4, 8, 440, 96, 10);
+    else context.rect(4, 8, 440, 96);
     context.stroke();
+    context.strokeStyle = "rgba(30, 30, 30, 0.22)";
+    context.lineWidth = 2;
+    if (typeof context.roundRect === "function") context.roundRect(12, 16, 424, 80, 6);
+    else context.rect(12, 16, 424, 80);
+    context.stroke();
+    // 阵营色条
+    context.fillStyle = `#${tone.getHexString()}`;
+    context.fillRect(8, 14, 10, 84);
+    // 前置图元
+    context.fillStyle = "rgba(30, 30, 30, 0.78)";
+    if (glyph === "place") {
+      context.fillRect(34, 40, 28, 30);
+      context.fillRect(40, 34, 16, 8);
+      context.fillRect(46, 46, 6, 20);
+    } else if (glyph === "unit") {
+      context.beginPath();
+      context.moveTo(48, 34);
+      context.lineTo(62, 55);
+      context.lineTo(48, 76);
+      context.lineTo(34, 55);
+      context.closePath();
+      context.fill();
+    } else {
+      context.beginPath();
+      context.moveTo(30, 55);
+      context.lineTo(64, 40);
+      context.lineTo(58, 55);
+      context.lineTo(64, 70);
+      context.closePath();
+      context.fill();
+    }
     context.fillStyle = "#20201d";
-    context.font = '600 54px "Songti SC", "Noto Serif CJK SC", serif';
+    context.font = '600 52px "Songti SC", "Noto Serif CJK SC", serif';
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.fillText(text, 224, 57, 398);
+    context.fillText(text, 254, 58, 330);
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.encoding = THREE.sRGBEncoding;

@@ -137,8 +137,59 @@
   color: hsl(var(--paper));
 }
 
+/* 播放主键比其余控件醒目一档。 */
+.sunzi-chip--play:not(.is-active) {
+  background: hsl(var(--vermillion) / 0.08);
+}
+
 .sunzi-controls {
   background: var(--sunzi-panel);
+}
+
+/* 倍速 / 视角分段控件：相邻按钮共边，选中段填朱。 */
+.sunzi-segment {
+  display: flex;
+}
+
+.sunzi-segment .sunzi-chip {
+  border-radius: 0;
+}
+
+.sunzi-segment .sunzi-chip:first-child {
+  border-radius: 0.25rem 0 0 0.25rem;
+}
+
+.sunzi-segment .sunzi-chip:last-child {
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.sunzi-segment .sunzi-chip + .sunzi-chip {
+  margin-left: -1px;
+}
+
+/* 键位提示：复盘快捷键写明，不靠猜。 */
+.sunzi-shortcut-hint {
+  color: hsl(var(--ink) / 0.5);
+  display: none;
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  gap: 0.45rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+@media (min-width: 1280px) {
+  .sunzi-shortcut-hint {
+    display: flex;
+  }
+}
+
+.sunzi-shortcut-hint kbd {
+  border: 1px solid var(--sunzi-line);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  padding: 0 0.28rem;
 }
 
 .sunzi-step {
@@ -175,6 +226,21 @@
   height: 3px;
   margin-bottom: 0.45rem;
   overflow: hidden;
+  position: relative;
+}
+
+/* 幕刻度：进度条按幕数分格（--sunzi-steps 由页面按数据写入），读进度更准。 */
+.sunzi-progress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 calc(100% / var(--sunzi-steps, 4) - 1px),
+    hsl(var(--paper) / 0.9) calc(100% / var(--sunzi-steps, 4) - 1px)
+      calc(100% / var(--sunzi-steps, 4))
+  );
+  pointer-events: none;
 }
 
 .sunzi-progress span {
@@ -212,13 +278,15 @@
   z-index: 3;
 }
 
-/* 画面内的军语读图条：阵营口径与本幕机动性质常驻，不随 WebGL / SVG 路径改变。 */
+/* 画面内的军语读图条：阵营口径、军标画法与本幕机动性质常驻，不随 WebGL / SVG 路径改变。 */
 .sunzi-board__legend,
 .sunzi-board__readout {
-  background: hsl(var(--paper) / 0.88);
+  background: hsl(var(--paper) / 0.9);
   border: 1px solid var(--sunzi-line);
   border-radius: 0.3rem;
-  box-shadow: 0 6px 18px hsl(var(--ink) / 0.08);
+  box-shadow:
+    0 6px 18px hsl(var(--ink) / 0.08),
+    inset 0 0 0 1px hsl(var(--paper));
   font-family: var(--font-body);
   font-size: 0.82rem;
   left: 1rem;
@@ -245,6 +313,7 @@
 
 .sunzi-board__force-mark {
   border-radius: 2px;
+  box-shadow: inset 0 0 0 1px hsl(var(--ink) / 0.25);
   height: 0.62rem;
   width: 0.62rem;
 }
@@ -266,17 +335,38 @@
   color: var(--sunzi-ink-soft);
 }
 
+/* 军标画法一行小字：教读者看线型，不靠猜颜色。 */
+.sunzi-board__legend-reading {
+  border-top: 1px dashed var(--sunzi-line);
+  color: var(--sunzi-ink-soft);
+  font-size: 0.68rem;
+  margin: 0.45rem 0 0;
+  padding-top: 0.4rem;
+}
+
 .sunzi-board__readout {
   bottom: 8.2rem;
-  max-width: min(20rem, 46%);
+  max-width: min(21rem, 50%);
 }
 
 .sunzi-board__readout-head {
+  align-items: baseline;
   border-bottom: 1px solid var(--sunzi-line);
   color: hsl(var(--ink));
+  display: flex;
+  flex-wrap: wrap;
   font-weight: 600;
+  gap: 0.2rem 0.6rem;
+  justify-content: space-between;
   margin: 0 0 0.35rem;
   padding-bottom: 0.3rem;
+}
+
+.sunzi-board__held {
+  color: var(--sunzi-ink-soft);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 400;
 }
 
 .sunzi-board__readout ul {
@@ -294,6 +384,25 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+}
+
+.sunzi-kind-glyph {
+  fill: none;
+  flex: none;
+  height: 0.62rem;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  width: 0.95rem;
+}
+
+.sunzi-board__readout li[data-side="a"] .sunzi-kind-glyph {
+  color: var(--sunzi-a);
+}
+
+.sunzi-board__readout li[data-side="b"] .sunzi-kind-glyph {
+  color: var(--sunzi-b);
 }
 
 .sunzi-board__move-side {

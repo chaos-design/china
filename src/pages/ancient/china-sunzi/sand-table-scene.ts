@@ -16,7 +16,9 @@ import {
   BOARD_DEPTH,
   BOARD_WIDTH,
   boardToWorld,
+  contourSegmentsAt,
   pointInPolygon,
+  sampleContourGrid,
   surfaceHeight,
 } from "./sand-table-terrain";
 import type { BattleStep, MapScene } from "./types";
@@ -172,10 +174,14 @@ export function createSandTableScene(
   const easeInOut = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 
   // 暖白主光是物理光，不随明暗主题换色；地形与兵力才由 CSS 令牌重着色。
-  const hemi = new THREE.HemisphereLight(new THREE.Color(0xfff6e8), new THREE.Color(0xece6da), 0.7);
-  const ambient = new THREE.AmbientLight(new THREE.Color(0xfff6e8), 0.46);
-  const key = new THREE.DirectionalLight(new THREE.Color(0xfff4df), 0.78);
-  key.position.set(14, 24, 12);
+  const hemi = new THREE.HemisphereLight(
+    new THREE.Color(0xfff6e8),
+    new THREE.Color(0xece6da),
+    0.62,
+  );
+  const ambient = new THREE.AmbientLight(new THREE.Color(0xfff6e8), 0.4);
+  const key = new THREE.DirectionalLight(new THREE.Color(0xfff4df), 0.92);
+  key.position.set(18, 26, 9);
   key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024);
   key.shadow.camera.left = -26;
@@ -185,7 +191,7 @@ export function createSandTableScene(
   key.shadow.camera.near = 1;
   key.shadow.camera.far = 80;
   key.shadow.bias = -0.0009;
-  const fill = new THREE.DirectionalLight(new THREE.Color(0xd4e0f0), 0.3);
+  const fill = new THREE.DirectionalLight(new THREE.Color(0xd4e0f0), 0.34);
   fill.position.set(-16, 11, -14);
   scene.add(hemi, ambient, key, fill);
 
@@ -248,19 +254,16 @@ export function createSandTableScene(
         return;
       }
       if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
-        object.geometry?.dispose();
+        // 共享缓存的原件（geometry/material 带 shared 标记）跨重建复用，不随场景销毁。
+        if (object.geometry && !object.geometry.userData.shared) object.geometry.dispose();
         const material = object.material as THREE.Material | THREE.Material[] | undefined;
-        if (Array.isArray(material))
-          material.forEach((item) => {
-            const texture = (item as THREE.MeshStandardMaterial).map;
-            if (texture && texture !== sandMap) texture.dispose();
-            item.dispose();
-          });
-        else if (material) {
-          const texture = (material as THREE.MeshStandardMaterial).map;
+        const disposeMaterial = (item: THREE.Material) => {
+          const texture = (item as THREE.MeshStandardMaterial).map;
           if (texture && texture !== sandMap) texture.dispose();
-          material.dispose();
-        }
+          if (!item.userData.shared) item.dispose();
+        };
+        if (Array.isArray(material)) material.forEach(disposeMaterial);
+        else if (material) disposeMaterial(material);
       }
     });
     content.clear();
@@ -463,6 +466,20 @@ export function createSandTableScene(
     liner.receiveShadow = true;
     content.add(liner);
 
+    // 朱砂压边：托盘内沿一圈细红线，军用沙盘的界划。
+    const inlay = new THREE.Mesh(
+      new THREE.BoxGeometry(BOARD_WIDTH + 0.04, 0.035, BOARD_DEPTH + 0.04),
+      new THREE.MeshStandardMaterial({
+        color: colors.a,
+        roughness: 0.5,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.72,
+      }),
+    );
+    inlay.position.y = -0.095;
+    content.add(inlay);
+
     for (const x of [-BOARD_WIDTH / 2 - 0.28, BOARD_WIDTH / 2 + 0.28]) {
       for (const z of [-BOARD_DEPTH / 2 - 0.28, BOARD_DEPTH / 2 + 0.28]) {
         const corner = new THREE.Mesh(
@@ -472,12 +489,19 @@ export function createSandTableScene(
         corner.position.set(x, -0.05, z);
         corner.castShadow = true;
         content.add(corner);
+        // 包角上的铜钉
+        const stud = new THREE.Mesh(
+          new THREE.SphereGeometry(0.075, 8, 6),
+          new THREE.MeshStandardMaterial({ color: colors.ochre, roughness: 0.35, metalness: 0.7 }),
+        );
+        stud.position.set(x * 0.965, 0.05, z * 0.965);
+        content.add(stud);
       }
     }
   }
 
   function buildTerrain(current: SceneData, colors: SandPalette) {
-    const geometry = new THREE.PlaneGeometry(BOARD_WIDTH, BOARD_DEPTH, 64, 42);
+    const geometry = new THREE.PlaneGeometry(BOARD_WIDTH, BOARD_DEPTH, 72, 48);
     geometry.rotateX(-Math.PI / 2);
     const positions = geometry.attributes.position;
     const vertexColors: number[] = [];
@@ -486,9 +510,10 @@ export function createSandTableScene(
       const z = positions.getZ(index);
       const height = surfaceHeight(x, z);
       positions.setY(index, height);
-      // 低地留纸、缓坡薄赭即可：ochre 令牌本身偏灰，压墨会把山脊变成污斑。
-      const t = THREE.MathUtils.clamp((height + 0.13) / 0.52, 0, 1);
-      const shade = colors.paper.clone().lerp(colors.ochre, 0.07 + t * 0.24);
+      // 低地留纸、缓坡薄赭、脊线压墨：ochre 令牌偏灰，直接压墨会变污斑。
+      const t = THREE.MathUtils.clamp((height - 0.05) / 0.75, 0, 1);
+      const shade = colors.paper.clone().lerp(colors.ochre, 0.08 + t * 0.3);
+      if (t > 0.82) shade.lerp(colors.ink, 0.16);
       const a = current.battle.regions.some(
         (region) => current.step.held.includes(region.id) && pointInPolygon(x, z, region.points),
       );
@@ -506,17 +531,55 @@ export function createSandTableScene(
       geometry,
       new THREE.MeshStandardMaterial({
         vertexColors: true,
-        roughness: 0.93,
+        roughness: 0.95,
         metalness: 0.02,
         flatShading: true,
         map: sandTexture,
         bumpMap: sandTexture,
-        bumpScale: 0.08,
+        bumpScale: 0.14,
       }),
     );
     // 地形法线明暗已经够立体；接收投影会在山脊上留下大块灰色阴影斑。
     ground.receiveShadow = false;
     content.add(ground);
+    buildContours(colors);
+  }
+
+  /** 军事沙盘的等高线：marching squares 抽线，贴地表抬高防 z-fighting。 */
+  function buildContours(colors: SandPalette) {
+    const grid = sampleContourGrid();
+    const levels = [0.14, 0.3, 0.46, 0.62, 0.78];
+    for (const level of levels) {
+      const segments = contourSegmentsAt(grid, level);
+      if (segments.length === 0) continue;
+      // 每条线段 4 个输入值展开成两个 3 维顶点，输出指针与输入指针分开走。
+      const positions = new Float32Array((segments.length / 4) * 6);
+      let out = 0;
+      for (let index = 0; index < segments.length; index += 4) {
+        const x1 = segments[index];
+        const z1 = segments[index + 1];
+        const x2 = segments[index + 2];
+        const z2 = segments[index + 3];
+        positions[out] = x1;
+        positions[out + 1] = surfaceHeight(x1, z1) + 0.045;
+        positions[out + 2] = z1;
+        positions[out + 3] = x2;
+        positions[out + 4] = surfaceHeight(x2, z2) + 0.045;
+        positions[out + 5] = z2;
+        out += 6;
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      const line = new THREE.LineSegments(
+        geometry,
+        new THREE.LineBasicMaterial({
+          color: colors.ink,
+          transparent: true,
+          opacity: level === 0.62 ? 0.26 : 0.17,
+        }),
+      );
+      content.add(line);
+    }
   }
 
   /** 贴合地表的经纬网：沙盘的量度感来自细线，而不是浮在上面的装饰。 */
@@ -589,7 +652,12 @@ export function createSandTableScene(
       stronghold.position.set(world.x, height + 0.02, world.z);
       content.add(stronghold);
 
-      const label = labelSprite(place.name, sideColor(placeSide(place), colors), LABEL_WIDTH.place);
+      const label = labelSprite(
+        place.name,
+        sideColor(placeSide(place), colors),
+        LABEL_WIDTH.place,
+        "place",
+      );
       label.position.set(world.x, height + 1.25, world.z);
       content.add(label);
       placeLabel(label, world.x, world.z, LABEL_WIDTH.place, LABEL_RANK.place);
@@ -607,7 +675,7 @@ export function createSandTableScene(
       unitGroups.set(unit.id, soldier);
 
       // 部队名牌压在脚下，与城池名牌分层，再由避让把贴营的牌推开。
-      const label = labelSprite(unit.label, sideColor(unit.side, colors), LABEL_WIDTH.unit);
+      const label = labelSprite(unit.label, sideColor(unit.side, colors), LABEL_WIDTH.unit, "unit");
       label.position.set(world.x, height + 0.55, world.z);
       content.add(label);
       placeLabel(label, world.x, world.z, LABEL_WIDTH.unit, LABEL_RANK.unit);
@@ -623,7 +691,12 @@ export function createSandTableScene(
       const deltaZ = to.z - from.z;
       const midpointX = (from.x + to.x) / 2 - deltaZ * 0.075;
       const midpointZ = (from.z + to.z) / 2 + deltaX * 0.075;
-      const label = labelSprite(moveLabel(move), sideColor(move.side, colors), LABEL_WIDTH.move);
+      const label = labelSprite(
+        moveLabel(move),
+        sideColor(move.side, colors),
+        LABEL_WIDTH.move,
+        "move",
+      );
       label.position.set(midpointX, surfaceHeight(midpointX, midpointZ) + 1.05, midpointZ);
       content.add(label);
       placeLabel(label, midpointX, midpointZ, LABEL_WIDTH.move, LABEL_RANK.move);

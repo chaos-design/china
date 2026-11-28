@@ -22,6 +22,40 @@ const MOVE_KIND_LABEL = {
   pursuit: "乘势追击",
 } as const;
 
+/** 军标符号：主攻实线箭、迂回弧线、佯动虚线、追击复线，与沙盘画法一一对应。 */
+function KindGlyph({ kind }: { kind: keyof typeof MOVE_KIND_LABEL }) {
+  if (kind === "advance") {
+    return (
+      <svg aria-hidden="true" className="sunzi-kind-glyph" viewBox="0 0 18 12">
+        <path d="M1 6 H12" />
+        <path d="M11 3 L16 6 L11 9 Z" />
+      </svg>
+    );
+  }
+  if (kind === "flank") {
+    return (
+      <svg aria-hidden="true" className="sunzi-kind-glyph" viewBox="0 0 18 12">
+        <path d="M1 10 Q9 10 13 5" />
+        <path d="M10 3 L15 4 L12 8 Z" />
+      </svg>
+    );
+  }
+  if (kind === "feint") {
+    return (
+      <svg aria-hidden="true" className="sunzi-kind-glyph" viewBox="0 0 18 12">
+        <path d="M1 6 H4 M6 6 H9 M11 6 H12" />
+        <path d="M11 3 L16 6 L11 9 Z" />
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden="true" className="sunzi-kind-glyph" viewBox="0 0 18 12">
+      <path d="M1 4 H12 M1 8.5 H12" />
+      <path d="M11 1 L16 4.5 L11 8 Z" />
+    </svg>
+  );
+}
+
 const GRATICULE = [160, 320, 480, 640, 800];
 const RIDGES = [
   "M300 150 L340 132 L380 148 L420 128 L460 146",
@@ -103,7 +137,7 @@ export function SandTable({ battle, playing, step, view, zoom, speed }: SandTabl
           立体态势沙盘 · 拖拽旋转 / 滚轮缩放
         </p>
       ) : null}
-      {/* 读图注释与 3D / SVG 两套渲染无关，常驻在画面上：阵营口径 + 本幕机动性质。
+      {/* 读图注释与 3D / SVG 两套渲染无关，常驻在画面上：阵营口径 + 军标画法 + 本幕机动性质。
           战术口径只描述 move.kind 已记录的机动，不编造战果或兵力实数。 */}
       <div aria-hidden="true" className="sunzi-board__legend">
         {battle.forces.map((force) => (
@@ -113,15 +147,24 @@ export function SandTable({ battle, playing, step, view, zoom, speed }: SandTabl
             <span>{force.hint}</span>
           </p>
         ))}
+        <p className="sunzi-board__legend-reading">
+          实线主攻、虚线佯动、复线追击；朱为我军，青为敌军
+        </p>
       </div>
       <div aria-hidden="true" className="sunzi-board__readout" data-testid="sunzi-board-readout">
-        <p className="sunzi-board__readout-head">本幕机动判读</p>
+        <p className="sunzi-board__readout-head">
+          本幕机动判读
+          <span className="sunzi-board__held">
+            我方控 {step.held.length} 区 · 敌方控 {battle.regions.length - step.held.length} 区
+          </span>
+        </p>
         <ul>
           {step.moves.map((move) => {
             const destination = nearestPlace(move.to);
             return (
               <li data-side={move.side} key={move.id}>
                 <span className="sunzi-board__move-side">{forceName(move.side)}</span>
+                <KindGlyph kind={move.kind} />
                 <span className="sunzi-board__move-kind">{MOVE_KIND_LABEL[move.kind]}</span>
                 {destination ? <span className="sunzi-board__move-to">→ {destination}</span> : null}
               </li>

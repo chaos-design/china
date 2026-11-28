@@ -1,5 +1,5 @@
 import { Pause, Play, RotateCcw, SkipBack, SkipForward, ZoomIn, ZoomOut } from "lucide-react";
-import { useEffect, useState, type WheelEvent } from "react";
+import { type CSSProperties, useEffect, useState, type WheelEvent } from "react";
 
 import { SITE_TITLE, setDocumentTitle } from "../../../lib/page-title";
 import { cn } from "../../../lib/utils";
@@ -306,8 +306,17 @@ export function SunziPage() {
       <div className="sunzi-bottom" data-testid="sunzi-bottom">
         <div className="sunzi-bottom__meta">
           <p className="font-kai text-sm text-ink">{scene.name}</p>
-          <p className="font-body text-xs text-muted-foreground">
+          <p className="font-body text-muted-foreground text-xs">
             {step.title} · 第 {stepIndex + 1} 幕 · {PRINCIPLE_BY_ID[step.principleId].name}
+          </p>
+          <p aria-hidden="true" className="sunzi-shortcut-hint">
+            <span>
+              <kbd>空格</kbd> 播放
+            </span>
+            <span>
+              <kbd>←</kbd>
+              <kbd>→</kbd> 切幕
+            </span>
           </p>
         </div>
 
@@ -322,6 +331,7 @@ export function SunziPage() {
             aria-valuenow={stepIndex + 1}
             className="sunzi-progress"
             role="progressbar"
+            style={{ "--sunzi-steps": scene.steps.length } as CSSProperties}
           >
             <span style={{ transform: `scaleX(${(stepIndex + 1) / scene.steps.length})` }} />
           </div>
@@ -386,33 +396,37 @@ export function SunziPage() {
           </button>
         </fieldset>
 
-        <fieldset aria-label="播放速度" className="sunzi-group flex gap-1">
-          {SPEED_OPTIONS.map((option) => (
-            <button
-              aria-label={`播放速度 ${option} 倍`}
-              aria-pressed={speed === option}
-              className={cn("sunzi-chip font-body text-xs", speed === option && "is-active")}
-              key={option}
-              onClick={() => setSpeed(option)}
-              type="button"
-            >
-              {option}×
-            </button>
-          ))}
+        <fieldset aria-label="播放速度" className="sunzi-group">
+          <div className="sunzi-segment">
+            {SPEED_OPTIONS.map((option) => (
+              <button
+                aria-label={`播放速度 ${option} 倍`}
+                aria-pressed={speed === option}
+                className={cn("sunzi-chip font-body text-xs", speed === option && "is-active")}
+                key={option}
+                onClick={() => setSpeed(option)}
+                type="button"
+              >
+                {option}×
+              </button>
+            ))}
+          </div>
         </fieldset>
 
-        <fieldset aria-label="视角" className="sunzi-group flex gap-1">
-          {(Object.keys(VIEW_LABEL) as Array<keyof typeof VIEW_LABEL>).map((key) => (
-            <button
-              aria-pressed={view === key}
-              className={cn("sunzi-chip font-body text-xs", view === key && "is-active")}
-              key={key}
-              onClick={() => setView(key)}
-              type="button"
-            >
-              {VIEW_LABEL[key]}
-            </button>
-          ))}
+        <fieldset aria-label="视角" className="sunzi-group">
+          <div className="sunzi-segment">
+            {(Object.keys(VIEW_LABEL) as Array<keyof typeof VIEW_LABEL>).map((key) => (
+              <button
+                aria-pressed={view === key}
+                className={cn("sunzi-chip font-body text-xs", view === key && "is-active")}
+                key={key}
+                onClick={() => setView(key)}
+                type="button"
+              >
+                {VIEW_LABEL[key]}
+              </button>
+            ))}
+          </div>
         </fieldset>
 
         <fieldset aria-label="缩放" className="sunzi-group flex items-center gap-1">
