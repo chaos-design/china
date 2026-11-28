@@ -14,15 +14,8 @@ import {
   unitJitter,
 } from "./sand-table-figures";
 import { type LabelCandidate, resolveLabelOffsets } from "./sand-table-labels";
-import {
-  BOARD_DEPTH,
-  BOARD_WIDTH,
-  boardToWorld,
-  contourSegmentsAt,
-  pointInPolygon,
-  sampleContourGrid,
-  surfaceHeight,
-} from "./sand-table-terrain";
+import { getMapSkin, type MapSkinResult } from "./sand-table-map-skin";
+import { BOARD_DEPTH, BOARD_WIDTH, boardToWorld, surfaceHeight } from "./sand-table-terrain";
 import type { BattleStep, MapScene } from "./types";
 
 /** 3D 名牌宽度（世界单位）与优先级：数字越小越固定，重叠时低优先级牌让位。 */
@@ -436,6 +429,64 @@ export function createSandTableScene(
     fallbackId = window.setInterval(tick, 100);
   }
 
+  /** 指北罗盘：参谋沙盘的图面要素，平贴地表，墨圈朱针。 */
+  function buildCompass(colors: SandPalette) {
+    const compass = new THREE.Group();
+    const centerX = BOARD_WIDTH / 2 - 3.8;
+    const centerZ = -BOARD_DEPTH / 2 + 3.8;
+    const baseY = surfaceHeight(centerX, centerZ) + 0.07;
+    compass.position.set(centerX, baseY, centerZ);
+    const disc = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.02, 1.06, 0.045, 28),
+      new THREE.MeshStandardMaterial({
+        color: colors.paper.clone().lerp(colors.ochre, 0.14),
+        roughness: 0.92,
+      }),
+    );
+    compass.add(disc);
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(1.0, 0.03, 6, 40),
+      standard(colors.ink, 0.7),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.026;
+    compass.add(ring);
+    const inner = new THREE.Mesh(
+      new THREE.TorusGeometry(0.66, 0.014, 5, 32),
+      standard(colors.ink, 0.75),
+    );
+    inner.rotation.x = -Math.PI / 2;
+    inner.position.y = 0.026;
+    compass.add(inner);
+    // 指北朱针：北 = -z（与 DOM 指北针同一口径）。
+    const north = new THREE.Mesh(
+      new THREE.ConeGeometry(0.16, 0.62, 4),
+      standard(colors.a, 0.5, 0.2),
+    );
+    north.rotation.x = -Math.PI / 2;
+    north.position.set(0, 0.05, -0.31);
+    compass.add(north);
+    const south = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.5, 4), standard(colors.ink, 0.6));
+    south.rotation.x = Math.PI / 2;
+    south.position.set(0, 0.05, 0.29);
+    compass.add(south);
+    for (const [x, z] of [
+      [1.0, 0],
+      [-1.0, 0],
+      [0, 1.0],
+      [0, -1.0],
+    ]) {
+      const tick = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.02, 0.2),
+        standard(colors.ink, 0.75),
+      );
+      tick.position.set(x * 0.82, 0.03, z * 0.82);
+      if (x !== 0) tick.rotation.y = Math.PI / 2;
+      compass.add(tick);
+    }
+    content.add(compass);
+  }
+
   /** 城池间的驿道：淡色路基 + 赭色虚线 + 中途驿站，比单根细虚线更像沙盘路网。 */
   function buildRoads(current: SceneData, colors: SandPalette) {
     const places = [...current.battle.places].sort((a, b) => a.x - b.x);
@@ -574,188 +625,50 @@ export function createSandTableScene(
     }
   }
 
+  /**
+   * 地表 = 烘焙舆图皮肤（sand-table-map-skin）：山体阴影、等高线、控区套染、
+   * 经纬网与边缘晕影一次烘进画布，作为地台贴图——真实军事沙盘的制法。
+   * 3D 侧只保留几何起伏与 bump 沙粒，图面信息全部在皮肤层。
+   */
   function buildTerrain(current: SceneData, colors: SandPalette) {
-    const geometry = new THREE.PlaneGeometry(BOARD_WIDTH, BOARD_DEPTH, 72, 48);
+    const geometry = new THREE.PlaneGeometry(BOARD_WIDTH, BOARD_DEPTH, 96, 64);
     geometry.rotateX(-Math.PI / 2);
     const positions = geometry.attributes.position;
-    const vertexColors: number[] = [];
     for (let index = 0; index < positions.count; index += 1) {
       const x = positions.getX(index);
       const z = positions.getZ(index);
-      const height = surfaceHeight(x, z);
-      positions.setY(index, height);
-      // 低地留纸、缓坡薄赭、脊线压墨：ochre 令牌偏灰，直接压墨会变污斑。
-      const t = THREE.MathUtils.clamp((height - 0.05) / 0.75, 0, 1);
-      const shade = colors.paper.clone().lerp(colors.ochre, 0.08 + t * 0.3);
-      if (t > 0.82) shade.lerp(colors.ink, 0.16);
-      const a = current.battle.regions.some(
-        (region) => current.step.held.includes(region.id) && pointInPolygon(x, z, region.points),
-      );
-      const b = current.battle.regions.some(
-        (region) => !current.step.held.includes(region.id) && pointInPolygon(x, z, region.points),
-      );
-      if (a) shade.lerp(colors.a, 0.5);
-      else if (b) shade.lerp(colors.b, 0.42);
-      // 沙盘边缘的压墨晕影：用旧了的沙盘边角颜色更深。
-      const edge = Math.max(Math.abs(x) / (BOARD_WIDTH / 2), Math.abs(z) / (BOARD_DEPTH / 2));
-      if (edge > 0.88) shade.lerp(colors.ink, ((edge - 0.88) / 0.12) * 0.2);
-      vertexColors.push(shade.r, shade.g, shade.b);
+      positions.setY(index, surfaceHeight(x, z));
     }
-    geometry.setAttribute("color", new THREE.Float32BufferAttribute(vertexColors, 3));
     geometry.computeVertexNormals();
     const sandTexture = getSandMap();
+    const skin = getMapSkin(current.battle, current.step, colors);
     const ground = new THREE.Mesh(
       geometry,
       new THREE.MeshStandardMaterial({
-        vertexColors: true,
-        roughness: 0.95,
+        roughness: 0.94,
         metalness: 0.02,
-        flatShading: true,
-        map: sandTexture,
+        map: getSkinTexture(skin),
         bumpMap: sandTexture,
-        bumpScale: 0.14,
+        bumpScale: 0.12,
       }),
     );
-    // 地形法线明暗已经够立体；接收投影会在山脊上留下大块灰色阴影斑。
+    // 图面明暗由皮肤承担；接收投影会在山脊上留下大块灰色阴影斑。
     ground.receiveShadow = false;
     content.add(ground);
-    buildContours(colors);
   }
 
-  /** 军事沙盘的等高线：marching squares 抽线，贴地表抬高防 z-fighting。 */
-  function buildContours(colors: SandPalette) {
-    const grid = sampleContourGrid();
-    const levels = [0.14, 0.3, 0.46, 0.62, 0.78];
-    for (const level of levels) {
-      const segments = contourSegmentsAt(grid, level);
-      if (segments.length === 0) continue;
-      // 每条线段 4 个输入值展开成两个 3 维顶点，输出指针与输入指针分开走。
-      const positions = new Float32Array((segments.length / 4) * 6);
-      let out = 0;
-      for (let index = 0; index < segments.length; index += 4) {
-        const x1 = segments[index];
-        const z1 = segments[index + 1];
-        const x2 = segments[index + 2];
-        const z2 = segments[index + 3];
-        positions[out] = x1;
-        positions[out + 1] = surfaceHeight(x1, z1) + 0.045;
-        positions[out + 2] = z1;
-        positions[out + 3] = x2;
-        positions[out + 4] = surfaceHeight(x2, z2) + 0.045;
-        positions[out + 5] = z2;
-        out += 6;
-      }
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-      const line = new THREE.LineSegments(
-        geometry,
-        new THREE.LineBasicMaterial({
-          color: colors.ink,
-          transparent: true,
-          opacity: level === 0.62 ? 0.26 : 0.17,
-        }),
-      );
-      content.add(line);
+  /** 皮肤纹理缓存：画布同 key 复用时连 GPU 上传也省掉。 */
+  let skinTextureCache: { canvas: HTMLCanvasElement; texture: THREE.CanvasTexture } | null = null;
+  function getSkinTexture(skin: MapSkinResult): THREE.CanvasTexture {
+    if (skinTextureCache && skinTextureCache.canvas === skin.canvas) {
+      return skinTextureCache.texture;
     }
-  }
-
-  /** 指北罗盘：参谋沙盘的图面要素，平贴地表，墨圈朱针。 */
-  function buildCompass(colors: SandPalette) {
-    const compass = new THREE.Group();
-    const centerX = BOARD_WIDTH / 2 - 3.8;
-    const centerZ = -BOARD_DEPTH / 2 + 3.8;
-    const baseY = surfaceHeight(centerX, centerZ) + 0.07;
-    compass.position.set(centerX, baseY, centerZ);
-    const disc = new THREE.Mesh(
-      new THREE.CylinderGeometry(1.02, 1.06, 0.045, 28),
-      new THREE.MeshStandardMaterial({
-        color: colors.paper.clone().lerp(colors.ochre, 0.14),
-        roughness: 0.92,
-      }),
-    );
-    compass.add(disc);
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(1.0, 0.03, 6, 40),
-      standard(colors.ink, 0.7),
-    );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.026;
-    compass.add(ring);
-    const inner = new THREE.Mesh(
-      new THREE.TorusGeometry(0.66, 0.014, 5, 32),
-      standard(colors.ink, 0.75),
-    );
-    inner.rotation.x = -Math.PI / 2;
-    inner.position.y = 0.026;
-    compass.add(inner);
-    // 指北朱针：北 = -z（与 DOM 指北针同一口径）。
-    const north = new THREE.Mesh(
-      new THREE.ConeGeometry(0.16, 0.62, 4),
-      standard(colors.a, 0.5, 0.2),
-    );
-    north.rotation.x = -Math.PI / 2;
-    north.position.set(0, 0.05, -0.31);
-    compass.add(north);
-    const south = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.5, 4), standard(colors.ink, 0.6));
-    south.rotation.x = Math.PI / 2;
-    south.position.set(0, 0.05, 0.29);
-    compass.add(south);
-    for (const [x, z] of [
-      [1.0, 0],
-      [-1.0, 0],
-      [0, 1.0],
-      [0, -1.0],
-    ]) {
-      const tick = new THREE.Mesh(
-        new THREE.BoxGeometry(0.05, 0.02, 0.2),
-        standard(colors.ink, 0.75),
-      );
-      tick.position.set(x * 0.82, 0.03, z * 0.82);
-      if (x !== 0) tick.rotation.y = Math.PI / 2;
-      compass.add(tick);
-    }
-    content.add(compass);
-  }
-
-  /** 贴合地表的经纬网：沙盘的量度感来自细线，而不是浮在上面的装饰。 */
-  function buildGraticule(colors: SandPalette) {
-    const line = (points: THREE.Vector3[]) =>
-      content.add(
-        new THREE.Line(
-          new THREE.BufferGeometry().setFromPoints(points),
-          new THREE.LineBasicMaterial({ color: colors.ink, transparent: true, opacity: 0.13 }),
-        ),
-      );
-    for (let x = -BOARD_WIDTH / 2 + 7; x < BOARD_WIDTH / 2; x += 7) {
-      const points: THREE.Vector3[] = [];
-      for (let z = -BOARD_DEPTH / 2; z <= BOARD_DEPTH / 2; z += 1) {
-        points.push(new THREE.Vector3(x, surfaceHeight(x, z) + 0.03, z));
-      }
-      line(points);
-    }
-    for (let z = -BOARD_DEPTH / 2 + 7; z < BOARD_DEPTH / 2; z += 7) {
-      const points: THREE.Vector3[] = [];
-      for (let x = -BOARD_WIDTH / 2; x <= BOARD_WIDTH / 2; x += 1) {
-        points.push(new THREE.Vector3(x, surfaceHeight(x, z) + 0.03, z));
-      }
-      line(points);
-    }
-  }
-
-  function buildRegionEdges(current: SceneData, colors: SandPalette) {
-    for (const region of current.battle.regions) {
-      const tone = current.step.held.includes(region.id) ? colors.a : colors.b;
-      const points = region.points.map((point) => {
-        const world = boardToWorld(point);
-        return new THREE.Vector3(world.x, surfaceHeight(world.x, world.z) + 0.04, world.z);
-      });
-      points.push(points[0].clone());
-      const line = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(points),
-        new THREE.LineBasicMaterial({ color: tone, transparent: true, opacity: 0.82 }),
-      );
-      content.add(line);
-    }
+    skinTextureCache?.texture.dispose();
+    const texture = new THREE.CanvasTexture(skin.canvas);
+    texture.encoding = THREE.sRGBEncoding;
+    texture.anisotropy = 4;
+    skinTextureCache = { canvas: skin.canvas, texture };
+    return texture;
   }
 
   function buildRivers(current: SceneData, colors: SandPalette) {
@@ -877,8 +790,6 @@ export function createSandTableScene(
     buildTray(colors);
     buildTerrain(data, colors);
     buildCompass(colors);
-    buildGraticule(colors);
-    buildRegionEdges(data, colors);
     buildRivers(data, colors);
     buildRoads(data, colors);
     buildStrongholds(data, colors);

@@ -73,18 +73,19 @@ export function SunziPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [lastStep]);
 
+  // 切换计谋 / 战役即从第一幕自动推演：沙盘是动态机理演示，不是静态挂图。
   function selectStratagem(number: number) {
     setSelectedNumber(number);
     setKind("stratagem");
     setStepIndex(0);
-    setPlaying(false);
+    setPlaying(true);
   }
 
   function selectBattle(index: number) {
     setBattleIndex(index);
     setKind("battle");
     setStepIndex(0);
-    setPlaying(false);
+    setPlaying(true);
   }
 
   function goToStep(index: number) {
@@ -223,7 +224,7 @@ export function SunziPage() {
                   );
                   setBattleIndex(battle);
                   setStepIndex(target);
-                  setPlaying(false);
+                  setPlaying(true);
                   setKind("battle");
                 }}
                 type="button"
