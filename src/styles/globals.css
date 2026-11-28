@@ -1370,8 +1370,8 @@
   }
 }
 
-/* 古装裱挂轴加载态：全卷只展开一次；装饰件全部走 scroll-* / ink / vermillion 令牌，
-   帘纹与绫绢纹用 repeating 渐变，不用任何位图。 */
+/* 手卷舆图加载态：横向展卷一次到位；装饰件全部走 scroll-* / ink / vermillion 令牌，
+   帘纹与绫绢纹用 repeating 渐变，军图元素（罗盘、标图箭、城郭）用内联 SVG，不用位图。 */
 .route-loading {
   background:
     repeating-linear-gradient(90deg, hsl(var(--ink) / 0.022) 0 1px, transparent 1px 7px),
@@ -1383,9 +1383,10 @@
   filter: drop-shadow(0 10px 22px hsl(var(--ink) / 0.14));
 }
 
+/* 天/地绫：手卷上下两条窄锦边。 */
 .route-loading__brocade {
   position: relative;
-  height: 0.9rem;
+  height: 0.55rem;
   background:
     repeating-linear-gradient(45deg, hsl(var(--scroll-jade) / 0.22) 0 5px, transparent 5px 10px),
     repeating-linear-gradient(-45deg, hsl(var(--ink) / 0.1) 0 5px, transparent 5px 10px),
@@ -1393,36 +1394,18 @@
   border-block: 1px solid hsl(var(--ink) / 0.32);
 }
 
-.route-loading__brocade--head {
+.route-loading__brocade--top {
   border-radius: 2px 2px 0 0;
 }
 
-.route-loading__brocade--foot {
+.route-loading__brocade--bottom {
   border-radius: 0 0 2px 2px;
-}
-
-/* 惊燕：天绫下垂的两条绦带。 */
-.route-loading__ribbon {
-  position: absolute;
-  top: 0.9rem;
-  width: 5px;
-  height: 2.1rem;
-  background: linear-gradient(180deg, hsl(var(--vermillion) / 0.62), hsl(var(--vermillion) / 0.16));
-  z-index: 2;
-}
-
-.route-loading__ribbon--left {
-  left: 26%;
-}
-
-.route-loading__ribbon--right {
-  right: 26%;
 }
 
 .route-loading__paper {
   position: relative;
-  width: 11rem;
-  height: 5.2rem;
+  width: 21rem;
+  height: 6.4rem;
   overflow: hidden;
   background:
     repeating-linear-gradient(90deg, hsl(var(--ink) / 0.03) 0 1px, transparent 1px 5px),
@@ -1447,22 +1430,76 @@
     radial-gradient(circle 14% at 22% 20%, hsl(var(--ink) / 0.06), transparent);
 }
 
-.route-loading__hills {
+/* 淡墨山川：舆图的山水骨架。 */
+.route-loading__terrain {
   position: absolute;
-  inset: auto 0.55rem 0.42rem 0.55rem;
-  width: calc(100% - 1.1rem);
-  fill: hsl(var(--ink) / 0.16);
+  inset: auto 0 0 0;
+  width: 100%;
 }
 
-.route-loading__hills path:last-child {
-  fill: hsl(var(--ink) / 0.24);
+.route-loading__terrain path:first-of-type {
+  fill: hsl(var(--ink) / 0.13);
 }
 
-/* 朱文方印：右下压角。 */
+.route-loading__terrain path:nth-of-type(2) {
+  fill: hsl(var(--ink) / 0.2);
+}
+
+.route-loading__river {
+  fill: none;
+  stroke: hsl(var(--blueprint) / 0.5);
+  stroke-width: 2.2;
+}
+
+/* 罗盘：军图指北。 */
+.route-loading__compass {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.7rem;
+  width: 2.5rem;
+}
+
+.route-loading__compass circle:first-of-type {
+  fill: hsl(var(--paper) / 0.9);
+  stroke: hsl(var(--ink) / 0.6);
+  stroke-width: 1.6;
+}
+
+.route-loading__compass-inner {
+  fill: none;
+  stroke: hsl(var(--ink) / 0.28);
+  stroke-width: 1;
+}
+
+.route-loading__compass path {
+  fill: hsl(var(--ink) / 0.72);
+}
+
+.route-loading__compass .route-loading__needle {
+  fill: hsl(var(--vermillion) / 0.85);
+}
+
+/* 标图笔意：朱箭与城郭。 */
+.route-loading__marks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+}
+
+.route-loading__mark-arrow {
+  fill: hsl(var(--vermillion) / 0.72);
+}
+
+.route-loading__mark-city {
+  fill: hsl(var(--paper));
+  stroke: hsl(var(--ink) / 0.7);
+  stroke-width: 2;
+}
+
 .route-loading__seal {
   position: absolute;
-  right: 0.55rem;
-  bottom: 0.5rem;
+  left: 0.7rem;
+  bottom: 0.55rem;
   display: grid;
   place-items: center;
   width: 1.35rem;
@@ -1481,10 +1518,10 @@
 
 .route-loading__caption {
   position: absolute;
-  top: 0.5rem;
+  top: 0.55rem;
   left: 0.7rem;
   color: hsl(var(--ink) / 0.55);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
 }
 
 .route-loading__sweep {
@@ -1495,12 +1532,12 @@
   width: 42%;
 }
 
-/* 紫檀轴杆 + 铜箍 + 玉轴头。 */
+/* 紫檀轴杆：手卷两端立柱，铜箍两道，玉轴头朝外。 */
 .route-loading__rod {
   position: absolute;
-  top: -0.42rem;
-  bottom: -0.42rem;
-  width: 0.7rem;
+  top: -0.34rem;
+  bottom: -0.34rem;
+  width: 0.66rem;
   border-radius: 999px;
   background: linear-gradient(
     90deg,
@@ -1516,32 +1553,33 @@
 }
 
 .route-loading__rod--left {
-  left: -0.36rem;
+  left: -0.3rem;
 }
 
 .route-loading__rod--right {
-  right: -0.36rem;
+  right: -0.3rem;
 }
 
 .route-loading__ferrule {
   position: absolute;
   inset-inline: 0;
-  height: 0.5rem;
+  height: 0.42rem;
   background: linear-gradient(180deg, hsl(var(--scroll-bronze)), hsl(var(--scroll-bronze) / 0.55));
 }
 
-.route-loading__rod .route-loading__ferrule:nth-of-type(1) {
+.route-loading__ferrule--near {
   top: 2px;
 }
 
-.route-loading__rod .route-loading__ferrule:nth-of-type(2) {
+.route-loading__ferrule--far {
   bottom: 2px;
 }
 
 .route-loading__knob {
   position: absolute;
-  inset-inline: -0.12rem;
-  height: 0.66rem;
+  top: -0.1rem;
+  bottom: -0.1rem;
+  width: 0.5rem;
   border-radius: 999px;
   background: radial-gradient(
     ellipse at 35% 34%,
@@ -1552,23 +1590,30 @@
   border: 1px solid hsl(var(--ink) / 0.3);
 }
 
-.route-loading__rod--left .route-loading__knob {
-  left: -0.22rem;
+.route-loading__knob--left {
+  left: -0.26rem;
 }
 
-.route-loading__rod--right .route-loading__knob {
-  right: -0.22rem;
+.route-loading__knob--right {
+  right: -0.26rem;
 }
 
-/* 挂绳：弧形丝绦。 */
-.route-loading__cord {
+/* 卷带：手卷收束的丝绦，垂在两端。 */
+.route-loading__tie {
   position: absolute;
-  top: -0.85rem;
-  left: 12%;
-  right: 12%;
-  height: 1.4rem;
-  border-top: 2px solid hsl(var(--vermillion) / 0.5);
-  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  top: 0.2rem;
+  width: 4px;
+  height: 1.5rem;
+  background: linear-gradient(180deg, hsl(var(--vermillion) / 0.6), hsl(var(--vermillion) / 0.14));
+  z-index: 2;
+}
+
+.route-loading__tie--left {
+  left: 8%;
+}
+
+.route-loading__tie--right {
+  right: 8%;
 }
 
 .route-loading__title {

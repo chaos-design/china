@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import { boardToWorld, facingAngle, sideFacingAngle, terrainHeight } from "./sand-table-terrain";
-import type { Move, Place, Side, Unit } from "./types";
+import type { Move, Place, Side, Unit, UnitBranch } from "./types";
 
 export interface SandPalette {
   ink: THREE.Color;
@@ -39,7 +39,8 @@ function sharedGeometry(key: string, make: () => THREE.BufferGeometry): THREE.Bu
 
 const materialCache = new Map<string, THREE.MeshStandardMaterial>();
 
-function standard(color: THREE.Color, roughness = 0.62, metalness = 0.08) {
+/** 缓存式标准材质：按颜色/粗糙度/金属度复用，场景 dispose 时跳过 shared 件。 */
+export function standard(color: THREE.Color, roughness = 0.62, metalness = 0.08) {
   const key = `${color.getHexString()}-${roughness}-${metalness}`;
   let material = materialCache.get(key);
   if (!material) {
@@ -91,7 +92,7 @@ const torus = (r: number, t: number, arc = Math.PI * 2) =>
   sharedGeometry(`tor${r}-${t}-${arc}`, () => new THREE.TorusGeometry(r, t, 6, 18, arc));
 
 /** 由部队 id 派生的确定性微扰：同一次布阵每次重建完全一致。 */
-function unitJitter(id: string): number {
+export function unitJitter(id: string): number {
   let seed = 2166136261;
   for (let index = 0; index < id.length; index += 1) {
     seed = (seed ^ id.charCodeAt(index)) >>> 0;
@@ -652,66 +653,154 @@ export function buildStronghold(place: Place, palette: SandPalette): THREE.Group
 }
 
 /**
- * 军事标图式行动线：实线为主攻 / 追击，虚线为佯动；带倒刺与锥头，
+ * 参谋标图作业式行动箭：贴地平铺的渐宽锥形箭体（尾部宽、沿机动轴收窄），
+ * 前端带倒刺扫后翼的箭头——现代军事标图的攻击箭画法。
+ * 主攻近乎直出，迂回大幅弯钩，佯动虚线分段，追击双线并列；
  * 弧线中点上方挂行动性质牌，便于读图而不是靠猜颜色。
  */
+const ARROW_LIFT = 0.12;
+
+interface ArrowSpec {
+  /** 尾部宽度（起始端最宽，代表出发队形正面）。 */
+  widthTail: number;
+  /** 箭身收窄后的宽度。 */
+  widthBody: number;
+  /** 箭头长度（世界单位）。 */
+  headLength: number;
+  /** 箭头半宽系数（相对箭身宽）。 */
+  headSpread: number;
+}
+
+const ARROW_SPECS: Record<Move["kind"], ArrowSpec> = {
+  advance: { headLength: 0.62, headSpread: 2.2, widthBody: 0.17, widthTail: 0.5 },
+  flank: { headLength: 0.62, headSpread: 2.2, widthBody: 0.17, widthTail: 0.5 },
+  feint: { headLength: 0.5, headSpread: 2.0, widthBody: 0.13, widthTail: 0.24 },
+  pursuit: { headLength: 0.58, headSpread: 2.1, widthBody: 0.14, widthTail: 0.3 },
+};
+
+/** 各机动的轴线弯度：迂回要看出钩形。 */
+const CURVE_BEND: Record<Move["kind"], number> = {
+  advance: 0.08,
+  feint: 0.22,
+  flank: 0.34,
+  pursuit: 0.12,
+};
+
+function arrowPointAt(curve: THREE.QuadraticBezierCurve3, t: number, lift: number): THREE.Vector3 {
+  const point = curve.getPoint(t);
+  point.y = terrainHeight(point.x, point.z) + lift;
+  return point;
+}
+
+/**
+ * 一段贴地箭体：tStart→tEnd 之间按宽度插值展开成三角带，
+ * 带箭头（主三角 + 两片扫后翼）。非索引三角形几何，flatShading 出硬朗翼面。
+ */
+function arrowSegmentGeometry(
+  arrowCurve: THREE.QuadraticBezierCurve3,
+  tStart: number,
+  tEnd: number,
+  spec: ArrowSpec,
+): THREE.BufferGeometry {
+  const steps = 22;
+  const positions: number[] = [];
+  const pushTriangle = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3) => {
+    positions.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+  };
+  const rows: Array<{ left: THREE.Vector3; right: THREE.Vector3 }> = [];
+  // tStart≈tEnd 的纯箭头段没有箭体，只留头部三角。
+  const bodySteps = tEnd - tStart < 0.01 ? 0 : steps;
+  for (let index = 0; index <= bodySteps; index += 1) {
+    const t = tStart + ((tEnd - tStart) * index) / steps;
+    const point = arrowPointAt(arrowCurve, t, ARROW_LIFT);
+    const tangent = arrowCurve.getTangent(t).setY(0).normalize();
+    const perp = new THREE.Vector3(-tangent.z, 0, tangent.x);
+    // 尾宽 → 身宽的插值，缓入让尾部呈喇叭口（出发正面）。
+    const k = (index / steps) ** 1.6;
+    const width = THREE.MathUtils.lerp(spec.widthTail, spec.widthBody, k);
+    rows.push({
+      left: point.clone().addScaledVector(perp, width / 2),
+      right: point.clone().addScaledVector(perp, -width / 2),
+    });
+  }
+  for (let index = 0; index < bodySteps; index += 1) {
+    const { left, right } = rows[index];
+    const next = rows[index + 1];
+    pushTriangle(left, next.left, right);
+    pushTriangle(right, next.left, next.right);
+  }
+  // 箭头：主三角 + 两翼倒刺
+  const end = arrowPointAt(arrowCurve, tEnd, ARROW_LIFT);
+  const tangent = arrowCurve.getTangent(tEnd).setY(0).normalize();
+  const perp = new THREE.Vector3(-tangent.z, 0, tangent.x);
+  const tip = end.clone().addScaledVector(tangent, spec.headLength);
+  const baseL = end.clone().addScaledVector(perp, (spec.widthBody * spec.headSpread) / 2);
+  const baseR = end.clone().addScaledVector(perp, (-spec.widthBody * spec.headSpread) / 2);
+  const wingL = end
+    .clone()
+    .addScaledVector(perp, spec.widthBody * spec.headSpread * 1.12)
+    .addScaledVector(tangent, -spec.headLength * 0.4);
+  const wingR = end
+    .clone()
+    .addScaledVector(perp, -spec.widthBody * spec.headSpread * 1.12)
+    .addScaledVector(tangent, -spec.headLength * 0.4);
+  pushTriangle(baseL, tip, baseR);
+  pushTriangle(baseL, wingL, tip);
+  pushTriangle(baseR, tip, wingR);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 export function buildMove(move: Move, palette: SandPalette): THREE.Group {
   const group = new THREE.Group();
   const tone = sideColor(move.side, palette);
+  const spec = ARROW_SPECS[move.kind];
   const from = boardToWorld(move.from);
   const to = boardToWorld(move.to);
-  const start = new THREE.Vector3(from.x, terrainHeight(from.x, from.z) + 0.62, from.z);
-  const end = new THREE.Vector3(to.x, terrainHeight(to.x, to.z) + 0.62, to.z);
+  const start = new THREE.Vector3(from.x, 0, from.z);
+  const end = new THREE.Vector3(to.x, 0, to.z);
   const middle = start.clone().lerp(end, 0.5);
   const delta = end.clone().sub(start);
-  middle.x += -delta.z * 0.15;
-  middle.z += delta.x * 0.15;
+  const bend = CURVE_BEND[move.kind];
+  middle.x += -delta.z * bend;
+  middle.z += delta.x * bend;
   const curve = new THREE.QuadraticBezierCurve3(start, middle, end);
+  const material = standard(tone, 0.55, 0.16);
+
+  const appendArrow = (arrowCurve: THREE.QuadraticBezierCurve3, tStart: number, tEnd: number) => {
+    const geometry = arrowSegmentGeometry(arrowCurve, tStart, tEnd, spec);
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
+    group.add(mesh);
+  };
 
   if (move.kind === "feint") {
-    for (let index = 0; index < 7; index += 1) {
-      const t0 = index / 9;
-      const t1 = t0 + 0.07;
-      const segment = new THREE.CatmullRomCurve3([
-        curve.getPoint(t0),
-        curve.getPoint((t0 + t1) / 2),
-        curve.getPoint(t1),
-      ]);
-      add(
-        group,
-        new THREE.TubeGeometry(segment, 4, 0.042, 5, false),
-        standard(tone, 0.6, 0.16),
-        [0, 0, 0],
-      );
+    // 佯动：六段虚段，末段带小箭头，参谋图的虚线攻击箭。
+    const dashes = 6;
+    for (let index = 0; index < dashes; index += 1) {
+      const t0 = 0.02 + (index * 0.78) / dashes;
+      const t1 = t0 + 0.075;
+      appendArrow(curve, t0, Math.min(t1, 0.86));
     }
+    appendArrow(curve, 0.88, 0.88);
+  } else if (move.kind === "pursuit") {
+    // 追击：双线并列，共用主箭头。
+    const offsetCurve = (offset: number) => {
+      const shift = new THREE.Vector3(-delta.z, 0, delta.x).normalize().multiplyScalar(offset);
+      return new THREE.QuadraticBezierCurve3(
+        start.clone().add(shift),
+        middle.clone().add(shift),
+        end.clone().add(shift),
+      );
+    };
+    appendArrow(offsetCurve(0.1), 0.02, 0.9);
+    appendArrow(offsetCurve(-0.1), 0.02, 0.9);
+    appendArrow(offsetCurve(0), 0.9, 0.9);
   } else {
-    add(
-      group,
-      new THREE.TubeGeometry(curve, 28, 0.052, 6, false),
-      standard(tone, 0.55, 0.18),
-      [0, 0, 0],
-    );
-    if (move.kind === "pursuit") {
-      const shadow = curve
-        .getPoints(28)
-        .map((point) => point.clone().add(new THREE.Vector3(0, -0.12, 0)));
-      add(
-        group,
-        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(shadow), 28, 0.026, 5, false),
-        standard(tone.clone().lerp(palette.paper, 0.4)),
-        [0, 0, 0],
-      );
-    }
+    appendArrow(curve, 0.02, 0.92);
   }
-
-  const head = add(group, cone(0.19, 0.54, 8), standard(tone, 0.45, 0.25), [end.x, end.y, end.z]);
-  head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), curve.getTangent(1).normalize());
-  const barbLeft = add(group, cone(0.07, 0.28, 5), standard(tone), [end.x, end.y, end.z]);
-  barbLeft.quaternion.copy(head.quaternion);
-  barbLeft.translateX(-0.17);
-  const barbRight = add(group, cone(0.07, 0.28, 5), standard(tone), [end.x, end.y, end.z]);
-  barbRight.quaternion.copy(head.quaternion);
-  barbRight.translateX(0.17);
   return group;
 }
 
@@ -724,12 +813,61 @@ const MOVE_LABEL: Record<Move["kind"], string> = {
 
 type PlaqueGlyph = "place" | "unit" | "move";
 
-/** 纸底军图名牌：外墨框内细框 + 阵营色条 + 前置图元（城郭 / 菱 / 锥形箭头）。 */
+/** 参谋标图的兵种符号：方框内按军种加注（步卒双斜线、弩手圆点、骑兵单斜线等）。 */
+function drawBranchMark(
+  context: CanvasRenderingContext2D,
+  branch: UnitBranch,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+) {
+  context.save();
+  context.strokeStyle = "rgba(30, 30, 30, 0.78)";
+  context.lineWidth = 3;
+  context.strokeRect(x, y, w, h);
+  context.beginPath();
+  switch (branch) {
+    case "infantry":
+      // 步卒：框内交叉线（参谋图步兵符号）。
+      context.moveTo(x, y);
+      context.lineTo(x + w, y + h);
+      context.moveTo(x + w, y);
+      context.lineTo(x, y + h);
+      break;
+    case "crossbow":
+      // 弩手：框内圆点（远射兵种）。
+      context.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.18, 0, Math.PI * 2);
+      break;
+    case "cavalry":
+      // 骑兵：单斜线。
+      context.moveTo(x, y + h);
+      context.lineTo(x + w, y);
+      break;
+    case "chariot":
+      // 车兵：两条竖辙。
+      context.moveTo(x + w * 0.35, y);
+      context.lineTo(x + w * 0.35, y + h);
+      context.moveTo(x + w * 0.65, y);
+      context.lineTo(x + w * 0.65, y + h);
+      break;
+    case "navy":
+      // 水师：船底弧。
+      context.moveTo(x, y + h * 0.42);
+      context.quadraticCurveTo(x + w / 2, y + h * 1.25, x + w, y + h * 0.42);
+      break;
+  }
+  context.stroke();
+  context.restore();
+}
+
+/** 纸底参谋名牌：直角军标框 + 阵营色条 + 兵种符号 / 城郭 / 行动箭图元。 */
 export function labelSprite(
   text: string,
   tone: THREE.Color,
   width = 2.3,
   glyph: PlaqueGlyph = "place",
+  branch?: UnitBranch,
 ): THREE.Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = 448;
@@ -755,20 +893,14 @@ export function labelSprite(
     // 阵营色条
     context.fillStyle = `#${tone.getHexString()}`;
     context.fillRect(8, 14, 10, 84);
-    // 前置图元
+    // 前置图元：参谋标图口径——地名城郭、部队兵种框、行动箭头。
     context.fillStyle = "rgba(30, 30, 30, 0.78)";
     if (glyph === "place") {
       context.fillRect(34, 40, 28, 30);
       context.fillRect(40, 34, 16, 8);
       context.fillRect(46, 46, 6, 20);
-    } else if (glyph === "unit") {
-      context.beginPath();
-      context.moveTo(48, 34);
-      context.lineTo(62, 55);
-      context.lineTo(48, 76);
-      context.lineTo(34, 55);
-      context.closePath();
-      context.fill();
+    } else if (glyph === "unit" && branch) {
+      drawBranchMark(context, branch, 32, 38, 32, 34);
     } else {
       context.beginPath();
       context.moveTo(30, 55);
@@ -782,7 +914,7 @@ export function labelSprite(
     context.font = '600 52px "Songti SC", "Noto Serif CJK SC", serif';
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.fillText(text, 254, 58, 330);
+    context.fillText(text, 258, 58, 326);
   }
   const texture = new THREE.CanvasTexture(canvas);
   texture.encoding = THREE.sRGBEncoding;

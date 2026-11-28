@@ -9,7 +9,9 @@ import {
   placeSide,
   type SandPalette,
   sideColor,
+  standard,
   unitFacing,
+  unitJitter,
 } from "./sand-table-figures";
 import { type LabelCandidate, resolveLabelOffsets } from "./sand-table-labels";
 import {
@@ -71,6 +73,35 @@ function makeSandTexture(): THREE.CanvasTexture {
     for (let index = 0; index < 420; index += 1) {
       context.fillStyle = `rgba(118, 92, 58, ${0.05 + random() * 0.12})`;
       context.fillRect(random() * size, random() * size, 1, 1);
+    }
+    // 真实沙面的斑驳：低频墨斑与纸纤维纹，同一份确定性种子。
+    for (let index = 0; index < 46; index += 1) {
+      const x = random() * size;
+      const y = random() * size;
+      const radius = 3 + random() * 14;
+      const blot = context.createRadialGradient(x, y, 0, x, y, radius);
+      blot.addColorStop(0, `rgba(118, 92, 58, ${0.04 + random() * 0.06})`);
+      blot.addColorStop(1, "rgba(118, 92, 58, 0)");
+      context.fillStyle = blot;
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
+    }
+    for (let index = 0; index < 26; index += 1) {
+      context.strokeStyle = `rgba(96, 78, 52, ${0.02 + random() * 0.03})`;
+      context.lineWidth = 0.6 + random() * 1.4;
+      const y = random() * size;
+      context.beginPath();
+      context.moveTo(random() * size, y);
+      context.bezierCurveTo(
+        random() * size,
+        y + (random() - 0.5) * 10,
+        random() * size,
+        y + (random() - 0.5) * 10,
+        random() * size,
+        y + (random() - 0.5) * 6,
+      );
+      context.stroke();
     }
   }
   const texture = new THREE.CanvasTexture(canvas);
@@ -141,6 +172,10 @@ export function createSandTableScene(
     duration: number;
     from: Map<string, { x: number; z: number; scale: number }>;
     targets: Map<string, THREE.Vector3>;
+    /** 行军路径：部队沿曲线推进（与标图箭一致），不走直线瞬移。 */
+    paths: Map<string, THREE.QuadraticBezierCurve3>;
+    /** 朝向插值：起点的行军方向 → 落位后的作战朝向。 */
+    headings: Map<string, { end: number; start: number }>;
   }
   let transition: Transition | null = null;
   let rafId = 0;
@@ -292,9 +327,25 @@ export function createSandTableScene(
       const from = active.from.get(unit.id);
       const target = active.targets.get(unit.id);
       if (!group || !from || !target) continue;
-      group.position.x = from.x + (target.x - from.x) * eased;
-      group.position.z = from.z + (target.z - from.z) * eased;
-      group.position.y = target.y + Math.sin(eased * Math.PI * 6) * 0.07 * (1 - t);
+      const path = active.paths.get(unit.id);
+      if (path) {
+        // 沿行军路径推进：y 贴地表，朝向先跟路径切线（行军方向）再回到作战朝向。
+        const point = path.getPoint(eased);
+        group.position.set(
+          point.x,
+          surfaceHeight(point.x, point.z) + 0.02 + Math.sin(eased * Math.PI * 6) * 0.05 * (1 - t),
+          point.z,
+        );
+        const heading = active.headings.get(unit.id);
+        if (heading) {
+          const delta = ((heading.end - heading.start + Math.PI) % (Math.PI * 2)) - Math.PI;
+          group.rotation.y = heading.start + delta * eased;
+        }
+      } else {
+        group.position.x = from.x + (target.x - from.x) * eased;
+        group.position.z = from.z + (target.z - from.z) * eased;
+        group.position.y = target.y + Math.sin(eased * Math.PI * 6) * 0.07 * (1 - t);
+      }
       group.scale.setScalar(1.8 * (from.scale + (1 - from.scale) * eased));
       group.rotation.z = Math.sin(eased * Math.PI * 10) * 0.07 * (1 - t);
     }
@@ -319,6 +370,8 @@ export function createSandTableScene(
       for (const [id, group] of unitGroups) {
         const target = active.targets.get(id);
         if (target) group.position.copy(target);
+        const heading = active.headings.get(id);
+        if (heading) group.rotation.y = heading.end;
         group.scale.setScalar(1.8);
         group.rotation.z = 0;
       }
@@ -334,6 +387,8 @@ export function createSandTableScene(
     if (reduceMotion) return;
     const from = new Map<string, { x: number; z: number; scale: number }>();
     const targets = new Map<string, THREE.Vector3>();
+    const paths = new Map<string, THREE.QuadraticBezierCurve3>();
+    const headings = new Map<string, { end: number; start: number }>();
     for (const unit of data.step.units) {
       const group = unitGroups.get(unit.id);
       if (!group) continue;
@@ -344,6 +399,23 @@ export function createSandTableScene(
         group.position.z = old.z;
         group.scale.setScalar(1.8 * old.scale);
         from.set(unit.id, old);
+        // 行军路径：旧位 → 新位的贝塞尔曲线，垂直偏移按 id 确定性取侧与幅度，
+        // 队伍走弧线而不是直线瞬移；y 逐帧贴地表。
+        const startVec = new THREE.Vector3(old.x, 0, old.z);
+        const endVec = group.position.clone().setY(0);
+        const seg = endVec.clone().sub(startVec);
+        const length = Math.hypot(seg.x, seg.z);
+        const mid = startVec.clone().lerp(endVec, 0.5);
+        if (length > 0.5) {
+          const jitter = unitJitter(unit.id);
+          const bend = (jitter - 0.5) * 0.6;
+          mid.x += (-seg.z / length) * length * bend;
+          mid.z += (seg.x / length) * length * bend;
+          paths.set(unit.id, new THREE.QuadraticBezierCurve3(startVec, mid, endVec));
+          const tangent = new THREE.Vector3(seg.x, 0, seg.z).normalize();
+          headings.set(unit.id, { end: group.rotation.y, start: Math.atan2(tangent.x, tangent.z) });
+          group.rotation.y = headings.get(unit.id)?.start ?? group.rotation.y;
+        }
       } else {
         group.scale.setScalar(0.01);
         from.set(unit.id, { x: group.position.x, z: group.position.z, scale: 0.01 });
@@ -354,6 +426,8 @@ export function createSandTableScene(
       start: performance.now(),
       duration: 1900 / Math.max(0.5, data.speed),
       from,
+      headings,
+      paths,
       targets,
     };
     lastFrameStamp = -1;
@@ -522,6 +596,9 @@ export function createSandTableScene(
       );
       if (a) shade.lerp(colors.a, 0.5);
       else if (b) shade.lerp(colors.b, 0.42);
+      // 沙盘边缘的压墨晕影：用旧了的沙盘边角颜色更深。
+      const edge = Math.max(Math.abs(x) / (BOARD_WIDTH / 2), Math.abs(z) / (BOARD_DEPTH / 2));
+      if (edge > 0.88) shade.lerp(colors.ink, ((edge - 0.88) / 0.12) * 0.2);
       vertexColors.push(shade.r, shade.g, shade.b);
     }
     geometry.setAttribute("color", new THREE.Float32BufferAttribute(vertexColors, 3));
@@ -580,6 +657,64 @@ export function createSandTableScene(
       );
       content.add(line);
     }
+  }
+
+  /** 指北罗盘：参谋沙盘的图面要素，平贴地表，墨圈朱针。 */
+  function buildCompass(colors: SandPalette) {
+    const compass = new THREE.Group();
+    const centerX = BOARD_WIDTH / 2 - 3.8;
+    const centerZ = -BOARD_DEPTH / 2 + 3.8;
+    const baseY = surfaceHeight(centerX, centerZ) + 0.07;
+    compass.position.set(centerX, baseY, centerZ);
+    const disc = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.02, 1.06, 0.045, 28),
+      new THREE.MeshStandardMaterial({
+        color: colors.paper.clone().lerp(colors.ochre, 0.14),
+        roughness: 0.92,
+      }),
+    );
+    compass.add(disc);
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(1.0, 0.03, 6, 40),
+      standard(colors.ink, 0.7),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.026;
+    compass.add(ring);
+    const inner = new THREE.Mesh(
+      new THREE.TorusGeometry(0.66, 0.014, 5, 32),
+      standard(colors.ink, 0.75),
+    );
+    inner.rotation.x = -Math.PI / 2;
+    inner.position.y = 0.026;
+    compass.add(inner);
+    // 指北朱针：北 = -z（与 DOM 指北针同一口径）。
+    const north = new THREE.Mesh(
+      new THREE.ConeGeometry(0.16, 0.62, 4),
+      standard(colors.a, 0.5, 0.2),
+    );
+    north.rotation.x = -Math.PI / 2;
+    north.position.set(0, 0.05, -0.31);
+    compass.add(north);
+    const south = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.5, 4), standard(colors.ink, 0.6));
+    south.rotation.x = Math.PI / 2;
+    south.position.set(0, 0.05, 0.29);
+    compass.add(south);
+    for (const [x, z] of [
+      [1.0, 0],
+      [-1.0, 0],
+      [0, 1.0],
+      [0, -1.0],
+    ]) {
+      const tick = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.02, 0.2),
+        standard(colors.ink, 0.75),
+      );
+      tick.position.set(x * 0.82, 0.03, z * 0.82);
+      if (x !== 0) tick.rotation.y = Math.PI / 2;
+      compass.add(tick);
+    }
+    content.add(compass);
   }
 
   /** 贴合地表的经纬网：沙盘的量度感来自细线，而不是浮在上面的装饰。 */
@@ -675,7 +810,13 @@ export function createSandTableScene(
       unitGroups.set(unit.id, soldier);
 
       // 部队名牌压在脚下，与城池名牌分层，再由避让把贴营的牌推开。
-      const label = labelSprite(unit.label, sideColor(unit.side, colors), LABEL_WIDTH.unit, "unit");
+      const label = labelSprite(
+        unit.label,
+        sideColor(unit.side, colors),
+        LABEL_WIDTH.unit,
+        "unit",
+        unit.branch,
+      );
       label.position.set(world.x, height + 0.55, world.z);
       content.add(label);
       placeLabel(label, world.x, world.z, LABEL_WIDTH.unit, LABEL_RANK.unit);
@@ -735,6 +876,7 @@ export function createSandTableScene(
     const colors = readColors();
     buildTray(colors);
     buildTerrain(data, colors);
+    buildCompass(colors);
     buildGraticule(colors);
     buildRegionEdges(data, colors);
     buildRivers(data, colors);
