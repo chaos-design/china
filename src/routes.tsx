@@ -32,6 +32,11 @@ const TerritoryAtlasPage = lazy(() =>
     default: module.TerritoryAtlasPage,
   })),
 );
+const TerritoryChroniclePage = lazy(() =>
+  import("./pages/ancient/china-territory/territory-chronicle-page").then((module) => ({
+    default: module.TerritoryChroniclePage,
+  })),
+);
 const OfficialsHubPage = lazy(() =>
   import("./pages/ancient/china-officials/hub-page").then((module) => ({
     default: module.OfficialsHubPage,
@@ -94,6 +99,8 @@ export const routes: RouteObject[] = [
       { path: "china/atlas/territory", element: withSuspense(<TerritoryAtlasPage />) },
       { path: "china/atlas/migration", element: withSuspense(<MigrationAtlasPage />) },
       { path: "china/atlas/frontier", element: withSuspense(<FrontierAtlasPage />) },
+      // 历代疆域编年：卫星底图 + 编年战争沙盘，独立于 SVG 底图的图谱页。
+      { path: "china/territory-chronicle", element: withSuspense(<TerritoryChroniclePage />) },
       // 职官制度：两个视图保留各自完整页面，收敛到一个总目入口下。
       // 官制的编年沿革不另开页面，仍由 /china/institutions/official-system 承载。
       // 旧路径 /china/ranks、/china/qing-officials 已删除。

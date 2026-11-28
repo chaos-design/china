@@ -97,7 +97,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   },
   {
     activePaths: ["/china/atlas/territory", "/china/atlas/migration", "/china/atlas/frontier"],
-    blurb: "疆域、民族与边疆三条线索合为一张图谱，页内按专题与朝代逐项展开。",
+    blurb: "疆域、民族与边疆三条线索合为一张图谱；编年沙盘则按朝代在卫星影像上推演疆域与战争。",
     id: "atlas",
     items: [
       {
@@ -105,6 +105,12 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         highlights: ["三类图谱同图", "按朝代切换疆域", "选中局部放大"],
         label: "疆域与民族图谱",
         to: "/china/atlas",
+      },
+      {
+        dimensions: ["历史", "军事"],
+        highlights: ["夏至清二十期编年", "卫星影像沙盘", "战争逐场标注出处"],
+        label: "历代疆域编年",
+        to: "/china/territory-chronicle",
       },
     ],
     label: "疆域与民族",
