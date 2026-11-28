@@ -159,10 +159,11 @@ function defensePointIcon(name: string): L.DivIcon {
   });
 }
 
+/** 战场用双刀交叉图标（矢量、16px），不再用大字 emoji 遮挡地图内容。 */
 function battleIcon(side: 1 | 2): L.DivIcon {
   return L.divIcon({
     className: "tch-label-anchor",
-    html: `<span class="tch-battle is-side${side}"><i>⚔</i></span>`,
+    html: `<span class="tch-battle is-side${side}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3.5l3.2 3.2 9.1 9.1 2.1 2.1-1.6 1.6-2.1-2.1-9.1-9.1L4 16.6V3.5zm16 0v13.1l-2.6-2.6-9.1-9.1L5.8 6.3l9.1 9.1L17.7 18l1.6-1.6-2.1-2.1-9.1-9.1L20 3.5z" fill="currentColor"/></svg></span>`,
   });
 }
 
@@ -657,6 +658,95 @@ export function createTerritoryScene(
     },
     destroy() {
       map.off("zoomend");
+      map.remove();
+    },
+  };
+}
+
+export interface BattleInsetScene {
+  /** 切换当前战役：按战役要素包围盒放大重绘。 */
+  setWar(war: WarEvent | null): void;
+  destroy(): void;
+}
+
+/**
+ * 战役局部放大图：独立的第二张 Leaflet 小地图，与主图共享瓦片源但取景收紧，
+ * 让行军方向、战场与包围圈在小窗内清晰可辨，不打断主图浏览视角。
+ */
+export function createBattleInset(container: HTMLElement): BattleInsetScene {
+  const map = L.map(container, {
+    center: MAP_VIEW.center,
+    zoom: 6,
+    minZoom: 3,
+    maxZoom: 12,
+    zoomControl: false,
+    attributionControl: false,
+    preferCanvas: true,
+    zoomSnap: 0.25,
+  });
+  L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { maxZoom: 18, attribution: ESRI_ATTRIBUTION },
+  ).addTo(map);
+  const group = L.layerGroup().addTo(map);
+  let currentWar: WarEvent | null = null;
+
+  function setWar(war: WarEvent | null): void {
+    if (war?.id === currentWar?.id) return;
+    currentWar = war;
+    group.clearLayers();
+    if (!war) return;
+    const spec = buildWarSpec(war, {});
+    for (const arrow of spec.arrows) {
+      const color = SIDE_COLORS[arrow.side];
+      if (arrow.ring) {
+        L.polygon(arrow.ring, {
+          color,
+          weight: 1.5,
+          opacity: 0.95,
+          fillColor: color,
+          fillOpacity: 0.85,
+          className: `tch-arrow is-side${arrow.side}`,
+        }).addTo(group);
+      }
+      L.polyline(arrow.path, {
+        color,
+        weight: 1.4,
+        opacity: 0.7,
+        dashArray: "5 6",
+        className: `tch-arrow-guide is-side${arrow.side}`,
+        interactive: false,
+      }).addTo(group);
+      L.marker(arrow.tipAt, {
+        icon: arrowTipIcon(arrow.side, arrow.tipAngleDeg, arrow.priority),
+        interactive: false,
+      }).addTo(group);
+    }
+    for (const encircle of spec.encircles) {
+      L.polygon(encircle.latlngs, {
+        color: SIDE_COLORS[1],
+        weight: 1.4,
+        fill: false,
+        dashArray: "5 5",
+        opacity: 0.9,
+      }).addTo(group);
+    }
+    for (const battle of spec.battles) {
+      L.marker(battle.latlng, { icon: battleIcon(battle.side) }).addTo(group);
+    }
+    const bounds: L.LatLngBoundsExpression =
+      spec.bounds[0][0] === spec.bounds[1][0] && spec.bounds[0][1] === spec.bounds[1][1]
+        ? [
+            [war.center[1] - 0.8, war.center[0] - 0.8],
+            [war.center[1] + 0.8, war.center[0] + 0.8],
+          ]
+        : spec.bounds;
+    map.fitBounds(bounds, { animate: false, padding: [12, 12], maxZoom: 9 });
+  }
+
+  return {
+    setWar,
+    destroy() {
       map.remove();
     },
   };

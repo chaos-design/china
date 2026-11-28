@@ -224,6 +224,10 @@ export interface WarEvent {
   brief: string;
   /** 经过要点（2–4 句）。 */
   detail: string;
+  /** 双方投入规模（约数，宣传性数字注明史载口径）。 */
+  scale?: string;
+  /** 伤亡 / 被俘 / 溃散（争议处写区间或无确数）。 */
+  losses?: string;
   outcome: string;
   ops?: readonly WarOp[];
   /** 战役推进阶段（特殊战争的地图小窗叙事），可缺省。 */

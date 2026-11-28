@@ -1,4 +1,5 @@
 import { EXTRA_PERIOD_FIGURES } from "./chronicle-figures-extra";
+import { MORE_PERIOD_FIGURES } from "./chronicle-figures-more";
 import { PERIOD_ANNALS, PERIOD_FIGURES } from "./chronicle-people";
 import { MING_QING_PERIODS } from "./era-ming-qing";
 import { PRE_QIN_PERIODS } from "./era-pre-qin";
@@ -6,7 +7,8 @@ import { QIN_HAN_PERIODS } from "./era-qin-han";
 import { SONG_YUAN_PERIODS } from "./era-song-yuan";
 import { SUI_TANG_PERIODS } from "./era-sui-tang";
 import { WEI_JIN_PERIODS } from "./era-wei-jin";
-import type { ChronicleEra, ChroniclePeriod } from "./types";
+import type { ChronicleEra, ChronicleFigure, ChroniclePeriod } from "./types";
+import { WAR_STATS } from "./war-stats";
 
 /**
  * 历代疆域编年总注册表：20 期按编年排序（startYear 升序）。
@@ -26,14 +28,28 @@ const BASE_PERIODS: readonly ChroniclePeriod[] = [
 export const CHRONICLE_PERIODS: readonly ChroniclePeriod[] = BASE_PERIODS.map((period) => ({
   ...period,
   annals: period.annals ?? PERIOD_ANNALS[period.id] ?? [],
-  // 主档案 + 朝堂 / 王室 / 意难平增补；同期内同名以主档案为准。
+  // 主档案 + 朝堂 / 王室 / 意难平 + 将领文官第二批；同期内同名以先出现者为准。
   figures: (() => {
-    const names = new Set((PERIOD_FIGURES[period.id] ?? []).map((figure) => figure.name));
-    const extra = (EXTRA_PERIOD_FIGURES[period.id] ?? []).filter(
-      (figure) => !names.has(figure.name),
-    );
-    return [...(PERIOD_FIGURES[period.id] ?? []), ...extra];
+    const result: ChronicleFigure[] = [];
+    const names = new Set<string>();
+    for (const source of [
+      PERIOD_FIGURES[period.id] ?? [],
+      EXTRA_PERIOD_FIGURES[period.id] ?? [],
+      MORE_PERIOD_FIGURES[period.id] ?? [],
+    ]) {
+      for (const figure of source) {
+        if (names.has(figure.name)) continue;
+        names.add(figure.name);
+        result.push(figure);
+      }
+    }
+    return result;
   })(),
+  wars: period.wars.map((war) => ({
+    ...war,
+    scale: war.scale ?? WAR_STATS[war.id]?.scale,
+    losses: war.losses ?? WAR_STATS[war.id]?.losses,
+  })),
 }));
 
 /** 按时代分组（左侧编年目录的分组结构，组内保持编年顺序）。 */

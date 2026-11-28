@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { cn } from "../../../lib/utils";
 import { controlSignature, type ResolvedPeriod } from "./chronicle-control";
 import { formatYearMonth, fromMonthIndex } from "./chronicle-time";
 import {
+  type BattleInsetScene,
+  createBattleInset,
   createTerritoryScene,
   type PolityHoverInfo,
   type TerritoryLayerKey,
   type TerritoryScene,
   type WarOpHoverInfo,
 } from "./leaflet-scene";
+import { RareName } from "./rare-pinyin";
 import type { ChroniclePeriod, WarEvent } from "./types";
 
 /**
@@ -65,8 +69,10 @@ export function ChronicleMapPanel({
   onWarOpHover,
 }: ChronicleMapPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const insetRef = useRef<HTMLDivElement>(null);
   // 场景实例入 state：同步 effect 依赖 scene，创建完成即触发首次 setPeriod。
   const [scene, setScene] = useState<TerritoryScene | null>(null);
+  const [inset, setInset] = useState<BattleInsetScene | null>(null);
   // 记录「用户收起小窗」对应的战役；换战役后自动重新展开，无需额外 effect。
   const [closedBriefingFor, setClosedBriefingFor] = useState<string | null>(null);
   const clickRef = useRef(onWarElementClick);
@@ -90,6 +96,22 @@ export function ChronicleMapPanel({
       setScene(null);
     };
   }, []);
+
+  // 战役局部放大（第二张小地图）：与主图独立取景，播放中自动跟随当前战役。
+  useEffect(() => {
+    const container = insetRef.current;
+    if (!container) return;
+    const instance = createBattleInset(container);
+    setInset(instance);
+    return () => {
+      instance.destroy();
+      setInset(null);
+    };
+  }, []);
+
+  useEffect(() => {
+    inset?.setWar(activeWar);
+  }, [inset, activeWar]);
 
   // 控制图签名：月份推进但归属没变时不重建覆盖层（避免播放时每帧重绘）。
   const signature = useMemo(() => controlSignature(resolved), [resolved]);
@@ -162,6 +184,29 @@ export function ChronicleMapPanel({
           </span>
         ))}
       </div>
+      <section
+        className={cn("tch-battle-inset", !activeWar && "is-empty")}
+        aria-label={activeWar ? `${activeWar.name}战场放大图` : "战场放大图"}
+        aria-hidden={activeWar ? undefined : true}
+      >
+        <header>
+          <strong>{activeWar ? `⚔ ${activeWar.name}` : "战场放大"}</strong>
+          <span>{activeWar?.year ?? "暂无战役"}</span>
+        </header>
+        <div ref={insetRef} className="tch-battle-inset-map" />
+        <footer>
+          {activeWar ? (
+            <>
+              <i className="is-side1" />
+              甲方 {activeWar.sideA}
+              <i className="is-side2" />
+              乙方 {activeWar.sideB}
+            </>
+          ) : (
+            "推进时间轴至战役年份即自动放大"
+          )}
+        </footer>
+      </section>
       {activeWar?.phases?.length && briefingOpen ? (
         <WarBriefing
           war={activeWar}
@@ -198,7 +243,7 @@ function WarBriefing({
     <aside className="tch-briefing" aria-label={`${war.name}战役推进`}>
       <header className="tch-briefing-head">
         <h3>
-          ⚔ {war.name}
+          ⚔ <RareName name={war.name} />
           <span className="tch-briefing-year">（{war.year}）</span>
         </h3>
         <button
@@ -214,6 +259,14 @@ function WarBriefing({
         {war.sideA} <i>vs</i> {war.sideB}
       </p>
       <p className="tch-briefing-brief">{war.brief}</p>
+      <div className="tch-briefing-stats">
+        <span>
+          规模 <strong>{war.scale ?? "史无确数"}</strong>
+        </span>
+        <span>
+          损失 <strong>{war.losses ?? "史无确数"}</strong>
+        </span>
+      </div>
       <ol className="tch-briefing-phases">
         {phases.map((phase, index) => (
           <li

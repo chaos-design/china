@@ -9,6 +9,7 @@ import {
   toMonthIndex,
 } from "./chronicle-time";
 import type { PolityHoverInfo, WarOpHoverInfo } from "./leaflet-scene";
+import { RareName } from "./rare-pinyin";
 import { buildWarList } from "./territory-overlays";
 import { type ChronicleFigure, type ChroniclePeriod, ERA_LABELS } from "./types";
 
@@ -175,7 +176,9 @@ export function PeriodDetail({
             <ul className="tch-live-figures">
               {livingFigures.slice(0, 8).map((figure) => (
                 <li key={figure.name} className={cn(`is-${figure.stance}`)}>
-                  <strong>{figure.name}</strong>
+                  <strong>
+                    <RareName name={figure.name} />
+                  </strong>
                   <span>{figure.role}</span>
                 </li>
               ))}
@@ -344,7 +347,9 @@ export function PeriodDetail({
                     onClick={() => onSelectWar(isSelected ? null : war.id)}
                   >
                     <span className="tch-war-head">
-                      <strong>{war.name}</strong>
+                      <strong>
+                        <RareName name={war.name} />
+                      </strong>
                       <span className="tch-war-year">
                         {war.year}
                         <em className={cn("tch-war-status", started ? "is-live" : "is-future")}>
@@ -356,6 +361,9 @@ export function PeriodDetail({
                       {war.sideA} <i>vs</i> {war.sideB}
                     </span>
                     <span className="tch-war-brief">{war.brief}</span>
+                    <span className="tch-war-stats">
+                      规模：{war.scale ?? "史无确数"} · 损失：{war.losses ?? "史无确数"}
+                    </span>
                     {isSelected ? (
                       <span className="tch-war-open-hint">地图已聚焦战场，再次点击取消</span>
                     ) : null}
@@ -384,17 +392,22 @@ export function PeriodDetail({
                       return (
                         <li key={figure.name} className={cn("tch-figure", living && "is-living")}>
                           <div className="tch-figure-head">
-                            <strong>{figure.name}</strong>
+                            <strong>
+                              <RareName name={figure.name} />
+                            </strong>
                             <span className={cn("tch-figure-role", `is-${figure.stance}`)}>
                               {STANCE_LABEL[figure.stance]} · {figure.role}
                               {living ? " · 在世" : ""}
                             </span>
                           </div>
                           <p className="tch-figure-dates">
-                            生：{formatBirthDeath(figure.birthYear, figure.birthMonth)}
+                            {figure.birthYear != null
+                              ? `生：${formatBirthDeath(figure.birthYear, figure.birthMonth)}`
+                              : "生年：无记载"}
+                            {" · "}
                             {figure.deathYear != null
-                              ? ` · 卒：${formatBirthDeath(figure.deathYear, figure.deathMonth)}`
-                              : ""}
+                              ? `卒：${formatBirthDeath(figure.deathYear, figure.deathMonth)}`
+                              : "卒年：无记载"}
                           </p>
                           <p className="tch-figure-life">{figure.life}</p>
                           <p className="tch-figure-fate">结局：{figure.fate}</p>

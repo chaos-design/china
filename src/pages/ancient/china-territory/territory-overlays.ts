@@ -450,6 +450,8 @@ export function buildWarList(period: ChroniclePeriod) {
     sideA: war.sideA,
     sideB: war.sideB,
     brief: war.brief,
+    scale: war.scale,
+    losses: war.losses,
     startYear: parseWarYearRange(war.year)[0],
     hasPhases: (war.phases?.length ?? 0) > 0,
   }));

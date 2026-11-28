@@ -14,6 +14,9 @@ import { TerritoryChroniclePage } from "./territory-chronicle-page";
 
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
+  createInset: vi.fn(),
+  setInsetWar: vi.fn(),
+  destroyInset: vi.fn(),
   setPeriod: vi.fn(),
   setWarState: vi.fn(),
   setLayerVisible: vi.fn(),
@@ -25,6 +28,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("./leaflet-scene", () => ({
   createTerritoryScene: mocks.create,
+  createBattleInset: mocks.createInset,
 }));
 
 function makeSceneStub() {
@@ -54,6 +58,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.removeItem("territory-chronicle-menu-open");
   mocks.create.mockImplementation(() => makeSceneStub());
+  mocks.createInset.mockImplementation(() => ({
+    setWar: mocks.setInsetWar,
+    destroy: mocks.destroyInset,
+  }));
 });
 
 afterEach(() => {
@@ -120,7 +128,10 @@ describe("TerritoryChroniclePage", () => {
       ).toBe(true),
     );
     expect(mocks.flyToWar).toHaveBeenCalledWith(expect.objectContaining({ id: "mingtiao" }));
+    expect(mocks.setInsetWar).toHaveBeenCalledWith(expect.objectContaining({ id: "mingtiao" }));
+    expect(screen.getByRole("region", { name: /鸣条之战战场放大图/ })).toBeInTheDocument();
     expect(screen.getByText("地图已聚焦战场，再次点击取消")).toBeInTheDocument();
+    expect(within(detail).getByText(/规模：/)).toBeInTheDocument();
     // 再次点击取消：战争层回到月度自动态
     fireEvent.click(within(detail).getByRole("button", { name: /鸣条之战/ }));
     await waitFor(() =>
@@ -242,6 +253,9 @@ describe("TerritoryChroniclePage", () => {
       expect(screen.getByRole("complementary", { name: /秦灭六国战役推进/ })).toBeInTheDocument(),
     );
     expect(screen.getAllByText(/内史腾灭韩/).length).toBeGreaterThan(0);
+    const briefing = screen.getByRole("complementary", { name: /秦灭六国战役推进/ });
+    expect(within(briefing).getByText(/规模/)).toBeInTheDocument();
+    expect(within(briefing).getByText(/损失/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "收起战役推进" }));
     expect(screen.queryByRole("complementary", { name: /战役推进/ })).not.toBeInTheDocument();
   });
@@ -303,5 +317,8 @@ describe("TerritoryChroniclePage", () => {
     expect(figures).not.toHaveAttribute("open");
     const summary = figures.querySelector("summary");
     expect(summary?.textContent).toContain("人物志");
+    // 生僻字补拼音（关龙逄 → 逄(páng)）
+    fireEvent.click(summary!);
+    expect(figures).toHaveTextContent("逄(páng)");
   });
 });

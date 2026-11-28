@@ -565,6 +565,14 @@
   color: var(--tch-muted);
   font-family: Consolas, Monaco, monospace;
 }
+.tch-pinyin {
+  margin-left: 4px;
+  font-size: 9px;
+  font-weight: 400;
+  color: #c9a05a;
+  font-family: Consolas, Monaco, monospace;
+  white-space: nowrap;
+}
 /* ---------- 折叠块（默认收起） ---------- */
 .tch-fold {
   margin-top: 12px;
@@ -904,6 +912,13 @@
 }
 .tch-war-status.is-future {
   color: #6e7681;
+}
+.tch-war-stats {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.55;
+  color: #c9a05a;
 }
 .tch-war-open-hint {
   display: block;
@@ -1407,18 +1422,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  border: 2px solid #fff;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
-.tch-battle i {
-  font-style: normal;
-  font-size: 12px;
+.tch-battle svg {
+  width: 10px;
+  height: 10px;
   color: #fff;
-  transform: rotate(-15deg);
+  pointer-events: none;
 }
 .tch-battle.is-side1 {
   background: #e0533f;
@@ -1489,11 +1504,79 @@
   }
 }
 
+/* ---------- 战役局部放大（右侧小地图） ---------- */
+.tch-battle-inset {
+  position: absolute;
+  right: 12px;
+  top: 48px;
+  z-index: 600;
+  width: 296px;
+  height: 186px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(13, 17, 23, 0.95);
+  border: 1px solid rgba(74, 163, 255, 0.55);
+  border-radius: 8px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+.tch-battle-inset.is-empty {
+  display: none;
+}
+.tch-battle-inset > header,
+.tch-battle-inset > footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  font-size: 10px;
+  color: var(--tch-muted);
+  background: rgba(13, 17, 23, 0.96);
+}
+.tch-battle-inset > header {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--tch-border);
+}
+.tch-battle-inset > header strong {
+  font-size: 11px;
+  color: var(--tch-accent-2);
+}
+.tch-battle-inset > header span {
+  font-family: Consolas, Monaco, monospace;
+}
+.tch-battle-inset > footer {
+  border-top: 1px solid var(--tch-border);
+}
+.tch-battle-inset > footer i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tch-battle-inset > footer i.is-side1 {
+  background: #ff5c47;
+}
+.tch-battle-inset > footer i.is-side2 {
+  background: #4aa3ff;
+}
+.tch-battle-inset-map {
+  flex: 1;
+  min-height: 0;
+  background: #0a0a0a;
+}
+/* 小地图不套主图压暗滤镜，保证放大后卫星影像清楚 */
+.tch-battle-inset .leaflet-tile-pane {
+  filter: none;
+}
+.tch-battle-inset .leaflet-container {
+  background: #0a0a0a;
+}
 /* ---------- 战役推进小窗（地图右侧，不压左侧目录与底部时间轴） ---------- */
 .tch-briefing {
   position: absolute;
   right: 12px;
-  top: 48px;
+  top: 242px;
   bottom: 12px;
   z-index: 600;
   width: 296px;
@@ -1555,6 +1638,20 @@
   font-size: 10.5px;
   line-height: 1.6;
   color: var(--tch-muted);
+}
+.tch-briefing-stats {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 12px 6px;
+  font-size: 10px;
+  line-height: 1.55;
+  color: #9fb0c3;
+}
+.tch-briefing-stats strong {
+  color: #c9a05a;
+  font-weight: 400;
 }
 .tch-briefing-phases {
   list-style: none;
@@ -1683,10 +1780,15 @@
   .tch-control-strip {
     max-width: calc(100% - 24px);
   }
+  .tch-battle-inset {
+    width: min(296px, calc(100% - 20px));
+    right: 10px;
+    top: 50px;
+  }
   .tch-briefing {
     width: min(300px, calc(100% - 20px));
     right: 10px;
-    top: 50px;
+    top: 244px;
     bottom: 10px;
   }
   .tch-detail {

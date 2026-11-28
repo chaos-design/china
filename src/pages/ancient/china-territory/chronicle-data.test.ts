@@ -216,6 +216,8 @@ describe("chronicle data invariants", () => {
         expect(war.brief.length).toBeGreaterThan(8);
         expect(war.detail.length).toBeGreaterThan(20);
         expect(war.outcome.length).toBeGreaterThan(0);
+        expect(war.scale?.length ?? 0).toBeGreaterThan(3);
+        expect(war.losses?.length ?? 0).toBeGreaterThan(3);
         expect(war.sources.length).toBeGreaterThan(0);
         expect(isLngLatInBounds(war.center)).toBe(true);
         for (const op of war.ops ?? []) {
