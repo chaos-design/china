@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- 关键：禁止浏览器发送 Referer。DataV(geo.datav.aliyun.com) 的边缘节点会对带有
+     非白名单 Referer 的请求返回 403——单独以 file:// 打开 HTML 时浏览器会附带 Referer，
+     从而触发 403。设为 no-referrer 后所有请求都不带 Referer（实测 DataV 无 Referer 时返回 200，
+     Esri 卫星瓦片无 Referer 同样正常），既保留官方行政区划数据又彻底消除 403。 -->
+<meta name="referrer" content="no-referrer" />
+<title>中国随机旅行目的地选择器</title>
+
+<!-- Leaflet：卫星瓦片底图 + 官方行政边界矢量叠加（CDN 引入） -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  /* ============ 全局基础样式 ============ */
+  :root{
+    --bg1:#0b1026; --bg2:#1a1140; --accent:#ffcc33; --accent2:#ff5d73;
+    --land:#2b3a67; --land-hi:#ff8a3d; --text:#eef2ff; --muted:#9aa6d6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;width:100%;max-width:100%;overflow-x:hidden;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);
+    overscroll-behavior-x:none;}
+  body{
+    background:radial-gradient(1200px 800px at 70% -10%,#27205e 0%,var(--bg2) 40%,var(--bg1) 100%);
+    overflow:hidden;position:fixed;inset:0;
+  }
+  /* 顶部标题 */
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:30;
+    padding:14px 22px;display:flex;align-items:center;gap:14px;
+    background:linear-gradient(180deg,rgba(8,10,30,.85),rgba(8,10,30,0));
+    pointer-events:none;
+  }
+  header h1{font-size:20px;margin:0;letter-spacing:1px;}
+  header .sub{font-size:12px;color:var(--muted);}
+
+  /* 主舞台：全屏地图 + 底部功能区 */
+  #stage{position:relative;width:100%;height:100%;overflow:hidden;}
+  /* 关键：#mapWrap 自建层叠上下文（z-index:1），把 Leaflet 内部窗格/控件
+     （z-index 高达 1000）全部约束在本容器内，避免其溢出到根层叠层
+     遮挡底部功能栏与「选取」按钮（修复选取被遮挡无法点击的故障）。 */
+  #mapWrap{position:absolute;inset:0;z-index:1;overflow:hidden;}
+  #map{width:100%;height:100%;background:#0b1026;}
+  /* Leaflet 控件避让顶部标题与底部功能栏 */
+  .leaflet-control-zoom{margin-top:64px !important;}
+  .leaflet-container{background:#0b1026;}
+
+  /* ============ 地图加载中（Loading）遮罩 ============ */
+  #loading{
+    position:absolute;inset:0;z-index:2000;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    background:radial-gradient(900px 600px at 50% 40%,rgba(39,32,94,.55),rgba(11,16,38,.92));
+    backdrop-filter:blur(2px);color:var(--text);transition:opacity .45s ease;
+  }
+  #loading.hide{opacity:0;pointer-events:none;}
+  #loading .spinner{
+    width:48px;height:48px;border-radius:50%;
+    border:4px solid rgba(255,255,255,.18);border-top-color:var(--accent);
+    animation:spin .9s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #loading .ltext{font-size:14px;letter-spacing:1px;color:var(--accent);}
+  #loading .lsub{font-size:12px;color:var(--muted);}
+
+  /* 行政区/省会标注（divIcon 文本标签，随地图缩放定位、不随缩放变形） */
+  .map-label{font-size:11px;color:#eef6ff;white-space:nowrap;font-weight:600;
+    text-shadow:0 0 3px #0b1026,0 0 3px #0b1026,0 1px 2px #000;pointer-events:none;}
+  .map-label.city{font-size:12px;color:#e8ecff;}
+  /* N1 / V3：省名常驻标注。本轮调整：缩小字号、降低视觉权重与对比度，弱化存在感 */
+  .prov-name{font-size:11px;color:rgba(225,232,255,.62);font-weight:500;white-space:nowrap;
+    transform:translate(-50%,-50%);pointer-events:none;letter-spacing:0;
+    text-shadow:0 0 3px rgba(11,16,38,.7),0 1px 1px rgba(0,0,0,.45);}
+  /* 景点点位样式统一收敛到下方 .spot-mark（定位 icon + 推荐文案 + 悬停卡片） */
+  /* N1：省会常驻标注（呼吸灯圆点 + 城市名，名字按地域方位四向放置） */
+  .cap-mark{position:relative;width:0;height:0;pointer-events:none;}
+  /* 圆点：缩小为 5px，醒目暖金色 + 白环描边（解决淡蓝在卫星图上存在感弱的问题），并呼吸灯律动 */
+  .cap-mark .cap-dot{position:absolute;left:0;top:0;width:6px;height:6px;border-radius:50%;
+    background:#ffd23d;border:1.4px solid #fff8e6;transform:translate(-50%,-50%);
+    animation:capPulse 2.4s ease-in-out infinite;}
+  .cap-mark .cap-name{position:absolute;font-size:11px;color:#ffe9b8;font-weight:600;
+    white-space:nowrap;text-shadow:0 0 3px #0b1026,0 0 3px #0b1026;}
+  /* 城市名相对圆点的四向放置（由省份地域方位决定，向外侧伸展，避免相互遮挡） */
+  .cap-mark.pos-top    .cap-name{left:0;bottom:8px;transform:translateX(-50%);}
+  .cap-mark.pos-bottom .cap-name{left:0;top:8px;transform:translateX(-50%);}
+  .cap-mark.pos-left   .cap-name{right:9px;top:0;transform:translateY(-50%);}
+  .cap-mark.pos-right  .cap-name{left:9px;top:0;transform:translateY(-50%);}
+  @keyframes capPulse{
+    0%,100%{transform:translate(-50%,-50%) scale(.8);opacity:.85;
+      box-shadow:0 0 4px #ffc21a,0 0 7px rgba(255,194,26,.5);}
+    50%{transform:translate(-50%,-50%) scale(1.35);opacity:1;
+      box-shadow:0 0 9px #ffd23d,0 0 18px rgba(255,210,61,.95);}
+  }
+  /* ============ 统一景点点位：仅缩小的定位 icon（不含文字标注） ============ */
+  /* 所有景点（必去景点 / 省级景点 / 市级景点）统一使用同一套定位 icon 展示。
+     按需求隐藏所有文字标注，仅保留缩小后的定位 icon；
+     hover 由顶层全局气泡 #spotTip 展示推荐文案，点击则展开侧边栏详情。 */
+  .spot-mark{position:relative;display:flex;align-items:center;justify-content:center;
+    transform:translate(-50%,-100%);cursor:pointer;pointer-events:auto;}
+  /* 定位针 icon（水滴形，适度增大以提升可见性与可点击性） */
+  .spot-mark .sp-pin{width:13px;height:13px;flex:none;position:relative;
+    border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+    background:linear-gradient(135deg,#ff7d92,#ff4d68);
+    border:1px solid #ffe1e7;box-shadow:0 0 5px rgba(255,93,115,.75),0 1px 3px rgba(0,0,0,.45);
+    transition:transform .15s ease;}
+  /* 定位针内部白色圆心 */
+  .spot-mark .sp-pin::after{content:"";position:absolute;left:50%;top:50%;
+    width:4.5px;height:4.5px;border-radius:50%;background:#fff;
+    transform:translate(-50%,-50%);box-shadow:0 0 2px rgba(0,0,0,.3);}
+  .spot-mark:hover .sp-pin{transform:rotate(-45deg) scale(1.35);}
+
+  /* ============ 顶层 hover 推荐气泡（脱离地图层叠上下文，永不被遮挡） ============ */
+  #spotTip{position:fixed;z-index:2147483647;pointer-events:none;
+    min-width:150px;max-width:250px;
+    background:rgba(14,18,42,.97);backdrop-filter:blur(8px);
+    border:1px solid rgba(255,204,51,.45);border-radius:10px;padding:9px 12px;
+    box-shadow:0 12px 32px rgba(0,0,0,.55);
+    opacity:0;visibility:hidden;transform:translate(-50%,-100%) translateY(6px);
+    transition:opacity .16s ease,transform .16s ease;}
+  #spotTip.show{opacity:1;visibility:visible;transform:translate(-50%,-100%) translateY(0);}
+  #spotTip::after{content:"";position:absolute;left:50%;top:100%;
+    transform:translateX(-50%);border:6px solid transparent;
+    border-top-color:rgba(14,18,42,.97);}
+  #spotTip .tt-title{font-size:13px;font-weight:700;color:var(--accent);
+    margin-bottom:3px;display:flex;align-items:center;gap:4px;}
+  #spotTip .tt-city{font-size:10px;color:var(--muted);font-weight:500;}
+  #spotTip .tt-desc{font-size:11px;color:#e7ecff;line-height:1.55;}
+  #spotTip .tt-hint{margin-top:5px;font-size:10px;color:var(--accent);opacity:.85;}
+
+  /* ============ 景点详情侧边栏（点击 icon 展开，含完整信息 + 图片） ============ */
+  /* 统一：所有抽屉一律从右侧滑出（含景点详情侧边栏） */
+  #spotPanel{position:fixed;top:0;right:0;bottom:0;width:min(380px,92vw);z-index:1600;
+    background:rgba(10,14,34,.97);backdrop-filter:blur(14px);
+    border-left:1px solid rgba(255,255,255,.12);
+    transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.5);
+    max-width:100vw;}
+  #spotPanel.open{transform:translateX(0);}
+  #spotPanel .sphead{display:flex;align-items:center;justify-content:space-between;
+    padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.10);}
+  #spotPanel .sphead h3{margin:0;font-size:17px;letter-spacing:.5px;}
+  #spotPanel .spclose{cursor:pointer;font-size:22px;color:var(--muted);background:none;
+    border:none;line-height:1;padding:4px;}
+  #spotPanel .spclose:hover{color:var(--text);}
+  #spotPanel .spbody{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 0 18px;}
+  /* 景点原图（横幅，加大尺寸，呈现更完整的风景画面） */
+  #spotPanel .sp-photo{width:100%;height:230px;object-fit:cover;display:block;
+    background:linear-gradient(135deg,#27205e,#1a1140);}
+  #spotPanel .sp-photo-cap{padding:14px 18px 0;}
+  #spotPanel .sp-photo-cap .pc-city{font-size:12px;color:var(--accent);letter-spacing:.5px;}
+  #spotPanel .sp-photo-cap .pc-name{font-size:22px;font-weight:800;color:#fff;margin-top:2px;}
+  #spotPanel .sp-photo-cap .pc-en{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:.5px;}
+  #spotPanel .sp-sec{padding:14px 18px 0;}
+  #spotPanel .sp-sec h4{margin:0 0 6px;font-size:13px;color:var(--accent);letter-spacing:.5px;}
+  #spotPanel .sp-sec p{margin:0;font-size:13px;color:#e7ecff;line-height:1.7;}
+  #spotPanel .sp-sec ul{margin:0;padding-left:2px;list-style:none;
+    font-size:12px;color:#dfe6ff;line-height:1.8;}
+  #spotPanel .sp-sec li{margin:2px 0;}
+  /* 风景名胜：信息标签（类型/季节/时长/级别） */
+  #spotPanel .sp-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  #spotPanel .sp-chips .chip{font-size:11px;padding:4px 10px;border-radius:14px;
+    background:rgba(255,204,51,.12);color:#ffe39a;border:1px solid rgba(255,204,51,.30);}
+  #spotPanel .sp-chips .chip b{color:#fff;font-weight:700;}
+  /* 风景名胜：要点小卡片网格 */
+  #spotPanel .sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  #spotPanel .sp-grid .gi{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;padding:9px 11px;}
+  #spotPanel .sp-grid .gi .k{font-size:11px;color:var(--accent);letter-spacing:.5px;}
+  #spotPanel .sp-grid .gi .v{font-size:12px;color:#eef2ff;margin-top:3px;line-height:1.5;}
+  /* 风景名胜：缩略原图画廊（多视角微缩图） */
+  #spotPanel .sp-gallery{display:grid;grid-template-columns:1fr;gap:6px;}
+  #spotPanel .sp-gallery img{width:100%;height:160px;object-fit:cover;border-radius:8px;
+    border:1px solid rgba(255,255,255,.10);display:block;}
+  /* 终点城市高亮标注 */
+  .city-target{display:flex;flex-direction:column;align-items:center;pointer-events:none;}
+  .city-target .dot{width:14px;height:14px;border-radius:50%;background:#ffcc33;
+    box-shadow:0 0 16px #ffcc33;animation:cityPulse 1.6s ease-out infinite;}
+  .city-target .txt{margin-top:3px;font-size:14px;font-weight:800;color:#fff;
+    text-shadow:0 0 4px #000,0 0 4px #000;white-space:nowrap;}
+  @keyframes cityPulse{0%{box-shadow:0 0 0 0 rgba(255,204,51,.6);}
+    100%{box-shadow:0 0 0 18px rgba(255,204,51,0);}}
+  /* 河流/湖泊标注 */
+  .water-label{font-size:9px;color:#bfe6f7;white-space:nowrap;pointer-events:none;
+    text-shadow:0 0 3px #0b1026,0 0 3px #0b1026;}
+
+  /* ============ 飞镖投掷时的屏幕震动反馈 ============ */
+  @keyframes shake{
+    0%,100%{transform:translate(0,0) rotate(0);}
+    15%{transform:translate(-8px,5px) rotate(-1deg);}
+    30%{transform:translate(7px,-6px) rotate(1deg);}
+    45%{transform:translate(-6px,4px) rotate(-.6deg);}
+    60%{transform:translate(5px,-3px) rotate(.6deg);}
+    80%{transform:translate(-3px,2px) rotate(-.3deg);}
+  }
+  .shake{animation:shake .45s ease;}
+
+  /* ============ 飞机（俯视 SVG 客机造型） ============ */
+  #dart{
+    position:absolute;left:0;top:0;width:40px;height:40px;z-index:1200;
+    pointer-events:none;display:none;
+    will-change:transform,left,top;
+  }
+  #dart svg{display:block;width:100%;height:100%;overflow:visible;
+    filter:drop-shadow(0 6px 6px rgba(0,0,0,.35));}
+  @keyframes engineGlow{0%,100%{opacity:.55;}50%{opacity:1;}}
+  #dart .engine-glow{animation:engineGlow .5s ease-in-out infinite;
+    transform-origin:center;transform-box:fill-box;}
+  /* 尾迹云 */
+  #trail{position:absolute;left:0;top:0;z-index:1190;pointer-events:none;
+    width:8px;height:8px;border-radius:50%;display:none;
+    background:radial-gradient(circle,rgba(255,255,255,.9),rgba(255,255,255,0));
+    transform:translate(-50%,-50%);}
+  @keyframes puff{from{opacity:.7;transform:translate(-50%,-50%) scale(.6);}
+                  to{opacity:0;transform:translate(-50%,-50%) scale(2.4);}}
+  /* 命中冲击波 */
+  #impact{position:absolute;left:0;top:0;width:10px;height:10px;border-radius:50%;
+    border:3px solid var(--accent);z-index:1190;display:none;pointer-events:none;
+    transform:translate(-50%,-50%);}
+  @keyframes ring{from{width:10px;height:10px;opacity:1;}to{width:120px;height:120px;opacity:0;}}
+  .ring{animation:ring .6s ease-out;}
+
+  /* ============ 底部功能区（横向控制栏） ============ */
+  #panel{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;
+    background:rgba(12,16,40,.82);backdrop-filter:blur(10px);
+    border-top:1px solid rgba(255,255,255,.10);
+    padding:12px 18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  }
+  .ctrl{display:flex;flex-direction:column;gap:6px;}
+  .ctrl .lab{font-size:11px;color:var(--accent);letter-spacing:.5px;}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;}
+  .tag{
+    cursor:pointer;user-select:none;font-size:12px;padding:4px 10px;border-radius:18px;
+    border:1px solid rgba(255,255,255,.18);color:var(--text);transition:.18s;
+    background:rgba(255,255,255,.04);
+  }
+  .tag:hover{border-color:var(--accent);}
+  .tag.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#231a00;border-color:transparent;font-weight:600;}
+
+  /* 出发地选择下拉 */
+  #departSel{
+    font-size:13px;padding:7px 10px;border-radius:10px;cursor:pointer;
+    background:rgba(255,255,255,.06);color:var(--text);
+    border:1px solid rgba(255,255,255,.18);min-width:120px;
+  }
+  #departSel option{background:#1a1140;color:var(--text);}
+
+  #throwBtn{
+    margin-left:auto;font-size:16px;font-weight:700;letter-spacing:1px;cursor:pointer;
+    border:none;border-radius:12px;padding:12px 26px;color:#241a00;white-space:nowrap;
+    background:linear-gradient(135deg,var(--accent),#ff9a3d);
+    box-shadow:0 8px 22px rgba(255,150,40,.35);transition:.15s;
+  }
+  #throwBtn:hover{transform:translateY(-2px);}
+  #throwBtn:disabled{filter:grayscale(.6) brightness(.7);cursor:not-allowed;transform:none;}
+
+  /* 飞行状态条 */
+  #status{font-size:12px;color:var(--muted);min-height:16px;}
+  .step-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin:0 3px;
+    background:rgba(255,255,255,.25);vertical-align:middle;}
+  .step-dot.active{background:var(--accent);box-shadow:0 0 8px var(--accent);}
+
+  /* ============ 结果卡片：浮于地图底部居中 ============ */
+  #result{
+    display:none;position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:22;
+    background:rgba(12,16,40,.92);backdrop-filter:blur(10px);
+    border:1px solid rgba(255,204,51,.35);border-radius:16px;
+    padding:14px 22px;min-width:280px;max-width:90vw;text-align:center;
+    box-shadow:0 12px 40px rgba(0,0,0,.45);animation:pop .4s ease;
+  }
+  @keyframes pop{from{transform:translateX(-50%) scale(.85);opacity:0;}to{transform:translateX(-50%) scale(1);opacity:1;}}
+  /* 结果卡关闭按钮：右上角圆形 × */
+  #rClose{position:absolute;top:8px;right:10px;width:24px;height:24px;line-height:22px;
+    text-align:center;border-radius:50%;cursor:pointer;font-size:15px;font-weight:700;
+    color:var(--text);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+    transition:background .2s,color .2s;z-index:2;}
+  #rClose:hover{background:rgba(255,93,115,.85);color:#fff;border-color:transparent;}
+  #result .prov{font-size:12px;color:var(--muted);}
+  #result .city{font-size:26px;font-weight:800;margin:4px 0;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  #result .desc{font-size:12px;color:var(--text);line-height:1.6;}
+  #result .citytags{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+  #result .citytags span{font-size:11px;padding:3px 8px;border-radius:10px;background:rgba(255,204,51,.15);color:var(--accent);}
+  /* V4：结果页「推荐景点 + 旅行攻略」展开区 */
+  #result .rmore-toggle{margin-top:10px;cursor:pointer;font-size:12px;font-weight:600;
+    color:var(--accent);user-select:none;display:inline-flex;align-items:center;gap:4px;}
+  #result .rmore-toggle .arr{transition:transform .25s;}
+  #result.collapsed .rmore-toggle .arr{transform:rotate(-90deg);}
+  #result .rmore{max-height:46vh;overflow-y:auto;text-align:left;margin-top:10px;
+    border-top:1px dashed rgba(255,204,51,.25);padding-top:10px;transition:.25s;}
+  #result.collapsed .rmore{display:none;}
+  #result .rmore h4{margin:10px 0 6px;font-size:13px;color:var(--accent);letter-spacing:.5px;}
+  #result .rmore h4:first-child{margin-top:0;}
+  #result .spotlist{display:flex;flex-direction:column;gap:6px;}
+  #result .spotlist .sp{display:flex;gap:8px;align-items:baseline;
+    background:rgba(255,255,255,.04);border-radius:8px;padding:6px 9px;}
+  #result .spotlist .sp .si{color:#ffd54a;font-size:12px;flex:none;}
+  #result .spotlist .sp .sn{font-size:13px;color:#fff;font-weight:600;}
+  #result .spotlist .sp .sc{font-size:11px;color:var(--muted);margin-left:auto;flex:none;}
+  #result .guide{font-size:12px;color:#dfe6ff;line-height:1.7;}
+  #result .guide li{margin:2px 0;}
+  #result .guide li.g-h{margin-top:8px;color:var(--accent);font-size:12.5px;
+    border-top:1px dashed rgba(255,204,51,.2);padding-top:6px;list-style:none;margin-left:-18px;}
+  /* G3：推荐旅行路线（带箭头的有序景点序列） */
+  #result .route{display:flex;flex-wrap:wrap;align-items:center;gap:6px 4px;font-size:12px;}
+  #result .route .rt{background:rgba(255,204,51,.14);border:1px solid rgba(255,204,51,.3);
+    color:#ffe49a;border-radius:7px;padding:4px 9px;font-weight:600;}
+  #result .route .arr2{color:var(--accent);font-weight:700;opacity:.8;}
+  /* G3：对应景点真实照片网格 */
+  #result .photos{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+  #result .photos figure{margin:0;border-radius:9px;overflow:hidden;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);}
+  #result .photos img{width:100%;height:78px;object-fit:cover;display:block;background:#0c1330;}
+  #result .photos figcaption{font-size:10px;color:#cdd6f5;text-align:center;
+    padding:3px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  .hint{font-size:11px;color:var(--muted);line-height:1.5;}
+
+  /* ============ N6：结果历史抽屉 ============ */
+  #historyBtn{
+    position:fixed;right:18px;top:64px;z-index:40;cursor:pointer;
+    font-size:13px;font-weight:600;color:var(--text);
+    background:rgba(12,16,40,.82);backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:8px 14px;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);transition:.15s;
+  }
+  #historyBtn:hover{border-color:var(--accent);transform:translateY(-1px);}
+  #drawer{
+    position:fixed;top:0;right:0;bottom:0;width:min(360px,90vw);z-index:1500;
+    background:rgba(10,14,34,.96);backdrop-filter:blur(14px);
+    border-left:1px solid rgba(255,255,255,.12);
+    transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.5);
+  }
+  #drawer.open{transform:translateX(0);}
+  #drawer .dhead{display:flex;align-items:center;justify-content:space-between;
+    padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.10);}
+  #drawer .dhead h3{margin:0;font-size:16px;letter-spacing:.5px;}
+  #drawer .dclose{cursor:pointer;font-size:20px;color:var(--muted);background:none;
+    border:none;line-height:1;padding:4px;}
+  #drawer .dclose:hover{color:var(--text);}
+  #drawer .dbody{flex:1;overflow-y:auto;padding:12px 16px;}
+  #drawer .dempty{color:var(--muted);font-size:13px;text-align:center;margin-top:40px;}
+  #drawer .dgroup{margin-bottom:18px;}
+  #drawer .dgroup .gtitle{font-size:12px;color:var(--accent);letter-spacing:1px;
+    margin:0 0 8px;padding-bottom:4px;border-bottom:1px dashed rgba(255,204,51,.25);}
+  #drawer .hcard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+  #drawer .hcard .hc-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  #drawer .hcard .hc-city{font-size:15px;font-weight:700;color:#fff;}
+  #drawer .hcard .hc-time{font-size:11px;color:var(--muted);flex:none;}
+  #drawer .hcard .hc-meta{font-size:11px;color:var(--muted);margin-top:3px;}
+  #drawer .hcard .hc-spots{font-size:11px;color:#ffd0d8;margin-top:5px;line-height:1.5;}
+  #drawer .dfoot{padding:12px 16px;border-top:1px solid rgba(255,255,255,.10);}
+  #drawer .dclear{width:100%;cursor:pointer;font-size:13px;font-weight:600;
+    color:#ffb3bf;background:rgba(255,93,115,.12);border:1px solid rgba(255,93,115,.35);
+    border-radius:10px;padding:10px;transition:.15s;}
+  #drawer .dclear:hover{background:rgba(255,93,115,.22);}
+  #drawer .dclear:disabled{opacity:.4;cursor:not-allowed;}
+  /* ============ 历史抽屉：详细展开区样式 ============ */
+  #drawer .hcard{cursor:pointer;}
+  #drawer .hcard .hc-toggle{font-size:11px;color:var(--accent);margin-top:6px;
+    display:flex;align-items:center;gap:3px;user-select:none;}
+  #drawer .hcard .hc-toggle .arr{transition:transform .25s;}
+  #drawer .hcard.collapsed .hc-toggle .arr{transform:rotate(-90deg);}
+  #drawer .hcard .hc-detail{margin-top:8px;overflow:hidden;transition:max-height .3s;}
+  #drawer .hcard.collapsed .hc-detail{max-height:0;margin-top:0;}
+  #drawer .hcard .hc-detail .hc-spots-list{display:flex;flex-direction:column;gap:4px;margin-bottom:6px;}
+  #drawer .hcard .hc-detail .hc-spots-list .sp{display:flex;gap:6px;align-items:baseline;
+    background:rgba(255,255,255,.04);border-radius:6px;padding:4px 7px;}
+  #drawer .hcard .hc-detail .hc-spots-list .sp .si{color:#ffd54a;font-size:10px;flex:none;}
+  #drawer .hcard .hc-detail .hc-spots-list .sp .sn{font-size:11px;color:#fff;font-weight:600;}
+  #drawer .hcard .hc-detail .hc-route{display:flex;flex-wrap:wrap;align-items:center;
+    gap:4px 3px;font-size:10px;margin-bottom:6px;}
+  #drawer .hcard .hc-detail .hc-route .rt{background:rgba(255,204,51,.14);
+    border:1px solid rgba(255,204,51,.3);color:#ffe49a;border-radius:5px;padding:2px 6px;font-weight:600;}
+  #drawer .hcard .hc-detail .hc-route .arr2{color:var(--accent);font-weight:700;opacity:.8;}
+  #drawer .hcard .hc-detail .hc-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;}
+  #drawer .hcard .hc-detail .hc-photos figure{margin:0;border-radius:6px;overflow:hidden;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);}
+  #drawer .hcard .hc-detail .hc-photos img{width:100%;height:48px;object-fit:cover;display:block;background:#0c1330;}
+  #drawer .hcard .hc-detail .hc-photos figcaption{font-size:8px;color:#cdd6f5;text-align:center;
+    padding:1px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #drawer .hcard .hc-detail .hc-guide{font-size:10px;color:#dfe6ff;line-height:1.6;padding-left:14px;}
+  #drawer .hcard .hc-detail .hc-guide li{margin:1px 0;}
+  #drawer .hcard .hc-detail .hc-guide li.g-h{color:var(--accent);font-size:11px;
+    border-top:1px dashed rgba(255,204,51,.2);padding-top:4px;list-style:none;margin-left:-14px;}
+
+  @media(max-width:720px){
+    #panel{gap:10px;padding:10px;}
+    #panel .hint{display:none;}
+    #throwBtn{margin-left:0;width:100%;order:9;}
+    #result{bottom:140px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎯 中国随机旅行目的地选择器</h1>
+  <span class="sub">随机选取省份 → 地图放大显示地级行政区 → 再随机选取城市（官方行政区划数据，仅陆地）</span>
+</header>
+
+<div id="stage">
+  <!-- 全屏中国地图 + 动画层 -->
+  <div id="mapWrap">
+    <div id="map"></div>
+    <!-- 地图瓦片与边界数据加载中的 Loading 遮罩 -->
+    <div id="loading">
+      <div class="spinner"></div>
+      <div class="ltext">地图加载中…</div>
+      <div class="lsub">正在加载卫星图层与中国行政区划数据</div>
+    </div>
+    <!-- 飞机 SVG + 尾迹 + 冲击波 -->
+    <div id="dart">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bodyGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#5a6699"/>
+            <stop offset="0.45" stop-color="#eef3ff"/>
+            <stop offset="0.6" stop-color="#c2cdf0"/>
+            <stop offset="1" stop-color="#6470a8"/>
+          </linearGradient>
+          <linearGradient id="wingGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#ffcc33"/>
+            <stop offset="1" stop-color="#ff8a3d"/>
+          </linearGradient>
+          <radialGradient id="glowGrad" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#9fe8ff"/>
+            <stop offset="0.5" stop-color="#56b8ff" stop-opacity="0.7"/>
+            <stop offset="1" stop-color="#56b8ff" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <ellipse class="engine-glow" cx="24" cy="50" rx="4" ry="7" fill="url(#glowGrad)"/>
+        <ellipse class="engine-glow" cx="40" cy="50" rx="4" ry="7" fill="url(#glowGrad)"/>
+        <path d="M30 28 L4 40 L4 45 L30 38 Z" fill="url(#wingGrad)"/>
+        <path d="M34 28 L60 40 L60 45 L34 38 Z" fill="url(#wingGrad)"/>
+        <path d="M30 50 L18 56 L18 58 L30 55 Z" fill="#ffd95a"/>
+        <path d="M34 50 L46 56 L46 58 L34 55 Z" fill="#ffd95a"/>
+        <path d="M32 4 C37 8 38 18 38 30 C38 44 36 54 32 60 C28 54 26 44 26 30 C26 18 27 8 32 4 Z" fill="url(#bodyGrad)" stroke="#3a4673" stroke-width="0.6"/>
+        <path d="M31 8 C33 16 33 44 31 56" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" opacity="0.7" fill="none"/>
+        <ellipse cx="32" cy="11" rx="3" ry="4" fill="#2b3a67" opacity="0.85"/>
+      </svg>
+    </div>
+    <div id="trail"></div>
+    <div id="impact"></div>
+  </div>
+
+  <!-- 结果卡片：浮于地图底部居中 -->
+  <div id="result">
+    <div id="rClose" title="关闭">×</div>
+    <div class="prov" id="rProv"></div>
+    <div class="city" id="rCity"></div>
+    <div class="desc" id="rDesc"></div>
+    <div class="citytags" id="rTags"></div>
+    <!-- V4：推荐景点 + 旅行攻略展开区（默认展开最新内容） -->
+    <div class="rmore-toggle" id="rMoreToggle"><span class="arr">▾</span><span id="rMoreLabel">收起景点与攻略</span></div>
+    <div class="rmore" id="rMore">
+      <h4>🏞️ 当地推荐景点</h4>
+      <div class="spotlist" id="rSpots"></div>
+      <h4>🗺️ 推荐旅行路线</h4>
+      <div class="route" id="rRoute"></div>
+      <h4>📸 对应景点真实照片</h4>
+      <div class="photos" id="rPhotos"></div>
+      <h4>🧭 旅行攻略</h4>
+      <ul class="guide" id="rGuide"></ul>
+    </div>
+  </div>
+
+  <!-- N6：结果历史抽屉触发按钮 + 抽屉本体 -->
+  <button id="historyBtn">🕘 历史结果</button>
+
+  <!-- 顶层 hover 推荐气泡（fixed 定位，z-index 最高，永不被地图/面板遮挡） -->
+  <div id="spotTip">
+    <div class="tt-title">📍 <span id="ttName"></span></div>
+    <div class="tt-city" id="ttCity"></div>
+    <div class="tt-desc" id="ttDesc"></div>
+    <div class="tt-hint">👉 点击查看完整介绍</div>
+  </div>
+
+  <!-- 景点详情侧边栏：点击景点 icon 展开，展示完整信息 + 图片 -->
+  <aside id="spotPanel">
+    <div class="sphead">
+      <h3>🏞️ 景点详情</h3>
+      <button class="spclose" id="spotPanelClose" title="关闭">×</button>
+    </div>
+    <div class="spbody" id="spotPanelBody"></div>
+  </aside>
+  <aside id="drawer">
+    <div class="dhead">
+      <h3>🧳 最近选取结果</h3>
+      <button class="dclose" id="drawerClose" title="关闭">×</button>
+    </div>
+    <div class="dbody" id="drawerBody">
+      <div class="dempty">暂无选取记录，点击「随机选取」开始你的随机旅行吧 🎯</div>
+    </div>
+    <div class="dfoot">
+      <button class="dclear" id="drawerClear">🗑️ 清空全部记录</button>
+    </div>
+  </aside>
+
+  <!-- 底部功能区：出发地 + 地理大区筛选 + 状态 + 选取按钮 -->
+  <div id="panel">
+    <div class="ctrl">
+      <span class="lab">🚩 出发地</span>
+      <select id="departSel" title="选择出发城市"></select>
+    </div>
+    <div class="ctrl" style="flex:1;min-width:200px;">
+      <span class="lab">🗺️ 地理大区筛选（可选，不选 = 全国）</span>
+      <div class="tags" id="tagBox"></div>
+    </div>
+    <div class="ctrl">
+      <span class="lab">📡 状态</span>
+      <div id="status">准备就绪，点击右侧按钮开始
+        <span style="margin-left:8px;">
+          <span class="step-dot" id="d1"></span>定位省份
+          <span class="step-dot" id="d2"></span>定位城市
+        </span>
+      </div>
+    </div>
+    <button id="throwBtn">🎯 随机选取</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+ *  数据层：仅使用官方行政区划数据（省 / 省会 / 地级市），不含任何景点等
+ *  非行政区划内容。地理大区为国家标准七大地理分区，用于可选筛选。
+ *  —— 省界、市界、各级城市坐标全部来自 DataV 官方 GeoJSON，天然在陆地，
+ *     且为标准行政区划，落点不会出现海域或非行政地点。
+ * ========================================================================= */
+
+// 省级行政区 → 所属地理大区（国家标准七大地理分区）
+const REGION_OF = {
+  "北京市":"华北","天津市":"华北","河北省":"华北","山西省":"华北","内蒙古自治区":"华北",
+  "辽宁省":"东北","吉林省":"东北","黑龙江省":"东北",
+  "上海市":"华东","江苏省":"华东","浙江省":"华东","安徽省":"华东","福建省":"华东","江西省":"华东","山东省":"华东","台湾省":"华东",
+  "河南省":"华中","湖北省":"华中","湖南省":"华中",
+  "广东省":"华南","广西壮族自治区":"华南","海南省":"华南","香港特别行政区":"华南","澳门特别行政区":"华南",
+  "重庆市":"西南","四川省":"西南","贵州省":"西南","云南省":"西南","西藏自治区":"西南",
+  "陕西省":"西北","甘肃省":"西北","青海省":"西北","宁夏回族自治区":"西北","新疆维吾尔自治区":"西北"
+};
+const REGIONS = ["华北","东北","华东","华中","华南","西南","西北"];
+
+// 省级行政区 → 省会/首府/政府驻地（官方行政中心城市，非景点）
+// 全国视图层级标注：省份名 + 这些省会/主要城市
+const CAPITALS = {
+  "北京市":{city:"北京",lng:116.405,lat:39.905},   "天津市":{city:"天津",lng:117.190,lat:39.125},
+  "河北省":{city:"石家庄",lng:114.514,lat:38.042}, "山西省":{city:"太原",lng:112.549,lat:37.857},
+  "内蒙古自治区":{city:"呼和浩特",lng:111.749,lat:40.842},
+  "辽宁省":{city:"沈阳",lng:123.429,lat:41.796},   "吉林省":{city:"长春",lng:125.324,lat:43.886},
+  "黑龙江省":{city:"哈尔滨",lng:126.535,lat:45.802},
+  "上海市":{city:"上海",lng:121.473,lat:31.230},   "江苏省":{city:"南京",lng:118.797,lat:32.060},
+  "浙江省":{city:"杭州",lng:120.155,lat:30.274},   "安徽省":{city:"合肥",lng:117.227,lat:31.820},
+  "福建省":{city:"福州",lng:119.296,lat:26.074},   "江西省":{city:"南昌",lng:115.858,lat:28.683},
+  "山东省":{city:"济南",lng:117.120,lat:36.651},   "台湾省":{city:"台北",lng:121.565,lat:25.033},
+  "河南省":{city:"郑州",lng:113.625,lat:34.746},   "湖北省":{city:"武汉",lng:114.305,lat:30.593},
+  "湖南省":{city:"长沙",lng:112.939,lat:28.228},
+  "广东省":{city:"广州",lng:113.264,lat:23.129},   "广西壮族自治区":{city:"南宁",lng:108.320,lat:22.824},
+  "海南省":{city:"海口",lng:110.199,lat:20.044},
+  "香港特别行政区":{city:"香港",lng:114.173,lat:22.320}, "澳门特别行政区":{city:"澳门",lng:113.549,lat:22.199},
+  "重庆市":{city:"重庆",lng:106.551,lat:29.563},   "四川省":{city:"成都",lng:104.066,lat:30.572},
+  "贵州省":{city:"贵阳",lng:106.630,lat:26.647},   "云南省":{city:"昆明",lng:102.833,lat:24.880},
+  "西藏自治区":{city:"拉萨",lng:91.172,lat:29.652},
+  "陕西省":{city:"西安",lng:108.948,lat:34.263},   "甘肃省":{city:"兰州",lng:103.834,lat:36.061},
+  "青海省":{city:"西宁",lng:101.778,lat:36.617},   "宁夏回族自治区":{city:"银川",lng:106.231,lat:38.487},
+  "新疆维吾尔自治区":{city:"乌鲁木齐",lng:87.617,lat:43.793}
+};
+
+/* =========================================================================
+ *  地貌（山地图）配色配置：按海拔分层为各省着色，并叠加河流 / 湖泊图层
+ *  —— 集中管理配色，便于统一调整：草原绿 → 丘陵棕 → 高原赭 → 雪山白
+ * ========================================================================= */
+const TERRAIN_COLORS = {
+  plain : '#3e6b47',  // 0–500m   平原 / 低地：草原绿
+  hill  : '#7d7a45',  // 500–2000m 丘陵 / 中低山：黄棕
+  plateau:'#a98c63',  // 2000–4000m 高原：赭黄
+  snow  : '#d7e2ee',  // >4000m   雪域高原：雪山白顶
+  border: '#6b7bbf',
+  river : '#7ec8e3',  // 河流：浅蓝
+  lake  : '#5aa9d6'   // 湖泊：湖蓝
+};
+// 各省海拔分层（0 平原 / 1 丘陵 / 2 高原 / 3 雪域），用于地貌着色
+const ELEV_TIER = {
+  "北京市":0,"天津市":0,"河北省":0,"上海市":0,"江苏省":0,"浙江省":0,"安徽省":0,
+  "福建省":0,"江西省":0,"山东省":0,"河南省":0,"湖北省":0,"湖南省":0,"广东省":0,
+  "广西壮族自治区":0,"海南省":0,"辽宁省":0,"吉林省":0,"黑龙江省":0,"台湾省":0,
+  "香港特别行政区":0,"澳门特别行政区":0,
+  "山西省":1,"重庆市":1,"贵州省":1,"陕西省":1,"宁夏回族自治区":1,"内蒙古自治区":1,
+  "云南省":2,"甘肃省":2,"新疆维吾尔自治区":2,"四川省":2,
+  "西藏自治区":3,"青海省":3
+};
+const TIER_COLOR = [TERRAIN_COLORS.plain, TERRAIN_COLORS.hill, TERRAIN_COLORS.plateau, TERRAIN_COLORS.snow];
+
+// 主要河流（近似走向，仅作地貌示意；坐标为经纬度折线）
+const RIVERS = [
+  {name:'长江', coords:[[91.0,33.5],[97.0,31.0],[100.0,28.5],[101.7,26.6],[104.0,28.8],
+    [106.5,29.6],[110.0,30.7],[112.0,30.4],[114.3,30.6],[116.0,29.7],[118.8,32.0],[121.5,31.4]]},
+  {name:'黄河', coords:[[96.0,35.0],[100.0,35.5],[102.0,36.0],[105.0,37.5],[107.0,40.0],
+    [111.0,40.5],[110.3,37.5],[110.5,34.8],[113.6,34.7],[116.5,36.0],[118.0,37.5],[119.0,37.8]]},
+  {name:'珠江', coords:[[103.0,25.0],[106.0,24.0],[108.3,22.8],[111.0,23.3],[113.2,23.1],[113.6,22.4]]}
+];
+// 主要湖泊（地貌示意点）
+const LAKES = [
+  {name:'青海湖', value:[100.2,36.9]}, {name:'鄱阳湖', value:[116.3,29.1]},
+  {name:'洞庭湖', value:[112.8,29.3]}, {name:'太湖', value:[120.2,31.2]},
+  {name:'滇池', value:[102.7,24.8]}, {name:'纳木错', value:[90.6,30.7]}
+];
+// 构建全国视图各省的地貌底色（命中省份高亮覆盖）
+function buildTerrainRegions(){
+  return Object.keys(ELEV_TIER).map(p=>({
+    name:p,
+    itemStyle:{areaColor:TIER_COLOR[ELEV_TIER[p]], borderColor:TERRAIN_COLORS.border, borderWidth:.7}
+  }));
+}
+
+/* =========================================================================
+ *  旅游点位数据：按省份组织，每个点位含名称、所属地级市（与官方边界名称一致）
+ *  及经纬度。用途：① 放大到省份层级时，标注该省全部旅游胜地；
+ *  ② 下钻到某地级市层级时，用连线串联该市范围内的所有旅游点位。
+ * ========================================================================= */
+const ATTRACTIONS = {
+  "北京市":[
+    {name:"故宫",city:"东城区",lng:116.397,lat:39.918},{name:"天坛",city:"东城区",lng:116.410,lat:39.882},
+    {name:"颐和园",city:"海淀区",lng:116.275,lat:39.999},{name:"八达岭长城",city:"延庆区",lng:115.988,lat:40.356},
+    {name:"圆明园",city:"海淀区",lng:116.298,lat:40.008}
+  ],
+  "浙江省":[
+    {name:"西湖",city:"杭州市",lng:120.148,lat:30.245},{name:"灵隐寺",city:"杭州市",lng:120.101,lat:30.241},
+    {name:"千岛湖",city:"杭州市",lng:118.985,lat:29.605},{name:"普陀山",city:"舟山市",lng:122.388,lat:30.010},
+    {name:"乌镇",city:"嘉兴市",lng:120.491,lat:30.745},{name:"雁荡山",city:"温州市",lng:121.058,lat:28.371}
+  ],
+  "江苏省":[
+    {name:"拙政园",city:"苏州市",lng:120.629,lat:31.325},{name:"周庄古镇",city:"苏州市",lng:120.852,lat:31.114},
+    {name:"夫子庙",city:"南京市",lng:118.787,lat:32.022},{name:"中山陵",city:"南京市",lng:118.853,lat:32.064},
+    {name:"瘦西湖",city:"扬州市",lng:119.418,lat:32.413}
+  ],
+  "四川省":[
+    {name:"九寨沟",city:"阿坝藏族羌族自治州",lng:103.918,lat:33.260},{name:"峨眉山",city:"乐山市",lng:103.484,lat:29.601},
+    {name:"乐山大佛",city:"乐山市",lng:103.772,lat:29.545},{name:"都江堰",city:"成都市",lng:103.620,lat:30.998},
+    {name:"青城山",city:"成都市",lng:103.569,lat:30.901}
+  ],
+  "云南省":[
+    {name:"石林",city:"昆明市",lng:103.272,lat:24.770},{name:"大理古城",city:"大理白族自治州",lng:100.158,lat:25.692},
+    {name:"丽江古城",city:"丽江市",lng:100.234,lat:26.876},{name:"玉龙雪山",city:"丽江市",lng:100.187,lat:27.103},
+    {name:"香格里拉",city:"迪庆藏族自治州",lng:99.706,lat:27.829}
+  ],
+  "陕西省":[
+    {name:"兵马俑",city:"西安市",lng:109.278,lat:34.385},{name:"华清池",city:"西安市",lng:109.218,lat:34.362},
+    {name:"大雁塔",city:"西安市",lng:108.964,lat:34.218},{name:"华山",city:"渭南市",lng:110.090,lat:34.477}
+  ],
+  "广东省":[
+    {name:"白云山",city:"广州市",lng:113.296,lat:23.183},{name:"长隆",city:"广州市",lng:113.328,lat:22.998},
+    {name:"世界之窗",city:"深圳市",lng:113.974,lat:22.537},{name:"丹霞山",city:"韶关市",lng:113.736,lat:24.998}
+  ],
+  "福建省":[
+    {name:"鼓浪屿",city:"厦门市",lng:118.067,lat:24.447},{name:"武夷山",city:"南平市",lng:117.985,lat:27.717},
+    {name:"三坊七巷",city:"福州市",lng:119.296,lat:26.080},{name:"土楼",city:"龙岩市",lng:117.018,lat:24.829}
+  ],
+  "湖南省":[
+    {name:"张家界",city:"张家界市",lng:110.479,lat:29.117},{name:"凤凰古城",city:"湘西土家族苗族自治州",lng:109.599,lat:27.948},
+    {name:"岳麓山",city:"长沙市",lng:112.937,lat:28.181},{name:"岳阳楼",city:"岳阳市",lng:113.094,lat:29.378}
+  ],
+  "山东省":[
+    {name:"泰山",city:"泰安市",lng:117.121,lat:36.255},{name:"趵突泉",city:"济南市",lng:117.011,lat:36.661},
+    {name:"崂山",city:"青岛市",lng:120.617,lat:36.158},{name:"三孔",city:"济宁市",lng:116.991,lat:35.595}
+  ],
+  "安徽省":[
+    {name:"黄山",city:"黄山市",lng:118.169,lat:30.131},{name:"宏村",city:"黄山市",lng:117.985,lat:30.003},
+    {name:"九华山",city:"池州市",lng:117.806,lat:30.475},{name:"天柱山",city:"安庆市",lng:116.451,lat:30.738}
+  ],
+  "广西壮族自治区":[
+    {name:"漓江",city:"桂林市",lng:110.290,lat:25.273},{name:"象鼻山",city:"桂林市",lng:110.298,lat:25.260},
+    {name:"阳朔西街",city:"桂林市",lng:110.496,lat:24.778},{name:"德天瀑布",city:"崇左市",lng:106.708,lat:22.857}
+  ],
+  "西藏自治区":[
+    {name:"布达拉宫",city:"拉萨市",lng:91.117,lat:29.658},{name:"大昭寺",city:"拉萨市",lng:91.131,lat:29.653},
+    {name:"纳木错",city:"拉萨市",lng:90.600,lat:30.700},{name:"珠峰大本营",city:"日喀则市",lng:86.851,lat:28.142}
+  ],
+  "海南省":[
+    {name:"天涯海角",city:"三亚市",lng:109.392,lat:18.300},{name:"亚龙湾",city:"三亚市",lng:109.640,lat:18.224},
+    {name:"蜈支洲岛",city:"三亚市",lng:109.760,lat:18.310},{name:"骑楼老街",city:"海口市",lng:110.299,lat:20.044}
+  ],
+  "湖北省":[
+    {name:"黄鹤楼",city:"武汉市",lng:114.305,lat:30.544},{name:"东湖",city:"武汉市",lng:114.420,lat:30.560},
+    {name:"三峡大坝",city:"宜昌市",lng:111.003,lat:30.823},{name:"武当山",city:"十堰市",lng:111.004,lat:32.401}
+  ],
+  "辽宁省":[
+    {name:"沈阳故宫",city:"沈阳市",lng:123.452,lat:41.797},{name:"老虎滩",city:"大连市",lng:121.642,lat:38.873},
+    {name:"金石滩",city:"大连市",lng:122.010,lat:39.073}
+  ],
+  "黑龙江省":[
+    {name:"中央大街",city:"哈尔滨市",lng:126.617,lat:45.776},{name:"太阳岛",city:"哈尔滨市",lng:126.595,lat:45.797},
+    {name:"五大连池",city:"黑河市",lng:126.196,lat:48.717}
+  ],
+  "重庆市":[
+    {name:"洪崖洞",city:"渝中区",lng:106.582,lat:29.564},{name:"武隆天坑",city:"武隆区",lng:107.760,lat:29.325},
+    {name:"大足石刻",city:"大足区",lng:105.768,lat:29.701}
+  ],
+  "甘肃省":[
+    {name:"莫高窟",city:"酒泉市",lng:94.810,lat:40.039},{name:"鸣沙山月牙泉",city:"酒泉市",lng:94.660,lat:40.090},
+    {name:"嘉峪关",city:"嘉峪关市",lng:98.179,lat:39.812}
+  ],
+  "江西省":[
+    {name:"庐山",city:"九江市",lng:115.991,lat:29.567},{name:"婺源",city:"上饶市",lng:117.861,lat:29.248},
+    {name:"井冈山",city:"吉安市",lng:114.165,lat:26.572},{name:"滕王阁",city:"南昌市",lng:115.879,lat:28.687}
+  ],
+  "河南省":[
+    {name:"少林寺",city:"郑州市",lng:113.038,lat:34.508},{name:"龙门石窟",city:"洛阳市",lng:112.468,lat:34.558},
+    {name:"清明上河园",city:"开封市",lng:114.330,lat:34.806},{name:"云台山",city:"焦作市",lng:113.379,lat:35.443}
+  ],
+  "贵州省":[
+    {name:"黄果树瀑布",city:"安顺市",lng:105.679,lat:25.989},{name:"荔波小七孔",city:"黔南布依族苗族自治州",lng:107.890,lat:25.350},
+    {name:"西江千户苗寨",city:"黔东南苗族侗族自治州",lng:108.180,lat:26.500}
+  ]
+};
+// 当前层级的旅游点位标记（省份层级=全省点位；市级层级=该市点位）
+let attractionMarks = [];
+let attractionLinks = [];   // 市级层级串联点位的连线坐标
+
+/* =========================================================================
+ *  V3：国内「必去景点」常驻点位——全国视图下在地图上长期标注的标志性景点
+ *  （精选少量代表性景点，避免与省名/省会标注互相遮挡）
+ * ========================================================================= */
+const MUST_VISIT = [
+  {name:'故宫',     lng:116.397, lat:39.918},
+  {name:'八达岭长城', lng:115.988, lat:40.356},
+  {name:'兵马俑',   lng:109.278, lat:34.385},
+  {name:'西湖',     lng:120.148, lat:30.245},
+  {name:'黄山',     lng:118.169, lat:30.131},
+  {name:'张家界',   lng:110.479, lat:29.117},
+  {name:'九寨沟',   lng:103.918, lat:33.260},
+  {name:'布达拉宫', lng:91.117,  lat:29.658},
+  {name:'漓江',     lng:110.290, lat:25.273},
+  {name:'丽江古城', lng:100.234, lat:26.876},
+  {name:'泰山',     lng:117.121, lat:36.255},
+  {name:'鼓浪屿',   lng:118.067, lat:24.447},
+  {name:'莫高窟',   lng:94.810,  lat:40.039},
+  {name:'天涯海角', lng:109.392, lat:18.300},
+  {name:'黄果树瀑布', lng:105.679, lat:25.989}
+];
+
+/* =========================================================================
+ *  V4：旅行攻略文案——按省份给出最佳季节 / 特色美食 / 出行贴士；
+ *  缺省省份回退到通用攻略。用于结果页「旅行攻略」展开区展示。
+ * ========================================================================= */
+const TRAVEL_GUIDE = {
+  "北京市":{season:"春秋两季（4-5月、9-10月）气候宜人，避开盛夏酷热与冬季严寒",food:"烤鸭、炸酱面、豆汁、卤煮",tip:"故宫、长城等热门景点建议提前网上预约购票，错峰出行"},
+  "浙江省":{season:"3-5月、9-11月，春赏花秋观叶最佳",food:"西湖醋鱼、东坡肉、龙井虾仁、宁波汤圆",tip:"西湖免费开放，可租自行车环湖；古镇宜清晨或傍晚游览"},
+  "江苏省":{season:"4-5月、9-10月，烟花三月下扬州正当时",food:"盐水鸭、阳澄湖大闸蟹、汤包、苏式糕点",tip:"苏州园林众多，建议精选 2-3 处深度游，避免走马观花"},
+  "四川省":{season:"九寨沟 9-10月最美，市区四季皆宜",food:"火锅、串串、担担面、麻婆豆腐",tip:"九寨沟、稻城海拔较高，注意防晒与高反；熊猫基地宜清晨前往"},
+  "云南省":{season:"全年皆宜，2-4月看花、夏季避暑最佳",food:"过桥米线、汽锅鸡、鲜花饼、菌子火锅",tip:"昼夜温差大需备外套；高原地区注意防晒补水"},
+  "陕西省":{season:"3-5月、9-11月，避开夏季高温",food:"肉夹馍、羊肉泡馍、凉皮、biangbiang面",tip:"兵马俑建议请讲解或租电子导览；回民街适合夜游品尝小吃"},
+  "广东省":{season:"10月至次年3月，秋冬温暖舒适",food:"早茶、烧鹅、肠粉、煲仔饭、糖水",tip:"夏季多雨闷热需带伞；主题乐园建议工作日前往避开人潮"},
+  "福建省":{season:"4-11月，避开台风季更稳妥",food:"沙茶面、海蛎煎、佛跳墙、土笋冻",tip:"鼓浪屿需提前预订船票；土楼景区较分散建议包车"},
+  "湖南省":{season:"4-6月、9-11月，张家界春秋云海壮观",food:"剁椒鱼头、口味虾、臭豆腐、米粉",tip:"张家界景区大、步行多，建议穿舒适鞋并预留 2-3 天"},
+  "山东省":{season:"4-10月，泰山观日出夏季最佳",food:"煎饼卷大葱、九转大肠、海鲜、把子肉",tip:"登泰山可夜爬看日出，备保暖衣物与手电"},
+  "安徽省":{season:"黄山四季皆景，4-5月、9-11月最佳",food:"臭鳜鱼、毛豆腐、徽州一品锅",tip:"黄山多雨需备雨具；山上住宿紧张建议提前预订"},
+  "广西壮族自治区":{season:"4-10月，漓江丰水期景色更佳",food:"桂林米粉、螺蛳粉、啤酒鱼",tip:"漓江竹筏需提前订；阳朔适合骑行慢游"},
+  "西藏自治区":{season:"4-10月，5-6月、9月最佳",food:"酥油茶、糌粑、牦牛肉、青稞酒",tip:"务必提前数日适应海拔、预防高反；强紫外线需高倍防晒"},
+  "海南省":{season:"10月至次年4月，避开夏季台风",food:"文昌鸡、海鲜、清补凉、椰子饭",tip:"海边注意防晒与安全；雨季出行常备雨具"},
+  "湖北省":{season:"3-5月、9-11月，春赏樱秋登山",food:"热干面、武昌鱼、排骨藕汤、豆皮",tip:"黄鹤楼、东湖适合搭配城市漫步；樱花季人多需错峰"},
+  "辽宁省":{season:"5-10月，夏季海滨避暑最佳",food:"锅包肉、海鲜、酸菜炖、烤冷面",tip:"大连海滨风大需备外套；冬季注意保暖防滑"},
+  "黑龙江省":{season:"夏季避暑、冬季 12-2月赏冰雪",food:"锅包肉、红肠、杀猪菜、铁锅炖",tip:"冬季极寒需专业保暖装备；冰雪大世界建议夜游"},
+  "重庆市":{season:"3-5月、9-11月，避开盛夏酷暑",food:"火锅、小面、酸辣粉、毛血旺",tip:"地形立体导航易偏差，多预留时间；夜景洪崖洞、两江游船必看"},
+  "甘肃省":{season:"5-10月，敦煌秋季最佳",food:"兰州牛肉面、手抓羊肉、酿皮",tip:"西北昼夜温差大、干燥，注意补水保湿与防晒"},
+  "江西省":{season:"3-5月、9-11月，婺源春季油菜花最美",food:"瓦罐汤、米粉、藜蒿炒腊肉",tip:"庐山多云雾备雨具；婺源花期人多需提前订房"},
+  "河南省":{season:"3-5月、9-11月，洛阳牡丹 4月盛放",food:"烩面、胡辣汤、灌汤包、洛阳水席",tip:"少林寺、龙门石窟建议请讲解了解历史文化"},
+  "贵州省":{season:"4-10月，夏季避暑、瀑布丰水期壮观",food:"酸汤鱼、丝娃娃、肠旺面、折耳根",tip:"多雨路滑备雨具防滑鞋；苗寨夜景与歌舞值得停留"}
+};
+// 通用攻略（无专属数据的省份回退）
+const GUIDE_FALLBACK = {season:"春秋两季气候宜人，是出行的较好时段",
+  food:"当地特色小吃与时令美食值得一试",
+  tip:"提前查询天气与景点开放时间，错峰出行体验更佳"};
+function getGuide(province){ return TRAVEL_GUIDE[province] || GUIDE_FALLBACK; }
+
+/* =========================================================================
+ *  景点真实照片库：键为景点名，值为维基共享资源(upload.wikimedia.org)实拍图 URL。
+ *  全部为中国境内景点真实照片；页头 <meta name="referrer" content="no-referrer">
+ *  保证图片无 Referer 加载成功。未收录景点回退到通用中国风景实拍图（非图标/非SVG）。
+ * ========================================================================= */
+const FALLBACK_PHOTO = "https://upload.wikimedia.org/wikipedia/commons/c/c4/GreatWall_Badaling.jpg";
+const SPOT_PHOTO = {
+  "故宫":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/%E6%99%AF%E5%B1%B1%E5%85%AC%E5%9B%AD_%2819687188164%29.jpg/960px-%E6%99%AF%E5%B1%B1%E5%85%AC%E5%9B%AD_%2819687188164%29.jpg",
+  "八达岭长城":"https://upload.wikimedia.org/wikipedia/commons/c/c4/GreatWall_Badaling.jpg",
+  "西湖":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/West_Lake%2C_Hangzhou_2025.jpg/960px-West_Lake%2C_Hangzhou_2025.jpg",
+  "黄山":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Huangshan_pic_4.jpg/960px-Huangshan_pic_4.jpg",
+  "张家界":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/1_tianzishan_wulingyuan_zhangjiajie_2012.jpg/960px-1_tianzishan_wulingyuan_zhangjiajie_2012.jpg",
+  "武陵源":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/1_tianzishan_wulingyuan_zhangjiajie_2012.jpg/960px-1_tianzishan_wulingyuan_zhangjiajie_2012.jpg",
+  "九寨沟":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/1_jiuzhaigou_valley_wu_hua_hai_2011b.jpg/960px-1_jiuzhaigou_valley_wu_hua_hai_2011b.jpg",
+  "布达拉宫":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Potala_palace23.jpg/960px-Potala_palace23.jpg",
+  "漓江":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/%E6%BC%93%E6%B1%9F%E5%B1%B1%E6%B0%B4.jpg/960px-%E6%BC%93%E6%B1%9F%E5%B1%B1%E6%B0%B4.jpg",
+  "象鼻山":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Xiangshan_Scenic_Area_89468-Guilin_%2831130832628%29.jpg/960px-Xiangshan_Scenic_Area_89468-Guilin_%2831130832628%29.jpg",
+  "阳朔西街":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Xijie-m.jpg/960px-Xijie-m.jpg",
+  "丽江古城":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/1_lijiang_old_town_2012a.jpg/960px-1_lijiang_old_town_2012a.jpg",
+  "玉龙雪山":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Yulong_mount.jpg/960px-Yulong_mount.jpg",
+  "香格里拉":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Zhongdian-sumtseling-gompa-c12.jpg/960px-Zhongdian-sumtseling-gompa-c12.jpg",
+  "泰山":"https://upload.wikimedia.org/wikipedia/commons/7/74/%E6%B3%B0%E5%B1%B1_%E5%8D%97%E5%A4%A9%E9%97%A8.jpg",
+  "鼓浪屿":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/%E9%BC%93%E6%B5%AA%E5%B1%BF_-_panoramio.jpg/960px-%E9%BC%93%E6%B5%AA%E5%B1%BF_-_panoramio.jpg",
+  "莫高窟":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Dunhuang_Mogao_Ku_2013.12.31_12-30-18.jpg/960px-Dunhuang_Mogao_Ku_2013.12.31_12-30-18.jpg",
+  "嘉峪关":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Jiayuguan_20151012.jpg/960px-Jiayuguan_20151012.jpg",
+  "鸣沙山月牙泉":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Crescent_Lake_Dunhuang_2019.jpg/960px-Crescent_Lake_Dunhuang_2019.jpg",
+  "天涯海角":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Beach_of_Tianya-Haijiao_near_Tianya_Rock_%2820230325134441%29.jpg/960px-Beach_of_Tianya-Haijiao_near_Tianya_Rock_%2820230325134441%29.jpg",
+  "亚龙湾":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/%E4%BA%9A%E9%BE%99%E6%B9%BE.JPG/960px-%E4%BA%9A%E9%BE%99%E6%B9%BE.JPG",
+  "蜈支洲岛":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Haitang%2C_Sanya%2C_Hainan%2C_China_-_panoramio_%286%29.jpg/960px-Haitang%2C_Sanya%2C_Hainan%2C_China_-_panoramio_%286%29.jpg",
+  "黄果树瀑布":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/HuangguoshuFall.jpg/960px-HuangguoshuFall.jpg",
+  "乐山大佛":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Leshan_Buddha_Statue_View.JPG/960px-Leshan_Buddha_Statue_View.JPG",
+  "峨眉山":"https://upload.wikimedia.org/wikipedia/commons/8/83/EmeiShanTop.jpg",
+  "青城山":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/%E5%9B%9B%E5%B7%9D%E9%9D%92%E5%9F%8E%E5%B1%B1_-_panoramio.jpg/960px-%E5%9B%9B%E5%B7%9D%E9%9D%92%E5%9F%8E%E5%B1%B1_-_panoramio.jpg",
+  "都江堰":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/36661-Dujiangyan_%2844634340644%29.jpg/960px-36661-Dujiangyan_%2844634340644%29.jpg",
+  "稻城亚丁":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Yading_Jampelyang-Yangmaiyong.jpg/960px-Yading_Jampelyang-Yangmaiyong.jpg",
+  "少林寺":"https://upload.wikimedia.org/wikipedia/commons/0/09/Shaolinsi.JPG",
+  "嵩山":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/The_Songshan_Buddhist_Academy_Lied_in_Mount_Song.jpg/960px-The_Songshan_Buddhist_Academy_Lied_in_Mount_Song.jpg",
+  "龙门石窟":"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/27427-Luoyang_%2849067744628%29.jpg/960px-27427-Luoyang_%2849067744628%29.jpg",
+  "云台山":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/2009_Yuntai_Shan_19.jpg/960px-2009_Yuntai_Shan_19.jpg",
+  "清明上河园":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Millennium_City_Park_02.jpg/960px-Millennium_City_Park_02.jpg",
+  "武当山":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Wudangshan_pic_7.jpg/960px-Wudangshan_pic_7.jpg",
+  "华山":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/1_mount_hua_shan_china_2011.jpg/960px-1_mount_hua_shan_china_2011.jpg",
+  "黄鹤楼":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/CN_-_Hubei_-_Wuhan_-_Kranichpagode.jpg/960px-CN_-_Hubei_-_Wuhan_-_Kranichpagode.jpg",
+  "东湖":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/East_Lake_Wuhan.jpg/960px-East_Lake_Wuhan.jpg",
+  "岳阳楼":"https://upload.wikimedia.org/wikipedia/commons/1/1b/Frontal_view_of_Yueyang_Tower%2C_Hunan%2C_China1.jpg",
+  "衡山":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/HengshanMountains.JPG/960px-HengshanMountains.JPG",
+  "岳麓山":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Changsha_Yuelu_Shuyuan_2014.03.04_08-09-37_%28adjusted%29.jpg/960px-Changsha_Yuelu_Shuyuan_2014.03.04_08-09-37_%28adjusted%29.jpg",
+  "三峡大坝":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/ThreeGorgesDam-China2009.jpg/960px-ThreeGorgesDam-China2009.jpg",
+  "神农架":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/VM_5318_Muyu_Town.jpg/960px-VM_5318_Muyu_Town.jpg",
+  "武隆天坑":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Wulongtianshengsanqiao.JPG/960px-Wulongtianshengsanqiao.JPG",
+  "大足石刻":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/%E5%A4%A7%E8%B6%B3%E7%9F%B3%E5%88%BB.JPG/960px-%E5%A4%A7%E8%B6%B3%E7%9F%B3%E5%88%BB.JPG",
+  "乌镇":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/1_wuzhen_aerial_2023.jpg/960px-1_wuzhen_aerial_2023.jpg",
+  "土楼":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Zhenchenglou.JPG/960px-Zhenchenglou.JPG",
+  "三坊七巷":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/%E4%B8%9C%E7%99%BE%E4%B8%AD%E5%BF%83A%E9%A6%8610%E6%A5%BC%E7%9E%AD%E6%9C%9B%E5%8F%B0%E8%A5%BF%E4%B8%89%E5%9D%8A%E4%B8%83%E5%B7%B7.jpg/960px-%E4%B8%9C%E7%99%BE%E4%B8%AD%E5%BF%83A%E9%A6%8610%E6%A5%BC%E7%9E%AD%E6%9C%9B%E5%8F%B0%E8%A5%BF%E4%B8%89%E5%9D%8A%E4%B8%83%E5%B7%B7.jpg",
+  "兵马俑":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/51714-Terracota-Army.jpg/960px-51714-Terracota-Army.jpg",
+  "大雁塔":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Giant_Wild_Goose_Pagoda.jpg/960px-Giant_Wild_Goose_Pagoda.jpg",
+  "华清池":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/%E5%8D%8E%E6%B8%85%E5%AE%AB.jpg/960px-%E5%8D%8E%E6%B8%85%E5%AE%AB.jpg",
+  "法门寺":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Famensi.jpg/960px-Famensi.jpg",
+  "凤凰古城":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Fenghuang_County%2C_Hunan%2C_China%2C_21_December_2016a.jpg/960px-Fenghuang_County%2C_Hunan%2C_China%2C_21_December_2016a.jpg",
+  "武夷山":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Wuyi_Shan_Fengjing_Mingsheng_Qu_2012.08.22_14-08-01.jpg/960px-Wuyi_Shan_Fengjing_Mingsheng_Qu_2012.08.22_14-08-01.jpg",
+  "鼓浪屿":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/%E9%BC%93%E6%B5%AA%E5%B1%BF_-_panoramio.jpg/960px-%E9%BC%93%E6%B5%AA%E5%B1%BF_-_panoramio.jpg",
+  "颐和园":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/%E9%A2%90%E5%92%8C%E5%9B%AD%E4%B8%87%E5%AF%BF%E5%B1%B1%E4%BD%9B%E9%A6%99%E9%98%81.jpg/960px-%E9%A2%90%E5%92%8C%E5%9B%AD%E4%B8%87%E5%AF%BF%E5%B1%B1%E4%BD%9B%E9%A6%99%E9%98%81.jpg",
+  "天坛":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Temple_of_Heaven_20160323_01.jpg/960px-Temple_of_Heaven_20160323_01.jpg",
+  "天安门":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Tiananmen_beijing_Panorama.jpg/960px-Tiananmen_beijing_Panorama.jpg",
+  "圆明园":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Yuanmingyuan_Ruins_of_Dashuifa_20120715.JPG/960px-Yuanmingyuan_Ruins_of_Dashuifa_20120715.JPG",
+  "南锣鼓巷":"https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/View_down_Nanluoguxiang_2011.jpg/960px-View_down_Nanluoguxiang_2011.jpg",
+  "什刹海":"https://upload.wikimedia.org/wikipedia/commons/9/95/Shishahai.jpg",
+  "雍和宫":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Lascar_Lama_temple_%284478042700%29.jpg/960px-Lascar_Lama_temple_%284478042700%29.jpg",
+  "外滩":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/A_picture_from_China_every_day_101.jpg/960px-A_picture_from_China_every_day_101.jpg",
+  "东方明珠":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Oriental_Pearl_Tower_2022.jpg/960px-Oriental_Pearl_Tower_2022.jpg",
+  "中山陵":"https://upload.wikimedia.org/wikipedia/commons/a/aa/Hall_of_Sun_Yat-sen_Mausoleum.jpg",
+  "瘦西湖":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Five_Pavilion_Bridge_and_White_Pagoda_2017.jpg/960px-Five_Pavilion_Bridge_and_White_Pagoda_2017.jpg",
+  "拙政园":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Humble_Administrator%27s_Garden_Suzhou_November_2017_008.jpg/960px-Humble_Administrator%27s_Garden_Suzhou_November_2017_008.jpg",
+  "留园":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Lingering_Garden.jpg/960px-Lingering_Garden.jpg",
+  "寒山寺":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Hansyan-daiyuhodenmae.jpg/960px-Hansyan-daiyuhodenmae.jpg",
+  "周庄古镇":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Zhouzhuang_2.jpg/960px-Zhouzhuang_2.jpg",
+  "千岛湖":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Thousand_Island_Lake.JPG/960px-Thousand_Island_Lake.JPG",
+  "普陀山":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/%E5%8D%97%E6%B5%B7%E8%A7%82%E9%9F%B3%E5%83%8F.jpg/960px-%E5%8D%97%E6%B5%B7%E8%A7%82%E9%9F%B3%E5%83%8F.jpg",
+  "雁荡山":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/China2011_Zhejiang_YandangShan.jpg/960px-China2011_Zhejiang_YandangShan.jpg",
+  "灵隐寺":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Hangzhou_Lingyin-Temple_20161003.jpg/960px-Hangzhou_Lingyin-Temple_20161003.jpg",
+  "宏村":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Yixian_Hongcun_2016.09.09_17-27-03.jpg/960px-Yixian_Hongcun_2016.09.09_17-27-03.jpg",
+  "丹霞山":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Yangyuanshi_seen_from_the_back.jpg/960px-Yangyuanshi_seen_from_the_back.jpg",
+  "九华山":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Jiuhuashan_Tiantai.jpg/960px-Jiuhuashan_Tiantai.jpg",
+  "井冈山":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Wuzhi_Peak%2C_Jinggangshan_%2820250124122509%29.jpg/960px-Wuzhi_Peak%2C_Jinggangshan_%2820250124122509%29.jpg",
+  "庐山":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Mount_Lushan_-_fog.JPG/960px-Mount_Lushan_-_fog.JPG",
+  "滕王阁":"https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/%E6%BB%95%E7%8E%8B%E9%98%81_2024-08-05_04.jpg/960px-%E6%BB%95%E7%8E%8B%E9%98%81_2024-08-05_04.jpg",
+  "德天瀑布":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/%E5%BE%9E%E4%B8%AD%E5%9C%8B%E5%A2%83%E5%85%A7%E8%A7%80%E7%9C%8B%E7%9A%84%E5%BE%B7%E5%A4%A9%E7%80%91%E5%B8%83.jpg/960px-%E5%BE%9E%E4%B8%AD%E5%9C%8B%E5%A2%83%E5%85%A7%E8%A7%80%E7%9C%8B%E7%9A%84%E5%BE%B7%E5%A4%A9%E7%80%91%E5%B8%83.jpg",
+  "西江千户苗寨":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Xijiang_Miao_Village.jpg/960px-Xijiang_Miao_Village.jpg",
+  "石林":"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Shilin%2C_Yunnan_24740.jpg/960px-Shilin%2C_Yunnan_24740.jpg",
+  "沈阳故宫":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Mukden_Palace_drone_view_5_%28cropped_%26_rotated%29.jpg/960px-Mukden_Palace_drone_view_5_%28cropped_%26_rotated%29.jpg",
+  "金石滩":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/%E9%87%91%E7%9F%B3%E6%BB%A92.jpg/960px-%E9%87%91%E7%9F%B3%E6%BB%A92.jpg",
+  "长隆":"https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/ChimelongParadiseSouth.jpg/960px-ChimelongParadiseSouth.jpg",
+  "世界之窗":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/WINDOWS_OF_THE_WORLD_SHENZHEN_%2813%29.jpg/960px-WINDOWS_OF_THE_WORLD_SHENZHEN_%2813%29.jpg",
+  "崂山":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/20240730_Dabiao_Mountain_of_Mount_Lao_01.jpg/960px-20240730_Dabiao_Mountain_of_Mount_Lao_01.jpg",
+  "青海湖":"https://upload.wikimedia.org/wikipedia/commons/6/6f/Qinghai_lake.jpg",
+  "茶卡盐湖":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/%E8%8C%B6%E5%8D%A1%E7%9B%90%E6%B9%96%E6%B9%96%E9%9D%A203.jpg/960px-%E8%8C%B6%E5%8D%A1%E7%9B%90%E6%B9%96%E6%B9%96%E9%9D%A203.jpg",
+  "塔尔寺":"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Taersi.jpg/960px-Taersi.jpg",
+  "纳木错":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Namtso-and-holy-rock.jpg/960px-Namtso-and-holy-rock.jpg",
+  "羊卓雍错":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Lac_Yamdrok-Tso_2.JPG/960px-Lac_Yamdrok-Tso_2.JPG",
+  "珠峰大本营":"https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Mt._Everest_from_Gokyo_Ri_November_5%2C_2012.jpg/960px-Mt._Everest_from_Gokyo_Ri_November_5%2C_2012.jpg",
+  "天柱山":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Tianzhu_Peak_%2820170116142019%29.jpg/960px-Tianzhu_Peak_%2820170116142019%29.jpg",
+  "喀纳斯":"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Lake_Kanas.jpg/960px-Lake_Kanas.jpg",
+  "赛里木湖":"https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/%E8%B5%9B%E9%87%8C%E6%9C%A8%E6%B9%96%E8%BF%9C%E6%99%AF%EF%BC%8C%E6%91%84%E4%BA%8E%E6%B9%96%E7%95%94%E5%B1%B1%E4%B8%98.jpg/960px-%E8%B5%9B%E9%87%8C%E6%9C%A8%E6%B9%96%E8%BF%9C%E6%99%AF%EF%BC%8C%E6%91%84%E4%BA%8E%E6%B9%96%E7%95%94%E5%B1%B1%E4%B8%98.jpg",
+  "那拉提草原":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Nalati_Grassland_2.jpg/960px-Nalati_Grassland_2.jpg",
+  "林芝":"https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Nyingchi_city_June_2019.jpg/960px-Nyingchi_city_June_2019.jpg",
+  "镇北堡西部影城":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/%E9%95%87%E5%8C%97%E5%A0%A1%E8%A5%BF%E5%8C%97%E5%BD%B1%E8%A7%86%E5%9F%8E%E6%A0%87%E5%BF%97.jpg/960px-%E9%95%87%E5%8C%97%E5%A0%A1%E8%A5%BF%E5%8C%97%E5%BD%B1%E8%A7%86%E5%9F%8E%E6%A0%87%E5%BF%97.jpg"
+};
+// 取景点真实照片 URL：先按全名精确匹配，再按包含关系模糊匹配，未命中返回通用中国风景实拍图（绝不返回 null/图标）
+function spotRealPhoto(name){
+  if(!name) return FALLBACK_PHOTO;
+  if(SPOT_PHOTO[name]) return SPOT_PHOTO[name];
+  for(const k in SPOT_PHOTO){ if(name.indexOf(k)>=0 || k.indexOf(name)>=0) return SPOT_PHOTO[k]; }
+  return FALLBACK_PHOTO;
+}
+
+/* =========================================================================
+ *  景点推荐文案：用于地图点位 hover 时弹出的推荐内容。
+ *  按景点名给出一句话推荐；未收录的景点回退到通用推荐语。
+ * ========================================================================= */
+const SPOT_DESC = {
+  "故宫":"明清两代皇家宫殿，红墙金瓦的世界级古建筑群，必看三大殿与珍宝馆。",
+  "天坛":"明清皇帝祭天之所，祈年殿造型经典，园林清幽适合慢游。",
+  "颐和园":"皇家园林典范，昆明湖与万寿山相映，长廊彩绘不容错过。",
+  "八达岭长城":"最具代表性的长城段，雄踞险峰，登高远眺气势恢宏。",
+  "圆明园":"昔日万园之园，残石遗迹诉说历史，荷塘秋色尤美。",
+  "西湖":"三面云山一面城，断桥残雪与苏堤春晓，四季皆有诗意。",
+  "灵隐寺":"千年古刹隐于山林，飞来峰造像与禅意香火并存。",
+  "千岛湖":"碧水千岛，山水画卷般的湖光岛屿，适合泛舟休闲。",
+  "普陀山":"海天佛国，观音道场，海岛与寺院交织的朝圣胜地。",
+  "乌镇":"江南水乡古镇，小桥流水人家，夜色与戏剧节别具韵味。",
+  "雁荡山":"奇峰怪石、飞瀑流泉，夜观灵峰是一绝。",
+  "拙政园":"江南园林之首，移步换景的造园艺术巅峰之作。",
+  "周庄古镇":"中国第一水乡，双桥与摇橹船尽显江南风情。",
+  "夫子庙":"秦淮河畔的繁华街区，夜游灯影桨声最是迷人。",
+  "中山陵":"庄严恢宏的纪念建筑，登顶可俯瞰钟山景色。",
+  "瘦西湖":"瘦长秀美的园林湖景，二十四桥明月夜诗意盎然。",
+  "九寨沟":"五彩海子与瀑布林立，童话世界般的高原秘境。",
+  "峨眉山":"佛教名山，金顶云海日出壮观，沿途猴群灵动。",
+  "乐山大佛":"依山凿就的世界最大石刻坐佛，临江而坐气象万千。",
+  "都江堰":"两千年仍在运转的水利奇迹，山水与古堰交融。",
+  "青城山":"道教祖庭，林木幽深，素有青城天下幽之誉。",
+  "石林":"喀斯特石峰如林，奇绝壮观的天然地质迷宫。",
+  "大理古城":"苍山洱海间的古城，悠闲文艺，夜市与白族风情浓郁。",
+  "丽江古城":"纳西风情的世界遗产古城，四方街与玉河水巷迷人。",
+  "玉龙雪山":"终年积雪的圣山，缆车直上冰川，景色壮丽。",
+  "香格里拉":"高原雪域与藏地风情，普达措与松赞林寺值得一去。",
+  "兵马俑":"世界第八大奇迹，规模宏大的地下军阵震撼人心。",
+  "华清池":"唐代皇家温泉行宫，长恨歌实景演出值得一看。",
+  "大雁塔":"唐代古塔地标，夜晚音乐喷泉广场热闹非凡。",
+  "华山":"奇险天下第一山，长空栈道与西峰日出惊心动魄。",
+  "白云山":"广州城市绿肺，登高望远尽览羊城风光。",
+  "长隆":"亲子游乐与野生动物天堂，适合全家欢乐畅玩。",
+  "世界之窗":"浓缩世界奇观的主题乐园，夜场表演精彩。",
+  "丹霞山":"赤壁丹崖的世界地质公园，红色山峰蔚为壮观。",
+  "鼓浪屿":"钢琴之岛，万国建筑与海风小巷，文艺浪漫。",
+  "武夷山":"碧水丹山，九曲溪竹筏漂流与岩茶飘香。",
+  "三坊七巷":"福州古街巷，明清建筑与闽都文化荟萃。",
+  "土楼":"客家圆形夯土建筑奇观，世界遗产级民居。",
+  "张家界":"奇峰三千、阿凡达取景地，玻璃栈道惊险刺激。",
+  "凤凰古城":"沱江畔的吊脚楼古城，夜景灯火如梦如幻。",
+  "岳麓山":"千年学府与红叶名山，爱晚亭秋色醉人。",
+  "岳阳楼":"洞庭湖畔名楼，登临可怀古观湖。",
+  "泰山":"五岳之首，登顶观日出云海，气势磅礴。",
+  "趵突泉":"天下第一泉，泉水喷涌、园林清雅。",
+  "崂山":"海上名山，道教仙境与碧海蓝天相映。",
+  "三孔":"孔庙孔府孔林，儒家文化的千年圣地。",
+  "黄山":"奇松怪石云海温泉四绝，天下第一奇山。",
+  "宏村":"徽派古村落，水墨画般的月沼与南湖。",
+  "九华山":"地藏菩萨道场，香火鼎盛的佛教名山。",
+  "天柱山":"奇峰耸峙，雄奇灵秀的世界地质公园。",
+  "漓江":"百里画廊，桂林山水甲天下的精华所在。",
+  "象鼻山":"桂林城徽，山形如象临江饮水栩栩如生。",
+  "阳朔西街":"千年古街，洋人街的中西交融与夜生活热闹。",
+  "德天瀑布":"亚洲第一跨国瀑布，气势磅礴水雾弥漫。",
+  "布达拉宫":"世界屋脊的宫堡建筑，藏传佛教与雪域圣地的象征。",
+  "大昭寺":"藏传佛教圣寺，八廓街转经人潮虔诚动人。",
+  "纳木错":"天湖圣境，雪山环抱的湛蓝高原湖泊。",
+  "珠峰大本营":"近距离仰望世界最高峰，星空与日照金山震撼。",
+  "天涯海角":"碧海椰风的浪漫地标，海角石刻闻名遐迩。",
+  "亚龙湾":"细软白沙与碧蓝海水，三亚顶级度假海湾。",
+  "蜈支洲岛":"潜水与水上运动天堂，珊瑚海岛清澈迷人。",
+  "骑楼老街":"南洋风情的百年骑楼街区，海口怀旧打卡地。",
+  "黄鹤楼":"江南三大名楼之一，登临俯瞰长江与武汉三镇。",
+  "东湖":"中国最大城中湖，绿道环湖樱花春景宜人。",
+  "三峡大坝":"世界最大水利工程，截流泄洪场面壮观。",
+  "武当山":"道教圣地与武术发源地，金顶古建群巍峨。",
+  "沈阳故宫":"清初皇宫，满族风格宫殿别具一格。",
+  "老虎滩":"海滨游乐与极地海洋世界，亲子戏水好去处。",
+  "金石滩":"奇石海岸地质奇观，海风与礁石相映。",
+  "中央大街":"百年欧式步行街，建筑博物馆与马迭尔冰棍。",
+  "太阳岛":"松花江畔风景区，夏避暑冬赏雪雕。",
+  "五大连池":"火山地貌与矿泉胜地，黑龙石海奇特壮观。",
+  "洪崖洞":"依崖而建的吊脚楼群，夜景璀璨如千与千寻。",
+  "武隆天坑":"喀斯特天坑地缝奇观，变形金刚取景地。",
+  "大足石刻":"世界遗产石窟造像，宋代雕刻精美绝伦。",
+  "莫高窟":"千年敦煌壁画与彩塑宝库，丝路艺术明珠。",
+  "鸣沙山月牙泉":"大漠中的清泉奇景，骑骆驼看沙海日落。",
+  "嘉峪关":"天下第一雄关，长城西端的戈壁雄城。",
+  "庐山":"云雾名山与避暑胜地，瀑布与别墅群相映。",
+  "婺源":"中国最美乡村，春日油菜花海与徽派村落。",
+  "井冈山":"革命圣地与翠绿山林，红色与生态兼具。",
+  "滕王阁":"江南名楼，临赣江远眺落霞与孤鹜。",
+  "少林寺":"禅宗祖庭与功夫圣地，塔林与武术表演必看。",
+  "龙门石窟":"伊河两岸的石窟艺术宝库，卢舍那大佛庄严。",
+  "清明上河园":"宋代风情主题园，实景演出再现汴京繁华。",
+  "云台山":"红石峡与瀑布峡谷，山水灵秀的世界地质公园。",
+  "黄果树瀑布":"亚洲最大瀑布，水帘洞穿瀑而行震撼无比。",
+  "荔波小七孔":"绿水青山的喀斯特画廊，碧潭与古桥如画。",
+  "西江千户苗寨":"中国最大苗寨，吊脚楼夜景与苗族歌舞动人。"
+};
+// 通用推荐语（未收录景点回退）
+function getSpotDesc(name, city){
+  if(SPOT_DESC[name]) return SPOT_DESC[name];
+  return (city? city+'的':'')+'特色景点，值得安排行程前往打卡体验。';
+}
+
+// 省份层级：返回该省所有可展示旅游点位的标记（含所属城市，供 hover 卡片展示）
+function provinceAttractionMarks(province){
+  const list = ATTRACTIONS[province]||[];
+  return list.map(a=>({name:a.name, city:a.city, value:[a.lng,a.lat]}));
+}
+// 市级层级：返回某地级市范围内的旅游点位，并生成首尾相接的串联连线坐标
+function cityAttractions(province, cityName){
+  const list = (ATTRACTIONS[province]||[]).filter(a=>a.city===cityName);
+  const marks = list.map(a=>({name:a.name, city:a.city, value:[a.lng,a.lat]}));
+  const coords = list.map(a=>[a.lng,a.lat]);   // 按数据顺序串联
+  return {marks, coords};
+}
+
+/* =========================================================================
+ *  地图层：加载官方省界 GeoJSON；放大时动态加载该省地级市边界 GeoJSON
+ *  —— 全部为官方行政区划数据，仅陆地，标注只含省/省会/地级市等行政名称
+ * ========================================================================= */
+let map, GEO_LOADED=false, regionCenter={};
+let provinceAdcode={};            // 省名 → 行政区划代码（用于拉取下级市界）
+const cityGeoCache={};            // 已加载的省级下钻地图缓存（含 GeoJSON）
+
+// 全国默认视图：中心约在中国几何中心，缩放级别 4（卫星图全国概览）
+const CHINA_CENTER = [35.5, 103.5];   // [lat,lng]
+const CHINA_ZOOM   = 4;
+// 中国地理范围（用于限制视野，默认只加载中国地图、不加载世界地图）
+const CHINA_BOUNDS = L.latLngBounds([3.5, 73.0], [53.8, 135.5]);
+let NATION_GEO = null;                 // 全国省界 GeoJSON（用于命中省份高亮）
+
+// 取某省的 GeoJSON Feature（用于高亮描边）
+function provinceFeature(name){
+  if(!NATION_GEO) return null;
+  const f = NATION_GEO.features.find(x=>x.properties.name===name);
+  return f ? {type:'FeatureCollection', features:[f]} : null;
+}
+
+/* ---------- Leaflet 地图初始化：卫星图层 + 自定义图层窗格 ---------- */
+// S1：地图基底采用卫星图层。默认仅聚焦中国地图：通过 maxBounds 限定视野范围，
+//      地图不会平移/加载到世界其它区域（即「默认不加载世界地图」）。
+map = L.map('map', {
+  center: CHINA_CENTER,
+  zoom: CHINA_ZOOM,
+  minZoom: 4,                     // 最小级别仅到全国概览，防止缩出到世界地图
+  zoomControl: true,
+  zoomSnap: 0.25,                 // 允许 1/4 级缩放，过渡更细腻
+  worldCopyJump: false,
+  maxBounds: CHINA_BOUNDS,        // 视野锁定中国范围，不加载境外瓦片
+  maxBoundsViscosity: 1.0,        // 完全阻止拖出中国边界
+  attributionControl: false
+});
+// 卫星影像底图（缩放时河流/边界等矢量层会与之天然联动）。
+// 调整：移除 bounds 限制，使卫星瓦片在整个可视区域内完整渲染、铺满显示区，
+// 不再因 China bounds 在边缘/海域留下未加载的深色空白（视野平移仍由 maxBounds 锁定中国）。
+// N4：keepBuffer:4 扩大视口外瓦片缓冲，updateWhenZooming:false 缩放过程中不逐帧刷新瓦片
+const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom: 18, minZoom: 4, keepBuffer: 4,
+   updateWhenZooming: false, updateWhenIdle: true}).addTo(map);
+// 说明：原天地图中文矢量注记图层（cva_w）在脱离授权域名单独打开时会返回 403，
+// 且其瓦片注记并非必需 —— 本应用所有省/市/景点标注均由自身以中文 divIcon 渲染，
+// 地图主体语言始终为中文。故移除该外部注记图层，避免 403 报错与无谓请求。
+
+// N1：主要河域高亮（非重绘水系，沿真实河道发光描边）
+map.createPane('waterPane');   map.getPane('waterPane').style.zIndex = 350;
+map.createPane('natPane');     map.getPane('natPane').style.zIndex = 355;  // V3：国界（高亮）
+map.createPane('provPane');    map.getPane('provPane').style.zIndex = 360;  // 省界
+map.createPane('cityPane');    map.getPane('cityPane').style.zIndex = 370;  // 市界
+map.createPane('mustPane');    map.getPane('mustPane').style.zIndex = 380;  // V3：必去景点常驻点位
+
+// N3：地图初始化后立即禁用全部交互，直到瓦片+数据就绪
+disableInteraction();
+
+// 各类动态矢量/标注图层组（renderMap 中重建）
+const waterLayer     = L.layerGroup().addTo(map);   // 主要河域高亮（仅全国视图）
+const natBorderLayer = L.layerGroup().addTo(map);   // V3：中国国界（高亮提亮，静态）
+const provBorderLayer= L.layerGroup().addTo(map);   // 全国省界（静态，仅建一次）
+const cityBorderLayer= L.layerGroup().addTo(map);   // 命中省的地级市界（放大后清晰）
+const baseLabelLayer = L.layerGroup().addTo(map);   // N1：省名/省会常驻标注（缩放不消失）
+const mustLayer      = L.layerGroup().addTo(map);   // V3：国内必去景点常驻点位（仅全国视图）
+const labelLayer     = L.layerGroup().addTo(map);   // 动态行政标注（地级市名）
+const highlightLayer = L.layerGroup().addTo(map);   // 命中省份高亮描边
+const attractionLayer= L.layerGroup().addTo(map);   // 旅游点位 + 市级连线
+const targetLayer    = L.layerGroup().addTo(map);   // 终点城市
+
+// 从 DataV 官方 CDN 获取中国省级行政区 GeoJSON（叠加于卫星图上）
+fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+  .then(r=>r.json())
+  .then(geo=>{
+    NATION_GEO = geo;
+    geo.features.forEach(f=>{
+      const p=f.properties;
+      const c = p.centroid || p.center;
+      if(c) regionCenter[p.name] = c;          // [lng,lat]
+      if(p.adcode) provinceAdcode[p.name] = p.adcode;
+    });
+    // 省界矢量（地理锚定，缩放联动）—— N5：静态层，仅在此构建一次，缩放时不重建
+    // V3：省界提亮（颜色更亮、不透明度提高），更清晰可辨
+    L.geoJSON(geo, {
+      pane:'provPane',
+      style:{color:'#cfe0ff', weight:1.1, opacity:.85, fill:false}
+    }).addTo(provBorderLayer);
+    // V3：提高中国疆域边线亮度——单独加载国界轮廓并以高亮描边叠加在最上层
+    buildNationBorder();
+    // N1：主要河域高亮（非重绘水系，沿真实河道发光描边）
+    buildWaterLayer();
+    // N1：构建省名/省会常驻标注（缩放后不消失）
+    buildBaseLabels();
+    // V3：构建国内必去景点常驻点位（全国视图标注）
+    buildMustVisit();
+    GEO_LOADED = true;
+    renderMap();
+    // N4：底图瓦片就绪后再解禁；并预热下一级常用缩放瓦片
+    satLayer.once('load', ()=>{
+      hideLoading();                          // 数据+瓦片就绪，隐藏 Loading 遮罩
+      enableInteraction();                    // N3：解禁全部交互
+      setStatus('准备就绪，点击下方按钮开始随机选取');
+    });
+    // 兜底：8s 内未触发 load 也强制解禁，避免弱网卡死
+    setTimeout(()=>{ if(document.getElementById('loading') && !document.getElementById('loading').classList.contains('hide')){
+      hideLoading(); enableInteraction(); setStatus('准备就绪（部分卫星瓦片仍在加载）'); } }, 8000);
+  })
+  .catch(()=>{
+    setStatus('⚠️ 地图加载失败，请检查网络后刷新页面');
+    const lt=document.querySelector('#loading .ltext');
+    const ls=document.querySelector('#loading .lsub');
+    if(lt) lt.textContent='地图加载失败';
+    if(ls) ls.textContent='请检查网络后刷新页面';
+  });
+
+// 隐藏 Loading 遮罩
+function hideLoading(){
+  const el=document.getElementById('loading');
+  if(el){ el.classList.add('hide'); setTimeout(()=>{ el.style.display='none'; },500); }
+}
+
+/* N3：加载完成前禁用全部交互；就绪后解禁 */
+function disableInteraction(){
+  ['dragging','scrollWheelZoom','touchZoom','doubleClickZoom','boxZoom','keyboard']
+    .forEach(h=>{ if(map[h]) map[h].disable(); });
+  if(map.tap) map.tap.disable();
+  // 控件禁用
+  const btn=document.getElementById('throwBtn'); if(btn) btn.disabled=true;
+  const sel=document.getElementById('departSel'); if(sel) sel.disabled=true;
+  document.querySelectorAll('#tagBox .tag').forEach(t=>t.style.pointerEvents='none');
+}
+function enableInteraction(){
+  ['dragging','scrollWheelZoom','touchZoom','doubleClickZoom','boxZoom','keyboard']
+    .forEach(h=>{ if(map[h]) map[h].enable(); });
+  if(map.tap) map.tap.enable();
+  const btn=document.getElementById('throwBtn'); if(btn) btn.disabled=false;
+  const sel=document.getElementById('departSel'); if(sel) sel.disabled=false;
+  document.querySelectorAll('#tagBox .tag').forEach(t=>t.style.pointerEvents='');
+}
+
+// V2：弱化河域视觉存在感——卫星图本身已清晰呈现水系，此处仅以极淡的细线
+// 作为「主要河域」示意，不再绘制加粗发光的双层水道，避免喧宾夺主；
+// 湖泊弱化为极小的淡色点，且不再叠加文字标注。
+function buildWaterLayer(){
+  waterLayer.clearLayers();
+  RIVERS.forEach(r=>{
+    const latlngs = r.coords.map(c=>[c[1], c[0]]);   // [lng,lat]→[lat,lng]
+    // 单层极淡细线：仅示意主要河域走向，弱化存在感
+    L.polyline(latlngs, {pane:'waterPane', color:'#bfe6f7',
+      weight:1, opacity:.28, lineJoin:'round', lineCap:'round'}).addTo(waterLayer);
+  });
+  LAKES.forEach(k=>{
+    const ll=[k.value[1], k.value[0]];
+    // 湖泊弱化为极小淡点，不再加文字标注
+    L.circleMarker(ll, {pane:'waterPane', radius:2.5, color:'#bfe6f7', weight:0.5,
+      opacity:.35, fillColor:'#9fd0e8', fillOpacity:.30}).addTo(waterLayer);
+  });
+}
+
+// N1：构建「省名 + 省会」常驻标注（地理锚定，缩放放大后不消失）
+let baseLabelsBuilt=false;
+// 省级行政区简称（用于地图标注，更简洁）
+function shortProvName(name){
+  return name
+    .replace(/维吾尔自治区$/,'').replace(/壮族自治区$/,'').replace(/回族自治区$/,'')
+    .replace(/特别行政区$/,'').replace(/自治区$/,'')
+    .replace(/省$/,'').replace(/市$/,'');
+}
+function buildBaseLabels(){
+  baseLabelLayer.clearLayers();
+  // 省名：取各省中心点
+  Object.keys(regionCenter).forEach(name=>{
+    const c=regionCenter[name];   // [lng,lat]
+    L.marker([c[1], c[0]], {interactive:false, icon:L.divIcon({className:'',
+      iconSize:[0,0], iconAnchor:[0,0],
+      html:`<div class="prov-name">${shortProvName(name)}</div>`})
+    }).addTo(baseLabelLayer);
+  });
+  // 省会/首府：呼吸灯圆点 + 城市名（名字按地域方位放在圆点的上/下/左/右，向外侧伸展）
+  Object.keys(CAPITALS).forEach(p=>{
+    const cap=CAPITALS[p];
+    // 以全国地理中心为基准，按省会相对方位决定城市名放置方向（向外侧伸展，减少相互遮挡）
+    const dLng = cap.lng - CHINA_CENTER[1];
+    const dLat = cap.lat - CHINA_CENTER[0];
+    let pos;
+    // 横向跨度按经度展开较广，乘以权重让东/西判断更灵敏；其余归为上/下
+    if(Math.abs(dLng)*1.15 >= Math.abs(dLat)){
+      pos = dLng>=0 ? 'pos-right' : 'pos-left';
+    }else{
+      pos = dLat>=0 ? 'pos-top' : 'pos-bottom';
+    }
+    L.marker([cap.lat, cap.lng], {interactive:false, icon:L.divIcon({className:'',
+      iconSize:[0,0], iconAnchor:[0,0],
+      html:`<div class="cap-mark ${pos}"><span class="cap-dot"></span><span class="cap-name">${cap.city}</span></div>`})
+    }).addTo(baseLabelLayer);
+  });
+  baseLabelsBuilt=true;
+}
+
+// V3：提高中国疆域边线亮度——合并全部省界外轮廓不便，改为用国界专用 GeoJSON
+//      高亮描边（双层：外层柔光 + 内层亮金线），静态仅构建一次。
+function buildNationBorder(){
+  natBorderLayer.clearLayers();
+  fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000.json')
+    .then(r=>r.json())
+    .then(line=>{
+      // 外层柔光：加粗半透明，提升边线存在感
+      L.geoJSON(line, {pane:'natPane',
+        style:{color:'#7fd0ff', weight:5, opacity:.35, fill:false,
+               lineJoin:'round', lineCap:'round'}}).addTo(natBorderLayer);
+      // 内层亮线：醒目高亮，清晰勾勒国界
+      L.geoJSON(line, {pane:'natPane',
+        style:{color:'#eaf6ff', weight:1.8, opacity:.95, fill:false,
+               lineJoin:'round', lineCap:'round'}}).addTo(natBorderLayer);
+    })
+    .catch(()=>{/* 国界轮廓加载失败不影响主流程 */});
+}
+
+// 统一景点点位图标工厂：仅缩小后的定位针 icon（无任何文字标注）。
+// 所有层级（必去景点 / 省级 / 市级）的景点都使用本工厂，外观完全一致。
+function spotIcon(){
+  return L.divIcon({className:'', iconSize:[0,0], iconAnchor:[0,0],
+    html:`<div class="spot-mark"><div class="sp-pin"></div></div>`});
+}
+
+/* 顶层 hover 气泡：跟随鼠标在景点 icon 上方弹出推荐文案。
+   #spotTip 为 body 下的 fixed 元素，z-index 取最大值，永不被地图窗格/侧边栏遮挡。 */
+const spotTip = document.getElementById('spotTip');
+const mapWrap = document.getElementById('mapWrap');
+function showSpotTip(name, city, x, y){
+  document.getElementById('ttName').textContent = name;
+  const cityEl=document.getElementById('ttCity');
+  cityEl.textContent = city||''; cityEl.style.display = city?'block':'none';
+  document.getElementById('ttDesc').textContent = getSpotDesc(name, city);
+  spotTip.style.left = x+'px';
+  spotTip.style.top  = (y-14)+'px';   // 略高于 icon 顶端
+  spotTip.classList.add('show');
+}
+function hideSpotTip(){ spotTip.classList.remove('show'); }
+
+// 省会点位查找：若给定经纬度与某省会圆点足够接近（像素级重叠），返回该省会的精确经纬度，
+// 用于把景点定位 icon「吸附」到省会小圆点上，避免两点错位重叠造成视觉杂乱。
+const CAP_LL = Object.keys(CAPITALS).map(p=>CAPITALS[p]);  // [{city,lng,lat},...]
+function snapToCapital(lat, lng){
+  if(!map) return null;
+  const p = map.latLngToContainerPoint([lat, lng]);
+  let best=null, bestD=Infinity;
+  for(const c of CAP_LL){
+    const cp = map.latLngToContainerPoint([c.lat, c.lng]);
+    const d = Math.hypot(cp.x-p.x, cp.y-p.y);
+    if(d<bestD){ bestD=d; best=c; }
+  }
+  // 阈值 14px：两点在屏幕上基本重叠时才吸附
+  return (best && bestD<=14) ? best : null;
+}
+
+// 创建一个统一的景点标记：定位 icon + hover 顶层气泡 + 点击展开侧边栏详情。
+function makeSpotMarker(lat, lng, name, city, pane){
+  // 与省会点位重叠时，将景点定位锚定到省会小圆点的精确位置（两点对齐，避免错位重叠）
+  const snap = snapToCapital(lat, lng);
+  if(snap){ lat = snap.lat; lng = snap.lng; }
+  const opts = {icon:spotIcon()};
+  if(pane) opts.pane = pane;
+  const mk = L.marker([lat, lng], opts);
+  mk.spotName = name; mk.spotCity = city||'';
+  mk.on('mouseover', ()=>{
+    const p = map.latLngToContainerPoint([lat, lng]);
+    const rect = mapWrap.getBoundingClientRect();
+    showSpotTip(name, city, rect.left + p.x, rect.top + p.y);
+  });
+  mk.on('mouseout', hideSpotTip);
+  mk.on('click', ()=>{ hideSpotTip(); openSpotPanel(name, city); });
+  return mk;
+}
+
+/* =========================================================================
+ *  景点详情侧边栏：点击景点 icon 后从右侧展开（与历史抽屉统一方向），展示完整信息 + 对应图片。
+ *  图片采用自包含的主题化 SVG 横幅（按景点名生成稳定配色与地标图标），
+ *  无需任何外部图片依赖，保证离线/弱网下也必定有「对应图片」展示。
+ * ========================================================================= */
+const spotPanel = document.getElementById('spotPanel');
+// 景点 → 代表性 emoji 图标（用于图片横幅，未收录回退到通用山水图标）
+const SPOT_EMOJI = {
+  "故宫":"🏯","八达岭长城":"🧱","兵马俑":"🗿","西湖":"🌊","黄山":"⛰️","张家界":"🏔️",
+  "九寨沟":"💧","布达拉宫":"🏛️","漓江":"🚣","丽江古城":"🏘️","泰山":"🌄","鼓浪屿":"🏝️",
+  "莫高窟":"🕍","天涯海角":"🏖️","黄果树瀑布":"🌊","乐山大佛":"🗿","峨眉山":"⛰️",
+  "少林寺":"🥋","龙门石窟":"🗿","武当山":"⛩️","华山":"🏔️","黄鹤楼":"🏯",
+  "凤凰古城":"🏘️","乌镇":"🛶","周庄古镇":"🛶","土楼":"🏯","武夷山":"🍵"
+};
+function spotEmoji(name){
+  if(SPOT_EMOJI[name]) return SPOT_EMOJI[name];
+  if(/寺|庙|宫|塔|楼|阁/.test(name)) return "🏯";
+  if(/山|峰|岭/.test(name)) return "⛰️";
+  if(/湖|江|河|泉|瀑|海|湾|岛/.test(name)) return "🌊";
+  if(/古城|古镇|寨|村|街/.test(name)) return "🏘️";
+  if(/窟|石刻|俑/.test(name)) return "🗿";
+  return "🏞️";
+}
+// 风景名胜元信息：依据景点名特征推断「类型 / 适宜季节 / 建议时长 / 资源级别 / 看点」，
+// 全部为本地规则推断，无外部依赖，保证离线也必有「风景名胜」结构化内容。
+function spotScenic(name){
+  let type='综合景区';
+  if(/寺|庙|宫|塔|楼|阁|陵|庵|观/.test(name)) type='人文古迹';
+  else if(/山|峰|岭|岩|崖/.test(name)) type='名山胜境';
+  else if(/湖|江|河|泉|瀑|海|湾|岛|溪|潭/.test(name)) type='山水湖海';
+  else if(/古城|古镇|寨|村|街|坊/.test(name)) type='古城古镇';
+  else if(/窟|石刻|俑|碑/.test(name)) type='石窟石刻';
+  let season='四季皆宜，春秋出游体验更佳', hours='半天';
+  if(type==='名山胜境'){ season='春花夏凉秋叶冬雪，9-11 月云海最佳'; hours='1 天（含登山缆车）'; }
+  else if(type==='山水湖海'){ season='丰水期（4-10 月）水势壮观，景色更灵动'; hours='半天至 1 天'; }
+  else if(type==='古城古镇'){ season='清晨与夜晚人少景美，避开节假日高峰'; hours='半天至 1 天（含夜景）'; }
+  else if(type==='人文古迹'||type==='石窟石刻'){ season='春秋两季气候宜人，宜请讲解深度游览'; }
+  const famous = SPOT_EMOJI.hasOwnProperty(name) || /长城|故宫|兵马俑|布达拉宫|莫高窟|黄山|泰山|九寨沟/.test(name);
+  const level = famous ? '5A 级 / 世界级名胜' : '知名景区 / 地方名胜';
+  const highlights = {
+    '人文古迹':['古建格局与历史脉络','匾额楹联与雕饰细节','登高远眺的城景视野'],
+    '名山胜境':['日出云海与奇峰怪石','栈道索道的临崖体验','四季更替的山林景致'],
+    '山水湖海':['碧水倒影与沿岸风光','泛舟/竹筏的水上视角','日落与水雾的光影'],
+    '古城古镇':['青石巷弄与水乡格局','夜景灯火与市井烟火','地方民俗与特色小吃'],
+    '石窟石刻':['造像规模与雕刻工艺','宗教艺术的历史价值','石壁题记与岁月痕迹'],
+    '综合景区':['标志性景观打卡','自然与人文的融合','适合全家慢游休闲']
+  }[type];
+  return {type, season, hours, level, highlights};
+}
+// 抽屉互斥管理：同一时间最多只允许一个抽屉处于打开状态。
+// 打开任一抽屉前，先关闭其它所有抽屉，避免两个面板同时占据右侧。
+function closeAllDrawers(except){
+  ['spotPanel','drawer'].forEach(id=>{
+    if(id===except) return;
+    const el=document.getElementById(id);
+    if(el) el.classList.remove('open');
+  });
+}
+// 打开侧边栏并填充某景点的完整信息 + 图片
+function openSpotPanel(name, city){
+  closeAllDrawers('spotPanel');            // 互斥：先关闭历史抽屉
+  const body=document.getElementById('spotPanelBody');
+  const desc=getSpotDesc(name, city);
+  const sc=spotScenic(name);
+  const emo=spotEmoji(name);
+  const tipsHtml = [
+    '🎟️ 建议提前在线查询门票与开放时间，错峰出行',
+    '📷 选择清晨或傍晚光线柔和时段，取景更佳',
+    '👟 穿着舒适鞋履，预留充足游览时间'
+  ].map(t=>`<li>${t}</li>`).join('');
+  // 风景名胜·看点列表
+  const hlHtml = sc.highlights.map(h=>`<li>· ${h}</li>`).join('');
+  // 景区真实照片：始终使用维基共享资源实拍图（spotRealPhoto 保证返回真实照片 URL，绝不返回 SVG/图标）
+  const real = spotRealPhoto(name);
+  body.innerHTML =
+    `<img class="sp-photo" src="${real}" alt="${name}" loading="lazy" onerror="this.onerror=null;this.src='${FALLBACK_PHOTO}';" />
+     <div class="sp-photo-cap">
+       <div class="pc-city">${city?('📍 '+city):'📍 国内必去景点'}</div>
+       <div class="pc-name">${emo} ${name}</div>
+       <div class="pc-en">${sc.type} · ${sc.level}</div>
+     </div>
+     <div class="sp-sec">
+       <h4>🏞️ 景区实拍</h4>
+       <div class="sp-gallery"><img src="${real}" alt="${name} 实拍" loading="lazy" onerror="this.onerror=null;this.src='${FALLBACK_PHOTO}';" /></div>
+     </div>
+     <div class="sp-sec">
+       <h4>🗺️ 风景名胜</h4>
+       <div class="sp-chips">
+         <span class="chip">类型 <b>${sc.type}</b></span>
+         <span class="chip">级别 <b>${sc.level}</b></span>
+         <span class="chip">建议时长 <b>${sc.hours}</b></span>
+       </div>
+       <div class="sp-grid" style="margin-top:8px;">
+         <div class="gi"><div class="k">🌤️ 最佳季节</div><div class="v">${sc.season}</div></div>
+         <div class="gi"><div class="k">⏱️ 游览时长</div><div class="v">${sc.hours}</div></div>
+       </div>
+       <ul style="margin-top:8px;">${hlHtml}</ul>
+     </div>
+     <div class="sp-sec"><h4>✨ 景点推荐</h4><p>${desc}</p></div>
+     <div class="sp-sec"><h4>🧭 游玩贴士</h4><ul>${tipsHtml}</ul></div>`;
+  spotPanel.classList.add('open');
+}
+document.getElementById('spotPanelClose').onclick=()=>spotPanel.classList.remove('open');
+
+// V3：构建国内必去景点常驻点位（统一缩小定位 icon + hover 气泡 + 点击侧边栏，仅全国视图显示）
+function buildMustVisit(){
+  mustLayer.clearLayers();
+  MUST_VISIT.forEach(m=>{
+    makeSpotMarker(m.lat, m.lng, m.name, m.city||'', 'mustPane').addTo(mustLayer);
+  });
+}
+
+// 按需加载某省的「地级市」边界（官方数据），返回其地级市中心点列表 + GeoJSON
+async function loadProvinceCities(province){
+  if(cityGeoCache[province]) return cityGeoCache[province];
+  const adcode = provinceAdcode[province];
+  if(!adcode) return {cities:[], geo:null};
+  const url=`https://geo.datav.aliyun.com/areas_v3/bound/${adcode}_full.json`;
+  const geo = await fetch(url).then(r=>r.json());
+  const cities = geo.features
+    .filter(f=>f.properties.name)
+    .map(f=>{
+      const c=f.properties.centroid||f.properties.center;
+      return c ? {name:f.properties.name, lng:c[0], lat:c[1]} : null;
+    })
+    .filter(Boolean);
+  cityGeoCache[province] = {cities, geo};
+  return cityGeoCache[province];
+}
+
+let highlightProvince = null;   // 当前高亮的命中省份
+let highlightGeo = null;        // 命中省份的 GeoJSON（用于描边高亮）
+let cityMarks = [];             // 城市标记点（终点城市）[{name,value:[lng,lat]}]
+let cityBorderGeo = null;       // 命中省的地级市边界 GeoJSON（S3：放大后清晰）
+let viewMode = 'china';         // 'china' 全国视图 | 'province' 省内下钻视图
+let labelMarks = [];            // 当前层级的行政标注点（省会/地级市）
+
+// 文本标注 divIcon 工厂
+function textIcon(text, cls){
+  return L.divIcon({className:'', iconSize:[0,0], iconAnchor:[0,0],
+    html:`<div class="map-label ${cls||''}" style="transform:translate(8px,-7px)">${text}</div>`});
+}
+
+// 行政标注渲染：全国视图原样显示；省内视图按“优先级 + 像素碰撞检测”动态稀释，
+// 放大空间不足时仅显示少数核心城市（省会优先），放大到能放下时再逐步显现更多。
+function renderCityLabels(){
+  labelLayer.clearLayers();
+  if(!map) return;
+  if(viewMode==='china'){
+    // 全国视图：省会/主要城市标注，数量有限不做碰撞处理
+    labelMarks.forEach(m=>{
+      L.marker([m.value[1], m.value[0]], {interactive:false,
+        icon:textIcon(m.name, '')}).addTo(labelLayer);
+    });
+    return;
+  }
+  // 省内视图：按优先级排序后做贪心碰撞放置
+  const cap = highlightProvince && CAPITALS[highlightProvince] ? CAPITALS[highlightProvince].city : '';
+  const sorted = labelMarks.map((m,i)=>{
+    // 省会优先级最高，其余按原始顺序（多为面积/中心权重）次之
+    let pr = 1;
+    if(cap && (m.name===cap || m.name.indexOf(cap)>=0 || cap.indexOf(m.name)>=0)) pr = 0;
+    return {m, pr, i};
+  }).sort((a,b)=> a.pr-b.pr || a.i-b.i);
+
+  const placed = [];                       // 已放置标签的像素包围盒
+  const PAD_X = 4, PAD_Y = 3;              // 包围盒外扩，避免贴边
+  sorted.forEach(({m})=>{
+    const p = map.latLngToContainerPoint([m.value[1], m.value[0]]);
+    // 估算文本像素尺寸：城市名 12px 字号，单字约 12px 宽
+    const w = m.name.length * 12 + 8, h = 16;
+    // 标签锚点：icon 右侧偏移 translate(8,-7)
+    const box = {x1:p.x+8-PAD_X, y1:p.y-7-PAD_Y, x2:p.x+8+w+PAD_X, y2:p.y-7+h+PAD_Y};
+    const hit = placed.some(b=> !(box.x2<b.x1 || box.x1>b.x2 || box.y2<b.y1 || box.y1>b.y2));
+    if(hit) return;                        // 与已放置标签重叠 → 本级不显示，留待放大后再现
+    placed.push(box);
+    L.marker([m.value[1], m.value[0]], {interactive:false,
+      icon:textIcon(m.name, 'city')}).addTo(labelLayer);
+  });
+}
+
+// 渲染地图：根据当前全局状态重建各动态矢量/标注图层（Leaflet 原生缩放联动）
+function renderMap(){
+  if(!map) return;
+  // 1) 河流/湖泊 + 必去景点：仅全国视图显示（下钻后避免遮挡卫星细节与城市标注）
+  if(viewMode==='china'){
+    if(!map.hasLayer(waterLayer)) waterLayer.addTo(map);
+    if(!map.hasLayer(mustLayer))  mustLayer.addTo(map);
+  }else{
+    map.removeLayer(waterLayer);
+    map.removeLayer(mustLayer);
+  }
+
+  // 2) S3：命中省的地级市界（放大后清晰可辨识）
+  cityBorderLayer.clearLayers();
+  if(cityBorderGeo){
+    L.geoJSON(cityBorderGeo, {pane:'cityPane',
+      style:{color:'#ffe7b0', weight:1.4, opacity:.95, fill:false}}).addTo(cityBorderLayer);
+  }
+
+  // 3) 命中省份高亮描边
+  highlightLayer.clearLayers();
+  if(highlightProvince && highlightGeo){
+    L.geoJSON(highlightGeo, {pane:'provPane',
+      style:{color:'#ff8a3d', weight:2.4, opacity:1,
+             fill:true, fillColor:'#ff8a3d', fillOpacity:.12}}).addTo(highlightLayer);
+  }
+
+  // 4) 行政标注（省会/主要城市 或 地级市名）——省内视图按优先级+像素碰撞动态稀释
+  renderCityLabels();
+
+  // 5) 旅游点位（统一缩小定位 icon + hover 顶层气泡 + 点击侧边栏）+ 市级连线
+  attractionLayer.clearLayers();
+  if(attractionLinks.length>1){
+    L.polyline(attractionLinks.map(c=>[c[1],c[0]]), {color:'#ff7a90', weight:2,
+      opacity:.9, dashArray:'6 5'}).addTo(attractionLayer);
+  }
+  attractionMarks.forEach(a=>{
+    makeSpotMarker(a.value[1], a.value[0], a.name, a.city||'').addTo(attractionLayer);
+  });
+
+  // 6) 终点城市高亮
+  targetLayer.clearLayers();
+  cityMarks.forEach(c=>{
+    L.marker([c.value[1], c.value[0]], {interactive:false, icon:L.divIcon({
+      className:'', iconSize:[0,0], iconAnchor:[0,0],
+      html:`<div class="city-target" style="transform:translate(-7px,-7px)"><div class="dot"></div><div class="txt">${c.name}</div></div>`})
+    }).addTo(targetLayer);
+  });
+}
+
+// 地图缩放/平移动画：Leaflet 原生 flyTo（卫星瓦片与所有矢量层同步缩放）
+// targetZoom 为 Leaflet 缩放级别；targetCenter 为 [lng,lat]；dur 毫秒
+function animateZoom(targetZoom, targetCenter, dur=1000){
+  return new Promise(resolve=>{
+    const ll=[targetCenter[1], targetCenter[0]];
+    map.flyTo(ll, targetZoom, {duration: dur/1000, easeLinearity:.25});
+    map.once('moveend', ()=>resolve());
+  });
+}
+window.addEventListener('resize',()=>map.invalidateSize());
+
+// 地图平移/缩放时关闭可能残留的 hover 气泡，避免气泡停留在错误位置
+map.on('movestart zoomstart', hideSpotTip);
+
+// 缩放/平移结束后重排地级市标注：放大空间变大时显现更多城市，缩小时再次稀释
+map.on('zoomend moveend', ()=>{ if(viewMode==='province') renderCityLabels(); });
+
+/* =========================================================================
+ *  飞机飞行动画系统（简化版）：滑行 → 盘旋 → 飞行 → 降落
+ *  —— 机头始终对齐运动方向；全程地理锚定，地图拖拽/缩放时飞机贴合航迹。
+ * ========================================================================= */
+const dart = document.getElementById('dart');
+const dartSvg = dart.querySelector('svg');
+const impact = document.getElementById('impact');
+const trail = document.getElementById('trail');
+
+// 飞机状态
+const plane = {x:0, y:0, lng:0, lat:0, heading:0, alt:0,
+               liftPx:0, bank:0, scale:0.5, visible:false, geoLocked:false};
+const CRUISE_LIFT = 90;
+
+function setAltShadow(h){
+  const dy=4+12*h, blur=4+10*h, op=0.4-0.15*h;
+  dartSvg.style.filter=`drop-shadow(0 ${dy.toFixed(1)}px ${blur.toFixed(1)}px rgba(0,0,0,${op.toFixed(2)}))`;
+}
+function placePlane(x,y,heading,bank,scaleBase){
+  const sc=(scaleBase!=null?scaleBase:0.5)*(0.85+0.3*plane.alt);
+  plane.x=x; plane.y=y; plane.heading=heading;
+  const rx=Math.round(x), ry=Math.round(y);
+  dart.style.left=rx+'px'; dart.style.top=ry+'px';
+  dart.style.transform=`translate3d(-50%,-50%,0) rotateZ(${heading.toFixed(2)}deg) rotateY(${(bank||0).toFixed(2)}deg) scale(${sc.toFixed(3)})`;
+  setAltShadow(plane.alt);
+}
+function drawPlane(){
+  const base=geoToPixel(plane.lng,plane.lat);
+  placePlane(base.x,base.y-plane.liftPx,plane.heading,plane.bank,plane.scale);
+}
+function lerpAngle(a,b,t){
+  let d=b-a; while(d>180)d-=360; while(d<-180)d+=360;
+  return a+d*t;
+}
+function geoToPixel(lng,lat){
+  const p=map.latLngToContainerPoint([lat,lng]);
+  return {x:p.x, y:p.y};
+}
+function clampPixelToChina(px,py){
+  const ll=map.containerPointToLatLng([px,py]);
+  const sw=CHINA_BOUNDS.getSouthWest(), ne=CHINA_BOUNDS.getNorthEast();
+  const pad=0.4;
+  const lat=Math.max(sw.lat+pad,Math.min(ne.lat-pad,ll.lat));
+  const lng=Math.max(sw.lng+pad,Math.min(ne.lng-pad,ll.lng));
+  return geoToPixel(lng,lat);
+}
+// 地图移动时重绘飞机
+map.on('move zoom zoomanim',()=>{ if(plane.visible&&plane.geoLocked) drawPlane(); });
+
+let trailTimer=null;
+function spawnTrail(x,y){
+  const t=trail.cloneNode(); t.id=''; t.style.cssText=trail.style.cssText;
+  t.style.left=x+'px'; t.style.top=y+'px'; t.style.display='block';
+  t.style.animation='puff .8s ease-out forwards';
+  mapWrap.appendChild(t);
+  setTimeout(()=>t.remove(),800);
+}
+
+// 飞行：从当前地理坐标沿贝塞尔弧线飞向目标
+function flyPlane(tLng,tLat,opts={}){
+  return new Promise(resolve=>{
+    const sLng=plane.lng, sLat=plane.lat;
+    const dur=opts.dur||2000, t0=performance.now();
+    const arc=opts.arc!=null?opts.arc:60;
+    const route=opts.route;
+    plane.geoLocked=true; plane.visible=true;
+    dart.style.display='block';
+    const sp0=geoToPixel(sLng,sLat), tp0=geoToPixel(tLng,tLat);
+    let cpx,cpy;
+    if(route==='ns'){ cpx=sp0.x; cpy=tp0.y-arc*0.4; }
+    else{ cpx=(sp0.x+tp0.x)/2; cpy=(sp0.y+tp0.y)/2-arc; }
+    const cpC=clampPixelToChina(cpx,cpy);
+    const ctrlLL=map.containerPointToLatLng([cpC.x,cpC.y]);
+    let prevX=plane.x, prevY=plane.y, puffAcc=0, lastH=plane.heading, hInit=false;
+    function frame(now){
+      let k=(now-t0)/dur; if(k>1)k=1;
+      const e=0.5-0.5*Math.cos(Math.PI*k);
+      const sp=geoToPixel(sLng,sLat), tp=geoToPixel(tLng,tLat), cp=geoToPixel(ctrlLL.lng,ctrlLL.lat);
+      const u=1-e;
+      const gx=u*u*sp.x+2*u*e*cp.x+e*e*tp.x;
+      const gy=u*u*sp.y+2*u*e*cp.y+e*e*tp.y;
+      const tx=2*u*(cp.x-sp.x)+2*e*(tp.x-cp.x);
+      const ty=2*u*(cp.y-sp.y)+2*e*(tp.y-cp.y);
+      const rawH=Math.atan2(ty,tx)*180/Math.PI+90;
+      const heading=hInit?lerpAngle(lastH,rawH,0.2):rawH;
+      let dh=heading-lastH; while(dh>180)dh-=360; while(dh<-180)dh+=360;
+      const bank=Math.max(-15,Math.min(15,dh*8));
+      lastH=heading; hInit=true;
+      const lift=CRUISE_LIFT;
+      const x=gx, y=gy-lift;
+      const gll=map.containerPointToLatLng([gx,gy]);
+      plane.lng=gll.lng; plane.lat=gll.lat; plane.liftPx=lift; plane.alt=1;
+      plane.heading=heading; plane.bank=bank; plane.scale=0.55;
+      placePlane(x,y,heading,bank,0.55);
+      puffAcc+=Math.hypot(x-prevX,y-prevY);
+      if(puffAcc>26){ spawnTrail(prevX,prevY); puffAcc=0; }
+      prevX=x; prevY=y;
+      if(k<1) requestAnimationFrame(frame); else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+// 起飞：滑跑→抬轮→爬升
+function takeoff(gLng,gLat,opts={}){
+  return new Promise(resolve=>{
+    const dur=opts.dur||2000, t0=performance.now();
+    plane.geoLocked=true; plane.visible=true;
+    dart.style.display='block';
+    const g0=geoToPixel(gLng,gLat);
+    let hdg=plane.heading||0;
+    if(opts.toLng!=null&&opts.toLat!=null){
+      const tp=geoToPixel(opts.toLng,opts.toLat);
+      hdg=Math.atan2(tp.y-g0.y,tp.x-g0.x)*180/Math.PI+90;
+    }
+    const startH=plane.heading||hdg;
+    const hRad=hdg*Math.PI/180;
+    const fx=Math.sin(hRad), fy=-Math.cos(hRad);
+    const ROLL=60, CLIMB_FWD=80;
+    let prevX=g0.x, prevY=g0.y, puffAcc=0;
+    function frame(now){
+      let k=(now-t0)/dur; if(k>1)k=1;
+      let fwd, lift, scale;
+      const ROLLP=0.34;
+      if(k<ROLLP){
+        const t1=k/ROLLP, acc=t1*t1;
+        fwd=ROLL*acc; lift=0; scale=0.42+0.06*t1;
+      }else{
+        const t2=(k-ROLLP)/(1-ROLLP), s=t2*t2*(3-2*t2);
+        fwd=ROLL+CLIMB_FWD*s; lift=CRUISE_LIFT*s; scale=0.48+0.12*s;
+      }
+      const heading=lerpAngle(startH,hdg,Math.min(1,k/0.18));
+      const g=geoToPixel(gLng,gLat);
+      const groundX=g.x+fx*fwd, groundY=g.y+fy*fwd;
+      const x=groundX, y=groundY-lift;
+      const gll=map.containerPointToLatLng([groundX,groundY]);
+      plane.lng=gll.lng; plane.lat=gll.lat; plane.liftPx=lift;
+      plane.alt=lift/CRUISE_LIFT; plane.heading=heading; plane.bank=0; plane.scale=scale;
+      placePlane(x,y,heading,0,scale);
+      puffAcc+=Math.hypot(x-prevX,y-prevY);
+      if(puffAcc>16){ spawnTrail(prevX,prevY+(lift>4?0:8)); puffAcc=0; }
+      prevX=x; prevY=y;
+      if(k<1) requestAnimationFrame(frame); else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+// 降落：巡航高度沿进近方向下降，带拉平收沉
+function land(tLng,tLat,opts={}){
+  return new Promise(resolve=>{
+    const sLng=plane.lng, sLat=plane.lat, dur=opts.dur||1800, t0=performance.now();
+    const startH=plane.heading, startBank=plane.bank;
+    plane.geoLocked=true; plane.visible=true;
+    dart.style.display='block';
+    let prevX=plane.x, prevY=plane.y, puffAcc=0;
+    function frame(now){
+      let k=(now-t0)/dur; if(k>1)k=1;
+      const e=k*k*(3-2*k);
+      const lng=sLng+(tLng-sLng)*e, lat=sLat+(tLat-sLat)*e;
+      const sp=geoToPixel(sLng,sLat), tp=geoToPixel(tLng,tLat);
+      const g=geoToPixel(lng,lat);
+      const approachH=Math.atan2(tp.y-sp.y,tp.x-sp.x)*180/Math.PI+90;
+      const heading=lerpAngle(startH,approachH,Math.min(1,k/0.4));
+      const flare=1-Math.pow(1-k,3);
+      const lift=CRUISE_LIFT*(1-flare);
+      const bank=(1-Math.min(1,k*2))*startBank*0.5;
+      const x=g.x, y=g.y-lift;
+      plane.lng=lng; plane.lat=lat; plane.heading=heading; plane.bank=bank;
+      plane.liftPx=lift; plane.alt=1-flare; plane.scale=0.55-0.12*e;
+      placePlane(x,y,heading,bank,plane.scale);
+      puffAcc+=Math.hypot(x-prevX,y-prevY);
+      if(puffAcc>26){ spawnTrail(prevX,prevY); puffAcc=0; }
+      prevX=x; prevY=y;
+      if(k<1) requestAnimationFrame(frame);
+      else{
+        const tp2=geoToPixel(tLng,tLat);
+        plane.liftPx=0; plane.alt=0;
+        showImpact(tp2.x,tp2.y);
+        if(navigator.vibrate) navigator.vibrate(40);
+        setTimeout(()=>resolve(),220);
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+// 盘旋：绕地理锚定圆心做匀速椭圆绕飞
+function circle(cx,cy,opts={}){
+  return new Promise(resolve=>{
+    const R=opts.r||90, loops=opts.loops||1, dur=opts.dur||1700, t0=performance.now();
+    const centerLL=map.containerPointToLatLng([cx,cy]);
+    const startGround={x:plane.x, y:plane.y+CRUISE_LIFT};
+    const a0=Math.atan2((startGround.y-cy)/0.6, startGround.x-cx);
+    const blendP=0.16;
+    plane.geoLocked=true; plane.visible=true;
+    dart.style.display='block';
+    const p=0.18;
+    function angFrac(k){
+      if(k<p) return (k*k)/(2*p)/(1-p);
+      if(k>1-p){ const q=1-k; return 1-(q*q)/(2*p)/(1-p); }
+      return (k-p/2)/(1-p);
+    }
+    let prevX=plane.x, prevY=plane.y, puffAcc=0, lastH=plane.heading, hInit=false;
+    function frame(now){
+      let k=(now-t0)/dur; if(k>1)k=1;
+      const ang=a0+loops*2*Math.PI*angFrac(k);
+      const c=geoToPixel(centerLL.lng,centerLL.lat);
+      const ox=c.x+R*Math.cos(ang), oy=c.y+R*Math.sin(ang)*0.6;
+      const blend=Math.min(1,k/blendP);
+      const gx=blend>=1?ox:startGround.x+(ox-startGround.x)*blend;
+      const gy=blend>=1?oy:startGround.y+(oy-startGround.y)*blend;
+      const dir=loops>=0?1:-1;
+      const rawH=Math.atan2(dir*0.6*Math.cos(ang),dir*(-Math.sin(ang)))*180/Math.PI+90;
+      const heading=hInit?lerpAngle(lastH,rawH,0.25):rawH; lastH=heading; hInit=true;
+      const bank=14*Math.min(1,k/0.14)*Math.min(1,(1-k)/0.14);
+      const lift=CRUISE_LIFT;
+      const x=gx, y=gy-lift;
+      const gll=map.containerPointToLatLng([gx,gy]);
+      plane.lng=gll.lng; plane.lat=gll.lat; plane.liftPx=lift; plane.alt=1;
+      plane.heading=heading; plane.bank=bank; plane.scale=0.58;
+      placePlane(x,y,heading,bank,0.58);
+      puffAcc+=Math.hypot(x-prevX,y-prevY);
+      if(puffAcc>26){ spawnTrail(prevX,prevY); puffAcc=0; }
+      prevX=x; prevY=y;
+      if(k<1) requestAnimationFrame(frame); else resolve({x:gx,y:gy,ang});
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+function showImpact(x,y){
+  impact.style.left=x+'px'; impact.style.top=y+'px';
+  impact.style.display='block'; impact.classList.remove('ring');
+  void impact.offsetWidth;
+  impact.classList.add('ring');
+  setTimeout(()=>impact.style.display='none',600);
+}
+
+function hidePlane(){ plane.visible=false; plane.geoLocked=false; dart.style.display='none'; }
+
+/* =========================================================================
+ *  筛选 UI：按国家标准「地理大区」筛选省份（行政区划，非景点标签）
+ * ========================================================================= */
+const tagBox = document.getElementById('tagBox');
+const selectedTags = new Set();
+REGIONS.forEach(t=>{
+  const el = document.createElement('div');
+  el.className='tag'; el.textContent=t;
+  el.onclick=()=>{
+    if(selectedTags.has(t)){selectedTags.delete(t);el.classList.remove('on');}
+    else{selectedTags.add(t);el.classList.add('on');}
+  };
+  tagBox.appendChild(el);
+});
+
+// 获取符合所选地理大区、且坐标已知的省份列表（未选 = 全部）
+function eligibleProvinces(){
+  return Object.keys(CAPITALS).filter(p=>{
+    if(!regionCenter[p]) return false;               // 必须存在官方边界数据
+    if(selectedTags.size===0) return true;           // 未选大区 = 全国
+    return selectedTags.has(REGION_OF[p]);           // 命中所选地理大区
+  });
+}
+
+// 构建全国视图的行政标注点：所有省会/主要城市
+function buildNationLabels(){
+  return Object.keys(CAPITALS).map(p=>{
+    const c=CAPITALS[p];
+    return {name:c.city, value:[c.lng, c.lat]};
+  });
+}
+
+/* =========================================================================
+ *  出发地选择：默认「北京」，支持改为任意省会/主要城市作为出发地点
+ * ========================================================================= */
+const departSel = document.getElementById('departSel');
+// 以省会/主要城市作为可选出发地（官方行政中心），按名称填充下拉
+const DEPARTS = Object.keys(CAPITALS).map(p=>CAPITALS[p]);
+DEPARTS.sort((a,b)=>a.city.localeCompare(b.city,'zh'));
+DEPARTS.forEach(c=>{
+  const o=document.createElement('option');
+  o.value=c.city; o.textContent=c.city; departSel.appendChild(o);
+});
+departSel.value='北京';                 // 默认出发地：北京
+function getDepart(){
+  return DEPARTS.find(c=>c.city===departSel.value) || {city:'北京',lng:116.405,lat:39.905};
+}
+
+/* =========================================================================
+ *  主流程：飞机从出发地滑行起飞 → 盘旋 → 选中省份 → 飞向并降落省份
+ *          → 地图放大 → 飞机从省会起飞 → 盘旋 → 选中城市 → 降落城市
+ * ========================================================================= */
+const btn = document.getElementById('throwBtn');
+const statusEl = document.getElementById('status');
+const d1=document.getElementById('d1'), d2=document.getElementById('d2');
+const resultBox=document.getElementById('result');
+
+function setStatus(s){ statusEl.innerHTML=s; }
+
+btn.onclick = async ()=>{
+  if(!GEO_LOADED){ setStatus('地图尚未加载完成，请稍候…'); return; }
+
+  // 1. 计算符合所选地理大区的候选省份
+  const provs = eligibleProvinces();
+  if(provs.length===0){ setStatus('😕 当前地理大区下没有候选省份，请调整筛选'); return; }
+
+  // 重置 UI：回到全国视图，标注省份 + 省会/主要城市
+  btn.disabled=true; resultBox.style.display='none';
+  viewMode='china';
+  highlightProvince=null; highlightGeo=null; cityBorderGeo=null; cityMarks=[];
+  attractionMarks=[]; attractionLinks=[];          // 清空上一轮旅游点位与连线
+  labelMarks = [];                                   // 省名/省会已由常驻标注层显示，此处仅留地级市动态标注
+  map.setView(CHINA_CENTER, CHINA_ZOOM);            // 复位卫星图到全国视图
+  renderMap();
+  hidePlane();                                       // 重置飞机
+  d1.classList.remove('active'); d2.classList.remove('active');
+  await wait(300);
+
+  // 2. 先随机选取省份和城市（在飞机盘旋阶段完成选取逻辑，选中后飞机落地）
+  const province = provs[Math.floor(Math.random()*provs.length)];
+  const pc = regionCenter[province];                 // 省份官方中心（陆地）
+  const depart = getDepart();                        // 出发地（默认北京，可配置）
+
+  // 预加载该省地级市官方边界（与飞机起飞并行）
+  let cityInfo;
+  try{ cityInfo = await loadProvinceCities(province); }
+  catch(e){ cityInfo=null; }
+
+  /* ====== 阶段 1·飞机从出发城市起飞 ====== */
+  const departPix = geoToPixel(depart.lng, depart.lat);
+  plane.lng=depart.lng; plane.lat=depart.lat;
+  plane.x=departPix.x; plane.y=departPix.y;
+  plane.alt=0; plane.liftPx=0; plane.heading=0;
+  plane.visible=true; plane.geoLocked=true;
+  setStatus('🛫 飞机从 <b style=”color:#ffcc33”>'+depart.city+'</b> 滑行起飞…');
+  showImpact(departPix.x, departPix.y);
+  // 起飞航向朝向地图中心
+  const rect=mapWrap.getBoundingClientRect();
+  const mapCx=rect.width/2, mapCy=rect.height/2;
+  const ctrLL=map.containerPointToLatLng([mapCx,mapCy]);
+  await takeoff(depart.lng, depart.lat, {toLng:ctrLL.lng, toLat:ctrLL.lat, dur:2200});
+
+  /* ====== 阶段 2·飞机在全国视图上空盘旋（此时选取结果已确定但尚未展示） ====== */
+  setStatus('🌀 飞机正在上空盘旋，搜索目的地中…');
+  const mapR=Math.min(rect.width,rect.height)*0.28;
+  await circle(mapCx, mapCy, {r:mapR, loops:0.6, dur:3500});
+
+  /* ====== 阶段 3·飞机飞向选中省份并降落 ====== */
+  setStatus('🛬 选中 <b style=”color:#ffcc33”>'+province+'</b>，飞机正在降落…');
+  await flyPlane(pc[0], pc[1], {dur:5000, arc:70, route:'ns'});
+  await land(pc[0], pc[1], {dur:1800});
+
+  // 高亮命中省份
+  highlightProvince = province; highlightGeo = provinceFeature(province); renderMap();
+  d1.classList.add('active');
+  setStatus('✅ 已定位 <b style=”color:#ffcc33”>'+province+'</b>，正在加载地级行政区…');
+
+  await wait(600);
+
+  /* ====== 丝滑过渡放大：Leaflet 原生 flyTo ====== */
+  setStatus('🔍 放大地图，进入 <b style=”color:#ffcc33”>'+province+'</b>…');
+  if(cityInfo && cityInfo.geo){ cityBorderGeo = cityInfo.geo; renderMap(); }
+  await animateZoom(6, pc, 1600);        // 省级层级（卫星图同步放大）
+
+  // 在放大的卫星图上叠加该省地级市标注 + 全省旅游胜地。
+  if(cityInfo && cityInfo.cities.length){
+    labelMarks = cityInfo.cities.map(c=>({name:c.name, value:[c.lng,c.lat]}));
+    attractionMarks = provinceAttractionMarks(province);  // 省份层级：全省旅游胜地
+    attractionLinks = [];                                 // 省份层级不连线
+    renderMap();
+    if(attractionMarks.length){
+      setStatus('🗺️ <b style=”color:#ff5d73”>'+province+'</b> 共标注 '+attractionMarks.length+' 处旅游胜地');
+    }
+  }
+  await wait(800);
+
+  /* ====== 4. 随机选取城市，飞机从省会起飞→盘旋→降落城市 ====== */
+  const cap = CAPITALS[province];                     // 省会/首府（官方行政中心）
+  const provAttr = ATTRACTIONS[province]||[];
+  const attrCities = [...new Set(provAttr.map(a=>a.city))];
+  const geoCities = (cityInfo && cityInfo.cities.length) ? cityInfo.cities : [cap];
+  let city;
+  if(attrCities.length){
+    const pickName = attrCities[Math.floor(Math.random()*attrCities.length)];
+    city = geoCities.find(c=>c.name===pickName)
+        || {name:pickName, ...(provAttr.find(a=>a.city===pickName))};
+  }else{
+    city = geoCities[Math.floor(Math.random()*geoCities.length)];
+  }
+
+  // 飞机从省会起飞 → 省内盘旋 → 降落选中城市
+  const capPix = geoToPixel(cap.lng, cap.lat);
+  plane.lng=cap.lng; plane.lat=cap.lat;
+  plane.x=capPix.x; plane.y=capPix.y;
+  plane.alt=0; plane.liftPx=0; plane.visible=true; plane.geoLocked=true;
+  setStatus('🛫 飞机从省会 <b style=”color:#ffcc33”>'+cap.city+'</b> 起飞，省内巡游…');
+  await takeoff(cap.lng, cap.lat, {toLng:city.lng, toLat:city.lat, dur:2000});
+
+  // 省内小半径盘旋
+  const rectP=mapWrap.getBoundingClientRect();
+  const provCx=geoToPixel(pc[0], pc[1]);
+  const provR=Math.min(rectP.width,rectP.height)*0.15;
+  setStatus('🌀 飞机在 <b style=”color:#ffcc33”>'+province+'</b> 上空盘旋…');
+  await circle(provCx.x, provCx.y, {r:provR, loops:0.5, dur:3000});
+
+  // 飞向并降落选中城市
+  cityMarks=[{name:city.name, value:[city.lng,city.lat]}]; renderMap();
+  setStatus('🛬 选中 <b style=”color:#ffcc33”>'+city.name+'</b>，飞机降落中…');
+  await flyPlane(city.lng, city.lat, {dur:3000, arc:40});
+  await land(city.lng, city.lat, {dur:1800});
+  d2.classList.add('active');
+  plane.geoLocked=false;
+
+  /* ====== 5. 下钻到市级层级：放大地图并连线串联该市全部旅游点位 ====== */
+  const cityAttr = cityAttractions(province, city.name);
+  if(cityAttr.marks.length){
+    attractionMarks = cityAttr.marks;                // 市级层级：仅该市旅游点位
+    attractionLinks = cityAttr.coords;               // 连线串联该市所有点位
+    await animateZoom(9, [city.lng, city.lat], 1300);    // 市级层级（卫星图同步放大）
+    renderMap();
+    setStatus('🧭 <b style=”color:#ff5d73”>'+city.name+'</b> 旅游线路已串联 '+cityAttr.marks.length+' 个点位');
+    await wait(600);
+  }else{
+    await animateZoom(8, [city.lng, city.lat], 1300);
+    renderMap();
+    await wait(400);
+  }
+
+  /* ====== 6. 展示最终结果（行政信息 + 旅游线路，浮于底部居中） ====== */
+  const spotCount = attractionLinks.length;
+  document.getElementById('rProv').textContent='📍 '+(REGION_OF[province]||'')+' · '+province+'（出发地：'+depart.city+'）';
+  document.getElementById('rCity').textContent=city.name;
+  document.getElementById('rDesc').textContent = spotCount
+    ? ('已为你串联 '+spotCount+' 个旅游点位：'+attractionMarks.map(a=>a.name).join(' → '))
+    : ('经度 '+city.lng.toFixed(3)+'°E，纬度 '+city.lat.toFixed(3)+'°N（官方行政区划中心点）');
+  const rt=document.getElementById('rTags'); rt.innerHTML='';
+  [province, (city.name===cap.city?'省会/首府':'地级行政区'), (spotCount?'旅游线路':'行政中心')].forEach(t=>{
+    const s=document.createElement('span');s.textContent='#'+t;rt.appendChild(s);
+  });
+  // V4：填充「当地推荐景点 + 旅行攻略」，并默认展开最新结果
+  renderResultMore(province, city, cap);
+  resultBox.classList.remove('collapsed');                 // 默认展开最新内容
+  document.getElementById('rMoreLabel').textContent='收起景点与攻略';
+  resultBox.style.display='block';
+  setStatus('🎉 目的地已选取：<b style=”color:#ff5d73”>'+city.name+'</b>');
+
+  // 收集详细攻略数据用于历史记录
+  const guideData = collectGuideData(province, city, cap);
+  // N6：记录本次选取结果并写入历史
+  addHistory({
+    province, region:(REGION_OF[province]||''), city:city.name, depart:depart.city,
+    spots: attractionMarks.map(a=>a.name), ts: Date.now(),
+    detail: guideData
+  });
+  btn.disabled=false;
+};
+
+/* =========================================================================
+ *  V4：结果页「当地推荐景点 + 旅行攻略」渲染 + 折叠交互
+ * ========================================================================= */
+// 渲染推荐景点列表与旅行攻略（默认随结果展开）
+function renderResultMore(province, city, cap){
+  // 1) 当地推荐景点：优先该城市的点位，不足时补充全省代表景点
+  const all = ATTRACTIONS[province] || [];
+  const cityName = city.name;
+  let spots = all.filter(a=>a.city===cityName);
+  if(spots.length<3){
+    const extra = all.filter(a=>a.city!==cityName);
+    spots = spots.concat(extra).slice(0, Math.max(spots.length, 5));
+  }
+  spots = spots.slice(0,6);
+  const spotBox=document.getElementById('rSpots');
+  if(spots.length){
+    spotBox.innerHTML = spots.map(a=>
+      `<div class="sp"><span class="si">★</span><span class="sn">${a.name}</span>`
+      + `<span class="sc">${a.city||''}</span></div>`).join('');
+  }else{
+    spotBox.innerHTML = `<div class="sp"><span class="si">★</span>`
+      + `<span class="sn">${cityName}市区及周边</span>`
+      + `<span class="sc">行政中心</span></div>`;
+  }
+  // 2) 推荐旅行路线：以「出发城市 → 各景点」为顺序，箭头串联，形成可执行的游览动线
+  const routeBox=document.getElementById('rRoute');
+  if(routeBox){
+    const seq=[cityName].concat(spots.map(a=>a.name));
+    routeBox.innerHTML = seq.map((n,i)=>
+      (i? `<span class="arr2">→</span>`:``)
+      + `<span class="rt">${n}</span>`).join('');
+  }
+  // 3) 对应景点真实照片：全部使用维基共享资源实拍图（绝不使用 SVG/图标），加载失败回退通用中国风景实拍图
+  const photoBox=document.getElementById('rPhotos');
+  if(photoBox){
+    if(spots.length){
+      photoBox.innerHTML = spots.slice(0,6).map(a=>{
+        const src=spotRealPhoto(a.name);
+        return `<figure><img loading="lazy" src="${src}" alt="${a.name}" `
+          + `onerror="this.onerror=null;this.src='${FALLBACK_PHOTO}';"/>`
+          + `<figcaption>${a.name}</figcaption></figure>`;
+      }).join('');
+    }else{
+      photoBox.innerHTML = `<figure><img src="${spotRealPhoto(cityName)}" alt="${cityName}" `
+        + `onerror="this.onerror=null;this.src='${FALLBACK_PHOTO}';"/>`
+        + `<figcaption>${cityName}</figcaption></figure>`;
+    }
+  }
+  // 4) 详细旅行攻略：行程天数规划 + 最佳季节 / 特色美食 / 出行贴士
+  const g=getGuide(province);
+  // 依据推荐景点自动拆分为 D1/D2/D3… 每日游览安排（每天 2 个景点，更可执行）
+  const planSpots = spots.length ? spots : [{name:cityName+'市区及周边'}];
+  const days=[]; for(let i=0;i<planSpots.length;i+=2){ days.push(planSpots.slice(i,i+2)); }
+  const dayHtml = days.map((d,i)=>{
+    const names=d.map(s=>s.name).join(' → ');
+    const tag = i===0 ? '抵达 & 核心景点' : (i===days.length-1 ? '深度游 & 返程' : '周边延展');
+    return `<li>📅 <b>第 ${i+1} 天</b>（${tag}）：${names}</li>`;
+  }).join('');
+  document.getElementById('rGuide').innerHTML =
+      `<li class="g-h">🚄 <b>建议行程（约 ${days.length} 天）</b></li>`
+    + dayHtml
+    + `<li class="g-h">🌟 <b>实用信息</b></li>`
+    + `<li>🗓️ <b>最佳季节</b>：${g.season}</li>`
+    + `<li>🍜 <b>特色美食</b>：${g.food}</li>`
+    + `<li>💡 <b>出行贴士</b>：${g.tip}</li>`
+    + `<li>🎒 <b>行前准备</b>：提前订票订房、错峰出行、备好身份证件与常用药品</li>`
+    + `<li>🚗 <b>交通建议</b>：城际优先高铁/动车，市内景点间可包车或打车，山岳景区留意班车末班时间</li>`;
+}
+// 折叠/展开切换
+(function(){
+  const tog=document.getElementById('rMoreToggle');
+  if(tog) tog.onclick=()=>{
+    const collapsed=resultBox.classList.toggle('collapsed');
+    document.getElementById('rMoreLabel').textContent = collapsed?'展开景点与攻略':'收起景点与攻略';
+  };
+  // 结果卡关闭按钮：隐藏结果卡（不影响地图与历史记录）
+  const rc=document.getElementById('rClose');
+  if(rc) rc.onclick=()=>{ resultBox.style.display='none'; };
+})();
+
+// 收集详细攻略数据（用于历史记录展开显示）
+function collectGuideData(province, city, cap){
+  const all = ATTRACTIONS[province] || [];
+  const cityName = city.name;
+  let spots = all.filter(a=>a.city===cityName);
+  if(spots.length<3){
+    const extra = all.filter(a=>a.city!==cityName);
+    spots = spots.concat(extra).slice(0, Math.max(spots.length, 5));
+  }
+  spots = spots.slice(0,6);
+  const g=getGuide(province);
+  const planSpots = spots.length ? spots : [{name:cityName+'市区及周边'}];
+  const days=[]; for(let i=0;i<planSpots.length;i+=2){ days.push(planSpots.slice(i,i+2)); }
+  const dayHtml = days.map((d,i)=>{
+    const names=d.map(s=>s.name).join(' → ');
+    const tag = i===0 ? '抵达 & 核心景点' : (i===days.length-1 ? '深度游 & 返程' : '周边延展');
+    return `<li>📅 <b>第 ${i+1} 天</b>（${tag}）：${names}</li>`;
+  }).join('');
+  const guideHtml =
+      `<li class="g-h">🚄 <b>建议行程（约 ${days.length} 天）</b></li>`
+    + dayHtml
+    + `<li class="g-h">🌟 <b>实用信息</b></li>`
+    + `<li>🗓️ <b>最佳季节</b>：${g.season}</li>`
+    + `<li>🍜 <b>特色美食</b>：${g.food}</li>`
+    + `<li>💡 <b>出行贴士</b>：${g.tip}</li>`;
+  // 照片列表
+  const photos = (spots.length?spots:[{name:cityName}]).slice(0,6).map(a=>({
+    name:a.name, src:spotRealPhoto(a.name)
+  }));
+  // 路线
+  const route = [cityName].concat(spots.map(a=>a.name));
+  return { spots: spots.map(a=>({name:a.name, city:a.city||''})), route, photos, guideHtml };
+}
+
+/* =========================================================================
+ *  N6：结果历史抽屉——收集最近选取结果、按时间分类、支持清空
+ * ========================================================================= */
+const HISTORY_KEY='flightHistory', HISTORY_MAX=50;
+let historyList=[];
+// 读取本地持久化历史
+try{ historyList = JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); }catch(e){ historyList=[]; }
+
+function saveHistory(){ try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(historyList)); }catch(e){} }
+function addHistory(rec){
+  historyList.unshift(rec);
+  if(historyList.length>HISTORY_MAX) historyList.length=HISTORY_MAX;
+  saveHistory();
+  renderHistory();
+}
+// 按"今天 / 昨天 / 更早"分类（基于本地时区日界）
+function dayBucket(ts){
+  const d=new Date(ts), n=new Date();
+  const startOf=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();
+  const diff=Math.round((startOf(n)-startOf(d))/86400000);
+  if(diff<=0) return '今天';
+  if(diff===1) return '昨天';
+  return '更早';
+}
+function fmtTime(ts){
+  const d=new Date(ts);
+  const p=x=>String(x).padStart(2,'0');
+  return p(d.getHours())+':'+p(d.getMinutes());
+}
+function renderHistory(){
+  const body=document.getElementById('drawerBody');
+  const clearBtn=document.getElementById('drawerClear');
+  if(!historyList.length){
+    body.innerHTML='<div class="dempty">暂无选取记录，点击「随机选取」开始你的随机旅行吧 🎯</div>';
+    if(clearBtn) clearBtn.disabled=true;
+    return;
+  }
+  if(clearBtn) clearBtn.disabled=false;
+  // 按时间分组
+  const groups={'今天':[],'昨天':[],'更早':[]};
+  historyList.forEach(r=>groups[dayBucket(r.ts)].push(r));
+  let html='';
+  let globalIdx=0;     // 全局序号，用于判断是否为最新记录（最新默认展开）
+  ['今天','昨天','更早'].forEach(g=>{
+    if(!groups[g].length) return;
+    html+='<div class="dgroup"><div class="gtitle">'+g+' · '+groups[g].length+' 次</div>';
+    groups[g].forEach(r=>{
+      const isFirst = globalIdx===0;   // 最新记录默认展开
+      globalIdx++;
+      const spots = r.spots&&r.spots.length ? r.spots : [];
+      const d = r.detail;   // 详细攻略数据
+      // 推荐景点列表
+      let spotsHtml='';
+      if(d && d.spots && d.spots.length){
+        spotsHtml = d.spots.map(s=>
+          `<div class="sp"><span class="si">★</span><span class="sn">${s.name}</span></div>`
+        ).join('');
+      }else if(spots.length){
+        spotsHtml = spots.map(s=>
+          `<div class="sp"><span class="si">★</span><span class="sn">${s}</span></div>`
+        ).join('');
+      }
+      // 旅行路线
+      let routeHtml='';
+      if(d && d.route && d.route.length){
+        routeHtml = d.route.map((n,i)=>
+          (i?`<span class="arr2">→</span>`:``)+`<span class="rt">${n}</span>`
+        ).join('');
+      }
+      // 照片网格
+      let photosHtml='';
+      if(d && d.photos && d.photos.length){
+        photosHtml = d.photos.map(p=>
+          `<figure><img loading="lazy" src="${p.src}" alt="${p.name}" `
+          + `onerror="this.onerror=null;this.src='${FALLBACK_PHOTO}';"/>`
+          + `<figcaption>${p.name}</figcaption></figure>`
+        ).join('');
+      }
+      // 攻略
+      const guideHtml = (d && d.guideHtml) ? d.guideHtml : '';
+
+      html+=`<div class="hcard${isFirst?'':' collapsed'}" data-idx="${globalIdx-1}">`
+          +`<div class="hc-top"><span class="hc-city">${r.city}</span>`
+          +`<span class="hc-time">${fmtTime(r.ts)}</span></div>`
+          +`<div class="hc-meta">${(r.region?r.region+' · ':'')+r.province}　|　出发：${r.depart}</div>`
+          +(spots.length?`<div class="hc-spots">🗺️ ${spots.join(' → ')}</div>`:'')
+          +`<div class="hc-toggle"><span class="arr">▾</span><span>${isFirst?'收起详情':'展开详情'}</span></div>`
+          +`<div class="hc-detail">`
+          +(spotsHtml?`<div class="hc-spots-list">${spotsHtml}</div>`:'')
+          +(routeHtml?`<div class="hc-route">${routeHtml}</div>`:'')
+          +(photosHtml?`<div class="hc-photos">${photosHtml}</div>`:'')
+          +(guideHtml?`<ul class="hc-guide">${guideHtml}</ul>`:'')
+          +`</div></div>`;
+    });
+    html+='</div>';
+  });
+  body.innerHTML=html;
+  // 绑定展开/折叠点击
+  body.querySelectorAll('.hcard').forEach(card=>{
+    card.onclick=(e)=>{
+      // 点击详情区域内部不触发折叠
+      if(e.target.closest('.hc-detail')||e.target.closest('.hc-toggle')) {
+        // 点击 toggle 区域切换
+        if(e.target.closest('.hc-toggle')){
+          const collapsed=card.classList.toggle('collapsed');
+          const label=card.querySelector('.hc-toggle span:last-child');
+          if(label) label.textContent=collapsed?'展开详情':'收起详情';
+        }
+        return;
+      }
+      const collapsed=card.classList.toggle('collapsed');
+      const label=card.querySelector('.hc-toggle span:last-child');
+      if(label) label.textContent=collapsed?'展开详情':'收起详情';
+    };
+  });
+}
+// 抽屉开关与清空
+const drawer=document.getElementById('drawer');
+document.getElementById('historyBtn').onclick=()=>{ closeAllDrawers('drawer'); drawer.classList.add('open'); renderHistory(); };
+document.getElementById('drawerClose').onclick=()=>drawer.classList.remove('open');
+document.getElementById('drawerClear').onclick=()=>{
+  historyList=[]; saveHistory(); renderHistory();
+};
+renderHistory();   // 初始渲染（含历史持久化数据）
+
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+</script>
+</body>
+</html>
