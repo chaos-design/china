@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四渡赤水战役 · 交互式战争沙盘</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#0d1117;color:#e6edf3;overflow:hidden;height:100vh;user-select:none}
+#app{display:flex;flex-direction:column;height:100vh}
+#header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:8px 20px;border-bottom:2px solid #e74c3c;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:1000}
+#header h1{font-size:18px;color:#e74c3c;letter-spacing:2px}
+#header .sub{font-size:11px;color:#8b949e;margin-top:2px}
+#header .legend{display:flex;gap:14px;font-size:11px;align-items:center}
+#header .legend span{display:flex;align-items:center;gap:4px}
+#header .legend .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.dot-red{background:#e74c3c}.dot-blue{background:#3498db}.dot-cross{background:#f39c12;border-radius:0;transform:rotate(45deg);width:9px;height:9px}
+#main{flex:1;display:flex;overflow:hidden;position:relative}
+#map-wrap{flex:1;position:relative;overflow:hidden}
+#map{width:100%;height:100%;background:#0a0a0a;z-index:1}
+/* v20: 信息面板 — 标题固定，详情滚动 */
+#info-panel{width:320px;background:#0d1117;border-left:1px solid #30363d;display:flex;flex-direction:column;flex-shrink:0;z-index:500}
+#stage-info{flex-shrink:0;padding:14px 14px 10px;border-bottom:1px solid #30363d}
+#i-details{flex:1;overflow-y:auto;padding:10px 14px 14px}
+#i-details::-webkit-scrollbar{width:6px}
+#i-details::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px}
+#info-panel h2{font-size:15px;color:#f39c12;margin-bottom:3px;line-height:1.4}
+#info-panel .s-date{font-size:11px;color:#8b949e;margin-bottom:8px}
+#info-panel .s-desc{font-size:12px;line-height:1.75;color:#c9d1d9;text-indent:2em}
+.unit-card{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px;margin:8px 0;cursor:pointer;transition:all .2s}
+.unit-card:hover{border-color:#58a6ff;background:#1c2333}
+.unit-card .uc-head{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:bold}
+.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px}
+.tag-r{background:#e74c3c;color:#fff}.tag-b{background:#3498db;color:#fff}
+#controls{background:#161b22;border-top:1px solid #30363d;padding:8px 16px;display:flex;flex-direction:row;align-items:stretch;gap:0;flex-shrink:0;z-index:1000}
+/* 左侧控制按钮两行，靠左 */
+#ctrl-left{display:flex;flex-direction:column;gap:4px;flex-shrink:0;width:260px}
+.ctrl-row{display:flex;align-items:center;gap:6px}
+.ctrl-row .btn,.ctrl-row .speed-sel{flex:1;min-width:0;text-align:center;padding:7px 0;font-size:12px}
+.btn{background:#21262d;border:1px solid #30363d;color:#c9d1d9;border-radius:6px;cursor:pointer;transition:all .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn:hover{background:#30363d;border-color:#58a6ff}
+.btn:active{transform:scale(.96)}
+.btn-pause{background:#e74c3c;border-color:#e74c3c;color:#fff}
+.btn-follow{background:#238636;border-color:#238636;color:#fff}
+.btn-follow:hover{background:#2ea043;border-color:#2ea043;color:#fff}
+.btn-follow.inactive{background:#21262d;border-color:#30363d;color:#8b949e}
+.btn-follow.inactive:hover{background:#30363d;color:#c9d1d9}
+#timeline-wrap{flex:1;display:flex;align-items:center;justify-content:center;min-width:0;padding:0 16px 0 32px}
+/* 右侧阶段信息，靠右（v18: 缩窄宽度，增加日期） */
+#stage-right{display:flex;flex-direction:column;justify-content:center;gap:2px;flex-shrink:0;width:140px;text-align:right}
+#stage-right .sr-line{font-size:12px;color:#8b949e;line-height:1.4}
+#stage-right .sr-line b{color:#f39c12}
+#stage-right .sr-name{font-size:13px;color:#e74c3c;font-weight:bold;line-height:1.3}
+#stage-right .sr-date{font-size:10px;color:#8b949e;line-height:1.3;font-family:"Consolas","Monaco",monospace}
+/* v17: 时间轴 — 标签上下错位（偶数轴上，奇数轴下），修复定位 */
+#timeline-container{flex:1;position:relative;height:80px;display:flex;align-items:flex-start;padding-top:22px;min-width:0}
+#timeline{width:100%;-webkit-appearance:none;appearance:none;height:6px;background:linear-gradient(90deg,#e74c3c 0%,#f39c12 18%,#e74c3c 36%,#f39c12 54%,#e74c3c 72%,#f39c12 90%,#e74c3c 100%);border-radius:3px;outline:none;cursor:pointer;position:absolute;top:36px;left:0;z-index:2;margin:0}
+#timeline::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#e74c3c;cursor:pointer;border:2px solid #fff;box-shadow:0 0 8px rgba(231,76,60,.8);z-index:5;position:relative}
+#timeline::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#e74c3c;cursor:pointer;border:2px solid #fff;box-shadow:0 0 8px rgba(231,76,60,.8)}
+#timeline-ticks{position:absolute;top:0;left:0;right:0;height:80px;pointer-events:none;display:flex;justify-content:space-between;z-index:1}
+.tick{position:relative;width:1px;height:80px}
+.tick-line{width:2px;height:6px;background:#4a5568;border-radius:1px;position:absolute;top:36px;left:50%;transform:translateX(-50%)}
+.tick.battle .tick-line{background:#f39c12;height:10px;box-shadow:0 0 4px rgba(243,156,18,.6)}
+.tick.crossing .tick-line{background:#e74c3c;height:12px;width:3px;box-shadow:0 0 6px rgba(231,76,60,.8)}
+.tick-label{font-size:9px;color:#8b949e;white-space:nowrap;position:absolute;left:50%;transform:translateX(-50%);font-family:"Consolas","Monaco",monospace;line-height:1.3;text-align:center}
+/* 轴上方：偶数索引 — 时间轴在 top:36px，标签需在 36px 以上 */
+.tick-label.above{bottom:50px;top:auto}
+/* 轴下方：奇数索引 — 时间轴底部在 42px，标签在 42px 以下 */
+.tick-label.below{top:48px;bottom:auto}
+.tick.battle .tick-label{color:#f39c12;font-weight:bold}
+.tick.crossing .tick-label{color:#e74c3c;font-weight:bold}
+.tick.active .tick-label{color:#e74c3c;font-weight:bold;font-size:10px}
+/* v14: 旧的 stage-label 已移除，由 stage-right 替代 */
+.speed-sel{background:#21262d;border:1px solid #30363d;color:#c9d1d9;border-radius:6px;font-size:12px;text-align:center;text-align-last:center}
+
+/* 部队标记 */
+.unit-marker{background:transparent;border:none}
+.unit-marker .um-body{
+  width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:bold;color:#fff;
+  border:2px solid;box-shadow:0 1px 4px rgba(0,0,0,.5);
+  position:relative;transition:transform .2s,box-shadow .2s;
+  will-change:transform;
+}
+.unit-marker .um-body::after{
+  content:'';position:absolute;top:-3px;left:-3px;right:-3px;bottom:-3px;
+  border-radius:50%;border:1.5px solid;opacity:0;
+  animation:unitPulse 2s ease-in-out infinite;
+}
+/* v22: 红军标记 — 五角星中间带数字，军委为黄色星（v23: 放大数字、改用深色高对比）*/
+.unit-marker.red .um-body{background:#e74c3c;border-color:#ff6b6b}
+.unit-marker.red .um-body::after{border-color:#e74c3c}
+.unit-marker.red.junwei .um-body{background:#f39c12;border-color:#ffd700;box-shadow:0 0 8px rgba(243,156,18,.7),0 1px 4px rgba(0,0,0,.5)}
+.unit-marker.red.junwei .um-body::after{border-color:#f39c12}
+.unit-marker.red .um-star{font-size:16px;line-height:1;position:relative;display:flex;align-items:center;justify-content:center}
+.unit-marker.red .um-num{position:absolute;font-size:10px;font-weight:900;color:#fff;text-shadow:0 0 3px rgba(0,0,0,1),0 1px 2px rgba(0,0,0,.9);-webkit-text-stroke:.5px #8b0000}
+.unit-marker.red.junwei .um-num{color:#5c3d00;text-shadow:0 0 3px rgba(255,255,255,.8),0 1px 2px rgba(0,0,0,.5);-webkit-text-stroke:.5px #b8860b}
+.unit-marker.blue .um-body{background:#3498db;border-color:#5dade2}
+.unit-marker.blue .um-body::after{border-color:#3498db}
+.unit-marker .um-body:hover{transform:scale(1.5);box-shadow:0 2px 12px rgba(0,0,0,.8);z-index:9999}
+@keyframes unitPulse{0%,100%{opacity:0;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+
+/* Hover tooltip - 动态位置 */
+.unit-tooltip{
+  position:absolute;
+  background:rgba(13,17,23,.95);
+  border:1px solid #58a6ff;border-radius:6px;
+  padding:8px 12px;font-size:11px;color:#c9d1d9;
+  pointer-events:none;opacity:0;
+  transition:opacity .2s;z-index:10000;
+  line-height:1.6;box-shadow:0 2px 8px rgba(0,0,0,.6);
+  max-width:240px;max-height:180px;overflow-y:auto;
+  display:none;
+}
+.unit-tooltip.visible{opacity:1}
+.unit-tooltip .ut-name{color:#f39c12;font-weight:bold;font-size:13px;margin-bottom:3px}
+.unit-tooltip .ut-row{color:#8b949e;font-size:10px;margin:1px 0}
+.unit-tooltip .ut-row b{color:#c9d1d9}
+.unit-tooltip .ut-desc{color:#8b949e;font-size:10px;margin-top:3px;line-height:1.5;white-space:normal}
+.unit-tooltip::-webkit-scrollbar{width:3px}
+.unit-tooltip::-webkit-scrollbar-thumb{background:#30363d;border-radius:2px}
+
+/* 地点标记 */
+.loc-marker{background:transparent;border:none}
+.loc-marker .lm-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 0 3px rgba(0,0,0,.6)}
+.loc-marker.crossing .lm-dot{background:#f39c12;border-color:#ffd700;transform:rotate(45deg);border-radius:1px}
+.loc-marker.city .lm-dot{background:#e74c3c;border-color:#ff9999}
+.loc-marker.town .lm-dot{background:#95a5a6;border-color:#bdc3c7}
+.loc-marker.battle .lm-dot{background:#e74c3c;border-color:#ffd700}
+.loc-marker .lm-label{position:absolute;top:50%;left:20px;transform:translateY(-50%);white-space:nowrap;font-size:10px;color:#fff;background:rgba(0,0,0,.7);padding:1px 5px;border-radius:2px;pointer-events:none;font-weight:bold;text-shadow:0 0 2px #000}
+.loc-marker.major .lm-label{font-size:12px;background:rgba(231,76,60,.8);padding:1px 6px}
+
+/* 蒋介石督战标记 */
+.chieftain-marker{background:transparent;border:none}
+.chieftain-marker .cm-body{font-size:16px;cursor:pointer;filter:drop-shadow(0 0 4px #e74c3c);animation:chieftainPulse 2s ease-in-out infinite}
+@keyframes chieftainPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.chieftain-marker .cm-label{position:absolute;top:18px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:#e74c3c;background:rgba(0,0,0,.85);padding:1px 5px;border-radius:3px;pointer-events:none;font-weight:bold;border:1px solid #e74c3c}
+
+.battle-marker{background:transparent;border:none}
+.battle-marker .bm-icon{font-size:18px;color:#f39c12;text-shadow:0 0 8px #f39c12,0 0 4px #000;animation:battlePulse 1.5s ease-in-out infinite;cursor:pointer}
+@keyframes battlePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+.battle-marker .bm-label{position:absolute;top:20px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:#f39c12;background:rgba(0,0,0,.85);padding:1px 5px;border-radius:3px;pointer-events:none;font-weight:bold;border:1px solid #f39c12}
+
+.phase-overlay{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(26,26,46,.92);border:1px solid #f39c12;border-radius:8px;padding:6px 24px;z-index:600;pointer-events:none;text-align:center;backdrop-filter:blur(4px)}
+.phase-overlay .po-num{font-size:11px;color:#8b949e}
+.phase-overlay .po-name{font-size:15px;color:#f39c12;font-weight:bold;margin-top:2px}
+.phase-overlay .po-date{font-size:10px;color:#8b949e;margin-top:2px}
+/* v26: 小时级时钟（纯展示，不驱动地图/阶段） */
+.phase-overlay .po-clock{font-size:11px;color:#f39c12;margin-top:3px;font-family:"Consolas","Monaco",monospace;letter-spacing:.5px}
+.phase-overlay .po-clock b{color:#fff}
+/* v26: 渡赤水特写面板 —— 位于地图左下角，不影响原有控件布局 */
+#crossing-closeup{position:absolute;bottom:110px;left:10px;width:300px;background:rgba(13,17,23,.94);border:1px solid #f39c12;border-radius:10px;padding:10px 12px;z-index:800;display:none;box-shadow:0 4px 22px rgba(0,0,0,.65);backdrop-filter:blur(4px)}
+#crossing-closeup.visible{display:block;animation:ccIn .3s ease-out}
+@keyframes ccIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+#crossing-closeup .cc-head{display:flex;align-items:center;gap:8px}
+#crossing-closeup .cc-badge{background:#e74c3c;color:#fff;font-size:10px;font-weight:bold;padding:2px 6px;border-radius:3px;letter-spacing:1px;white-space:nowrap}
+#crossing-closeup .cc-name{font-size:13px;color:#f39c12;font-weight:bold}
+#crossing-closeup .cc-replay{margin-left:auto;background:#21262d;border:1px solid #f39c12;color:#f39c12;border-radius:4px;font-size:10px;padding:1px 6px;cursor:pointer;white-space:nowrap}
+#crossing-closeup .cc-replay:hover{background:#f39c12;color:#0d1117}
+#crossing-closeup .cc-ford{font-size:10px;color:#8b949e;margin:4px 0 8px}
+#crossing-closeup .cc-scene{position:relative;height:88px;border:1px solid #30363d;border-radius:6px;overflow:hidden;background:#0a0f16}
+#crossing-closeup .cc-bank{position:absolute;top:0;bottom:0;width:24%;background:repeating-linear-gradient(45deg,#2b2418,#2b2418 4px,#231d13 4px,#231d13 8px)}
+#crossing-closeup .cc-bank.a{left:0}
+#crossing-closeup .cc-bank.b{right:0}
+#crossing-closeup .cc-bank .cc-bank-txt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:9px;color:#e8c98a;white-space:nowrap;text-align:center;line-height:1.3;text-shadow:0 1px 2px #000}
+#crossing-closeup .cc-river{position:absolute;top:0;bottom:0;left:24%;right:24%;background:linear-gradient(180deg,#123a52,#0d2b40);overflow:hidden}
+#crossing-closeup .cc-river .cc-wave{position:absolute;left:-20%;width:140%;height:1px;background:rgba(93,173,226,.45);animation:ccFlow 2.4s linear infinite}
+#crossing-closeup .cc-river .cc-wave.w2{top:55%;animation-duration:3.2s}
+#crossing-closeup .cc-river .cc-wave.w3{top:78%;animation-duration:2.8s}
+#crossing-closeup .cc-river .cc-wave.w1{top:28%}
+@keyframes ccFlow{from{transform:translateX(-30px)}to{transform:translateX(30px)}}
+#crossing-closeup .cc-river .cc-river-name{position:absolute;top:4px;left:50%;transform:translateX(-50%);font-size:9px;color:#5dade2;font-style:italic;white-space:nowrap}
+#crossing-closeup .cc-dot{position:absolute;top:50%;left:22%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#e74c3c;border:2px solid #ffb3b3;color:#fff;font-size:9px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(231,76,60,.8);transition:left .35s linear,top .35s linear;z-index:3}
+#crossing-closeup .cc-dot.west{border-color:#ffd700;background:#f39c12;color:#3b2600}
+#crossing-closeup .cc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:10px;color:#8b949e}
+#crossing-closeup .cc-clock{color:#f39c12;font-family:"Consolas","Monaco",monospace;font-weight:bold;font-size:11px}
+#crossing-closeup .cc-status{flex:1;text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-left:6px}
+#crossing-closeup .cc-status b{color:#fff}
+.river-label{background:transparent;border:none}
+.river-label .rl-text{font-size:13px;color:#5dade2;font-weight:bold;text-shadow:0 0 4px #000,0 0 4px #000,0 0 4px #000;white-space:nowrap;font-style:italic}
+
+/* v6: 军事箭头标记 */
+.arrow-marker{background:transparent;border:none}
+.arrow-marker .am-svg{display:block;overflow:visible}
+
+.leaflet-popup-content-wrapper{background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:8px}
+.leaflet-popup-tip{background:#161b22}
+.leaflet-popup-content{margin:10px 14px;font-size:12px;line-height:1.6}
+.leaflet-popup-content h4{color:#f39c12;margin-bottom:4px}
+.leaflet-popup-content .pop-row{font-size:11px;color:#8b949e;margin:2px 0}
+.leaflet-popup-content .pop-row b{color:#c9d1d9}
+.leaflet-control-layers{background:#161b22!important;color:#c9d1d9!important;border:1px solid #30363d!important;border-radius:6px!important}
+.leaflet-control-layers-expanded{padding:8px 12px!important;font-size:11px!important}
+.leaflet-control-attribution{font-size:9px!important;background:rgba(13,17,23,.7)!important;color:#8b949e!important}
+.leaflet-control-attribution a{color:#58a6ff!important}
+.leaflet-control-scale-line{background:rgba(13,17,23,.7)!important;color:#c9d1d9!important;border-color:#30363d!important;font-size:10px!important}
+
+.explosion-fireball{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:9000}
+@keyframes explosionFireball{0%{width:5px;height:5px;opacity:1}30%{width:40px;height:40px;opacity:1}100%{width:80px;height:80px;opacity:0}}
+.explosion-shockwave{position:absolute;border-radius:50%;transform:translate(-50%,-50%);border:3px solid #ff9800;pointer-events:none;z-index:9000}
+@keyframes explosionShock{0%{width:5px;height:5px;opacity:1;border-width:4px}100%{width:100px;height:100px;opacity:0;border-width:1px}}
+.explosion-flash{position:absolute;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,255,255,.8) 0%,rgba(255,235,59,.3) 30%,transparent 70%);pointer-events:none;z-index:9000}
+@keyframes explosionFlash{0%{opacity:1;transform:translate(-50%,-50%) scale(.3)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}}
+.explosion-smoke{position:absolute;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(80,80,80,.5) 0%,rgba(40,40,40,.2) 50%,transparent 100%);pointer-events:none;z-index:9000}
+@keyframes explosionSmoke{0%{width:20px;height:20px;opacity:0}20%{opacity:.5}100%{width:70px;height:70px;opacity:0;transform:translate(-50%,-120%)}}
+
+#battle-log{position:absolute;bottom:60px;right:10px;width:270px;max-height:180px;overflow-y:auto;background:rgba(13,17,23,.92);border:1px solid #e74c3c;border-radius:8px;padding:8px 10px;z-index:700;font-size:11px;color:#c9d1d9;display:none;backdrop-filter:blur(4px)}
+#battle-log.visible{display:block;animation:logSlideIn .3s ease-out}
+@keyframes logSlideIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+#battle-log .log-title{font-size:12px;color:#e74c3c;font-weight:bold;margin-bottom:4px;border-bottom:1px solid #30363d;padding-bottom:3px}
+#battle-log .log-entry{padding:2px 0;color:#8b949e;line-height:1.5}
+#battle-log .log-entry b{color:#f39c12}
+#battle-log::-webkit-scrollbar{width:4px}
+#battle-log::-webkit-scrollbar-thumb{background:#30363d;border-radius:2px}
+.compass{position:absolute;top:12px;right:12px;width:36px;height:36px;z-index:600;pointer-events:none;opacity:.6}
+
+/* v7: 遵义会议弹窗 */
+#intro-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(13,17,23,.88);z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);transition:all .5s ease-in-out}
+#intro-overlay.hidden{display:none}
+#intro-overlay.shrunk{display:none}
+#intro-overlay.shrinking{background:transparent;backdrop-filter:none;pointer-events:none}
+#intro-overlay.shrinking .intro-card{transform:scale(.06) translate(-720vw,720vh);opacity:0}
+
+/* v9: 倒计时 */
+#countdown-overlay{position:absolute;top:0;left:0;right:0;bottom:0;z-index:2100;display:none;align-items:center;justify-content:center;pointer-events:none}
+#countdown-overlay.visible{display:flex}
+#countdown-num{font-size:120px;font-weight:bold;color:#e74c3c;text-shadow:0 0 30px rgba(231,76,60,.8),0 0 60px rgba(231,76,60,.4);animation:cdPulse .8s ease-out}
+@keyframes cdPulse{0%{transform:scale(2.5);opacity:0}30%{opacity:1}100%{transform:scale(1);opacity:.9}}
+#countdown-label{position:absolute;bottom:40%;left:50%;transform:translateX(-50%);font-size:16px;color:#f39c12;letter-spacing:4px}
+.intro-card{background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #e74c3c;border-radius:12px;padding:28px 36px;max-width:560px;text-align:center;box-shadow:0 8px 40px rgba(231,76,60,.3);transition:all .5s ease-in-out}
+.intro-card h2{font-size:22px;color:#e74c3c;letter-spacing:3px;margin-bottom:6px}
+.intro-card .ic-sub{font-size:13px;color:#f39c12;margin-bottom:16px}
+.intro-card .ic-body{font-size:13px;color:#c9d1d9;line-height:2;text-align:left;text-indent:2em}
+.intro-card .ic-body b{color:#f39c12}
+.intro-card .ic-highlight{font-size:12px;color:#58a6ff;margin:12px 0;line-height:1.8;text-align:left;background:rgba(88,166,255,.08);border-left:3px solid #58a6ff;padding:8px 12px;border-radius:0 4px 4px 0}
+.intro-card .ic-btn{margin-top:18px;background:#e74c3c;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:bold;letter-spacing:2px;transition:all .2s;display:inline-flex;align-items:center;gap:10px}
+.intro-card .ic-btn:hover{background:#ff6b6b;transform:scale(1.05);box-shadow:0 4px 16px rgba(231,76,60,.5)}
+.ic-btn-cd{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;border-radius:50%;background:#fff;color:#e74c3c;font-size:15px;font-weight:bold;animation:cdTick 1s ease-in-out infinite alternate}
+@keyframes cdTick{from{box-shadow:0 0 4px rgba(231,76,60,.4)}to{box-shadow:0 0 14px rgba(231,76,60,.9)}}
+
+/* v8: 左下角问号图标（v18: 默认显示，内容改为遵义会议介绍；v20: 修复居中）*/
+#help-fab{position:absolute;bottom:60px;left:10px;width:36px;height:36px;border-radius:50%;background:rgba(26,26,46,.9);border:2px solid #e74c3c;color:#e74c3c;font-size:18px;font-weight:bold;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1500;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.5);line-height:1;text-align:center;padding:0}
+#help-fab.visible{display:flex;animation:fabFadeIn .4s ease-out}
+#help-fab:hover{transform:scale(1.15);background:#e74c3c;color:#fff;box-shadow:0 4px 16px rgba(231,76,60,.5)}
+@keyframes fabFadeIn{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}
+
+/* v8: 敌军部署图层切换按钮（v24: 下移避免遮挡缩放重置按钮组）*/
+#deploy-toggle{position:absolute;top:135px;left:10px;display:flex;flex-direction:column;gap:4px;z-index:600}
+.deploy-btn{background:rgba(22,27,34,.9);border:1px solid #30363d;color:#8b949e;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:4px;backdrop-filter:blur(4px)}
+.deploy-btn:hover{border-color:#58a6ff;color:#c9d1d9}
+.deploy-btn.active{border-color:#f39c12;color:#f39c12;background:rgba(243,156,18,.2);box-shadow:0 0 8px rgba(243,156,18,.3)}
+.deploy-btn .db-icon{font-size:13px}
+
+/* v10: 工事标记（v25: 图标30px，标签放左侧；地名标签放右侧）*/
+.fort-marker{background:transparent;border:none}
+.fort-marker .fm-icon{width:30px;height:30px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 3px rgba(230,126,18,.8)) drop-shadow(0 1px 2px rgba(0,0,0,.8))}
+.fort-marker .fm-svg{display:block;width:30px;height:30px}
+.fort-marker .fm-label{position:absolute;top:50%;right:32px;transform:translateY(-50%);white-space:nowrap;font-size:10px;color:#ffe0b2;background:rgba(80,30,0,.95);padding:2px 6px;border-radius:3px;pointer-events:none;font-weight:bold;border:1px solid rgba(230,126,18,.5);z-index:10;text-shadow:0 1px 2px rgba(0,0,0,.9);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.fort-marker .fm-pulse{position:absolute;top:50%;left:50%;width:30px;height:30px;border-radius:50%;border:2px solid #e67e22;transform:translate(-50%,-50%);animation:fortPulse 2s ease-out infinite;pointer-events:none}
+@keyframes fortPulse{0%{transform:translate(-50%,-50%) scale(1);opacity:.7}100%{transform:translate(-50%,-50%) scale(2.2);opacity:0}}
+
+/* v10: 兵力圈标记（v21: 不同派系颜色区分）*/
+.force-marker{background:transparent;border:none}
+.force-marker .fm-ring{width:48px;height:48px;border-radius:50%;border:2px solid #2980b9;background:rgba(52,152,219,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;box-shadow:0 0 10px rgba(52,152,219,.5),inset 0 0 8px rgba(52,152,219,.2)}
+.force-marker .fm-ring::after{content:'';position:absolute;top:50%;left:50%;width:100%;height:100%;border-radius:50%;border:1px dashed rgba(255,255,255,.4);transform:translate(-50%,-50%);animation:forceSpin 8s linear infinite;pointer-events:none}
+@keyframes forceSpin{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+.force-marker .fm-troops{font-size:12px;font-weight:bold;line-height:1;text-shadow:0 0 4px rgba(0,0,0,.9)}
+.force-marker .fm-unit{font-size:9px;margin-top:2px;line-height:1;text-shadow:0 0 4px rgba(0,0,0,.9)}
+/* v21: 派系颜色 */
+.force-marker.faction-chuan{--fc:#1abc9c;--fbg:rgba(26,188,156,.18);--fg:rgba(26,188,156,.5)}
+.force-marker.faction-chuan .fm-ring{border-color:#1abc9c;background:rgba(26,188,156,.18);box-shadow:0 0 10px rgba(26,188,156,.5),inset 0 0 8px rgba(26,188,156,.2)}
+.force-marker.faction-chuan .fm-troops{color:#a3e4d6}
+.force-marker.faction-chuan .fm-unit{color:#76d7c4}
+.force-marker.faction-qian{--fc:#95a5a6;--fbg:rgba(149,165,166,.18);--fg:rgba(149,165,166,.5)}
+.force-marker.faction-qian .fm-ring{border-color:#95a5a6;background:rgba(149,165,166,.18);box-shadow:0 0 10px rgba(149,165,166,.5),inset 0 0 8px rgba(149,165,166,.2)}
+.force-marker.faction-qian .fm-troops{color:#d5dbdb}
+.force-marker.faction-qian .fm-unit{color:#bdc3c7}
+.force-marker.faction-zhongyang{--fc:#5dade2;--fbg:rgba(93,173,226,.18);--fg:rgba(93,173,226,.5)}
+.force-marker.faction-zhongyang .fm-ring{border-color:#5dade2;background:rgba(93,173,226,.18);box-shadow:0 0 10px rgba(93,173,226,.5),inset 0 0 8px rgba(93,173,226,.2)}
+.force-marker.faction-zhongyang .fm-troops{color:#85c1e9}
+.force-marker.faction-zhongyang .fm-unit{color:#aed6f1}
+.force-marker.faction-dian{--fc:#9b59b6;--fbg:rgba(155,89,182,.18);--fg:rgba(155,89,182,.5)}
+.force-marker.faction-dian .fm-ring{border-color:#9b59b6;background:rgba(155,89,182,.18);box-shadow:0 0 10px rgba(155,89,182,.5),inset 0 0 8px rgba(155,89,182,.2)}
+.force-marker.faction-dian .fm-troops{color:#bb8fce}
+.force-marker.faction-dian .fm-unit{color:#d7bde2}
+
+/* v10: 辖区多边形标签（v20: 提高 z-index；v21: 标签放左上角）*/
+.territory-label{background:transparent;border:none}
+.territory-label .tl-text{font-size:13px;color:#5dade2;font-weight:bold;font-style:italic;text-shadow:0 0 5px #000,0 0 5px #000,0 0 2px rgba(0,0,0,.9);white-space:nowrap;opacity:.85}
+
+/* v21: 核心地名高亮 */
+.loc-marker.major .lm-dot{width:12px;height:12px;border:2px solid #ffd700;box-shadow:0 0 8px rgba(255,215,0,.8),0 0 3px rgba(0,0,0,.6);animation:majorPulse 2s ease-in-out infinite}
+.loc-marker.major .lm-label{font-size:13px;background:linear-gradient(135deg,rgba(231,76,60,.9),rgba(243,156,18,.9));padding:2px 8px;border-radius:4px;border:1px solid #ffd700;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+@keyframes majorPulse{0%,100%{box-shadow:0 0 8px rgba(255,215,0,.8),0 0 3px rgba(0,0,0,.6)}50%{box-shadow:0 0 16px rgba(255,215,0,1),0 0 6px rgba(0,0,0,.6)}}
+.loc-marker.crossing .lm-dot{width:10px;height:10px;border:2px solid #ffd700;background:#f39c12;box-shadow:0 0 6px rgba(243,156,18,.8)}
+.loc-marker.crossing .lm-label{font-size:11px;background:rgba(243,156,18,.85);border:1px solid #ffd700;padding:1px 6px}
+
+/* v7: 战损面板（v23: 增加间距）*/
+.casualty-box{background:#161b22;border:1px solid #e74c3c;border-radius:6px;padding:12px;margin:14px 0}
+.casualty-box .cb-title{font-size:12px;color:#e74c3c;font-weight:bold;margin-bottom:8px;display:flex;align-items:center;gap:4px}
+.casualty-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:11px}
+.casualty-row .cr-side{font-weight:bold;min-width:60px}
+.casualty-row .cr-red{color:#e74c3c}
+.casualty-row .cr-blue{color:#3498db}
+.casualty-row .cr-detail{color:#c9d1d9;flex:1;text-align:center}
+.casualty-row .cr-num{color:#f39c12;font-weight:bold;min-width:80px;text-align:right}
+.cb-summary{margin-top:8px;padding-top:8px;border-top:1px solid #30363d;font-size:11px;color:#8b949e;line-height:1.7}
+.cb-summary b{color:#f39c12}
+
+/* v18: 兵力统计面板 */
+#troop-stats{position:absolute;top:90px;right:10px;background:rgba(13,17,23,.92);border:1px solid #30363d;border-radius:8px;padding:8px 12px;z-index:600;font-size:11px;backdrop-filter:blur(4px);display:none;min-width:140px}
+#troop-stats.visible{display:block}
+#troop-stats .ts-title{font-size:11px;color:#f39c12;font-weight:bold;margin-bottom:6px;border-bottom:1px solid #30363d;padding-bottom:4px}
+#troop-stats .ts-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0}
+#troop-stats .ts-label{font-weight:bold;font-size:11px}
+#troop-stats .ts-num{font-size:14px;font-weight:bold;font-family:"Consolas","Monaco",monospace}
+#troop-stats .ts-red .ts-label{color:#e74c3c}
+#troop-stats .ts-red .ts-num{color:#e74c3c}
+#troop-stats .ts-blue .ts-label{color:#3498db}
+#troop-stats .ts-blue .ts-num{color:#3498db}
+#troop-stats .ts-vs{text-align:center;font-size:9px;color:#8b949e;margin:2px 0}
+
+/* v10: Popup 最高层级 + 鼠标离开关闭 */
+.leaflet-popup-pane{z-index:2500!important}
+.leaflet-popup{z-index:2500!important}
+.leaflet-popup-content-wrapper{background:#161b22;color:#c9d1d9;border:1px solid #f39c12;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.7)}
+.leaflet-popup-tip{background:#161b22;border:1px solid #f39c12}
+.leaflet-popup-content h4{color:#f39c12;margin-bottom:6px;font-size:13px}
+.leaflet-popup-content .pop-row{font-size:11px;color:#c9d1d9;margin:3px 0}
+.leaflet-popup-content .pop-row b{color:#58a6ff}
+.leaflet-popup-close-button{color:#8b949e!important;font-size:18px!important}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div>
+      <h1>四渡赤水战役 · 交互式战争沙盘</h1>
+      <div class="sub">1935年1月19日 — 5月9日 ｜ 中央红军 · 毛泽东军事指挥杰作 ｜ 兵力约3万 vs 40万</div>
+    </div>
+    <div class="legend">
+      <span><i class="dot dot-red"></i>红军</span>
+      <span><i class="dot" style="background:#1abc9c;border-radius:50%;display:inline-block;width:11px;height:11px"></i>川军</span>
+      <span><i class="dot" style="background:#95a5a6;border-radius:50%;display:inline-block;width:11px;height:11px"></i>黔军</span>
+      <span><i class="dot" style="background:#5dade2;border-radius:50%;display:inline-block;width:11px;height:11px"></i>中央军</span>
+      <span><i class="dot" style="background:#9b59b6;border-radius:50%;display:inline-block;width:11px;height:11px"></i>滇军</span>
+      <span><i class="dot dot-cross"></i>渡口</span>
+    </div>
+  </div>
+  <div id="main">
+    <div id="map-wrap">
+      <div id="map"></div>
+      <div class="phase-overlay" id="phase-overlay">
+        <div class="po-num" id="po-num">第零阶段</div>
+        <div class="po-name" id="po-name"></div>
+        <div class="po-date" id="po-date"></div>
+        <div class="po-clock" id="po-clock"></div>
+      </div>
+      <div id="crossing-closeup" aria-label="渡赤水特写">
+        <div class="cc-head">
+          <span class="cc-badge">渡赤水特写</span>
+          <span class="cc-name" id="cc-name"></span>
+          <button class="cc-replay" id="cc-replay" title="重播渡河特写">▶ 重播</button>
+        </div>
+        <div class="cc-ford" id="cc-ford"></div>
+        <div class="cc-scene">
+          <div class="cc-bank a"><span class="cc-bank-txt" id="cc-banka"></span></div>
+          <div class="cc-river">
+            <span class="cc-river-name">赤 水 河</span>
+            <span class="cc-wave w1"></span><span class="cc-wave w2"></span><span class="cc-wave w3"></span>
+          </div>
+          <div class="cc-bank b"><span class="cc-bank-txt" id="cc-bankb"></span></div>
+          <div id="cc-troops"></div>
+        </div>
+        <div class="cc-foot">
+          <span class="cc-clock" id="cc-clock"></span>
+          <span class="cc-status" id="cc-status"></span>
+        </div>
+      </div>
+      <div id="battle-log">
+        <div class="log-title">战况速报</div>
+        <div id="log-entries"></div>
+      </div>
+      <svg class="compass" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="rgba(13,17,23,.6)" stroke="#30363d" stroke-width="1"/><text x="20" y="10" text-anchor="middle" fill="#e74c3c" font-size="9" font-weight="bold">N</text><text x="20" y="35" text-anchor="middle" fill="#8b949e" font-size="8">S</text><text x="5" y="23" text-anchor="middle" fill="#8b949e" font-size="8">W</text><text x="35" y="23" text-anchor="middle" fill="#8b949e" font-size="8">E</text><polygon points="20,6 17,20 20,17 23,20" fill="#e74c3c"/><polygon points="20,34 17,20 20,23 23,20" fill="#8b949e"/></svg>
+      <div id="deploy-toggle">
+        <button class="deploy-btn" id="btn-fort"><span class="db-icon">🛡</span> 工事</button>
+        <button class="deploy-btn" id="btn-force"><span class="db-icon">🔵</span> 兵力部署</button>
+        <button class="deploy-btn" id="btn-territory"><span class="db-icon">📐</span> 占领辖区</button>
+      </div>
+      <div id="troop-stats">
+        <div class="ts-title">📊 兵力对比</div>
+        <div class="ts-row ts-red"><span class="ts-label">红军</span><span class="ts-num" id="ts-red">30000</span></div>
+        <div class="ts-vs">VS</div>
+        <div class="ts-row ts-blue"><span class="ts-label">国军</span><span class="ts-num" id="ts-blue">145000</span></div>
+      </div>
+      <div id="help-fab">?</div>
+    </div>
+    <div id="info-panel">
+      <div id="stage-info">
+        <h2 id="i-title"></h2>
+        <div class="s-date" id="i-date"></div>
+        <div class="s-desc" id="i-desc"></div>
+      </div>
+      <div id="i-details"></div>
+    </div>
+  </div>
+  <div id="controls">
+    <div id="ctrl-left">
+      <div class="ctrl-row">
+        <button class="btn" id="btn-prev">◀ 上一步</button>
+        <button class="btn" id="btn-play">▶ 自动播放</button>
+        <button class="btn" id="btn-next">下一步 ▶</button>
+      </div>
+      <div class="ctrl-row">
+        <button class="btn btn-follow active" id="btn-follow">📷 跟随</button>
+        <select class="speed-sel" id="speed">
+          <option value="8000">0.5×</option>
+          <option value="4000" selected>1×</option>
+          <option value="2000">2×</option>
+        </select>
+      </div>
+    </div>
+    <div id="timeline-wrap">
+      <div id="timeline-container">
+        <div id="timeline-ticks"></div>
+        <input type="range" id="timeline" min="0" max="10" value="0" step="0.01">
+      </div>
+    </div>
+    <div id="stage-right">
+      <div class="sr-line">阶段 <b id="s-num">0</b>/10</div>
+      <div class="sr-name" id="s-name"></div>
+      <div class="sr-date" id="s-date"></div>
+    </div>
+  </div>
+</div>
+<script>
+// ==================== 地理坐标数据 ====================
+const LOC={
+  zunyi:{lat:27.685,lng:106.927,n:"遵义",t:"city",major:true,info:"黔北重镇，1935年1月遵义会议在此召开，确立了毛泽东的领导地位。"},
+  laoyashan:{lat:27.690,lng:106.890,n:"老鸦山",t:"battle",info:"遵义战役关键战场，红军在此阻击吴奇伟部增援。"},
+  loushanguan:{lat:28.043,lng:106.874,n:"娄山关",t:"battle",info:"北拒桐梓的天险要隘，'雄关漫道真如铁，而今迈步从头越'。"},
+  tongzi:{lat:28.155,lng:106.824,n:"桐梓",t:"city",info:"黔北门户，红军多次途经此地。"},
+  songkan:{lat:28.548,lng:106.848,n:"松坎",t:"town",info:"桐梓以北要镇，红军北上通道。"},
+  tucheng:{lat:28.460,lng:106.197,n:"土城",t:"cross",info:"赤水河畔古镇，一渡赤水的主要渡口之一，土城战役发生地。"},
+  yuanhou:{lat:28.495,lng:106.097,n:"元厚",t:"cross",info:"赤水河渡口，红一军团一渡赤水的渡河点。"},
+  chishui:{lat:28.578,lng:105.692,n:"赤水",t:"city",info:"赤水河下游名城，川黔交界要地。"},
+  xishui:{lat:28.328,lng:106.205,n:"习水",t:"town",info:"黔西北县治，土城所在地。"},
+  wenshui:{lat:28.450,lng:106.400,n:"温水",t:"town",info:"习水以东要镇，红军北进途经。"},
+  taipingdu:{lat:28.267,lng:105.856,n:"太平渡",t:"cross",info:"赤水河重要渡口，二渡、四渡赤水的主要渡河点。"},
+  erlangtan:{lat:28.342,lng:106.025,n:"二郎滩",t:"cross",info:"赤水河渡口，二渡、四渡赤水的渡河点之一。"},
+  maotai:{lat:27.802,lng:106.408,n:"茅台",t:"cross",info:"赤水河畔名镇，三渡赤水的渡河点。以茅台酒闻名。"},
+  renhuai:{lat:27.792,lng:106.410,n:"仁怀",t:"town",info:"黔西北重镇，茅台所在地。"},
+  lubanchang:{lat:27.727,lng:106.355,n:"鲁班场",t:"battle",info:"仁怀以南要地，红军在此攻击周浑元部受挫。"},
+  gulin:{lat:28.038,lng:105.814,n:"古蔺",t:"city",info:"川南要地，红军一渡、三渡赤水后集结的区域。"},
+  xuyong:{lat:28.155,lng:105.442,n:"叙永",t:"town",info:"川南重镇，川军防堵红军北渡的重要据点。"},
+  zhaxi:{lat:27.842,lng:105.048,n:"扎西",t:"city",major:true,info:"云南威信旧称，红军在此进行扎西整编，决定回师黔北。"},
+  wujiangdu:{lat:27.303,lng:106.907,n:"乌江渡",t:"cross",info:"乌江重要渡口，红军南渡乌江的渡河点。"},
+  xifeng:{lat:27.122,lng:106.700,n:"息烽",t:"town",info:"贵阳以北要镇，红军佯攻贵阳途经。"},
+  guiyang:{lat:26.647,lng:106.713,n:"贵阳",t:"city",major:true,info:"贵州省会，1935年3月底蒋介石飞抵贵阳督战，红军佯攻迫使调滇军东援。"},
+  daguan:{lat:27.745,lng:104.712,n:"大关",t:"town",info:"滇东北要地，滇军孙渡部驻地。"},
+  bijie:{lat:27.279,lng:105.285,n:"毕节",t:"town",info:"黔西北重镇，红军西进云南途经。"},
+  longli:{lat:26.450,lng:106.980,n:"龙里",t:"town",info:"贵阳以东要镇，中央军集结地。"},
+  qianxi:{lat:27.028,lng:106.032,n:"黔西",t:"town",info:"黔西要镇，中央军防堵要点。"},
+};
+
+// ==================== 部队信息 ====================
+const UNITS={
+  r1:{name:"红一军团",short:"红1",side:"red",str:"约6000人",cmd:"林彪/聂荣臻",desc:"中央红军主力，擅长突击穿插，多次担任前锋。"},
+  r3:{name:"红三军团",short:"红3",side:"red",str:"约5000人",cmd:"彭德怀/杨尚昆",desc:"中央红军主力，战斗力强，娄山关战役主攻。"},
+  r5:{name:"红五军团",short:"红5",side:"red",str:"约4000人",cmd:"董振堂/李卓然",desc:"原西北军起义部队改编，擅长防御作战，常任后卫。"},
+  r9:{name:"红九军团",short:"红9",side:"red",str:"约3000人",cmd:"罗炳辉/蔡树藩",desc:"善于独立行动和佯动牵制，多次执行疑兵任务。"},
+  rc:{name:"军委纵队",short:"军委",side:"red",str:"约4000人",cmd:"毛泽东/周恩来/朱德",desc:"中革军委及党中央指挥机关，战役指挥核心。"},
+  bs:{name:"川军郭勋祺部",short:"川军",side:"blue",str:"约2万人",cmd:"郭勋祺",desc:"川军教导师，土城战役中给红军造成较大伤亡。"},
+  bg:{name:"黔军王家烈部",short:"黔军",side:"blue",str:"约1.5万人",cmd:"王家烈",desc:"黔军第二十五军，战斗力较弱，遵义战役中遭重创。"},
+  bx:{name:"中央军薛岳部",short:"薛岳",side:"blue",str:"约8万人",cmd:"薛岳(前敌总指挥)",desc:"中央军追剿军主力，装备精良但指挥协调迟缓。"},
+  bz:{name:"中央军周浑元部",short:"周部",side:"blue",str:"约3万人",cmd:"周浑元",desc:"中央军第二纵队，鲁班场守军。"},
+  bw:{name:"中央军吴奇伟部",short:"吴部",side:"blue",str:"约3万人",cmd:"吴奇伟",desc:"中央军第四纵队，遵义战役中被击溃。"},
+  by:{name:"滇军孙渡部",short:"滇军",side:"blue",str:"约3万人",cmd:"孙渡",desc:"滇军第三纵队，被红军佯动调出云南，防线空虚。"},
+  ck:{name:"蒋介石（重庆/贵阳督战）",short:"蒋介石",side:"blue",str:"—",cmd:"蒋介石",desc:"1935年3月24日蒋介石偕宋美龄由重庆飞抵贵阳，亲自督战围剿红军。4月初红军佯攻贵阳时，蒋急调滇军孙渡部'勤王'，为红军西进云南创造战机。"},
+};
+
+// ==================== 战役阶段数据 ====================
+const STAGES=[
+{
+  name:"遵义集结 · 战略出发",short:"遵义集结",date:"1935年1月19日",timeline:"01.19",
+  desc:"遵义会议（1月15—17日）确立了毛泽东在党和红军中的领导地位，结束了'左'倾教条主义错误统治，是中国共产党生死攸关的转折点。会后，中央红军3万余人集结于遵义、桐梓地区，党中央决定北渡长江，与红四方面军会合，在川陕甘创建根据地。蒋介石判明红军意图后，急调川军、滇军、黔军及中央军共约40万兵力，从四面八方向遵义地区形成合围之势，企图围歼红军于乌江西北、川黔边境地区。毛泽东在危急关头接掌军事指挥权，即将以其卓越的军事才能，演绎四渡赤水的传奇。",
+  u:{r1:{lat:27.690,lng:106.920},r3:{lat:27.700,lng:106.945},r5:{lat:27.670,lng:106.905},r9:{lat:28.155,lng:106.824},rc:{lat:27.685,lng:106.930},
+     bs:{lat:28.155,lng:105.442},bg:{lat:26.647,lng:106.713},bx:{lat:27.122,lng:106.700},bz:{lat:27.300,lng:106.000}},
+  b:[],center:[27.80,106.60],zoom:9
+},
+{
+  name:"北进 · 土城战役",short:"土城战役",date:"1935年1月24日—28日",timeline:"01.24",hasBattle:true,
+  desc:"红军分三路从遵义、桐梓地区向北挺进，目标是经赤水、叙永北渡长江。1月24日红一军团攻占土城，28日红三军团、红五军团与尾追的川军郭勋祺部在土城遭遇。由于对敌情判断失误（误以为敌约4个团实际约6个团以上），红军激战终日未能歼敌，形成对峙。毛泽东当机立断，决定撤出战斗，改变行军方向。",
+  u:{r1:{lat:28.450,lng:106.400},r3:{lat:28.460,lng:106.197},r5:{lat:28.400,lng:106.300},r9:{lat:28.155,lng:106.824},rc:{lat:28.420,lng:106.250},
+     bs:{lat:28.350,lng:106.250},bg:{lat:26.700,lng:106.700},bx:{lat:27.200,lng:106.600},bz:{lat:27.200,lng:105.800}},
+  b:[{lat:28.460,lng:106.197,n:"土城战役",d:"红三、五军团与川军郭勋祺部激战，因敌情判断失误形成对峙，毛泽东决定撤出战斗。此役促使红军改变原定北渡长江计划。",intensity:5,
+    cas:{red:"阵亡约1000人",blue:"伤亡约500人",summary:"红军伤亡较重，红三军团参谋长徐彦刚负伤。郭勋祺部虽胜亦损，未敢穷追。毛泽东战后总结敌情判断失误教训。"}}],
+  center:[28.10,106.40],zoom:9
+},
+{
+  name:"一渡赤水 · 西进川南",short:"一渡赤水",date:"1935年1月29日",timeline:"01.29",isCrossing:true,
+  desc:"土城战役后，毛泽东果断决定放弃北渡长江计划，指挥红军分三路从土城、元厚等渡口西渡赤水河，向川南古蔺、叙永地区前进。1月29日拂晓，红军在敌机轰炸下有序渡江。红一军团为右纵队从元厚渡河，红三军团、军委纵队为左纵队从土城渡河。此为四渡赤水之第一渡，红军由此进入川南，寻求新的机动空间。",
+  u:{r1:{lat:28.495,lng:106.097},r3:{lat:28.300,lng:105.900},r5:{lat:28.350,lng:106.000},r9:{lat:28.400,lng:106.400},rc:{lat:28.280,lng:105.950},
+     bs:{lat:28.300,lng:106.150},bg:{lat:26.800,lng:106.700},bx:{lat:27.300,lng:106.200},bz:{lat:27.100,lng:105.500}},
+  b:[],center:[28.20,105.90],zoom:9
+},
+{
+  name:"扎西整编 · 伺机而动",short:"扎西整编",date:"1935年2月5日—11日",timeline:"02.05",
+  desc:"红军进入川南后，发现川军已在叙永、古蔺一带重兵设防，北渡长江已无可能。2月上旬，红军各部陆续集结于扎西（今威信）地区进行休整整编。军委缩编了部队，精简了机关，充实了战斗连队。此时，蒋介石判断红军将北渡长江或西入云南，急令各路大军向扎西地区合围。毛泽东敏锐地发现黔北敌兵力空虚，决定出敌不意，回师东进。",
+  u:{r1:{lat:27.900,lng:105.100},r3:{lat:27.842,lng:105.048},r5:{lat:27.870,lng:105.080},r9:{lat:28.000,lng:105.500},rc:{lat:27.855,lng:105.060},
+     bs:{lat:28.100,lng:105.600},bg:{lat:27.000,lng:106.500},bx:{lat:27.200,lng:106.000},bz:{lat:26.900,lng:105.300},by:{lat:27.500,lng:104.700}},
+  b:[],center:[27.85,105.20],zoom:9
+},
+{
+  name:"二渡赤水 · 回师黔北",short:"二渡赤水",date:"1935年2月18日—21日",timeline:"02.18",isCrossing:true,
+  desc:"2月18日至21日，红军突然掉头东进，从太平渡、二郎滩等渡口二渡赤水河，出敌不意地回师黔北。蒋介石和各路军阀完全没有料到红军会东返，此时黔北仅黔军王家烈部防守，兵力薄弱。红军以红九军团为右翼，红一、三军团为左翼，迅速向桐梓、遵义方向推进，再次将主动权掌握在自己手中。",
+  u:{r1:{lat:28.267,lng:105.856},r3:{lat:28.342,lng:106.025},r5:{lat:28.300,lng:105.950},r9:{lat:28.300,lng:106.200},rc:{lat:28.280,lng:105.970},
+     bs:{lat:28.100,lng:105.500},bg:{lat:27.200,lng:106.500},bx:{lat:27.000,lng:106.000},bz:{lat:26.800,lng:105.200},by:{lat:27.400,lng:104.800}},
+  b:[],center:[28.10,105.90],zoom:9
+},
+{
+  name:"遵义战役 · 娄山关大捷",short:"遵义大捷",date:"1935年2月25日—28日",timeline:"02.25",hasBattle:true,
+  desc:"2月25日，红三军团在彭德怀指挥下向娄山关发起猛攻，经激战于26日攻克天险娄山关。28日晨红军再占遵义城。黔军王家烈部溃败后，中央军吴奇伟部两个师从乌江方向增援，在老鸦山、红花岗一线与红军激战。红军英勇反击，歼灭吴奇伟部大部，吴奇伟仅率残部南逃乌江。此役共歼敌约2个师又8个团，俘敌约3000人，是长征以来最大的一次胜利。毛泽东写下《忆秦娥·娄山关》：'雄关漫道真如铁，而今迈步从头越。'",
+  u:{r1:{lat:27.690,lng:106.920},r3:{lat:28.043,lng:106.874},r5:{lat:27.900,lng:106.800},r9:{lat:28.155,lng:106.824},rc:{lat:27.685,lng:106.930},
+     bs:{lat:28.000,lng:105.800},bg:{lat:27.300,lng:106.900},bx:{lat:27.200,lng:106.500},bz:{lat:26.900,lng:105.800},bw:{lat:27.300,lng:106.950}},
+  b:[
+    {lat:28.043,lng:106.874,n:"娄山关战斗",d:"红三军团攻克天险娄山关，'雄关漫道真如铁，而今迈步从头越。'",intensity:4,
+     cas:{red:"伤亡约500人",blue:"伤亡约600人，被俘约200人",summary:"红三军团经反复争夺攻克娄山关天险，黔军杜肇华部溃退。此战为红军再占遵义打开通道。"}},
+    {lat:27.690,lng:106.890,n:"遵义战役",d:"红军再占遵义，歼灭吴奇伟部两个师，俘敌约3000人，长征以来最大胜利。",intensity:5,
+     cas:{red:"伤亡约1000人",blue:"被歼约2个师又8个团，被俘约3000人",summary:"红军先歼黔军王家烈部8个团于遵义城下，再反击中央军吴奇伟部2个师，吴奇伟仅率残部南逃乌江。此役共毙伤俘敌约5400人，缴枪2000余支，是中央红军长征以来最大的一次胜利。"}}
+  ],
+  center:[27.80,106.85],zoom:9
+},
+{
+  name:"蒋介石飞贵阳督战 · 鲁班场战斗",short:"蒋督战·鲁班场",date:"1935年3月15日—24日",timeline:"03.15",hasBattle:true,
+  desc:"3月15日，红军集中主力进攻鲁班场中央军周浑元部，但周部依托坚固工事顽抗，红军攻击受挫，激战终日未克。毛泽东决定撤出战斗，另寻战机——这为三渡赤水创造了条件。3月24日，蒋介石偕宋美龄及顾问端纳由重庆飞抵贵阳，亲自督战。蒋介石判断红军必北渡长江，下令各部向川南古蔺地区'一鼓荡平'。毛泽东将计就计，三渡赤水制造北上假象，成功调动国民党军主力西聚川南，为四渡赤水跳出合围创造了战机。",
+  u:{r1:{lat:27.750,lng:106.380},r3:{lat:27.727,lng:106.355},r5:{lat:27.800,lng:106.300},r9:{lat:28.000,lng:106.500},rc:{lat:27.780,lng:106.400},
+     bs:{lat:28.000,lng:106.000},bg:{lat:27.500,lng:106.700},bx:{lat:27.300,lng:106.400},bz:{lat:27.727,lng:106.355},bw:{lat:27.500,lng:106.600},
+     ck:{lat:26.647,lng:106.713}},
+  b:[{lat:27.727,lng:106.355,n:"鲁班场战斗",d:"红军主力攻击周浑元部受挫，毛泽东决定撤出战斗，为三渡赤水创造条件。",intensity:4,
+    cas:{red:"伤亡约1500人",blue:"伤亡约800人",summary:"红军集中一、三、五军团主力强攻鲁班场周浑元部3个师，周部依托坚固工事顽抗。激战终日红军未克，主动撤出。此役虽未胜，但成功调动了敌军注意力，为三渡赤水创造了战机。"}},
+     {lat:26.647,lng:106.713,n:"蒋介石飞抵贵阳",d:"3月24日蒋介石偕宋美龄由重庆飞抵贵阳督战，判断红军必北渡长江，下令各部向川南合围。",intensity:2}],
+  center:[27.30,106.50],zoom:9
+},
+{
+  name:"三渡赤水 · 调敌西聚",short:"三渡赤水",date:"1935年3月16日—17日",timeline:"03.16",isCrossing:true,
+  desc:"鲁班场战斗后，毛泽东出人意料地命令红军从茅台渡口三渡赤水河，再次进入川南古蔺地区。这次渡河的目的是制造红军仍要北渡长江的假象，调动国民党军重新向川南集中。身在贵阳督战的蒋介石果然上当，判断红军'必再向北渡长江'，急令各路大军向川南古蔺地区合围，企图'一鼓荡平'。而红军主力在川南仅作短暂停留，暗中已做好再次东返的准备。",
+  u:{r1:{lat:28.038,lng:105.814},r3:{lat:28.000,lng:105.850},r5:{lat:28.050,lng:105.780},r9:{lat:28.100,lng:106.100},rc:{lat:28.020,lng:105.830},
+     bs:{lat:28.100,lng:106.200},bg:{lat:27.600,lng:106.700},bx:{lat:27.300,lng:106.200},bz:{lat:27.600,lng:106.000},bw:{lat:27.500,lng:106.400},by:{lat:27.300,lng:104.900},
+     ck:{lat:26.647,lng:106.713}},
+  b:[],center:[28.00,105.90],zoom:9
+},
+{
+  name:"四渡赤水 · 跳出合围",short:"四渡赤水",date:"1935年3月21日—22日",timeline:"03.21",isCrossing:true,
+  desc:"3月21日至22日，在蒋介石各路大军向川南合围之际，红军以极其秘密迅速的动作，从太平渡、二郎滩、九溪口等渡口四渡赤水河，再次东返黔北。这一次渡河完全出乎蒋介石意料——当国民党各军还在川南搜剿时，红军已跳出了包围圈，将数十万敌军甩在赤水河以西。四渡赤水的战略机动至此完成核心目标，红军完全掌握了战场主动权。在贵阳的蒋介石闻讯大惊，急令各部回援。",
+  u:{r1:{lat:28.267,lng:105.856},r3:{lat:28.342,lng:106.025},r5:{lat:28.300,lng:105.950},r9:{lat:28.300,lng:106.200},rc:{lat:28.280,lng:105.970},
+     bs:{lat:28.000,lng:105.700},bg:{lat:27.400,lng:106.600},bx:{lat:27.000,lng:106.000},bz:{lat:27.300,lng:105.700},bw:{lat:27.200,lng:106.100},by:{lat:27.500,lng:105.200},
+     ck:{lat:26.647,lng:106.713}},
+  b:[],center:[28.15,105.95],zoom:9
+},
+{
+  name:"南渡乌江 · 兵临贵阳",short:"兵临贵阳",date:"1935年3月29日—4月2日",timeline:"03.29",hasBattle:true,
+  desc:"四渡赤水后，红军迅速南进，于3月29日至4月2日从金沙、后山等渡口南渡乌江，兵锋直指贵阳。此时贵阳城内兵力空虚，蒋介石正在贵阳督战，大为震惊，急令滇军孙渡部从云南大定、黔西疾驰贵阳'勤王'。毛泽东佯攻贵阳的真实目的正是调滇军东出，为红军西进云南、北渡金沙江打开通道。这一招'调虎离山'堪称军事指挥艺术的巅峰。蒋介石急调孙渡后，云南防线极度空虚，正中毛泽东调虎离山之计。",
+  u:{r1:{lat:27.122,lng:106.700},r3:{lat:27.303,lng:106.907},r5:{lat:27.200,lng:106.850},r9:{lat:27.500,lng:106.600},rc:{lat:27.150,lng:106.750},
+     bs:{lat:28.000,lng:106.000},bg:{lat:27.000,lng:106.800},bx:{lat:27.000,lng:106.300},bz:{lat:27.200,lng:106.000},bw:{lat:27.100,lng:106.400},by:{lat:26.900,lng:106.500},
+     ck:{lat:26.647,lng:106.713}},
+  b:[{lat:26.900,lng:106.600,n:"兵临贵阳",d:"红军兵锋直指贵阳，在贵阳督战的蒋介石急调滇军孙渡部'勤王'，云南防线空虚。",intensity:3,
+    cas:{red:"伤亡约200人",blue:"伤亡约500人",summary:"红军以少量兵力佯攻贵阳，虚张声势。蒋介石急调滇军孙渡部3万人驰援贵阳'勤王'，云南防线空虚。毛泽东调虎离山之计成功，为红军西进云南、北渡金沙江创造了战略空隙。"}}],
+  center:[27.20,106.70],zoom:9
+},
+{
+  name:"西进云南 · 跳出包围圈",short:"西进云南",date:"1935年4月上旬—5月9日",timeline:"04.上",
+  desc:"滇军孙渡部被调往贵阳后，云南防线极度空虚。红军在贵阳虚晃一枪后，突然西进，每天行军百里，经黔西南向云南急进。4月下旬进入云南，威逼昆明。龙云急调各地民团守昆明，金沙江防线更加空虚。5月3日至9日，红军巧渡金沙江，彻底摆脱了数十万国民党军的围追堵截。四渡赤水战役至此圆满结束，中央红军取得了战略转移中具有决定意义的胜利。毛泽东后来总结：'四渡赤水才是我的平生得意之笔。'",
+  u:{r1:{lat:27.279,lng:105.285},r3:{lat:27.300,lng:105.200},r5:{lat:27.250,lng:105.350},r9:{lat:27.400,lng:105.500},rc:{lat:27.290,lng:105.250},
+     bs:{lat:28.000,lng:106.000},bg:{lat:27.000,lng:106.500},bx:{lat:27.200,lng:106.000},by:{lat:27.000,lng:104.800}},
+  b:[],center:[27.30,105.30],zoom:9
+},
+];
+
+// ==================== 赤水河路径 ====================
+const CHISHUI_RIVER=[
+  [27.60,106.45],[27.70,106.35],[27.78,106.28],[27.80,106.20],[27.85,106.10],
+  [27.90,106.00],[27.98,105.92],[28.05,105.87],[28.15,105.85],[28.20,105.86],
+  [28.27,105.88],[28.30,105.95],[28.34,106.03],[28.38,106.10],[28.42,106.15],
+  [28.46,106.20],[28.48,106.15],[28.50,106.05],[28.53,105.95],[28.55,105.85],
+  [28.58,105.69],[28.62,105.55],[28.68,105.45],[28.75,105.35]
+];
+const WUJIANG_RIVER=[
+  [27.80,107.00],[27.60,106.95],[27.45,106.92],[27.30,106.91],[27.15,106.85],
+  [27.00,106.80],[26.80,106.72],[26.60,106.65],[26.40,106.55]
+];
+
+// ==================== Leaflet 地图初始化 ====================
+const map=L.map('map',{center:[27.80,106.30],zoom:9,minZoom:7,maxZoom:16,zoomControl:false,attributionControl:true,preferCanvas:true});
+
+// v24: 自定义缩放+重置按钮组，合为一组
+const zoomResetControl=L.control({position:'topleft'});
+zoomResetControl.onAdd=function(){
+  const div=L.DomUtil.create('div','leaflet-bar leaflet-control');
+  div.style.cssText='display:flex;flex-direction:column;border-radius:5px;overflow:hidden;box-shadow:0 1px 5px rgba(0,0,0,.4)';
+  // + 按钮
+  const zoomIn=L.DomUtil.create('a','',div);
+  zoomIn.href='#';zoomIn.title='放大';
+  zoomIn.innerHTML='＋';zoomIn.role='button';
+  zoomIn.style.cssText='display:block;width:30px;height:30px;line-height:30px;text-align:center;font-size:18px;font-weight:bold;color:#333;background:#fff;cursor:pointer;text-decoration:none;border-bottom:1px solid #ccc';
+  // − 按钮
+  const zoomOut=L.DomUtil.create('a','',div);
+  zoomOut.href='#';zoomOut.title='缩小';
+  zoomOut.innerHTML='−';zoomOut.role='button';
+  zoomOut.style.cssText='display:block;width:30px;height:30px;line-height:30px;text-align:center;font-size:18px;font-weight:bold;color:#333;background:#fff;cursor:pointer;text-decoration:none;border-bottom:1px solid #ccc';
+  // 重置按钮
+  const reset=L.DomUtil.create('a','',div);
+  reset.href='#';reset.title='重置地图大小';
+  reset.innerHTML='⟲';reset.role='button';
+  reset.style.cssText='display:block;width:30px;height:34px;line-height:34px;text-align:center;font-size:22px;font-weight:bold;color:#333;background:#fff;cursor:pointer;text-decoration:none';
+  L.DomEvent.on(zoomIn,'click',function(e){L.DomEvent.preventDefault(e);map.zoomIn();});
+  L.DomEvent.on(zoomOut,'click',function(e){L.DomEvent.preventDefault(e);map.zoomOut();});
+  L.DomEvent.on(reset,'click',function(e){L.DomEvent.preventDefault(e);map.flyTo([27.80,106.30],9,{duration:0.8});});
+  return div;
+};
+
+const satelliteLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+  maxZoom:18,attribution:'© Esri, Maxar, Earthstar Geographics'
+});
+const satLabels=L.tileLayer('https://webst0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scale=1&style=8',{
+  maxZoom:18,subdomains:['1','2','3','4'],opacity:0.9,attribution:'© AutoNavi (高德地图)'
+});
+const topoLayer=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
+  maxZoom:17,attribution:'© OpenTopoMap (CC-BY-SA)',subdomains:'abc'
+});
+const streetLayer=L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',{
+  maxZoom:18,subdomains:['1','2','3','4'],attribution:'© AutoNavi (高德地图)'
+});
+
+satelliteLayer.addTo(map);
+satLabels.addTo(map);
+
+L.control.layers({
+  "卫星影像（默认）":satelliteLayer,
+  "地形图（山脉河流）":topoLayer,
+  "街道地图":streetLayer
+}).addTo(map);
+L.control.scale({imperial:false,maxWidth:200}).addTo(map);
+zoomResetControl.addTo(map);
+
+// ==================== 绘制河流 ====================
+L.polyline(CHISHUI_RIVER,{color:'#5dade2',weight:10,opacity:0.12,smoothFactor:2}).addTo(map);
+L.polyline(CHISHUI_RIVER,{color:'#2980b9',weight:4,opacity:0.5,smoothFactor:2}).addTo(map);
+L.marker([28.15,105.85],{icon:L.divIcon({className:'river-label',html:'<div class="rl-text">赤水河</div>',iconSize:[60,20],iconAnchor:[30,10]})}).addTo(map);
+L.polyline(WUJIANG_RIVER,{color:'#1a5276',weight:3,opacity:0.4,smoothFactor:2}).addTo(map);
+L.marker([27.10,106.85],{icon:L.divIcon({className:'river-label',html:'<div class="rl-text">乌 江</div>',iconSize:[50,20],iconAnchor:[25,10]})}).addTo(map);
+
+// ==================== 地点标记（v21: 核心地名高亮）====================
+const MAJOR_LOCATIONS=['zunyi','tucheng','zhaxi','taipingdu','maotai','loushanguan','guiyang','chishui','gulin'];
+for(const k in LOC){
+  const L_=LOC[k];
+  const isMajor=MAJOR_LOCATIONS.includes(k)||L_.major;
+  let cls='loc-marker '+L_.t;
+  if(isMajor)cls+=' major';
+  const icon=L.divIcon({className:cls,html:'<div class="lm-dot"></div><div class="lm-label">'+L_.n+'</div>',iconSize:[16,16],iconAnchor:[8,8]});
+  const m=L.marker([L_.lat,L_.lng],{icon:icon,zIndexOffset:isMajor?300:100});
+  m.bindPopup('<h4>📍 '+L_.n+'</h4><div class="pop-row">'+L_.info+'</div>');
+  m.on('popupopen',function(e){var el=e.popup.getElement();if(el){el.addEventListener('mouseleave',function(){m.closePopup();});}});
+  m.addTo(map);
+}
+
+// ==================== 部队标记（v21: 蓝军按派系区分颜色）====================
+const unitMarkers={};
+const unitCurrentPos={};
+
+// v21: 蓝军派系颜色映射
+const BLUE_FACTION_COLORS={
+  'bs':'#1abc9c', // 川军
+  'bg':'#95a5a6', // 黔军
+  'bx':'#5dade2', // 中央军薛岳
+  'bz':'#5dade2', // 中央军周浑元
+  'bw':'#5dade2', // 中央军吴奇伟
+  'by':'#9b59b6', // 滇军
+  'ck':'#e74c3c', // 蒋介石
+};
+const BLUE_FACTION_BG={
+  'bs':'rgba(26,188,156,.25)',
+  'bg':'rgba(149,165,166,.25)',
+  'bx':'rgba(93,173,226,.25)',
+  'bz':'rgba(93,173,226,.25)',
+  'bw':'rgba(93,173,226,.25)',
+  'by':'rgba(155,89,182,.25)',
+  'ck':'rgba(231,76,60,.25)',
+};
+
+function createChieftainIcon(){
+  return L.divIcon({className:'chieftain-marker',html:'<div class="cm-body">✈</div><div class="cm-label">蒋督战</div>',iconSize:[24,24],iconAnchor:[12,12]});
+}
+
+for(const id in UNITS){
+  const U=UNITS[id];
+  let icon;
+  if(id==='ck'){
+    icon=createChieftainIcon();
+  }else if(U.side==='red'){
+    // v22: 红军五角星中间带数字，军委为黄色星
+    const isJunwei=id==='rc';
+    const num=U.short.replace('红','').replace('军委','★');
+    const starHTML=isJunwei
+      ?'<span class="um-star">★</span>'
+      :'<span class="um-star">★<span class="um-num">'+num+'</span></span>';
+    const cls=isJunwei?'unit-marker red junwei':'unit-marker red';
+    icon=L.divIcon({className:cls,html:'<div class="um-body">'+starHTML+'</div>',iconSize:[18,18],iconAnchor:[9,9]});
+  }else{
+    const sym='◆';
+    const fc=BLUE_FACTION_COLORS[id]||'#5dade2';
+    const fbg=BLUE_FACTION_BG[id]||'rgba(93,173,226,.25)';
+    icon=L.divIcon({className:'unit-marker blue',html:'<div class="um-body" style="background:'+fc+';border-color:'+fc+';box-shadow:0 0 6px '+fc+'">'+sym+'</div>',iconSize:[18,18],iconAnchor:[9,9]});
+  }
+  const m=L.marker([0,0],{icon:icon,zIndexOffset:id==='ck'?1100:1000,riseOnHover:true});
+  m.bindPopup('<h4>'+U.name+'</h4><div class="pop-row"><b>指挥官:</b> '+U.cmd+'</div><div class="pop-row"><b>兵力:</b> '+U.str+'</div><div class="pop-row">'+U.desc+'</div>');
+  m.on('popupopen',function(e){var el=e.popup.getElement();if(el){el.addEventListener('mouseleave',function(){m.closePopup();});}});
+  m.on('mouseover',e=>showUnitTooltip(e,id));
+  m.on('mouseout',hideUnitTooltip);
+  m.on('click',()=>{
+    hideUnitTooltip();
+    if(unitCurrentPos[id]){
+      map.flyTo(unitCurrentPos[id],11,{duration:0.8});
+      setTimeout(()=>m.openPopup(),400);
+    }
+  });
+  m.addTo(map);
+  m.setOpacity(0);
+  unitMarkers[id]=m;
+  unitCurrentPos[id]=null;
+}
+
+// Tooltip
+const tooltipEl=document.createElement('div');
+tooltipEl.className='unit-tooltip';
+tooltipEl.style.display='none';
+document.getElementById('map-wrap').appendChild(tooltipEl);
+
+function showUnitTooltip(e,id){
+  const U=UNITS[id];
+  tooltipEl.innerHTML='<div class="ut-name">'+U.name+'</div><div class="ut-row"><b>指挥:</b> '+U.cmd+'</div><div class="ut-row"><b>兵力:</b> '+U.str+'</div><div class="ut-desc">'+U.desc+'</div>';
+  tooltipEl.style.display='block';
+
+  const latlng=e.target.getLatLng();
+  const point=map.latLngToContainerPoint(latlng);
+  const mapRect=document.getElementById('map-wrap').getBoundingClientRect();
+
+  // 先显示以测量尺寸
+  tooltipEl.style.visibility='hidden';
+  tooltipEl.classList.add('visible');
+  const tw=tooltipEl.offsetWidth;
+  const th=tooltipEl.offsetHeight;
+
+  // 判断: 如果单位在地图下半部分，tooltip 放上方；否则放下方
+  const fromBottom=mapRect.height-point.y;
+  let left=point.x-tw/2;
+  let top;
+
+  if(fromBottom<th+30){
+    // 放上方
+    top=point.y-th-12;
+    tooltipEl.style.borderBottom='4px solid #58a6ff';
+    tooltipEl.style.borderTop='1px solid #58a6ff';
+  }else{
+    // 放下方
+    top=point.y+22;
+    tooltipEl.style.borderTop='4px solid #58a6ff';
+    tooltipEl.style.borderBottom='1px solid #58a6ff';
+  }
+
+  // 边界检测
+  if(left<4)left=4;
+  if(left+tw>mapRect.width-4)left=mapRect.width-tw-4;
+  if(top<4)top=4;
+
+  tooltipEl.style.left=left+'px';
+  tooltipEl.style.top=top+'px';
+  tooltipEl.style.visibility='visible';
+}
+
+function hideUnitTooltip(){
+  tooltipEl.classList.remove('visible');
+  setTimeout(()=>{tooltipEl.style.display='none';},200);
+}
+
+map.on('move zoom moveend zoomend',()=>{
+  if(tooltipEl.style.display==='none')return;
+  for(const id in unitMarkers){
+    const m=unitMarkers[id];
+    const el=m.getElement();
+    if(el&&el.querySelector(':hover')){
+      showUnitTooltip({target:m},id);
+      return;
+    }
+  }
+  hideUnitTooltip();
+});
+
+// 路线图层
+let routeHistoryGroup=L.layerGroup().addTo(map); // 所有历史路线（保留）
+let routeCurrentGroup=L.layerGroup().addTo(map); // 当前阶段路线（高亮）
+let arrowCurrentGroup=L.layerGroup().addTo(map); // 当前阶段箭头
+let arrowHistoryGroup=L.layerGroup().addTo(map); // 历史箭头
+let battleLayerGroup=L.layerGroup().addTo(map);
+
+// v11: 相机跟随模式
+let cameraFollow=true;
+
+// v8: 敌军部署图层
+let fortGroup=L.layerGroup();      // 工事
+let forceGroup=L.layerGroup();     // 兵力部署
+let territoryGroup=L.layerGroup(); // 占领辖区
+let deployVisible={fort:false,force:false,territory:false};
+
+// ==================== v8: 敌军部署数据 ====================
+// 工事数据（固定位置，不随阶段变化）
+const FORTIFICATIONS=[
+  {lat:28.460,lng:106.197,name:"土城碉堡群",type:"河防工事",garrison:"川军郭勋祺部",built:"1935.01"},
+  {lat:28.267,lng:105.856,name:"太平渡工事",type:"渡口碉堡",garrison:"黔军/中央军交替",built:"1935.01"},
+  {lat:28.342,lng:106.025,name:"二郎滩碉堡",type:"渡口碉堡",garrison:"黔军",built:"1935.01"},
+  {lat:27.802,lng:106.408,name:"茅台渡口工事",type:"渡口碉堡",garrison:"中央军周浑元部",built:"1935.03"},
+  {lat:27.727,lng:106.355,name:"鲁班场三道工事线",type:"野战阵地",garrison:"中央军周浑元部",built:"1935.03"},
+  {lat:28.043,lng:106.874,name:"娄山关隘口工事",type:"关隘工事",garrison:"黔军杜肇华部",built:"1935.01"},
+  {lat:28.155,lng:106.824,name:"桐梓碉堡群",type:"城防工事",garrison:"黔军",built:"1935.01"},
+  {lat:27.303,lng:106.907,name:"乌江渡碉堡",type:"河防工事",garrison:"中央军吴奇伟部",built:"1935.02"},
+  {lat:28.155,lng:105.442,name:"叙永碉堡群",type:"城防工事",garrison:"川军",built:"1935.01"},
+  {lat:28.038,lng:105.814,name:"古蔺防线工事",type:"野战阵地",garrison:"川军/中央军",built:"1935.02"},
+  {lat:27.122,lng:106.700,name:"息烽碉堡群",type:"城防工事",garrison:"中央军",built:"1935.03"},
+  {lat:26.647,lng:106.713,name:"贵阳城防工事",type:"城防工事",garrison:"中央军守备队",built:"1935.03"},
+];
+
+// 兵力部署数据（按阶段）
+const ENEMY_FORCES={
+  0:[
+    {lat:28.155,lng:105.442,name:"川军",troops:20000,cmd:"郭勋祺"},
+    {lat:26.647,lng:106.713,name:"黔军",troops:15000,cmd:"王家烈"},
+    {lat:27.122,lng:106.700,name:"中央军",troops:80000,cmd:"薛岳"},
+    {lat:27.300,lng:106.000,name:"周部",troops:30000,cmd:"周浑元"},
+  ],
+  1:[
+    {lat:28.350,lng:106.250,name:"川军",troops:20000,cmd:"郭勋祺"},
+    {lat:26.700,lng:106.700,name:"黔军",troops:15000,cmd:"王家烈"},
+    {lat:27.200,lng:106.600,name:"中央军",troops:80000,cmd:"薛岳"},
+    {lat:27.200,lng:105.800,name:"周部",troops:30000,cmd:"周浑元"},
+  ],
+  2:[
+    {lat:28.300,lng:106.150,name:"川军",troops:20000,cmd:"郭勋祺"},
+    {lat:26.800,lng:106.700,name:"黔军",troops:15000,cmd:"王家烈"},
+    {lat:27.300,lng:106.200,name:"中央军",troops:80000,cmd:"薛岳"},
+    {lat:27.100,lng:105.500,name:"周部",troops:30000,cmd:"周浑元"},
+  ],
+  3:[
+    {lat:28.100,lng:105.600,name:"川军",troops:20000,cmd:"郭勋祺"},
+    {lat:27.000,lng:106.500,name:"黔军",troops:12000,cmd:"王家烈"},
+    {lat:27.200,lng:106.000,name:"中央军",troops:80000,cmd:"薛岳"},
+    {lat:26.900,lng:105.300,name:"周部",troops:30000,cmd:"周浑元"},
+    {lat:27.500,lng:104.700,name:"滇军",troops:30000,cmd:"孙渡"},
+  ],
+  4:[
+    {lat:28.100,lng:105.500,name:"川军",troops:18000,cmd:"郭勋祺"},
+    {lat:27.200,lng:106.500,name:"黔军",troops:10000,cmd:"王家烈"},
+    {lat:27.000,lng:106.000,name:"中央军",troops:80000,cmd:"薛岳"},
+    {lat:26.800,lng:105.200,name:"周部",troops:30000,cmd:"周浑元"},
+    {lat:27.400,lng:104.800,name:"滇军",troops:30000,cmd:"孙渡"},
+  ],
+  5:[
+    {lat:28.000,lng:105.800,name:"川军",troops:15000,cmd:"郭勋祺"},
+    {lat:27.300,lng:106.900,name:"黔军残部",troops:5000,cmd:"王家烈"},
+    {lat:27.200,lng:106.500,name:"中央军",troops:80000,cmd:"薛岳"},
+    {lat:26.900,lng:105.800,name:"周部",troops:30000,cmd:"周浑元"},
+    {lat:27.300,lng:106.950,name:"吴部",troops:30000,cmd:"吴奇伟"},
+  ],
+  6:[
+    {lat:28.000,lng:106.000,name:"川军",troops:15000,cmd:"郭勋祺"},
+    {lat:27.500,lng:106.700,name:"黔军残部",troops:3000,cmd:"王家烈"},
+    {lat:27.300,lng:106.400,name:"中央军",troops:80000,cmd:"薛岳"},
+    {lat:27.727,lng:106.355,name:"周部",troops:30000,cmd:"周浑元"},
+    {lat:27.500,lng:106.600,name:"吴部",troops:20000,cmd:"吴奇伟"},
+  ],
+  7:[
+    {lat:28.100,lng:106.200,name:"川军",troops:15000,cmd:"郭勋祺"},
+    {lat:27.600,lng:106.700,name:"黔军残部",troops:3000,cmd:"王家烈"},
+    {lat:27.300,lng:106.200,name:"中央军",troops:80000,cmd:"薛岳"},
+    {lat:27.600,lng:106.000,name:"周部",troops:30000,cmd:"周浑元"},
+    {lat:27.500,lng:106.400,name:"吴部",troops:20000,cmd:"吴奇伟"},
+    {lat:27.300,lng:104.900,name:"滇军",troops:30000,cmd:"孙渡"},
+  ],
+  8:[
+    {lat:28.000,lng:105.700,name:"川军",troops:15000,cmd:"郭勋祺"},
+    {lat:27.400,lng:106.600,name:"黔军残部",troops:3000,cmd:"王家烈"},
+    {lat:27.000,lng:106.000,name:"中央军",troops:80000,cmd:"薛岳"},
+    {lat:27.300,lng:105.700,name:"周部",troops:30000,cmd:"周浑元"},
+    {lat:27.200,lng:106.100,name:"吴部",troops:20000,cmd:"吴奇伟"},
+    {lat:27.500,lng:105.200,name:"滇军",troops:30000,cmd:"孙渡"},
+  ],
+  9:[
+    {lat:28.000,lng:106.000,name:"川军",troops:12000,cmd:"郭勋祺"},
+    {lat:27.000,lng:106.800,name:"黔军残部",troops:2000,cmd:"王家烈"},
+    {lat:27.000,lng:106.300,name:"中央军",troops:80000,cmd:"薛岳"},
+    {lat:27.200,lng:106.000,name:"周部",troops:30000,cmd:"周浑元"},
+    {lat:27.100,lng:106.400,name:"吴部",troops:20000,cmd:"吴奇伟"},
+    {lat:26.900,lng:106.500,name:"滇军",troops:30000,cmd:"孙渡"},
+  ],
+  10:[
+    {lat:28.000,lng:106.000,name:"川军",troops:10000,cmd:"郭勋祺"},
+    {lat:27.000,lng:106.500,name:"黔军残部",troops:2000,cmd:"王家烈"},
+    {lat:27.200,lng:106.000,name:"中央军",troops:70000,cmd:"薛岳"},
+    {lat:27.000,lng:104.800,name:"滇军",troops:20000,cmd:"孙渡"},
+  ],
+};
+
+// 占领辖区数据（按阶段）
+const TERRITORIES={
+  0:[
+    {name:"川军防区",points:[[28.50,105.40],[28.50,106.30],[27.80,106.30],[27.80,105.40]],faction:"川军"},
+    {name:"黔军防区",points:[[27.80,106.30],[27.80,107.20],[26.40,107.20],[26.40,106.30]],faction:"黔军"},
+    {name:"中央军控制区",points:[[27.00,106.30],[27.00,107.50],[26.00,107.50],[26.00,106.30]],faction:"中央军"},
+  ],
+  1:[
+    {name:"川军防区",points:[[28.50,105.40],[28.50,106.50],[27.80,106.50],[27.80,105.40]],faction:"川军"},
+    {name:"黔军防区",points:[[27.80,106.30],[27.80,107.20],[26.40,107.20],[26.40,106.30]],faction:"黔军"},
+    {name:"中央军控制区",points:[[27.00,106.30],[27.00,107.50],[26.00,107.50],[26.00,106.30]],faction:"中央军"},
+  ],
+  2:[
+    {name:"川军防区",points:[[28.50,105.00],[28.50,106.50],[27.50,106.50],[27.50,105.00]],faction:"川军"},
+    {name:"黔军防区",points:[[27.80,106.30],[27.80,107.20],[26.40,107.20],[26.40,106.30]],faction:"黔军"},
+    {name:"中央军控制区",points:[[27.00,106.30],[27.00,107.50],[26.00,107.50],[26.00,106.30]],faction:"中央军"},
+  ],
+  3:[
+    {name:"川军防区",points:[[28.50,105.00],[28.50,106.50],[27.50,106.50],[27.50,105.00]],faction:"川军"},
+    {name:"中央军合围区",points:[[27.50,105.00],[27.50,107.20],[26.00,107.20],[26.00,105.00]],faction:"中央军"},
+    {name:"滇军防区",points:[[27.50,104.00],[27.50,105.50],[26.00,105.50],[26.00,104.00]],faction:"滇军"},
+  ],
+  4:[
+    {name:"川军防区",points:[[28.50,105.00],[28.50,106.50],[27.50,106.50],[27.50,105.00]],faction:"川军"},
+    {name:"中央军合围区",points:[[27.50,105.00],[27.50,107.20],[26.00,107.20],[26.00,105.00]],faction:"中央军"},
+    {name:"滇军防区",points:[[27.50,104.00],[27.50,105.50],[26.00,105.50],[26.00,104.00]],faction:"滇军"},
+  ],
+  5:[
+    {name:"川军防区",points:[[28.50,105.00],[28.50,106.50],[27.50,106.50],[27.50,105.00]],faction:"川军"},
+    {name:"中央军控制区",points:[[27.00,106.00],[27.00,107.50],[26.00,107.50],[26.00,106.00]],faction:"中央军"},
+    {name:"黔军残部区",points:[[27.00,106.50],[27.00,107.20],[26.40,107.20],[26.40,106.50]],faction:"黔军"},
+  ],
+  6:[
+    {name:"川军防区",points:[[28.50,105.00],[28.50,106.50],[27.50,106.50],[27.50,105.00]],faction:"川军"},
+    {name:"中央军控制区",points:[[27.00,106.00],[27.00,107.50],[26.00,107.50],[26.00,106.00]],faction:"中央军"},
+    {name:"滇军防区",points:[[27.50,104.00],[27.50,105.50],[26.00,105.50],[26.00,104.00]],faction:"滇军"},
+  ],
+  7:[
+    {name:"川军合围区",points:[[28.50,105.00],[28.50,106.50],[27.50,106.50],[27.50,105.00]],faction:"川军"},
+    {name:"中央军合围区",points:[[27.00,105.50],[27.00,107.50],[26.00,107.50],[26.00,105.50]],faction:"中央军"},
+    {name:"滇军防区",points:[[27.50,104.00],[27.50,105.50],[26.00,105.50],[26.00,104.00]],faction:"滇军"},
+  ],
+  8:[
+    {name:"川军防区",points:[[28.50,105.00],[28.50,106.50],[27.50,106.50],[27.50,105.00]],faction:"川军"},
+    {name:"中央军合围区",points:[[27.00,105.50],[27.00,107.50],[26.00,107.50],[26.00,105.50]],faction:"中央军"},
+    {name:"滇军防区",points:[[27.50,104.00],[27.50,105.50],[26.00,105.50],[26.00,104.00]],faction:"滇军"},
+  ],
+  9:[
+    {name:"川军防区",points:[[28.50,105.00],[28.50,106.50],[27.50,106.50],[27.50,105.00]],faction:"川军"},
+    {name:"中央军控制区",points:[[27.00,105.80],[27.00,107.50],[26.00,107.50],[26.00,105.80]],faction:"中央军"},
+    {name:"滇军东援区",points:[[27.00,105.00],[27.00,106.50],[26.00,106.50],[26.00,105.00]],faction:"滇军"},
+  ],
+  10:[
+    {name:"川军防区",points:[[28.50,105.00],[28.50,106.50],[27.50,106.50],[27.50,105.00]],faction:"川军"},
+    {name:"中央军控制区",points:[[27.00,105.80],[27.00,107.50],[26.00,107.50],[26.00,105.80]],faction:"中央军"},
+    {name:"滇军防区（空虚）",points:[[27.00,103.50],[27.00,105.50],[25.50,105.50],[25.50,103.50]],faction:"滇军"},
+  ],
+};
+
+// v10: 渲染工事图层 — 强化视觉
+function renderFortifications(){
+  fortGroup.clearLayers();
+  FORTIFICATIONS.forEach((f,idx)=>{
+    const svg='<svg class="fm-svg" width="30" height="30" viewBox="0 0 30 30">'+
+      '<rect x="5" y="5" width="20" height="20" fill="#e67e22" stroke="#d35400" stroke-width="1.5" rx="2"/>'+
+      '<path d="M5,5 L1,1 M11,5 L11,1 M15,5 L15,1 M19,5 L19,1 M25,5 L29,1" stroke="#d35400" stroke-width="1.5" fill="none"/>'+
+      '<rect x="8" y="8" width="14" height="14" fill="none" stroke="#fff" stroke-width=".7" opacity=".4"/>'+
+      '<text x="15" y="19" text-anchor="middle" font-size="10" fill="#fff" font-weight="bold" style="text-shadow:0 0 2px #000">堡</text>'+
+      '</svg>';
+    const icon=L.divIcon({className:'fort-marker',html:'<div class="fm-pulse"></div><div class="fm-icon">'+svg+'</div><div class="fm-label">'+f.name+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
+    const m=L.marker([f.lat,f.lng],{icon:icon,zIndexOffset:500});
+    const popupContent='<h4>🛡 '+f.name+'</h4><div class="pop-row"><b>类型:</b> '+f.type+'</div><div class="pop-row"><b>驻守:</b> '+f.garrison+'</div><div class="pop-row"><b>构筑:</b> '+f.built+'</div>';
+    m.bindPopup(popupContent,{closeButton:true,autoPan:true});
+    m.on('popupopen',function(e){var el=e.popup.getElement();if(el){el.addEventListener('mouseleave',function(){m.closePopup();});}});
+    m.addTo(fortGroup);
+  });
+}
+
+// v21: 渲染兵力部署图层 — 派系颜色区分
+const FACTION_MAP={'川军':'faction-chuan','黔军':'faction-qian','黔军残部':'faction-qian','中央军':'faction-zhongyang','周部':'faction-zhongyang','吴部':'faction-zhongyang','滇军':'faction-dian'};
+function getFactionClass(name){
+  for(const key in FACTION_MAP){if(name.includes(key))return FACTION_MAP[key];}
+  return 'faction-zhongyang';
+}
+function renderForces(stage){
+  forceGroup.clearLayers();
+  const forces=ENEMY_FORCES[stage]||[];
+  forces.forEach(f=>{
+    const size=Math.max(44,Math.min(80,20+f.troops/2000*5));
+    const fc=getFactionClass(f.name);
+    const icon=L.divIcon({className:'force-marker '+fc,html:
+      '<div class="fm-ring" style="width:'+size+'px;height:'+size+'px">'+
+      '<div class="fm-troops">'+(f.troops>=10000?(f.troops/10000)+'万':f.troops)+'</div>'+
+      '<div class="fm-unit">'+f.name+'</div></div>',
+      iconSize:[size,size],iconAnchor:[size/2,size/2]});
+    const m=L.marker([f.lat,f.lng],{icon:icon,zIndexOffset:400});
+    const popupContent='<h4>🔵 '+f.name+'</h4><div class="pop-row"><b>番号:</b> '+f.name+'</div><div class="pop-row"><b>指挥官:</b> '+f.cmd+'</div><div class="pop-row"><b>兵力:</b> '+f.troops+'人</div>';
+    m.bindPopup(popupContent,{closeButton:true,autoPan:true});
+    m.on('popupopen',function(e){var el=e.popup.getElement();if(el){el.addEventListener('mouseleave',function(){m.closePopup();});}});
+    m.addTo(forceGroup);
+  });
+}
+
+// v21: 渲染占领辖区图层 — 标签放多边形左上角
+function renderTerritories(stage){
+  territoryGroup.clearLayers();
+  const territories=TERRITORIES[stage]||[];
+  const factionColors={川军:'#1abc9c',黔军:'#95a5a6',中央军:'#5dade2',滇军:'#9b59b6'};
+  territories.forEach(t=>{
+    const color=factionColors[t.faction]||'#5dade2';
+    L.polygon(t.points,{
+      color:color,weight:2,opacity:0.7,
+      fillColor:color,fillOpacity:0.15,
+      dashArray:'10 6',smoothFactor:1
+    }).addTo(territoryGroup);
+    // v21: 标签放在多边形左上角（最小经纬度交点附近）
+    let minLat=Infinity,minLng=Infinity;
+    t.points.forEach(p=>{if(p[0]<minLat)minLat=p[0];if(p[1]<minLng)minLng=p[1];});
+    // 稍微往内偏移
+    const latSpan=Math.max(...t.points.map(p=>p[0]))-minLat;
+    const lngSpan=Math.max(...t.points.map(p=>p[1]))-minLng;
+    const labelLat=minLat+latSpan*0.15;
+    const labelLng=minLng+lngSpan*0.15;
+    const labelIcon=L.divIcon({className:'territory-label',html:'<div class="tl-text" style="color:'+color+'">'+t.name+'</div>',iconSize:[100,20],iconAnchor:[0,0]});
+    L.marker([labelLat,labelLng],{icon:labelIcon,interactive:false,zIndexOffset:600}).addTo(territoryGroup);
+  });
+}
+
+// v18: 红军逐阶段累计伤亡（用于实时兵力统计）
+const RED_CASUALTY_PER_STAGE={0:0,1:1000,2:0,3:0,4:0,5:1500,6:1500,7:0,8:0,9:200,10:0};
+const RED_INITIAL=30000;
+
+// v18: 计算并更新兵力统计
+function updateTroopStats(stage){
+  // 红军：初始兵力 - 累计伤亡
+  let redLoss=0;
+  for(let i=0;i<=stage;i++){redLoss+=RED_CASUALTY_PER_STAGE[i]||0;}
+  const redTotal=Math.max(0,RED_INITIAL-redLoss);
+  // 国军：直接取当前阶段 ENEMY_FORCES 总和（数据本身已反映损耗）
+  let blueTotal=0;
+  const forces=ENEMY_FORCES[stage]||[];
+  forces.forEach(f=>{blueTotal+=f.troops;});
+  document.getElementById('ts-red').textContent=redTotal.toLocaleString();
+  document.getElementById('ts-blue').textContent=blueTotal.toLocaleString();
+}
+
+// v8: 刷新敌军部署图层
+function refreshDeployLayers(stage){
+  if(deployVisible.fort){renderFortifications();}
+  if(deployVisible.force){renderForces(stage);}
+  if(deployVisible.territory){renderTerritories(stage);}
+  updateTroopStats(stage); // v18: 实时更新兵力统计
+}
+
+// ==================== v6: 军事箭头绘制 ====================
+// 计算两点之间的方位角（度）
+function bearing(lat1,lng1,lat2,lng2){
+  const dLng=(lng2-lng1)*Math.PI/180;
+  const y=Math.sin(dLng)*Math.cos(lat2*Math.PI/180);
+  const x=Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180)-Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLng);
+  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+
+// 在指定位置创建军事箭头标记
+function createArrowMarker(lat,lng,angle,color,opacity){
+  const svgSize=20;
+  const half=svgSize/2;
+  const svg='<svg class="am-svg" width="'+svgSize+'" height="'+svgSize+'" viewBox="0 0 '+svgSize+' '+svgSize+'">'+
+    '<path d="M '+half+',2 L '+(svgSize-2)+','+(svgSize-2)+' L '+half+','+(svgSize*0.65)+' L 2,'+(svgSize-2)+' Z" '+
+    'fill="'+color+'" stroke="'+color+'" stroke-width="1" opacity="'+opacity+'" '+
+    'transform="rotate('+angle+' '+half+' '+half+')"/></svg>';
+  return L.marker([lat,lng],{
+    icon:L.divIcon({className:'arrow-marker',html:svg,iconSize:[svgSize,svgSize],iconAnchor:[half,half]}),
+    interactive:false,
+    zIndexOffset:800
+  });
+}
+
+// ==================== 动画函数（v18: 降帧开销）====================
+function animateMarker(marker,fromLatlng,toLatlng,duration,onComplete){
+  const start=performance.now();
+  const fromLat=fromLatlng[0],fromLng=fromLatlng[1];
+  const toLat=toLatlng[0],toLng=toLatlng[1];
+  const dLat=toLat-fromLat,dLng=toLng-fromLng;
+  let rafId;
+  function frame(now){
+    const elapsed=now-start;
+    const t=elapsed>=duration?1:elapsed/duration;
+    const eased=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+    marker.setLatLng([fromLat+dLat*eased,fromLng+dLng*eased]);
+    if(t<1)rafId=requestAnimationFrame(frame);
+    else if(onComplete)onComplete();
+  }
+  rafId=requestAnimationFrame(frame);
+}
+
+// v19: 时间轴滑块平滑滑动
+let timelineRAF=null;
+function animateTimelineSlider(toVal,duration){
+  const slider=document.getElementById('timeline');
+  const fromVal=parseFloat(slider.value);
+  if(duration<=0||fromVal===toVal){slider.value=toVal;return;}
+  if(timelineRAF)cancelAnimationFrame(timelineRAF);
+  const start=performance.now();
+  function frame(now){
+    const elapsed=now-start;
+    const t=elapsed>=duration?1:elapsed/duration;
+    const eased=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+    slider.value=fromVal+(toVal-fromVal)*eased;
+    if(t<1)timelineRAF=requestAnimationFrame(frame);
+  }
+  timelineRAF=requestAnimationFrame(frame);
+}
+
+// ==================== 爆炸特效（v18: 精简粒子，降低 DOM 开销）====================
+function createExplosion(latlng,intensity){
+  const point=map.latLngToContainerPoint(latlng);
+  const x=point.x,y=point.y;
+  const wrap=document.getElementById('map-wrap');
+  // 闪光
+  const flash=document.createElement('div');
+  flash.className='explosion-flash';flash.style.left=x+'px';flash.style.top=y+'px';
+  flash.style.width='150px';flash.style.height='150px';
+  flash.style.animation='explosionFlash .3s ease-out forwards';
+  wrap.appendChild(flash);setTimeout(()=>flash.remove(),300);
+  // 冲击波
+  const shock=document.createElement('div');
+  shock.className='explosion-shockwave';shock.style.left=x+'px';shock.style.top=y+'px';
+  shock.style.animation='explosionShock .8s ease-out forwards';
+  wrap.appendChild(shock);setTimeout(()=>shock.remove(),800);
+  // 碎片：intensity*2（原 intensity*3）
+  const debrisCount=(intensity||3)*2;
+  for(let i=0;i<debrisCount;i++){
+    const debris=document.createElement('div');
+    debris.style.position='absolute';debris.style.left=x+'px';debris.style.top=y+'px';
+    debris.style.width='4px';debris.style.height='4px';debris.style.borderRadius='50%';
+    debris.style.transform='translate(-50%,-50%)';debris.style.zIndex='9000';debris.style.pointerEvents='none';
+    const angle=(Math.PI*2/debrisCount)*i+Math.random()*0.5;
+    const dist=30+Math.random()*50;
+    const dx=Math.cos(angle)*dist,dy=Math.sin(angle)*dist;
+    const colors=['#ff5722','#ff9800','#ffeb3b','#e91e63'];
+    debris.style.background=colors[i%4];debris.style.boxShadow='0 0 4px '+debris.style.background;
+    debris.animate([{transform:'translate(-50%,-50%) translate(0,0) scale(1)',opacity:1},{transform:'translate(-50%,-50%) translate('+dx+'px,'+dy+'px) scale(0)',opacity:0}],{duration:500+Math.random()*400,easing:'ease-out',fill:'forwards'});
+    wrap.appendChild(debris);setTimeout(()=>debris.remove(),1000);
+  }
+}
+function chainExplosions(battles){
+  battles.forEach((b,bi)=>{
+    const count=Math.max(2,(b.intensity||3)-1); // v18: 减少连锁爆炸次数
+    for(let i=0;i<count;i++){
+      setTimeout(()=>{
+        createExplosion([b.lat+(Math.random()-0.5)*0.02,b.lng+(Math.random()-0.5)*0.02],b.intensity);
+      },bi*400+i*250);
+    }
+  });
+}
+function muzzleFlash(latlng){
+  const point=map.latLngToContainerPoint(latlng);
+  const wrap=document.getElementById('map-wrap');
+  for(let i=0;i<2;i++){ // v18: 3→2
+    setTimeout(()=>{
+      const flash=document.createElement('div');
+      flash.style.position='absolute';flash.style.width='15px';flash.style.height='15px';
+      flash.style.borderRadius='50%';flash.style.transform='translate(-50%,-50%)';
+      flash.style.background='radial-gradient(circle,#fff 0%,#ffeb3b 40%,#ff5722 70%,transparent 100%)';
+      flash.style.left=(point.x+(Math.random()-0.5)*25)+'px';flash.style.top=(point.y+(Math.random()-0.5)*25)+'px';
+      flash.style.zIndex='9000';flash.style.pointerEvents='none';
+      flash.animate([{opacity:1,width:'12px',height:'12px'},{opacity:0,width:'35px',height:'35px'}],{duration:300,easing:'ease-out',fill:'forwards'});
+      wrap.appendChild(flash);setTimeout(()=>flash.remove(),300);
+    },i*150);
+  }
+}
+
+// ==================== 渲染阶段 ====================
+let curStage=0,isPlaying=false,playTimer=null;
+let animating=false;
+let renderedStages=new Set(); // 已渲染过的阶段（用于路线保留）
+
+// v6: 绘制路线 + 军事箭头
+function drawRoute(from,to,color,isCurrent,stageId,unitId){
+  const a=from,b=to;
+  const midLat=(a.lat+b.lat)/2+0.02;
+  const midLng=(a.lng+b.lng)/2;
+  const path=[[a.lat,a.lng],[midLat,midLng],[b.lat,b.lng]];
+
+  if(isCurrent){
+    // 当前路线 - 高亮粗线
+    L.polyline(path,{color:color,weight:3,opacity:0.7,dashArray:'10 5',smoothFactor:1}).addTo(routeCurrentGroup);
+    // 当前箭头 - 在终点处绘制方向箭头
+    const angle=bearing(midLat,midLng,b.lat,b.lng);
+    createArrowMarker(b.lat,b.lng,angle,color,0.85).addTo(arrowCurrentGroup);
+  }else{
+    // 历史路线 - 淡线
+    L.polyline(path,{color:color,weight:2,opacity:0.25,dashArray:'6 4',smoothFactor:1}).addTo(routeHistoryGroup);
+    // 历史箭头
+    const angle=bearing(midLat,midLng,b.lat,b.lng);
+    createArrowMarker(b.lat,b.lng,angle,color,0.3).addTo(arrowHistoryGroup);
+  }
+}
+
+function renderStage(n,instant){
+  if(animating&&!instant)return;
+  hideUnitTooltip();
+  const S=STAGES[n];
+  const prev=STAGES[n-1];
+  const duration=instant?0:1800;
+
+  routeCurrentGroup.clearLayers();
+  battleLayerGroup.clearLayers();
+  arrowCurrentGroup.clearLayers();
+
+  // 绘制当前阶段路线 + 箭头（高亮）+ 加入历史
+  if(n>0&&prev){
+    for(const id in S.u){
+      if(!prev.u[id])continue;
+      const a=prev.u[id],b=S.u[id];
+      if(a.lat===b.lat&&a.lng===b.lng)continue;
+      const U=UNITS[id];
+      const color=U.side==='red'?'#e74c3c':'#3498db';
+      // 当前路线 - 高亮 + 箭头
+      drawRoute(a,b,color,true,n,id);
+      // 同时加入历史组（永久保留）
+      if(!renderedStages.has(n+'-'+id)){
+        drawRoute(a,b,color,false,n,id);
+        renderedStages.add(n+'-'+id);
+      }
+    }
+  }
+
+  // 如果跳转，补全所有之前阶段的路线
+  if(instant&&n>0){
+    for(let i=1;i<=n;i++){
+      const p0=STAGES[i-1],p1=STAGES[i];
+      for(const id in p1.u){
+        if(!p0.u[id])continue;
+        const a=p0.u[id],b=p1.u[id];
+        if(a.lat===b.lat&&a.lng===b.lng)continue;
+        const U=UNITS[id];
+        const color=U.side==='red'?'#e74c3c':'#3498db';
+        if(!renderedStages.has(i+'-'+id)){
+          drawRoute(a,b,color,false,i,id);
+          renderedStages.add(i+'-'+id);
+        }
+      }
+    }
+  }
+
+  // 动画移动部队
+  animating=true;
+  let completed=0,total=0;
+  for(const id in S.u)total++;
+  if(total===0)animating=false;
+
+  for(const id in S.u){
+    const target=S.u[id];
+    const marker=unitMarkers[id];
+    marker.setOpacity(1);
+    const from=unitCurrentPos[id];
+    if(from&&!instant&&(from[0]!==target.lat||from[1]!==target.lng)){
+      animateMarker(marker,from,[target.lat,target.lng],duration,()=>{
+        completed++;unitCurrentPos[id]=[target.lat,target.lng];
+        if(completed>=total)animating=false;
+      });
+    }else{
+      marker.setLatLng([target.lat,target.lng]);
+      unitCurrentPos[id]=[target.lat,target.lng];
+      completed++;
+      if(completed>=total)animating=false;
+    }
+  }
+  for(const id in UNITS){
+    if(!S.u[id])unitMarkers[id].setOpacity(0);
+  }
+
+  // v6: 爆炸延迟到部队移动完成后（duration 而非 duration*0.5）
+  setTimeout(()=>{
+    S.b.forEach(b=>{
+      const isChieftain=b.n.includes('蒋介石');
+      let icon;
+      if(isChieftain){
+        icon=L.divIcon({className:'battle-marker',html:'<div class="bm-icon">✈</div><div class="bm-label">'+b.n+'</div>',iconSize:[24,24],iconAnchor:[12,12]});
+      }else{
+        icon=L.divIcon({className:'battle-marker',html:'<div class="bm-icon">⚔</div><div class="bm-label">'+b.n+'</div>',iconSize:[24,24],iconAnchor:[12,12]});
+      }
+      const m=L.marker([b.lat,b.lng],{icon:icon,zIndexOffset:500});
+      m.bindPopup('<h4>'+(isChieftain?'✈':'⚔')+' '+b.n+'</h4><div class="pop-row">'+b.d+'</div>');
+      m.on('popupopen',function(e){var el=e.popup.getElement();if(el){el.addEventListener('mouseleave',function(){m.closePopup();});}});
+      m.on('click',()=>{
+        createExplosion([b.lat,b.lng],b.intensity||3);
+        addBattleLog(b.n,'战斗再次打响！');
+      });
+      m.addTo(battleLayerGroup);
+    });
+    if(S.b.length>0&&!instant){
+      // v6: 爆炸在部队到达后触发（已由外层 setTimeout duration 保证）
+      chainExplosions(S.b);
+      S.b.forEach(b=>{
+        if(!b.n.includes('蒋介石')){
+          for(let i=0;i<2;i++)setTimeout(()=>muzzleFlash([b.lat,b.lng]),i*300); // v18: 3→2
+        }
+      });
+      showBattleLog(S);
+    }else if(S.b.length>0&&instant){
+      S.b.forEach(b=>setTimeout(()=>createExplosion([b.lat,b.lng],2),100));
+      showBattleLog(S);
+    }else{
+      hideBattleLog();
+    }
+  },instant?100:duration);  // v6: duration（完整移动后）而非 duration*0.5
+
+  if(S.center&&cameraFollow)map.flyTo(S.center,S.zoom||9,{duration:instant?0:1});
+
+  updateInfo(n);
+  // v19: 时间轴平滑滑动而非跳转
+  animateTimelineSlider(n,instant?0:duration);
+  document.getElementById('s-num').textContent=n;
+  document.getElementById('s-name').textContent=S.name;
+  document.getElementById('s-date').textContent=S.date;
+  const nums=["零","一","二","三","四","五","六","七","八","九","十"];
+  document.getElementById('po-num').textContent="第"+nums[n]+"阶段";
+  document.getElementById('po-name').textContent=S.name;
+  document.getElementById('po-date').textContent=S.date;
+  updateActiveTick(n);
+  refreshDeployLayers(n);
+  setClockForStage(n);
+  maybePlayCloseup(n,instant);
+}
+
+function updateActiveTick(n){
+  document.querySelectorAll('.tick').forEach((t,i)=>{
+    t.classList.toggle('active',i===n);
+  });
+}
+
+// ==================== 战况日志 ====================
+function showBattleLog(S){
+  const log=document.getElementById('battle-log');
+  const entries=document.getElementById('log-entries');
+  entries.innerHTML='';
+  log.classList.add('visible');
+  const battleMessages={
+    "土城战役":["红三军团与川军郭勋祺部激烈交火","川军兵力超出预期，战斗陷入胶着","毛泽东下令撤出战斗，改变行军方向"],
+    "娄山关战斗":["红三军团猛攻娄山关天险","经反复争夺，攻克娄山关！","'雄关漫道真如铁，而今迈步从头越'"],
+    "遵义战役":["红军再占遵义城！","吴奇伟部两个师增援到达","红军反击歼灭吴部大部，吴奇伟南逃"],
+    "鲁班场战斗":["红军主力强攻鲁班场","周浑元部依托工事顽抗","攻击受挫，毛泽东决定撤出"],
+    "蒋介石飞抵贵阳":["蒋介石偕宋美龄由重庆飞抵贵阳","亲自督战，判断红军必北渡长江","下令各部向川南'一鼓荡平'"],
+    "兵临贵阳":["红军兵锋直指贵阳！","在贵阳督战的蒋介石大为震惊","急调滇军孙渡部'勤王'","调虎离山之计成功！"]
+  };
+  const msgs=battleMessages[S.b[0].n]||["战斗激烈进行中"];
+  msgs.forEach((msg,i)=>{
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='log-entry';
+      e.innerHTML='<b>['+S.timeline+']</b> '+msg;
+      entries.appendChild(e);
+      entries.scrollTop=entries.scrollHeight;
+    },i*500);
+  });
+}
+function addBattleLog(name,msg){
+  const entries=document.getElementById('log-entries');
+  const e=document.createElement('div');
+  e.className='log-entry';
+  e.innerHTML='<b>['+name+']</b> '+msg;
+  entries.appendChild(e);
+  entries.scrollTop=entries.scrollHeight;
+}
+function hideBattleLog(){document.getElementById('battle-log').classList.remove('visible');}
+
+// ==================== 时间轴刻度 ====================
+function buildTimelineTicks(){
+  const container=document.getElementById('timeline-ticks');
+  container.innerHTML='';
+  STAGES.forEach((s,i)=>{
+    const tick=document.createElement('div');
+    const isCrossing=!!s.isCrossing;
+    tick.className='tick'+(s.hasBattle?' battle':'')+(isCrossing?' crossing':'')+(i===0?' active':'');
+    // 上下错位：偶数索引在轴上方，奇数索引在轴下方
+    const posClass=i%2===0?'above':'below';
+    // 渡江次数标识
+    let tag='';
+    if(isCrossing){
+      const cn=['一','二','三','四'];
+      const count=STAGES.slice(0,i+1).filter(st=>st.isCrossing).length;
+      tag=cn[count-1]+'渡';
+    }else if(s.hasBattle){
+      tag='⚔';
+    }
+    // 日期和标签合并为一个文本，放在轴上方或轴下方
+    const labelText=s.timeline+(tag?' '+tag:'');
+    tick.innerHTML='<div class="tick-label '+posClass+'">'+labelText+'</div><div class="tick-line"></div>';
+    container.appendChild(tick);
+  });
+}
+
+// ==================== 信息面板 ====================
+function updateInfo(n){
+  const S=STAGES[n];
+  document.getElementById('i-title').textContent=S.name;
+  document.getElementById('i-date').textContent='📅 '+S.date;
+  document.getElementById('i-desc').textContent=S.desc;
+  const det=document.getElementById('i-details');
+  det.innerHTML='';
+  const title=document.createElement('h3');
+  title.textContent="本阶段兵力部署";
+  title.style.cssText="font-size:13px;color:#58a6ff;margin:14px 0 6px";
+  det.appendChild(title);
+  const redTitle=document.createElement('div');
+  redTitle.innerHTML='<span class="tag tag-r">红军</span> 中央红军';
+  redTitle.style.cssText="font-size:12px;margin:8px 0 4px;font-weight:bold";
+  det.appendChild(redTitle);
+  for(const id of ["rc","r1","r3","r5","r9"]){
+    if(!S.u[id])continue;
+    det.appendChild(createUnitCard(id));
+  }
+  const blueTitle=document.createElement('div');
+  blueTitle.innerHTML='<span class="tag tag-b">国民党军</span> 围剿部队';
+  blueTitle.style.cssText="font-size:12px;margin:10px 0 4px;font-weight:bold";
+  det.appendChild(blueTitle);
+  for(const id in UNITS){
+    if(UNITS[id].side!=="blue"||!S.u[id]||id==='ck')continue;
+    det.appendChild(createUnitCard(id));
+  }
+  // 蒋介石单独显示
+  if(S.u.ck){
+    const ckTitle=document.createElement('div');
+    ckTitle.innerHTML='<span class="tag tag-b">最高统帅</span>';
+    ckTitle.style.cssText="font-size:12px;margin:10px 0 4px;font-weight:bold";
+    det.appendChild(ckTitle);
+    det.appendChild(createUnitCard('ck'));
+  }
+  // v7: 战损面板
+  if(S.b&&S.b.length>0){
+    const casTitle=document.createElement('h3');
+    casTitle.textContent="关键战斗与战损";
+    casTitle.style.cssText="font-size:13px;color:#e74c3c;margin:14px 0 6px";
+    det.appendChild(casTitle);
+    S.b.forEach(b=>{
+      if(b.cas){
+        const box=document.createElement('div');
+        box.className='casualty-box';
+        let html='<div class="cb-title">⚔ '+b.n+'</div>';
+        html+='<div class="casualty-row"><span class="cr-side cr-red">红军</span><span class="cr-detail">伤亡</span><span class="cr-num">'+b.cas.red+'</span></div>';
+        html+='<div class="casualty-row"><span class="cr-side cr-blue">国民党军</span><span class="cr-detail">伤亡</span><span class="cr-num">'+b.cas.blue+'</span></div>';
+        html+='<div class="cb-summary">'+b.cas.summary+'</div>';
+        box.innerHTML=html;
+        det.appendChild(box);
+      }
+    });
+    // 战役总计
+    if(S.b.length>1||S.b[0].cas){
+      const totalBox=document.createElement('div');
+      totalBox.className='casualty-box';
+      totalBox.style.borderColor='#f39c12';
+      totalBox.innerHTML='<div class="cb-title" style="color:#f39c12">📊 本阶段战损总计</div>'+
+        '<div class="cb-summary">本阶段'+S.b.filter(b=>b.cas).length+'场主要战斗，红军与国民党军均有伤亡。详见各战斗详情。<br/><b>战略意义：</b>'+(S.short==='遵义大捷'?'遵义战役是长征以来最大胜利，极大鼓舞了红军士气，打破了国民党军围剿计划。':S.short==='土城战役'?'土城战役虽未胜，但促使毛泽东改变战略，开启四渡赤水的辉煌篇章。':S.short==='兵临贵阳'?'兵临贵阳是调虎离山之计的关键一步，为红军西进云南创造了战略空隙。':S.short==='蒋督战·鲁班场'?'鲁班场战斗虽未克，但成功调动敌军注意力，为三渡赤水创造条件。':'')+'</div>';
+      det.appendChild(totalBox);
+    }
+  }
+}
+function createUnitCard(id){
+  const U=UNITS[id];
+  const card=document.createElement('div');
+  card.className='unit-card';
+  card.innerHTML='<div class="uc-head"><span class="tag '+(U.side==='red'?'tag-r':'tag-b')+'">'+(U.side==='red'?'红':'国')+'</span>'+U.name+'</div><div style="font-size:11px;color:#8b949e;margin-top:4px">指挥：'+U.cmd+' ｜ 兵力：'+U.str+'</div>';
+  card.addEventListener('click',()=>{
+    const m=unitMarkers[id];
+    if(m&&unitCurrentPos[id]){
+      map.flyTo(unitCurrentPos[id],11,{duration:0.8});
+      setTimeout(()=>m.openPopup(),400);
+    }
+  });
+  return card;
+}
+
+// ==================== 小时级时钟（纯展示，不驱动地图/阶段）====================
+// 时间轴只按小时走动供阅读；阶段切换仍由播放控制驱动，二者互不影响。
+let clockTime={y:1935,m:1,d:19,h:6};
+let clockTimer=null;
+function stageStartDate(n){
+  const t=STAGES[n].timeline; // 形如 "01.29" 或 "04.上"
+  const m=parseInt(t.slice(0,2),10);
+  const d=t.indexOf('上')>=0?1:(parseInt(t.slice(3),10)||1);
+  return {y:1935,m:m,d:d,h:STAGES[n].isCrossing?6:8};
+}
+function formatClock(t){
+  const p=n=>String(n).padStart(2,'0');
+  return t.y+'-'+p(t.m)+'-'+p(t.d)+' '+p(t.h)+':00';
+}
+function updateClockDisplay(){
+  const txt=formatClock(clockTime);
+  const top=document.getElementById('po-clock');
+  if(top)top.innerHTML='⏱ <b>'+txt+'</b>';
+  const cc=document.getElementById('cc-clock');
+  if(cc)cc.textContent=txt;
+}
+function setClockForStage(n){clockTime=stageStartDate(n);updateClockDisplay();}
+function advanceClockHour(){
+  clockTime.h++;
+  if(clockTime.h>=24){clockTime.h=0;clockTime.d++;}
+  const dim=new Date(clockTime.y,clockTime.m,0).getDate();
+  if(clockTime.d>dim){clockTime.d=1;clockTime.m++;}
+  if(clockTime.m>12){clockTime.m=1;clockTime.y++;}
+  updateClockDisplay();
+}
+function startClockTicker(){
+  stopClockTicker();
+  const speed=parseInt(document.getElementById('speed').value,10)||4000;
+  clockTimer=setInterval(()=>{if(!closeupActive)advanceClockHour();},Math.max(120,Math.round(speed/14)));
+}
+function stopClockTicker(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}
+
+// ==================== 渡赤水特写（四次渡河）====================
+// 特写是独立示意图：逐小时演示红军从出发岸渡过赤水河抵达对岸，
+// 只更新展示内容与时钟，不调用 renderStage、不改变地图视角与部队位置。
+const CROSSINGS={
+  2:{n:'一渡赤水',ford:'土城 · 元厚渡口',from:'东岸 · 土城',to:'西岸 · 川南',units:['r1','r3','rc'],note:'西渡赤水，进入川南'},
+  4:{n:'二渡赤水',ford:'太平渡 · 二郎滩渡口',from:'西岸 · 川南',to:'东岸 · 黔北',units:['r1','r3','r5'],note:'回师黔北，再占遵义'},
+  7:{n:'三渡赤水',ford:'茅台渡口',from:'东岸 · 茅台',to:'西岸 · 川南',units:['r1','r3','rc'],note:'西渡调敌，制造北上假象'},
+  8:{n:'四渡赤水',ford:'太平渡 · 二郎滩 · 九溪口',from:'西岸 · 川南',to:'东岸 · 黔北',units:['r1','r3','rc'],note:'东返黔北，跳出合围'}
+};
+const CROSSING_HOURS=12;
+let closeupTimer=null,closeupActive=false;
+
+function stopCloseup(){
+  closeupActive=false;
+  if(closeupTimer){clearInterval(closeupTimer);closeupTimer=null;}
+  const box=document.getElementById('crossing-closeup');
+  if(box)box.classList.remove('visible');
+}
+function buildCloseupScene(n){
+  const C=CROSSINGS[n];
+  document.getElementById('cc-name').textContent=C.n;
+  document.getElementById('cc-ford').textContent=C.ford+' ｜ '+C.from+' → '+C.to+' ｜ '+C.note;
+  document.getElementById('cc-banka').textContent=C.from;
+  document.getElementById('cc-bankb').textContent=C.to;
+  const troops=document.getElementById('cc-troops');
+  troops.innerHTML='';
+  C.units.forEach((id,i)=>{
+    const dot=document.createElement('div');
+    dot.className='cc-dot'+(id==='rc'?' west':'');
+    dot.textContent=UNITS[id].short;
+    dot.dataset.lane=String(i);
+    troops.appendChild(dot);
+  });
+}
+function paintCloseupProgress(n,step){
+  const C=CROSSINGS[n];
+  const p=step/CROSSING_HOURS;
+  document.querySelectorAll('#cc-troops .cc-dot').forEach(dot=>{
+    const lane=parseInt(dot.dataset.lane,10)%3;
+    dot.style.left=(22+(78-22)*p)+'%';
+    dot.style.top=(24+lane*26)+'%';
+  });
+  const status=document.getElementById('cc-status');
+  if(status){
+    if(step<CROSSING_HOURS){
+      const h=(parseInt(stageStartDate(n).h,10)+step)%24;
+      status.innerHTML='渡河中 · 第 <b>'+(step+1)+'</b> 小时（'+String(h).padStart(2,'0')+':00）';
+    }else{
+      status.innerHTML='<b>渡河完成</b> · 已抵'+C.to.split(' · ')[1];
+    }
+  }
+  // 特写时钟与顶部时钟共用同一份时间：按小时推进，仅用于展示
+  clockTime=stageStartDate(n);
+  for(let i=0;i<step;i++)advanceClockHour();
+}
+function playCloseup(n){
+  if(!CROSSINGS[n])return;
+  stopCloseup();
+  buildCloseupScene(n);
+  closeupActive=true;
+  document.getElementById('crossing-closeup').classList.add('visible');
+  paintCloseupProgress(n,0);
+  const speed=parseInt(document.getElementById('speed').value,10)||4000;
+  const stepMs=Math.max(90,Math.min(420,Math.round(speed*0.78/CROSSING_HOURS)));
+  let step=0;
+  closeupTimer=setInterval(()=>{
+    step++;
+    paintCloseupProgress(n,step);
+    if(step>=CROSSING_HOURS){clearInterval(closeupTimer);closeupTimer=null;closeupActive=false;}
+  },stepMs);
+}
+function maybePlayCloseup(n,instant){
+  if(!CROSSINGS[n]){stopCloseup();return;}
+  if(!instant){playCloseup(n);return;}
+  // 手动跳转：展示静态特写，点「重播」可观看完整渡河过程
+  stopCloseup();
+  buildCloseupScene(n);
+  paintCloseupProgress(n,0);
+  document.getElementById('crossing-closeup').classList.add('visible');
+  document.getElementById('cc-status').innerHTML='点击 <b>重播</b> 观看渡河特写';
+}
+
+// ==================== 播放控制 ====================
+function play(){
+  if(curStage>=STAGES.length-1){curStage=0;renderStage(0,true);}
+  isPlaying=true;
+  document.getElementById('btn-play').textContent="⏸ 暂停";
+  document.getElementById('btn-play').classList.add('btn-pause');
+  const speed=parseInt(document.getElementById('speed').value);
+  playTimer=setInterval(()=>{
+    if(curStage<STAGES.length-1){curStage++;renderStage(curStage);}
+    else pause();
+  },speed);
+  startClockTicker();
+}
+function pause(){
+  isPlaying=false;
+  document.getElementById('btn-play').textContent="▶ 自动播放";
+  document.getElementById('btn-play').classList.remove('btn-pause');
+  clearInterval(playTimer);
+  stopClockTicker();
+}
+function togglePlay(){if(isPlaying)pause();else play();}
+function nextStage(){if(isPlaying)pause();if(curStage<STAGES.length-1){curStage++;renderStage(curStage);}}
+function prevStage(){if(isPlaying)pause();if(curStage>0){curStage--;renderStage(curStage,true);}}
+function jumpTo(n){if(isPlaying)pause();curStage=n;renderStage(n,true);}
+
+// ==================== 初始化 ====================
+function init(){
+  buildTimelineTicks();
+  renderStage(0,true);
+  document.getElementById('btn-play').addEventListener('click',togglePlay);
+  document.getElementById('cc-replay').addEventListener('click',()=>playCloseup(curStage));
+  document.getElementById('btn-next').addEventListener('click',nextStage);
+  document.getElementById('btn-prev').addEventListener('click',prevStage);
+  // v11: 跟随/不跟随切换
+  document.getElementById('btn-follow').addEventListener('click',function(){
+    cameraFollow=!cameraFollow;
+    if(cameraFollow){
+      this.classList.remove('inactive');
+      this.classList.add('active');
+      this.textContent='📷 跟随';
+      // 立即飞回当前阶段视角
+      var S=STAGES[curStage];
+      if(S.center)map.flyTo(S.center,S.zoom||9,{duration:1});
+    }else{
+      this.classList.remove('active');
+      this.classList.add('inactive');
+      this.textContent='🔍 全局';
+      // 飞到全局视角
+      map.flyTo([27.5,106.5],8,{duration:1});
+    }
+  });
+  document.getElementById('timeline').addEventListener('input',e=>{jumpTo(Math.round(parseFloat(e.target.value)));});
+  document.getElementById('speed').addEventListener('change',()=>{if(isPlaying){pause();play();}});
+  document.addEventListener('keydown',e=>{
+    if(e.key===" "){e.preventDefault();togglePlay();}
+    if(e.key==="ArrowRight")nextStage();
+    if(e.key==="ArrowLeft")prevStage();
+  });
+  map.on('click',e=>{
+    if(STAGES[curStage].b.length===0){createExplosion([e.latlng.lat,e.latlng.lng],1);}
+  });
+  // v10: 默认三项部署图层全部选中
+  deployVisible.fort=true;deployVisible.force=true;deployVisible.territory=true;
+  document.getElementById('btn-fort').classList.add('active');
+  document.getElementById('btn-force').classList.add('active');
+  document.getElementById('btn-territory').classList.add('active');
+  document.getElementById('troop-stats').classList.add('visible');
+  renderFortifications();fortGroup.addTo(map);
+  renderForces(0);forceGroup.addTo(map);
+  renderTerritories(0);territoryGroup.addTo(map);
+  updateTroopStats(0);
+  // v18: 移除介绍弹窗，help-fab 改为显示遵义会议介绍
+  document.getElementById('help-fab').addEventListener('click',function(){
+    var fab=document.getElementById('help-fab');
+    var existingTip=document.getElementById('help-tip');
+    if(existingTip){
+      existingTip.remove();
+      fab.innerHTML='?';
+    }else{
+      fab.innerHTML='×';
+      var tip=document.createElement('div');
+      tip.id='help-tip';
+      tip.style.cssText='position:fixed;bottom:60px;left:52px;width:320px;max-height:420px;overflow-y:auto;background:rgba(13,17,23,.96);border:2px solid #e74c3c;border-radius:12px;padding:16px 20px;font-size:12px;color:#c9d1d9;line-height:1.8;z-index:1501;box-shadow:0 4px 20px rgba(0,0,0,.5)';
+      tip.innerHTML=
+        '<h2 style="font-size:16px;color:#e74c3c;letter-spacing:2px;margin-bottom:4px">遵义会议 · 伟大转折</h2>'+
+        '<div style="font-size:11px;color:#f39c12;margin-bottom:10px">1935年1月15日—17日 ｜ 贵州遵义</div>'+
+        '<div style="text-indent:2em;margin-bottom:8px">1935年1月15日至17日，中共中央政治局扩大会议在遵义召开。会议结束了"左"倾教条主义错误在中央的统治，<b style="color:#f39c12">确立了毛泽东在党和红军中的领导地位</b>。遵义会议是中国共产党历史上一个生死攸关的转折点，标志着党在政治上走向成熟。</div>'+
+        '<div style="background:rgba(88,166,255,.08);border-left:3px solid #58a6ff;padding:8px 12px;border-radius:0 4px 4px 0;margin:8px 0;font-size:11px;color:#58a6ff;line-height:1.8">'+
+        '<b>会议背景：</b>第五次反"围剿"失败后，红军被迫长征，湘江战役中中央红军从8.6万人锐减至3万余人。在党和红军面临生死存亡的危急关头，遵义会议召开。<br/>'+
+        '<b>会议决议：</b>改组中央领导机构，增选毛泽东为政治局常委，取消博古、李德的最高军事指挥权，由朱德、周恩来负责军事指挥，毛泽东为周恩来在军事指挥上的帮助者。<br/>'+
+        '<b>历史意义：</b>遵义会议事实上确立了以毛泽东为核心的党中央的正确领导，挽救了党、挽救了红军、挽救了中国革命，为四渡赤水等一系列军事胜利奠定了领导基础。'+
+        '</div>'+
+        '<div style="text-indent:0;font-size:11px;color:#8b949e;margin-top:8px">遵义会议后，毛泽东重回军事指挥岗位。面对蒋介石40万大军的围追堵截，毛泽东以3万红军演绎了<b style="color:#e74c3c">四渡赤水</b>这一军事史上的经典机动战——后被毛泽东本人称为"平生得意之笔"。</div>';
+      document.body.appendChild(tip);
+    }
+  });
+  // v8: 敌方部署图层切换
+  document.getElementById('btn-fort').addEventListener('click',function(){
+    deployVisible.fort=!deployVisible.fort;
+    this.classList.toggle('active',deployVisible.fort);
+    if(deployVisible.fort){
+      renderFortifications();
+      fortGroup.addTo(map);
+    }else{
+      map.removeLayer(fortGroup);
+    }
+  });
+  document.getElementById('btn-force').addEventListener('click',function(){
+    deployVisible.force=!deployVisible.force;
+    this.classList.toggle('active',deployVisible.force);
+    if(deployVisible.force){
+      renderForces(curStage);
+      forceGroup.addTo(map);
+      document.getElementById('troop-stats').classList.add('visible'); // v18: 显示兵力统计
+    }else{
+      map.removeLayer(forceGroup);
+      document.getElementById('troop-stats').classList.remove('visible'); // v18: 隐藏兵力统计
+    }
+  });
+  document.getElementById('btn-territory').addEventListener('click',function(){
+    deployVisible.territory=!deployVisible.territory;
+    this.classList.toggle('active',deployVisible.territory);
+    if(deployVisible.territory){
+      renderTerritories(curStage);
+      territoryGroup.addTo(map);
+    }else{
+      map.removeLayer(territoryGroup);
+    }
+  });
+}
+map.whenReady(init);
+</script>
+</body>
+</html>

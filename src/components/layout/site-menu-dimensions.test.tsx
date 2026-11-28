@@ -37,6 +37,7 @@ describe("<SiteMenu /> 维度化筛选", () => {
 
     expect(panel.querySelectorAll(".mega-col")).toHaveLength(3);
     expect(within(panel).getByRole("link", { name: /解放战争沙盘/ })).toBeInTheDocument();
+    expect(within(panel).getByRole("link", { name: /四渡赤水交互沙盘/ })).toBeInTheDocument();
     expect(within(panel).getByRole("link", { name: /朝代政策/ })).toBeInTheDocument();
     expect(within(panel).queryByRole("link", { name: /中华非遗技艺/ })).not.toBeInTheDocument();
     expect(within(panel).queryByRole("link", { name: /科举与仕途/ })).not.toBeInTheDocument();

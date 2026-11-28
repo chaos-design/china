@@ -93,6 +93,17 @@ describe("html resource metadata", () => {
             ],
           }),
         }),
+        expect.objectContaining({
+          fileName: "siduchishui.html",
+          path: "/siduchishui",
+          resource: expect.objectContaining({
+            homeEntries: [
+              expect.objectContaining({
+                title: "四渡赤水战役交互沙盘",
+              }),
+            ],
+          }),
+        }),
       ]),
     );
 
@@ -176,6 +187,11 @@ describe("html resource metadata", () => {
     expect(lwData.TERRAIN.plateaus.length).toBeGreaterThan(0);
     expect(lwData.TERRAIN.basins.length).toBeGreaterThan(0);
 
+    const siduchishui = await loadDocument("/siduchishui");
+    expect(siduchishui.title).toBe("四渡赤水战役 · 交互式战争沙盘");
+    expect(siduchishui.html).toContain("四渡赤水战役 · 交互式战争沙盘");
+    expect(siduchishui.html).not.toContain('data-resource="siduchishui.json"');
+
     const taiwan = await loadDocument("/taiwan");
     expect(taiwan.title).toBe("台湾 · 山海之间的百年");
     expect(taiwan.html).toContain('"id": "humiliation"');
@@ -231,6 +247,29 @@ describe("html resource metadata", () => {
       expect(typeof id).toBe("string");
       expect(registry).toContain(`\n    ${id}:`);
     }
+  });
+
+  it("guards the Chishui crossing close-up and hour-level display clock", async () => {
+    const siduchishui = HTML_RESOURCES.find((entry) => entry.path === "/siduchishui");
+
+    if (!siduchishui) {
+      throw new Error("Missing html resource route: /siduchishui");
+    }
+
+    const { html } = await siduchishui.loadDocument();
+    // 四次渡河（阶段 2/4/7/8）各有独立特写，面板与时钟都挂在同一份 HTML 上
+    expect(html).toContain('id="crossing-closeup"');
+    expect(html).toContain('id="po-clock"');
+    expect(html).toContain("const CROSSINGS={");
+    for (const stageKey of ["  2:{", "  4:{", "  7:{", "  8:{"]) {
+      expect(html).toContain(stageKey);
+    }
+    // 时钟按小时推进；特写是纯展示，不得回调 renderStage 或改动地图
+    expect(html).toContain("function advanceClockHour(){");
+    expect(html).toContain("startClockTicker()");
+    const playCloseup = /function playCloseup\(n\)\{([\s\S]*?)\n\}/.exec(html)?.[1] ?? "";
+    expect(playCloseup).not.toContain("renderStage");
+    expect(html).toContain("maybePlayCloseup(n,instant)");
   });
 
   it("reuses one document promise across calls so React use() stays stable", () => {
@@ -374,6 +413,11 @@ describe("html resource metadata", () => {
           path: "/taiwan",
           status: "available",
           title: "台湾史地",
+        }),
+        expect.objectContaining({
+          path: "/siduchishui",
+          status: "available",
+          title: "四渡赤水战役交互沙盘",
         }),
       ]),
     );
