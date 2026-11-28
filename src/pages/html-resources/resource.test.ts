@@ -249,6 +249,29 @@ describe("html resource metadata", () => {
     }
   });
 
+  it("guards the Chishui crossing close-up and hour-level display clock", async () => {
+    const siduchishui = HTML_RESOURCES.find((entry) => entry.path === "/siduchishui");
+
+    if (!siduchishui) {
+      throw new Error("Missing html resource route: /siduchishui");
+    }
+
+    const { html } = await siduchishui.loadDocument();
+    // 四次渡河（阶段 2/4/7/8）各有独立特写，面板与时钟都挂在同一份 HTML 上
+    expect(html).toContain('id="crossing-closeup"');
+    expect(html).toContain('id="po-clock"');
+    expect(html).toContain("const CROSSINGS={");
+    for (const stageKey of ["  2:{", "  4:{", "  7:{", "  8:{"]) {
+      expect(html).toContain(stageKey);
+    }
+    // 时钟按小时推进；特写是纯展示，不得回调 renderStage 或改动地图
+    expect(html).toContain("function advanceClockHour(){");
+    expect(html).toContain("startClockTicker()");
+    const playCloseup = /function playCloseup\(n\)\{([\s\S]*?)\n\}/.exec(html)?.[1] ?? "";
+    expect(playCloseup).not.toContain("renderStage");
+    expect(html).toContain("maybePlayCloseup(n,instant)");
+  });
+
   it("reuses one document promise across calls so React use() stays stable", () => {
     const [resource] = HTML_RESOURCES;
 

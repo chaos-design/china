@@ -148,6 +148,37 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#0d1117;c
 .phase-overlay .po-num{font-size:11px;color:#8b949e}
 .phase-overlay .po-name{font-size:15px;color:#f39c12;font-weight:bold;margin-top:2px}
 .phase-overlay .po-date{font-size:10px;color:#8b949e;margin-top:2px}
+/* v26: 小时级时钟（纯展示，不驱动地图/阶段） */
+.phase-overlay .po-clock{font-size:11px;color:#f39c12;margin-top:3px;font-family:"Consolas","Monaco",monospace;letter-spacing:.5px}
+.phase-overlay .po-clock b{color:#fff}
+/* v26: 渡赤水特写面板 —— 位于地图左下角，不影响原有控件布局 */
+#crossing-closeup{position:absolute;bottom:110px;left:10px;width:300px;background:rgba(13,17,23,.94);border:1px solid #f39c12;border-radius:10px;padding:10px 12px;z-index:800;display:none;box-shadow:0 4px 22px rgba(0,0,0,.65);backdrop-filter:blur(4px)}
+#crossing-closeup.visible{display:block;animation:ccIn .3s ease-out}
+@keyframes ccIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+#crossing-closeup .cc-head{display:flex;align-items:center;gap:8px}
+#crossing-closeup .cc-badge{background:#e74c3c;color:#fff;font-size:10px;font-weight:bold;padding:2px 6px;border-radius:3px;letter-spacing:1px;white-space:nowrap}
+#crossing-closeup .cc-name{font-size:13px;color:#f39c12;font-weight:bold}
+#crossing-closeup .cc-replay{margin-left:auto;background:#21262d;border:1px solid #f39c12;color:#f39c12;border-radius:4px;font-size:10px;padding:1px 6px;cursor:pointer;white-space:nowrap}
+#crossing-closeup .cc-replay:hover{background:#f39c12;color:#0d1117}
+#crossing-closeup .cc-ford{font-size:10px;color:#8b949e;margin:4px 0 8px}
+#crossing-closeup .cc-scene{position:relative;height:88px;border:1px solid #30363d;border-radius:6px;overflow:hidden;background:#0a0f16}
+#crossing-closeup .cc-bank{position:absolute;top:0;bottom:0;width:24%;background:repeating-linear-gradient(45deg,#2b2418,#2b2418 4px,#231d13 4px,#231d13 8px)}
+#crossing-closeup .cc-bank.a{left:0}
+#crossing-closeup .cc-bank.b{right:0}
+#crossing-closeup .cc-bank .cc-bank-txt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:9px;color:#e8c98a;white-space:nowrap;text-align:center;line-height:1.3;text-shadow:0 1px 2px #000}
+#crossing-closeup .cc-river{position:absolute;top:0;bottom:0;left:24%;right:24%;background:linear-gradient(180deg,#123a52,#0d2b40);overflow:hidden}
+#crossing-closeup .cc-river .cc-wave{position:absolute;left:-20%;width:140%;height:1px;background:rgba(93,173,226,.45);animation:ccFlow 2.4s linear infinite}
+#crossing-closeup .cc-river .cc-wave.w2{top:55%;animation-duration:3.2s}
+#crossing-closeup .cc-river .cc-wave.w3{top:78%;animation-duration:2.8s}
+#crossing-closeup .cc-river .cc-wave.w1{top:28%}
+@keyframes ccFlow{from{transform:translateX(-30px)}to{transform:translateX(30px)}}
+#crossing-closeup .cc-river .cc-river-name{position:absolute;top:4px;left:50%;transform:translateX(-50%);font-size:9px;color:#5dade2;font-style:italic;white-space:nowrap}
+#crossing-closeup .cc-dot{position:absolute;top:50%;left:22%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#e74c3c;border:2px solid #ffb3b3;color:#fff;font-size:9px;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(231,76,60,.8);transition:left .35s linear,top .35s linear;z-index:3}
+#crossing-closeup .cc-dot.west{border-color:#ffd700;background:#f39c12;color:#3b2600}
+#crossing-closeup .cc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:10px;color:#8b949e}
+#crossing-closeup .cc-clock{color:#f39c12;font-family:"Consolas","Monaco",monospace;font-weight:bold;font-size:11px}
+#crossing-closeup .cc-status{flex:1;text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-left:6px}
+#crossing-closeup .cc-status b{color:#fff}
 .river-label{background:transparent;border:none}
 .river-label .rl-text{font-size:13px;color:#5dade2;font-weight:bold;text-shadow:0 0 4px #000,0 0 4px #000,0 0 4px #000;white-space:nowrap;font-style:italic}
 
@@ -326,6 +357,28 @@ body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#0d1117;c
         <div class="po-num" id="po-num">第零阶段</div>
         <div class="po-name" id="po-name"></div>
         <div class="po-date" id="po-date"></div>
+        <div class="po-clock" id="po-clock"></div>
+      </div>
+      <div id="crossing-closeup" aria-label="渡赤水特写">
+        <div class="cc-head">
+          <span class="cc-badge">渡赤水特写</span>
+          <span class="cc-name" id="cc-name"></span>
+          <button class="cc-replay" id="cc-replay" title="重播渡河特写">▶ 重播</button>
+        </div>
+        <div class="cc-ford" id="cc-ford"></div>
+        <div class="cc-scene">
+          <div class="cc-bank a"><span class="cc-bank-txt" id="cc-banka"></span></div>
+          <div class="cc-river">
+            <span class="cc-river-name">赤 水 河</span>
+            <span class="cc-wave w1"></span><span class="cc-wave w2"></span><span class="cc-wave w3"></span>
+          </div>
+          <div class="cc-bank b"><span class="cc-bank-txt" id="cc-bankb"></span></div>
+          <div id="cc-troops"></div>
+        </div>
+        <div class="cc-foot">
+          <span class="cc-clock" id="cc-clock"></span>
+          <span class="cc-status" id="cc-status"></span>
+        </div>
       </div>
       <div id="battle-log">
         <div class="log-title">战况速报</div>
@@ -1283,6 +1336,8 @@ function renderStage(n,instant){
   document.getElementById('po-date').textContent=S.date;
   updateActiveTick(n);
   refreshDeployLayers(n);
+  setClockForStage(n);
+  maybePlayCloseup(n,instant);
 }
 
 function updateActiveTick(n){
@@ -1432,6 +1487,125 @@ function createUnitCard(id){
   return card;
 }
 
+// ==================== 小时级时钟（纯展示，不驱动地图/阶段）====================
+// 时间轴只按小时走动供阅读；阶段切换仍由播放控制驱动，二者互不影响。
+let clockTime={y:1935,m:1,d:19,h:6};
+let clockTimer=null;
+function stageStartDate(n){
+  const t=STAGES[n].timeline; // 形如 "01.29" 或 "04.上"
+  const m=parseInt(t.slice(0,2),10);
+  const d=t.indexOf('上')>=0?1:(parseInt(t.slice(3),10)||1);
+  return {y:1935,m:m,d:d,h:STAGES[n].isCrossing?6:8};
+}
+function formatClock(t){
+  const p=n=>String(n).padStart(2,'0');
+  return t.y+'-'+p(t.m)+'-'+p(t.d)+' '+p(t.h)+':00';
+}
+function updateClockDisplay(){
+  const txt=formatClock(clockTime);
+  const top=document.getElementById('po-clock');
+  if(top)top.innerHTML='⏱ <b>'+txt+'</b>';
+  const cc=document.getElementById('cc-clock');
+  if(cc)cc.textContent=txt;
+}
+function setClockForStage(n){clockTime=stageStartDate(n);updateClockDisplay();}
+function advanceClockHour(){
+  clockTime.h++;
+  if(clockTime.h>=24){clockTime.h=0;clockTime.d++;}
+  const dim=new Date(clockTime.y,clockTime.m,0).getDate();
+  if(clockTime.d>dim){clockTime.d=1;clockTime.m++;}
+  if(clockTime.m>12){clockTime.m=1;clockTime.y++;}
+  updateClockDisplay();
+}
+function startClockTicker(){
+  stopClockTicker();
+  const speed=parseInt(document.getElementById('speed').value,10)||4000;
+  clockTimer=setInterval(()=>{if(!closeupActive)advanceClockHour();},Math.max(120,Math.round(speed/14)));
+}
+function stopClockTicker(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}
+
+// ==================== 渡赤水特写（四次渡河）====================
+// 特写是独立示意图：逐小时演示红军从出发岸渡过赤水河抵达对岸，
+// 只更新展示内容与时钟，不调用 renderStage、不改变地图视角与部队位置。
+const CROSSINGS={
+  2:{n:'一渡赤水',ford:'土城 · 元厚渡口',from:'东岸 · 土城',to:'西岸 · 川南',units:['r1','r3','rc'],note:'西渡赤水，进入川南'},
+  4:{n:'二渡赤水',ford:'太平渡 · 二郎滩渡口',from:'西岸 · 川南',to:'东岸 · 黔北',units:['r1','r3','r5'],note:'回师黔北，再占遵义'},
+  7:{n:'三渡赤水',ford:'茅台渡口',from:'东岸 · 茅台',to:'西岸 · 川南',units:['r1','r3','rc'],note:'西渡调敌，制造北上假象'},
+  8:{n:'四渡赤水',ford:'太平渡 · 二郎滩 · 九溪口',from:'西岸 · 川南',to:'东岸 · 黔北',units:['r1','r3','rc'],note:'东返黔北，跳出合围'}
+};
+const CROSSING_HOURS=12;
+let closeupTimer=null,closeupActive=false;
+
+function stopCloseup(){
+  closeupActive=false;
+  if(closeupTimer){clearInterval(closeupTimer);closeupTimer=null;}
+  const box=document.getElementById('crossing-closeup');
+  if(box)box.classList.remove('visible');
+}
+function buildCloseupScene(n){
+  const C=CROSSINGS[n];
+  document.getElementById('cc-name').textContent=C.n;
+  document.getElementById('cc-ford').textContent=C.ford+' ｜ '+C.from+' → '+C.to+' ｜ '+C.note;
+  document.getElementById('cc-banka').textContent=C.from;
+  document.getElementById('cc-bankb').textContent=C.to;
+  const troops=document.getElementById('cc-troops');
+  troops.innerHTML='';
+  C.units.forEach((id,i)=>{
+    const dot=document.createElement('div');
+    dot.className='cc-dot'+(id==='rc'?' west':'');
+    dot.textContent=UNITS[id].short;
+    dot.dataset.lane=String(i);
+    troops.appendChild(dot);
+  });
+}
+function paintCloseupProgress(n,step){
+  const C=CROSSINGS[n];
+  const p=step/CROSSING_HOURS;
+  document.querySelectorAll('#cc-troops .cc-dot').forEach(dot=>{
+    const lane=parseInt(dot.dataset.lane,10)%3;
+    dot.style.left=(22+(78-22)*p)+'%';
+    dot.style.top=(24+lane*26)+'%';
+  });
+  const status=document.getElementById('cc-status');
+  if(status){
+    if(step<CROSSING_HOURS){
+      const h=(parseInt(stageStartDate(n).h,10)+step)%24;
+      status.innerHTML='渡河中 · 第 <b>'+(step+1)+'</b> 小时（'+String(h).padStart(2,'0')+':00）';
+    }else{
+      status.innerHTML='<b>渡河完成</b> · 已抵'+C.to.split(' · ')[1];
+    }
+  }
+  // 特写时钟与顶部时钟共用同一份时间：按小时推进，仅用于展示
+  clockTime=stageStartDate(n);
+  for(let i=0;i<step;i++)advanceClockHour();
+}
+function playCloseup(n){
+  if(!CROSSINGS[n])return;
+  stopCloseup();
+  buildCloseupScene(n);
+  closeupActive=true;
+  document.getElementById('crossing-closeup').classList.add('visible');
+  paintCloseupProgress(n,0);
+  const speed=parseInt(document.getElementById('speed').value,10)||4000;
+  const stepMs=Math.max(90,Math.min(420,Math.round(speed*0.78/CROSSING_HOURS)));
+  let step=0;
+  closeupTimer=setInterval(()=>{
+    step++;
+    paintCloseupProgress(n,step);
+    if(step>=CROSSING_HOURS){clearInterval(closeupTimer);closeupTimer=null;closeupActive=false;}
+  },stepMs);
+}
+function maybePlayCloseup(n,instant){
+  if(!CROSSINGS[n]){stopCloseup();return;}
+  if(!instant){playCloseup(n);return;}
+  // 手动跳转：展示静态特写，点「重播」可观看完整渡河过程
+  stopCloseup();
+  buildCloseupScene(n);
+  paintCloseupProgress(n,0);
+  document.getElementById('crossing-closeup').classList.add('visible');
+  document.getElementById('cc-status').innerHTML='点击 <b>重播</b> 观看渡河特写';
+}
+
 // ==================== 播放控制 ====================
 function play(){
   if(curStage>=STAGES.length-1){curStage=0;renderStage(0,true);}
@@ -1443,12 +1617,14 @@ function play(){
     if(curStage<STAGES.length-1){curStage++;renderStage(curStage);}
     else pause();
   },speed);
+  startClockTicker();
 }
 function pause(){
   isPlaying=false;
   document.getElementById('btn-play').textContent="▶ 自动播放";
   document.getElementById('btn-play').classList.remove('btn-pause');
   clearInterval(playTimer);
+  stopClockTicker();
 }
 function togglePlay(){if(isPlaying)pause();else play();}
 function nextStage(){if(isPlaying)pause();if(curStage<STAGES.length-1){curStage++;renderStage(curStage);}}
@@ -1460,6 +1636,7 @@ function init(){
   buildTimelineTicks();
   renderStage(0,true);
   document.getElementById('btn-play').addEventListener('click',togglePlay);
+  document.getElementById('cc-replay').addEventListener('click',()=>playCloseup(curStage));
   document.getElementById('btn-next').addEventListener('click',nextStage);
   document.getElementById('btn-prev').addEventListener('click',prevStage);
   // v11: 跟随/不跟随切换
