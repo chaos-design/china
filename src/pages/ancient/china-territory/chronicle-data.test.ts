@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { toMonthIndex } from "./chronicle-time";
 import { CHRONICLE_ERAS, CHRONICLE_PERIODS, periodsOfEra } from "./registry";
 import { ERA_LABELS } from "./types";
 
@@ -277,5 +278,84 @@ describe("chronicle data invariants", () => {
       const period = CHRONICLE_PERIODS.find((entry) => entry.id === id);
       expect(period?.polities.length).toBe(count);
     }
+  });
+
+  it("control and city changes reference real polities, cities and ordered dates", () => {
+    for (const period of CHRONICLE_PERIODS) {
+      const ids = new Set(period.polities.map((polity) => polity.id));
+      const cityNames = new Set(
+        period.polities.flatMap((polity) => [
+          ...polity.capitals.map((capital) => capital.name),
+          ...(polity.cities ?? []).map((city) => city.name),
+        ]),
+      );
+      let lastMonth = -Infinity;
+      for (const change of period.control ?? []) {
+        expect(ids.has(change.absorbed), `${period.id}: 未知被吞并政权 ${change.absorbed}`).toBe(
+          true,
+        );
+        if (change.by) {
+          expect(ids.has(change.by), `${period.id}: 未知接管方 ${change.by}`).toBe(true);
+        }
+        expect(change.note.length).toBeGreaterThan(3);
+        expect(change.month ?? 1).toBeGreaterThanOrEqual(1);
+        expect(change.month ?? 1).toBeLessThanOrEqual(12);
+        const month = toMonthIndex(change.year, change.month ?? 1);
+        expect(month).toBeGreaterThanOrEqual(lastMonth);
+        lastMonth = month;
+      }
+      for (const change of period.cityChanges ?? []) {
+        expect(cityNames.has(change.city), `${period.id}: 未知城市 ${change.city}`).toBe(true);
+        if (change.by) expect(ids.has(change.by)).toBe(true);
+        expect(change.note.length).toBeGreaterThan(3);
+      }
+      for (const zone of period.controlZones ?? []) {
+        expect(ids.has(zone.polityId)).toBe(true);
+        expect(zone.ring.length).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
+  it("every period carries annals and figures with sourced, ordered records", () => {
+    for (const period of CHRONICLE_PERIODS) {
+      const annals = period.annals ?? [];
+      expect(annals.length).toBeGreaterThanOrEqual(3);
+      for (let i = 1; i < annals.length; i += 1) {
+        expect(annals[i].year).toBeGreaterThanOrEqual(annals[i - 1].year);
+      }
+      for (const annal of annals) {
+        expect(annal.text.length).toBeGreaterThan(5);
+        expect(["capital", "war", "politics", "person", "territory"]).toContain(annal.kind);
+        if (annal.month != null) {
+          expect(annal.month).toBeGreaterThanOrEqual(1);
+          expect(annal.month).toBeLessThanOrEqual(12);
+        }
+        if (annal.polityId) {
+          expect(period.polities.some((polity) => polity.id === annal.polityId)).toBe(true);
+        }
+      }
+      const figures = period.figures ?? [];
+      expect(figures.length).toBeGreaterThanOrEqual(3);
+      const names = new Set<string>();
+      for (const figure of figures) {
+        expect(names.has(figure.name), `${period.id}: 人物重复 ${figure.name}`).toBe(false);
+        names.add(figure.name);
+        expect(figure.role.length).toBeGreaterThan(0);
+        expect(figure.life.length).toBeGreaterThan(5);
+        expect(figure.fate.length).toBeGreaterThan(2);
+        expect(["loyal", "treacherous", "notable"]).toContain(figure.stance);
+        if (figure.birthYear != null && figure.deathYear != null) {
+          expect(figure.deathYear).toBeGreaterThan(figure.birthYear);
+        }
+      }
+      // 正统与乱政两端都要有选例（先秦等无「奸臣」概念者用 notable 兜底）
+      expect(new Set(figures.map((figure) => figure.stance)).size).toBeGreaterThanOrEqual(2);
+    }
+    // 宋朝帝姬按史实列在南宋期
+    expect(
+      CHRONICLE_PERIODS.find((period) => period.id === "nansong-jin")?.figures?.some(
+        (figure) => figure.role === "帝姬",
+      ),
+    ).toBe(true);
   });
 });

@@ -948,18 +948,64 @@ export const SONG_YUAN_PERIODS: ChroniclePeriod[] = [
         sources: ["《宋史·二王传》", "《文山先生全集》"],
       },
     ],
+    control: [
+      {
+        year: 1227,
+        month: 7,
+        by: "menggu-1206",
+        absorbed: "xixia-1206",
+        note: "蒙古灭西夏，末帝李睍出降，西夏亡。",
+      },
+      {
+        year: 1234,
+        month: 1,
+        by: "menggu-1206",
+        absorbed: "jin-1206",
+        note: "蒙宋联军破蔡州，金哀宗自缢，金亡。",
+      },
+      {
+        year: 1253,
+        month: 12,
+        by: "menggu-1206",
+        absorbed: "dali-1206",
+        note: "忽必烈革囊渡金沙江，大理国降。",
+      },
+      {
+        year: 1279,
+        month: 3,
+        by: "menggu-1206",
+        absorbed: "nansong",
+        note: "崖山海战，陆秀夫负帝昺蹈海，南宋亡。",
+      },
+    ],
+    cityChanges: [
+      {
+        year: 1273,
+        month: 2,
+        city: "襄阳",
+        by: "menggu-1206",
+        note: "襄阳守将吕文焕降元，荆襄门户洞开。",
+      },
+      {
+        year: 1276,
+        month: 1,
+        city: "临安府",
+        by: "menggu-1206",
+        note: "元军入临安，谢太后奉表降，行朝南走。",
+      },
+    ],
     sources: ["谭其骧《中国历史地图集》第六册", "《宋史》《金史》", "《元朝秘史》"],
     focus: { center: [113.0, 35.0], zoom: 4.6 },
   },
   {
     id: "yuan",
     name: "元",
-    yearLabel: "1271 — 1368",
-    startYear: 1271,
+    yearLabel: "1280 — 1368",
+    startYear: 1280,
     endYear: 1368,
     era: "song-yuan",
     summary:
-      "元「北逾阴山，西极流沙，东尽辽左，南越海表」——岭北、辽阳、甘肃诸行省辖漠北东北，宣政院辖吐蕃，台湾（澎湖巡检司）首入版图。图示取至元后期本部与岭北行省；四大汗国另系于察合台、钦察等系。",
+      "1271 忽必烈定国号元；1279 崖山灭宋，翌年一统。元「北逾阴山，西极流沙，东尽辽左，南越海表」——岭北、辽阳、甘肃诸行省辖漠北东北，宣政院辖吐蕃，台湾（澎湖巡检司）首入版图。图示取至元后期本部与岭北行省；四大汗国另系于察合台、钦察等系。",
     polities: [
       {
         id: "yuan-empire",

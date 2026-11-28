@@ -1,3 +1,5 @@
+import { resolvePeriodAt } from "./chronicle-control";
+import { periodStartMonth } from "./chronicle-time";
 import type { ChroniclePeriod, LngLat, WarEvent, WarOp } from "./types";
 
 /**
@@ -16,17 +18,32 @@ export function toLatLng(ll: LngLat): [number, number] {
 export const DIVISION_ZOOM = 6;
 export const DEFENSE_ZOOM = 5;
 
+export interface PolityRingSpec {
+  /** 闭合环 [lat, lng]（已做曲线化）。 */
+  ring: Array<[number, number]>;
+  /** own = 本政权原有疆域；absorbed = 已并入的旧政权疆域。 */
+  kind: "own" | "absorbed";
+  /** 原属政权名（absorbed 时）。 */
+  fromName?: string;
+  /** 并入年份（absorbed 时）。 */
+  sinceYear?: number;
+}
+
 export interface PolitySpec {
   id: string;
   name: string;
   color: string;
   note: string;
-  /** 主疆域闭合环 [lat, lng] 数组（已做 Catmull-Rom 曲线化 + 有序扰动，非直线段）。 */
+  /** 当前有效疆域环（本政权 + 已并入政权），own 在前。 */
+  rings: PolityRingSpec[];
+  /** 主疆域闭合环 [lat, lng] 数组（own 环；兼容旧调用）。 */
   ring: Array<[number, number]>;
   /** 羁縻范围闭合环（虚线），可缺省。 */
   looseRing?: Array<[number, number]>;
-  /** 政权名标注锚点 [lat, lng]（主环包围盒中心）。 */
+  /** 政权名标注锚点 [lat, lng]（own 环包围盒中心）。 */
   labelAt: [number, number];
+  /** 已并入的政权名（按并入时间）。 */
+  absorbedNames: string[];
 }
 
 export interface CapitalSpec {
@@ -36,6 +53,12 @@ export interface CapitalSpec {
   note?: string;
   polityName: string;
   color: string;
+  /** 是否已易主（当前控制方 ≠ 原属政权）。 */
+  changed: boolean;
+  /** 原属政权名（易主时）。 */
+  originName: string;
+  /** 当前控制变更说明（易主时）。 */
+  changeNote?: string;
 }
 
 export interface CoreRegionSpec {
@@ -58,6 +81,12 @@ export interface CitySpec {
   note?: string;
   polityName: string;
   color: string;
+  /** 是否已易主。 */
+  changed: boolean;
+  /** 原属政权名（易主时）。 */
+  originName: string;
+  /** 当前控制变更说明（易主时）。 */
+  changeNote?: string;
 }
 
 export interface DefenseSpec {
@@ -74,6 +103,8 @@ export interface WarArrowSpec {
   side: 1 | 2;
   /** advance = 军事推进箭头（锥形箭杆 + 倒钩箭头，闭合多边形）；retreat = 虚线撤退线。 */
   kind: "advance" | "retreat";
+  /** 1 = 主攻方向；2 = 次要方向（线宽 / 透明度递减）。 */
+  priority: 1 | 2;
   /** advance 时给出箭头多边形闭合环（Leaflet [lat,lng]）。 */
   ring?: Array<[number, number]>;
   /** 原始路径（Leaflet [lat,lng]），retreat 渲染为虚线，advance 仅供 tooltip 参照。 */
@@ -140,38 +171,59 @@ function ringBounds(ring: readonly (readonly [number, number])[]): {
   return { s, w, n, e };
 }
 
-/** 一期的全部政权图层规格（主疆域 + 羁縻 + 名称标注；环做曲线化，去掉直线段）。 */
-export function buildPolitySpecs(period: ChroniclePeriod): PolitySpec[] {
-  return period.polities.map((polity) => ({
-    id: polity.id,
-    name: polity.name,
-    color: polity.color,
-    note: polity.note,
-    ring: smoothRing(polity.territory, { seed: `${period.id}/${polity.id}` }).map(toLatLng),
-    looseRing: polity.looseTerritory
-      ? smoothRing(polity.looseTerritory, {
-          seed: `${period.id}/${polity.id}/loose`,
-          samplesPerSegment: 5,
-        }).map(toLatLng)
-      : undefined,
-    labelAt: bboxCenter(polity.territory),
-  }));
+/** 一期的全部政权图层规格（当前月份的控制图：主疆域 + 已并入 + 羁縻 + 名称标注）。 */
+export function buildPolitySpecs(period: ChroniclePeriod, month?: number): PolitySpec[] {
+  const resolved = resolvePeriodAt(period, month ?? periodStartMonth(period));
+  return resolved.activePolities.map((entry) => {
+    const polity = entry.polity;
+    const ownRing = smoothRing(polity.territory, {
+      seed: `${period.id}/${polity.id}`,
+      wobble: 0.03,
+    });
+    return {
+      id: polity.id,
+      name: polity.name,
+      color: polity.color,
+      note: polity.note,
+      rings: entry.rings.map((ring) => ({
+        ring: smoothRing(ring.ring, {
+          seed: `${period.id}/${ring.fromPolity?.id ?? polity.id}`,
+          wobble: 0.03,
+        }).map(toLatLng),
+        kind: ring.kind,
+        fromName: ring.fromPolity?.name,
+        sinceYear: ring.sinceYear,
+      })),
+      ring: ownRing.map(toLatLng),
+      looseRing: polity.looseTerritory
+        ? smoothRing(polity.looseTerritory, {
+            seed: `${period.id}/${polity.id}/loose`,
+            samplesPerSegment: 5,
+          }).map(toLatLng)
+        : undefined,
+      labelAt: bboxCenter(polity.territory),
+      absorbedNames: entry.absorbedNames,
+    };
+  });
 }
 
-/** 一期的都城点。 */
-export function buildCapitalSpecs(period: ChroniclePeriod): CapitalSpec[] {
+/** 一期的都城点（按当前控制方着色；已易主的城带「原属」信息）。 */
+export function buildCapitalSpecs(period: ChroniclePeriod, month?: number): CapitalSpec[] {
+  const resolved = resolvePeriodAt(period, month ?? periodStartMonth(period));
   const specs: CapitalSpec[] = [];
-  for (const polity of period.polities) {
-    for (const capital of polity.capitals) {
-      specs.push({
-        name: capital.name,
-        latlng: toLatLng(capital.ll),
-        kind: capital.kind,
-        note: capital.note,
-        polityName: polity.name,
-        color: polity.color,
-      });
-    }
+  for (const city of resolved.cities) {
+    if (city.kind !== "capital" || !city.polity) continue;
+    specs.push({
+      name: city.name,
+      latlng: toLatLng(city.ll),
+      kind: city.capitalKind ?? "main",
+      note: city.note,
+      polityName: city.polity.name,
+      color: city.polity.color,
+      changed: city.changed,
+      originName: city.originPolity.name,
+      changeNote: city.change?.note,
+    });
   }
   return specs;
 }
@@ -196,19 +248,22 @@ export function buildDivisionSpecs(period: ChroniclePeriod): DivisionSpec[] {
   }));
 }
 
-/** 一期的重要城市采样点（与区划同为 zoom 渐进显隐）。 */
-export function buildCitySpecs(period: ChroniclePeriod): CitySpec[] {
+/** 一期的重要城市采样点（按当前控制方着色；与区划同为 zoom 渐进显隐）。 */
+export function buildCitySpecs(period: ChroniclePeriod, month?: number): CitySpec[] {
+  const resolved = resolvePeriodAt(period, month ?? periodStartMonth(period));
   const specs: CitySpec[] = [];
-  for (const polity of period.polities) {
-    for (const city of polity.cities ?? []) {
-      specs.push({
-        name: city.name,
-        latlng: toLatLng(city.ll),
-        note: city.note,
-        polityName: polity.name,
-        color: polity.color,
-      });
-    }
+  for (const city of resolved.cities) {
+    if (city.kind !== "city" || !city.polity) continue;
+    specs.push({
+      name: city.name,
+      latlng: toLatLng(city.ll),
+      note: city.note,
+      polityName: city.polity.name,
+      color: city.polity.color,
+      changed: city.changed,
+      originName: city.originPolity.name,
+      changeNote: city.change?.note,
+    });
   }
   return specs;
 }
@@ -252,11 +307,27 @@ function opBounds(ops: readonly WarOp[], center: LngLat): [[number, number], [nu
   ];
 }
 
+export interface WarSpecOptions {
+  /**
+   * 当前缩放级别下 1° 经度对应的屏幕像素。给出时箭头宽度按屏幕像素锁定
+   * （缩放时视觉宽度稳定，不会在放大后变成巨箭）；缺省用固定度数。
+   */
+  pxPerDegree?: number;
+  /** 主攻箭头目标屏幕宽度（px，默认 18）。 */
+  primaryWidthPx?: number;
+  /** 次要箭头目标屏幕宽度（px，默认 11）。 */
+  secondaryWidthPx?: number;
+}
+
 /** 战争图层规格：军事推进箭头（锥形多边形）、战场、包围圈、flyTo 包围盒、战役阶段。 */
-export function buildWarSpec(war: WarEvent): WarSpec {
+export function buildWarSpec(war: WarEvent, options: WarSpecOptions = {}): WarSpec {
   const arrows: WarArrowSpec[] = [];
   const battles: WarSpec["battles"] = [];
   const encircles: WarSpec["encircles"] = [];
+  const primaryWidthPx = options.primaryWidthPx ?? 18;
+  const secondaryWidthPx = options.secondaryWidthPx ?? 11;
+  const pxPerDegree = options.pxPerDegree;
+  let arrowIndex = 0;
   for (const op of war.ops ?? []) {
     if (op.kind === "arrow" || op.kind === "retreat") {
       const points = op.points ?? [];
@@ -268,13 +339,26 @@ export function buildWarSpec(war: WarEvent): WarSpec {
       const dLat = tip[1] - prev[1];
       const angle = (Math.atan2(dLng, dLat) * 180) / Math.PI;
       const kind: "advance" | "retreat" = op.kind === "retreat" ? "retreat" : "advance";
+      const priority: 1 | 2 = arrowIndex === 0 ? 1 : 2;
+      arrowIndex += 1;
+      // 屏幕像素宽度 → 度（经度方向 1° 的像素数在 Web 墨卡托下与纬度无关）
+      const widthPx = priority === 1 ? primaryWidthPx : secondaryWidthPx;
+      const tailWidth = pxPerDegree ? widthPx / pxPerDegree : priority === 1 ? 0.26 : 0.16;
+      const headWidth = tailWidth * 0.42;
+      const barbLength = tailWidth * 1.7;
       arrows.push({
         name: op.name,
         side: op.side,
         kind,
+        priority,
         ring:
           kind === "advance"
-            ? buildArrowPolygon(points, { seed: `${war.id}/${op.name}` }).map(toLatLng)
+            ? buildArrowPolygon(points, {
+                seed: `${war.id}/${op.name}`,
+                tailWidth,
+                headWidth,
+                barbLength,
+              }).map(toLatLng)
             : undefined,
         path: points.map(toLatLng),
         tipAt: toLatLng(tip),
@@ -473,9 +557,9 @@ export function buildArrowPolygon(
   path: readonly LngLat[],
   options: ArrowOptions = {},
 ): Array<[number, number]> {
-  const tailWidth = options.tailWidth ?? 0.42;
-  const headWidth = options.headWidth ?? 0.15;
-  const barbLength = options.barbLength ?? 0.38;
+  const tailWidth = options.tailWidth ?? 0.26;
+  const headWidth = options.headWidth ?? 0.11;
+  const barbLength = options.barbLength ?? 0.32;
   const spacing = 0.22;
   if (path.length < 2) return [];
   const latMid = path.reduce((sum, ll) => sum + ll[1], 0) / path.length;
@@ -654,13 +738,24 @@ export function findRingSelfIntersection(ring: readonly LngLat[]): string | null
   return null;
 }
 
-/** 切期取景包围盒：优先 focus 中心 ± 半径，否则取全部政权环的联合包围盒。 */
-export function getPeriodBounds(period: ChroniclePeriod): [[number, number], [number, number]] {
+/** 切期取景包围盒：优先 focus 中心 ± 半径，否则取当前控制图的联合包围盒。 */
+export function getPeriodBounds(
+  period: ChroniclePeriod,
+  month?: number,
+): [[number, number], [number, number]] {
   const [centerLat, centerLng] = toLatLng(period.focus.center);
   const halfDeg = 4;
   const world = { s: 90, w: 180, n: -90, e: -180 };
-  for (const polity of period.polities) {
-    const b = ringBounds(polity.territory);
+  // 给了月份就按当前控制图取景（疆域缩并后镜头随之内收），否则用全期疆域。
+  const rings =
+    month == null
+      ? period.polities.map((polity) => polity.territory)
+      : resolvePeriodAt(period, month).activePolities.flatMap((entry) =>
+          entry.rings.map((ring) => ring.ring),
+        );
+  const usable = rings.length > 0 ? rings : period.polities.map((polity) => polity.territory);
+  for (const ring of usable) {
+    const b = ringBounds(ring);
     world.s = Math.min(world.s, b.s);
     world.n = Math.max(world.n, b.n);
     world.w = Math.min(world.w, b.w);

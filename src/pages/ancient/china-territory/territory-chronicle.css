@@ -190,11 +190,30 @@
   margin-top: 8px;
 }
 .tch-era-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
   padding: 3px 12px;
   font-size: 10px;
+  font-family: inherit;
   letter-spacing: 3px;
-  color: var(--tch-accent-2);
-  border-left: 2px solid var(--tch-accent);
+  color: var(--era-color, var(--tch-accent-2));
+  background: none;
+  border: none;
+  border-left: 2px solid var(--era-color, var(--tch-accent));
+  cursor: pointer;
+}
+.tch-era-title:hover {
+  background: #1a2230;
+}
+.tch-era-title i {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--tch-muted);
+}
+.tch-era-group.is-current-era .tch-era-title {
+  background: rgba(255, 255, 255, 0.04);
 }
 .tch-era-list {
   list-style: none;
@@ -269,7 +288,49 @@
 .tch-reset-view:hover {
   border-color: var(--tch-blue);
 }
-
+/* 地图左上角固定控制读数：当前年月 + 在场政权 chip（不随地图移动） */
+.tch-control-strip {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 140px);
+  padding: 5px 8px;
+  background: rgba(13, 17, 23, 0.9);
+  border: 1px solid var(--tch-border);
+  border-radius: 6px;
+  pointer-events: none;
+}
+.tch-control-date {
+  font-size: 11px;
+  color: var(--tch-accent-2);
+  font-family: Consolas, Monaco, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.tch-control-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  color: #c9d1d9;
+  background: #1b2129;
+  border-radius: 999px;
+}
+.tch-control-chip i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.tch-control-chip em {
+  font-style: normal;
+  font-size: 9px;
+  color: var(--tch-accent);
+}
 /* ---------- 右栏详情 ---------- */
 .tch-detail {
   width: 316px;
@@ -292,6 +353,31 @@
   background: var(--tch-border);
   border-radius: 3px;
 }
+/* 详情头固定在滚动区之上（「朝代信息吸顶」）：标题 / 年月 / 在场政权 / 最新变更 */
+.tch-detail-head {
+  flex-shrink: 0;
+  padding: 10px 14px 9px;
+  background: linear-gradient(180deg, #141b26, var(--tch-panel));
+  border-bottom: 1px solid var(--tch-border);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+.tch-detail-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tch-detail-now {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  font-size: 10.5px;
+  color: var(--tch-accent);
+  background: rgba(255, 92, 71, 0.12);
+  border: 1px solid rgba(255, 92, 71, 0.45);
+  border-radius: 4px;
+  font-family: Consolas, Monaco, monospace;
+  font-variant-numeric: tabular-nums;
+}
 .tch-detail-head h2 {
   font-size: 17px;
   color: var(--tch-accent-2);
@@ -301,6 +387,347 @@
   color: var(--tch-muted);
   font-family: Consolas, Monaco, monospace;
   margin-top: 2px;
+}
+.tch-owner-chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 7px 0 0;
+  padding: 0;
+}
+.tch-owner-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  font-size: 10.5px;
+  color: #c9d1d9;
+  background: #1b2129;
+  border: 1px solid var(--tch-border);
+  border-radius: 999px;
+}
+.tch-owner-chips li i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tch-owner-chips li em {
+  font-style: normal;
+  font-size: 9px;
+  color: var(--tch-accent-2);
+}
+.tch-detail-change {
+  margin-top: 6px;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--tch-accent-2);
+}
+.tch-section-meta {
+  margin-left: 6px;
+  font-size: 10px;
+  letter-spacing: 0;
+  color: var(--tch-muted);
+  font-family: Consolas, Monaco, monospace;
+}
+/* ---------- 编年速报 ---------- */
+.tch-annal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tch-annal {
+  display: grid;
+  grid-template-columns: 58px 16px 1fr;
+  gap: 5px;
+  align-items: baseline;
+  padding: 3px 5px;
+  border-left: 2px solid transparent;
+  border-radius: 0 4px 4px 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #9fb0c3;
+}
+.tch-annal.is-now {
+  background: rgba(255, 92, 71, 0.1);
+  border-left-color: var(--tch-accent);
+  color: var(--tch-text);
+}
+.tch-annal-date {
+  font-size: 9.5px;
+  color: var(--tch-muted);
+  font-family: Consolas, Monaco, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.tch-annal-kind {
+  font-size: 9px;
+  line-height: 15px;
+  text-align: center;
+  color: #0d1117;
+  background: #6e7681;
+  border-radius: 3px;
+}
+.tch-annal.is-capital .tch-annal-kind {
+  background: var(--tch-accent-2);
+}
+.tch-annal.is-war .tch-annal-kind {
+  background: var(--tch-accent);
+}
+.tch-annal.is-politics .tch-annal-kind {
+  background: #8f5fbf;
+}
+.tch-annal.is-person .tch-annal-kind {
+  background: #58a6ff;
+}
+.tch-annal.is-territory .tch-annal-kind {
+  background: #6faf8f;
+}
+.tch-annal-text {
+  min-width: 0;
+}
+.tch-annal.is-empty {
+  display: block;
+  color: var(--tch-muted);
+  font-style: italic;
+}
+/* ---------- 此刻控制 ---------- */
+.tch-now-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.tch-now-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #9fb0c3;
+}
+.tch-now-list li i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  align-self: center;
+}
+.tch-now-list li strong {
+  font-size: 12px;
+  color: var(--tch-text);
+}
+.tch-now-list li span {
+  flex: 1 1 100%;
+  padding-left: 13px;
+  color: var(--tch-muted);
+}
+.tch-city-change {
+  margin-top: 6px;
+  padding: 5px 7px;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: #c9d1d9;
+  background: rgba(88, 166, 255, 0.08);
+  border-left: 2px solid var(--tch-blue);
+  border-radius: 0 4px 4px 0;
+}
+/* ---------- 折叠块（默认收起） ---------- */
+.tch-fold {
+  margin-top: 12px;
+  border-top: 1px dashed var(--tch-border);
+  padding-top: 8px;
+}
+.tch-fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--tch-accent-2);
+  cursor: pointer;
+  list-style: none;
+}
+.tch-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.tch-fold > summary::before {
+  content: "▸";
+  font-size: 10px;
+  color: var(--tch-muted);
+  transition: transform 0.15s;
+}
+.tch-fold[open] > summary::before {
+  transform: rotate(90deg);
+}
+.tch-fold > summary em {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0;
+  color: var(--tch-muted);
+  font-family: Consolas, Monaco, monospace;
+}
+.tch-fold > summary:hover {
+  color: var(--tch-text);
+}
+.tch-fold > :not(summary) {
+  margin-top: 7px;
+}
+/* ---------- 人物动态（编年高亮） ---------- */
+.tch-live-figures {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+}
+.tch-live-figures li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 10.5px;
+  color: #c9d1d9;
+  background: #1b2129;
+  border: 1px solid var(--tch-border);
+  border-left-width: 2px;
+  border-radius: 3px;
+}
+.tch-live-figures li.is-loyal {
+  border-left-color: #6faf8f;
+}
+.tch-live-figures li.is-treacherous {
+  border-left-color: var(--tch-accent);
+}
+.tch-live-figures li.is-notable {
+  border-left-color: var(--tch-blue);
+}
+.tch-live-figures li span {
+  color: var(--tch-muted);
+  font-size: 10px;
+}
+.tch-figure.is-living {
+  border-color: rgba(111, 175, 143, 0.5);
+  box-shadow: inset 2px 0 0 #6faf8f;
+}
+/* ---------- 人物志 ---------- */
+.tch-figure-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.tch-figure-group h4 {
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.tch-figure-group.is-loyal h4 {
+  color: #6faf8f;
+}
+.tch-figure-group.is-treacherous h4 {
+  color: var(--tch-accent);
+}
+.tch-figure-group.is-notable h4 {
+  color: var(--tch-blue);
+}
+.tch-figure-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tch-figure {
+  padding: 6px 8px;
+  background: var(--tch-panel-2);
+  border: 1px solid var(--tch-border);
+  border-radius: 5px;
+}
+.tch-figure-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tch-figure-head strong {
+  font-size: 12px;
+  color: var(--tch-text);
+}
+.tch-figure-role {
+  font-size: 9.5px;
+  padding: 0 5px;
+  line-height: 15px;
+  border-radius: 3px;
+  color: #0d1117;
+}
+.tch-figure-role.is-loyal {
+  background: #6faf8f;
+}
+.tch-figure-role.is-treacherous {
+  background: var(--tch-accent);
+}
+.tch-figure-role.is-notable {
+  background: var(--tch-blue);
+}
+.tch-figure-life,
+.tch-figure-fate,
+.tch-figure-note {
+  margin-top: 3px;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: #9fb0c3;
+}
+.tch-figure-fate {
+  color: #c9a05a;
+}
+.tch-figure-note {
+  color: #6e7681;
+}
+/* ---------- 悬停详情卡（地图 tooltip 的全文） ---------- */
+.tch-hover-card {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: rgba(88, 166, 255, 0.08);
+  border: 1px solid rgba(88, 166, 255, 0.35);
+  border-radius: 6px;
+}
+.tch-hover-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--tch-text);
+}
+.tch-hover-card h3 i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.tch-hover-kind {
+  margin-left: auto;
+  font-size: 9.5px;
+  font-weight: 400;
+  color: var(--tch-blue);
+}
+.tch-hover-card p {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.65;
+  color: #9fb0c3;
+}
+.tch-hover-meta {
+  color: var(--tch-muted);
+  font-size: 10.5px;
 }
 .tch-section {
   margin-top: 14px;
@@ -428,6 +855,21 @@
   line-height: 1.6;
   color: var(--tch-muted);
 }
+.tch-war-item.is-future {
+  opacity: 0.66;
+  border-style: dashed;
+}
+.tch-war-status {
+  margin-left: 6px;
+  font-style: normal;
+  font-size: 9px;
+}
+.tch-war-status.is-live {
+  color: var(--tch-accent);
+}
+.tch-war-status.is-future {
+  color: #6e7681;
+}
 .tch-war-open-hint {
   display: block;
   margin-top: 4px;
@@ -439,23 +881,26 @@
   color: var(--tch-muted);
 }
 
-/* ---------- 底部时间轴（紧凑单行） ---------- */
+/* ---------- 底部月度时间轴 ---------- */
 .tch-timeline {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 5px 12px;
+  gap: 12px;
+  padding: 6px 12px 8px;
   background: var(--tch-panel-2);
   border-top: 1px solid var(--tch-border);
+  min-height: 66px;
 }
 .tch-timeline-controls {
   display: flex;
-  gap: 4px;
+  gap: 6px;
+  align-items: center;
   flex-shrink: 0;
 }
 .tch-tool-btn {
-  padding: 3px 9px;
+  height: 28px;
+  padding: 0 10px;
   font-size: 12px;
   text-align: center;
   color: #c9d1d9;
@@ -464,13 +909,32 @@
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .tch-tool-btn:hover:not(:disabled) {
   border-color: var(--tch-blue);
+  color: var(--tch-text);
 }
 .tch-tool-btn:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: default;
+}
+.tch-step-btn {
+  min-width: 58px;
+  color: var(--tch-muted);
+}
+.tch-play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 76px;
+  color: var(--tch-text);
+}
+.tch-play-btn svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
 }
 .tch-play-btn.is-playing {
   background: var(--tch-accent);
@@ -478,118 +942,224 @@
   color: #fff;
 }
 .tch-speed select {
-  padding: 3px 4px;
+  height: 28px;
+  padding: 0 4px;
   font-size: 11px;
   color: #c9d1d9;
   background: #21262d;
   border: 1px solid var(--tch-border);
   border-radius: 6px;
+  font-variant-numeric: tabular-nums;
 }
 .tch-timeline-track {
   flex: 1;
   min-width: 0;
   position: relative;
-  padding-top: 10px;
+  height: 54px;
+}
+/* 时代名单独一行，按色带宽度居中裁切，不会互相压字 */
+.tch-era-labels {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 13px;
+  pointer-events: none;
+}
+.tch-era-label {
+  position: absolute;
+  top: 0;
+  height: 13px;
+  padding: 0 2px;
+  background: none;
+  border: 0;
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 13px;
+  letter-spacing: 1px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: auto;
+  cursor: default;
+}
+/* 朝代色带：每期一条，起止由 left/width 表达；当前期高亮 */
+.tch-period-bands {
+  position: absolute;
+  top: 13px;
+  left: 0;
+  right: 0;
+  height: 7px;
+}
+.tch-period-band {
+  position: absolute;
+  top: 0;
+  height: 7px;
+  min-width: 2px;
+  border-radius: 2px;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.28);
+  padding: 0;
+  background: var(--era-color, var(--tch-accent));
+  opacity: 0.42;
+  pointer-events: auto;
+  cursor: default;
+  transition: opacity 0.15s;
+}
+.tch-period-band:hover {
+  opacity: 0.9;
+}
+.tch-period-band.is-current {
+  opacity: 0.95;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--era-color, var(--tch-accent)) 70%, transparent);
 }
 .tch-range {
+  position: absolute;
+  top: 19px;
+  left: 0;
   width: 100%;
+  height: 20px;
+  margin: 0;
+  background: transparent;
   -webkit-appearance: none;
   appearance: none;
-  height: 5px;
-  background: linear-gradient(90deg, #7c3a2d, #b3543f, #7c3a2d);
-  border-radius: 3px;
   outline: none;
   cursor: pointer;
-  margin: 10px 0 4px;
+  z-index: 3;
+}
+.tch-range::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent;
+  border-radius: 3px;
+}
+.tch-range::-moz-range-track {
+  height: 6px;
+  background: transparent;
+  border-radius: 3px;
 }
 .tch-range::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
+  margin-top: -4px;
   border-radius: 50%;
   background: var(--tch-accent);
   border: 2px solid #fff;
   box-shadow: 0 0 8px rgba(255, 92, 71, 0.8);
 }
 .tch-range::-moz-range-thumb {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
   border-radius: 50%;
   background: var(--tch-accent);
-  border: 2px solid #fff;
+  box-shadow: 0 0 8px rgba(255, 92, 71, 0.8);
 }
 .tch-ticks {
   position: absolute;
-  inset: 0;
+  top: 40px;
+  left: 0;
+  right: 0;
+  height: 10px;
   pointer-events: none;
 }
 .tch-tick {
   position: absolute;
-  top: 8px;
-  width: 2px;
-  height: 7px;
-  background: #4a5568;
-  transform: translateX(-1px);
+  top: 0;
+  width: 9px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translateX(-4.5px);
+  pointer-events: auto;
+  cursor: default;
 }
-.tch-tick.is-war {
+.tch-tick::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 1px;
+  width: 1.5px;
+  height: 6px;
+  transform: translateX(-50%);
+  background: #4a5568;
+  border-radius: 1px;
+}
+.tch-tick.is-war::before {
   width: 5px;
   height: 5px;
+  top: 2px;
   border-radius: 50%;
   background: #b3543f;
-  transform: translateX(-2px);
 }
-.tch-tick.is-current {
+.tch-tick.is-control::before {
+  width: 5px;
+  height: 5px;
+  top: 2px;
+  border-radius: 1px;
+  transform: translateX(-50%) rotate(45deg);
   background: var(--tch-accent);
-  height: 11px;
 }
-.tch-tick.is-war.is-current {
-  height: 9px;
+.tch-tick.is-city::before {
+  width: 4px;
+  height: 4px;
+  top: 2px;
+  border-radius: 1px;
+  background: var(--tch-blue);
 }
-.tch-tick-label {
+.tch-tick.is-period::before {
+  height: 8px;
+  background: #8b949e;
+}
+.tch-tick.is-current::before {
+  background: var(--tch-accent);
+  box-shadow: 0 0 5px rgba(255, 92, 71, 0.9);
+}
+.tch-cursor {
   position: absolute;
-  top: 8px;
-  left: 0;
+  top: 19px;
+  bottom: 8px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--tch-accent), rgba(255, 92, 71, 0.15));
+  transform: translateX(-0.5px);
+  pointer-events: none;
+  z-index: 2;
+}
+.tch-timeline-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
   transform: translateX(-50%);
-  font-size: 9px;
+  z-index: 30;
+  min-width: 150px;
+  max-width: 250px;
+  padding: 6px 9px;
+  background: rgba(13, 17, 23, 0.97);
+  border: 1px solid var(--tch-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+.tch-timeline-tip strong {
+  display: block;
+  font-size: 11px;
+  color: var(--tch-accent-2);
+}
+.tch-timeline-tip span {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 1.5;
   color: var(--tch-muted);
-  white-space: nowrap;
-}
-.tch-tick.is-current .tch-tick-label {
-  color: var(--tch-accent);
-  font-weight: 700;
-}
-.tch-era-strip {
-  position: relative;
-  height: 12px;
-  font-size: 9px;
-  color: #5f6b7a;
-  letter-spacing: 2px;
-}
-.tch-era-strip span[data-era="pre-qin"] {
-  color: #c98a4b;
-}
-.tch-era-strip span[data-era="qin-han"] {
-  color: #cf5b45;
-}
-.tch-era-strip span[data-era="wei-jin"] {
-  color: #8f5fbf;
-}
-.tch-era-strip span[data-era="sui-tang"] {
-  color: #d8a23c;
-}
-.tch-era-strip span[data-era="song-yuan"] {
-  color: #4f9cf9;
-}
-.tch-era-strip span[data-era="ming-qing"] {
-  color: #6faf8f;
 }
 .tch-timeline-readout {
   flex-shrink: 0;
-  min-width: 118px;
+  min-width: 168px;
   display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
   text-align: right;
 }
 .tch-timeline-readout .tch-year {
@@ -597,14 +1167,32 @@
   color: var(--tch-accent);
   font-family: Consolas, Monaco, monospace;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .tch-timeline-readout .tch-stop-label {
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 190px;
+  font-size: 10.5px;
   color: var(--tch-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 150px;
+}
+.tch-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tch-accent);
+  box-shadow: 0 0 5px rgba(255, 92, 71, 0.9);
+  animation: tch-pulse 1.1s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes tch-pulse {
+  50% {
+    opacity: 0.3;
+  }
 }
 
 /* ---------- Leaflet 深色覆写 ---------- */
@@ -768,20 +1356,20 @@
   filter: drop-shadow(0 0 3px rgba(89, 167, 255, 0.8));
 }
 
-/* ---------- 战役推进小窗 ---------- */
+/* ---------- 战役推进小窗（地图右侧，不压左侧目录与底部时间轴） ---------- */
 .tch-briefing {
   position: absolute;
-  left: 10px;
+  right: 12px;
+  top: 48px;
   bottom: 12px;
   z-index: 600;
-  width: 300px;
-  max-height: 46%;
+  width: 296px;
   display: flex;
   flex-direction: column;
-  background: rgba(13, 17, 23, 0.94);
+  background: rgba(13, 17, 23, 0.95);
   border: 1px solid rgba(255, 92, 71, 0.55);
   border-radius: 8px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
   overflow: hidden;
 }
 .tch-briefing-head {
@@ -827,20 +1415,74 @@
   font-style: normal;
   padding: 0 4px;
 }
+.tch-briefing-brief {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 4px 12px 6px;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--tch-muted);
+}
 .tch-briefing-phases {
   list-style: none;
   margin: 0;
   padding: 6px 12px 10px;
+  flex: 1 1 auto;
+  min-height: 60px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 5px;
+  border-top: 1px solid var(--tch-border);
 }
 .tch-briefing-phases li {
   display: flex;
   gap: 8px;
+  padding: 3px 5px;
+  border-left: 2px solid transparent;
+  border-radius: 0 4px 4px 0;
   font-size: 11px;
   line-height: 1.55;
+}
+.tch-briefing-phases li.is-current {
+  background: rgba(255, 92, 71, 0.12);
+  border-left-color: var(--tch-accent);
+}
+.tch-briefing-detail {
+  flex: 0 1 auto;
+  max-height: 36%;
+  overflow-y: auto;
+  padding: 7px 12px;
+  border-top: 1px dashed var(--tch-border);
+  font-size: 10.5px;
+  line-height: 1.65;
+  color: #9fb0c3;
+}
+.tch-briefing-detail p {
+  margin: 0;
+}
+.tch-briefing-outcome {
+  margin-top: 4px;
+  color: #c9a05a;
+}
+.tch-briefing-sources {
+  margin-top: 4px;
+  color: #6e7681;
+  font-size: 9.5px;
+}
+.tch-briefing-focus {
+  flex-shrink: 0;
+  margin: 0 12px 10px;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: var(--tch-text);
+  background: #21262d;
+  border: 1px solid var(--tch-border);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.tch-briefing-focus:hover {
+  border-color: var(--tch-accent);
 }
 .tch-phase-year {
   flex-shrink: 0;
@@ -890,16 +1532,33 @@
     border-bottom: 1px solid var(--tch-border);
     box-shadow: none;
   }
+  .tch-menu-toggle {
+    position: static;
+    align-self: flex-start;
+    margin: 8px;
+  }
   .tch-map-panel {
     min-height: 52vh;
     flex: none;
   }
+  .tch-control-strip {
+    max-width: calc(100% - 24px);
+  }
   .tch-briefing {
     width: min(300px, calc(100% - 20px));
+    right: 10px;
+    top: 50px;
+    bottom: 10px;
   }
   .tch-detail {
     width: 100%;
     border-left: none;
     border-top: 1px solid var(--tch-border);
+  }
+  .tch-timeline {
+    flex-wrap: wrap;
+  }
+  .tch-timeline-readout {
+    min-width: 130px;
   }
 }

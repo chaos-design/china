@@ -1,3 +1,4 @@
+import { PERIOD_ANNALS, PERIOD_FIGURES } from "./chronicle-people";
 import { MING_QING_PERIODS } from "./era-ming-qing";
 import { PRE_QIN_PERIODS } from "./era-pre-qin";
 import { QIN_HAN_PERIODS } from "./era-qin-han";
@@ -9,8 +10,10 @@ import type { ChronicleEra, ChroniclePeriod } from "./types";
 /**
  * 历代疆域编年总注册表：20 期按编年排序（startYear 升序）。
  * 各时代文件按上述顺序拼接，测试锁定编年有序性，因此这里的顺序就是时间轴顺序。
+ * 编年速报与人物志按期的 id 从 chronicle-people 并入，数据文件本身保持
+ * 「一期一文件」的几何/政区职责，不重复粘贴叙事文本。
  */
-export const CHRONICLE_PERIODS: readonly ChroniclePeriod[] = [
+const BASE_PERIODS: readonly ChroniclePeriod[] = [
   ...PRE_QIN_PERIODS,
   ...QIN_HAN_PERIODS,
   ...WEI_JIN_PERIODS,
@@ -18,6 +21,12 @@ export const CHRONICLE_PERIODS: readonly ChroniclePeriod[] = [
   ...SONG_YUAN_PERIODS,
   ...MING_QING_PERIODS,
 ];
+
+export const CHRONICLE_PERIODS: readonly ChroniclePeriod[] = BASE_PERIODS.map((period) => ({
+  ...period,
+  annals: period.annals ?? PERIOD_ANNALS[period.id] ?? [],
+  figures: period.figures ?? PERIOD_FIGURES[period.id] ?? [],
+}));
 
 /** 按时代分组（左侧编年目录的分组结构，组内保持编年顺序）。 */
 export const CHRONICLE_ERAS: readonly ChronicleEra[] = [

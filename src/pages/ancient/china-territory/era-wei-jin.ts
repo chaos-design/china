@@ -399,6 +399,15 @@ export const WEI_JIN_PERIODS: ChroniclePeriod[] = [
         sources: ["《晋书·王濬传》", "《三国志·孙皓传》"],
       },
     ],
+    control: [
+      {
+        year: 263,
+        month: 11,
+        by: "wei",
+        absorbed: "shu",
+        note: "魏钟会、邓艾伐蜀，刘禅出降，蜀汉亡。",
+      },
+    ],
     sources: ["谭其骧《中国历史地图集》第三册", "《三国志》"],
     focus: { center: [114.5, 32.0], zoom: 4.6 },
   },

@@ -28,6 +28,16 @@ export const ERA_LABELS: Record<ChronicleEra, string> = {
   "ming-qing": "明清",
 };
 
+/** 时代主色（底部进度条 / 速报标签 / 菜单分组共用）。 */
+export const ERA_COLORS: Record<ChronicleEra, string> = {
+  "pre-qin": "#c98a4b",
+  "qin-han": "#cf5b45",
+  "wei-jin": "#8f5fbf",
+  "sui-tang": "#d8a23c",
+  "song-yuan": "#4f9cf9",
+  "ming-qing": "#6faf8f",
+};
+
 /** 政权的都城点。 */
 export interface PolityCapital {
   /** 都邑名（历史名，如「镐京」）。 */
@@ -53,6 +63,86 @@ export interface WarPhase {
   year: string;
   /** 该阶段发生了什么（一句话）。 */
   text: string;
+}
+
+/**
+ * 疆域控制变更：某年某月，一个政权被另一个政权吞并，其疆域整体转归接管方。
+ * 时间轴上按月份生效——这是「疆域随年份变化」的主模型：被吞并的政权从
+ * 该月起不再单独绘制，其疆域环以接管方颜色继续显示（虚线保留旧界）。
+ * 没有接管方（by = null）表示该政权退出图面、疆域不再计入任何一方。
+ */
+export interface ControlChange {
+  year: number;
+  /** 月份（1–12），缺省按 1 月处理。 */
+  month?: number;
+  /** 接管方政权 id；null = 无人接管。 */
+  by: string | null;
+  /** 被吞并的政权 id。 */
+  absorbed: string;
+  /** 编年体一句话（进入右侧速报与时间轴提示）。 */
+  note: string;
+}
+
+/**
+ * 城市控制变更：某年某月，一座城（含都城）易主。城市标注随当前控制方
+ * 换色，并在右侧「编年速报」里高亮；疆域大环由 ControlChange 负责，
+ * 这里只处理城级归属（避免同一座城同时挂在两个政权名下）。
+ */
+export interface CityChange {
+  year: number;
+  month?: number;
+  /** 城市名（必须能在本期的 capitals / cities 里找到）。 */
+  city: string;
+  /** 新城主政权 id；null = 失守 / 废弃。 */
+  by: string | null;
+  note: string;
+}
+
+/** 局部控制区：大环之外的飞地 / 争夺区，按月份切换归属（示意多边形）。 */
+export interface ControlZone {
+  id: string;
+  name: string;
+  ring: readonly LngLat[];
+  /** 初始控制方。 */
+  polityId: string;
+  /** 控制权变更（按时间顺序）。 */
+  changes?: readonly {
+    year: number;
+    month?: number;
+    /** 新控制方；null = 无人控制。 */
+    by: string | null;
+    note?: string;
+  }[];
+  note: string;
+}
+
+/** 编年速报条目：播放 / 拖动时间时右侧实时更新的编年体记录。 */
+export interface ChronicleAnnal {
+  year: number;
+  month?: number;
+  kind: "capital" | "war" | "politics" | "person" | "territory";
+  /** 一句话记事（高亮显示当前年附近的条目）。 */
+  text: string;
+  /** 关联政权 id（用于按控制方着色）。 */
+  polityId?: string;
+}
+
+/** 人物志：忠臣 / 奸臣 / 重要人物，附生平与结局。 */
+export interface ChronicleFigure {
+  name: string;
+  /** 身份标签（如「忠臣」「奸臣」「名将」「帝姬」）。 */
+  role: string;
+  /** 生平（1–2 句）。 */
+  life: string;
+  /** 结局（1 句）。 */
+  fate: string;
+  /** 评断：忠 / 奸 / 重要（仅用于标签着色，不做道德定论）。 */
+  stance: "loyal" | "treacherous" | "notable";
+  /** 生年 / 卒年（负数 = 公元前），用于播放时标注「在世 / 登场」。 */
+  birthYear?: number;
+  deathYear?: number;
+  /** 补充说明（史实争议、传说性质等）。 */
+  note?: string;
 }
 
 /** 一期之内的一个政权（统一王朝只有一个，分裂期每政权一份）。 */
@@ -155,6 +245,16 @@ export interface ChroniclePeriod {
   divisions: readonly AdminDivision[];
   defenses: readonly DefenseFeature[];
   wars: readonly WarEvent[];
+  /** 疆域控制变更（按月份生效；缺省 = 全期固定）。 */
+  control?: readonly ControlChange[];
+  /** 城级控制变更（按月份生效）。 */
+  cityChanges?: readonly CityChange[];
+  /** 局部控制区（飞地 / 争夺区），按月份切换归属。 */
+  controlZones?: readonly ControlZone[];
+  /** 编年速报（右侧播放时实时更新；缺省时由战争与控制变更派生）。 */
+  annals?: readonly ChronicleAnnal[];
+  /** 人物志（右侧底部，默认折叠）。 */
+  figures?: readonly ChronicleFigure[];
   /** 本期总体出处（政区与疆域口径）。 */
   sources: readonly string[];
   /** 切到本期的取景：中心 + 目标缩放级。 */

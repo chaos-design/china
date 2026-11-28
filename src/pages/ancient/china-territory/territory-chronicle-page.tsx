@@ -1,36 +1,47 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { cn } from "../../../lib/utils";
+import { resolvePeriodAt } from "./chronicle-control";
 import { ChronicleMapPanel, type LayerVisibility } from "./chronicle-map-panel";
 import { ChronicleMenu } from "./chronicle-menu";
-import { ChronicleTimeline } from "./chronicle-timeline";
-import { PeriodDetail } from "./period-detail";
-import { CHRONICLE_PERIODS } from "./registry";
 import {
-  buildTimeStops,
-  getPeriodIndexForYear,
-  latestWarAtOrBefore,
-  pastWarsAtOrBefore,
-} from "./territory-overlays";
+  annalsAtOrBefore,
+  buildChronicleEvents,
+  formatYearMonth,
+  fromMonthIndex,
+  getPeriodIndexForMonth,
+  latestWarAtOrBeforeMonth,
+  pastWarsAtOrBeforeMonth,
+  periodEndMonth,
+  periodStartMonth,
+  warStartMonth,
+} from "./chronicle-time";
+import { BASE_MONTHS_PER_SECOND, ChronicleTimeline, type PlaySpeed } from "./chronicle-timeline";
+import { type ChronicleHover, PeriodDetail } from "./period-detail";
+import { CHRONICLE_PERIODS } from "./registry";
 import "./territory-chronicle.css";
 
-/** 自动播放每个时间停止点的停留时长（毫秒，1× 速度）。 */
-const PLAY_STOP_MS = 2400;
-export const PLAY_SPEEDS = [0.5, 1, 2] as const;
-export type PlaySpeed = (typeof PLAY_SPEEDS)[number];
+/** 播放定时器步长（毫秒）；1× 下每步推进 3 个月 = 1 年/秒。 */
+const PLAY_TICK_MS = 250;
 
 /**
  * 历代疆域编年 · 卫星战争沙盘：左上悬浮编年目录、全幅卫星地图、右侧当朝
- * 详情，底部年度时间轴。时间轴以「停止点」推进——每个停止点是一期疆域切换
- * 或一场战役开战的年份：疆域随朝代切换，战役随年份上线（最新一场画完整
- * 部署，已往战役留战场标记），有推进图记的战争弹小窗。
+ * 详情，底部月度时间轴。时间轴以「月」为最小单位——疆域按当前月份的控制
+ * 图绘制（被吞并政权的疆域转归接管方，同一区域不会同时属于两个政权），
+ * 战役按开战月份上线，右侧编年速报随播放实时更新。
  */
 export function TerritoryChroniclePage() {
-  const stops = useMemo(() => buildTimeStops(CHRONICLE_PERIODS), []);
-  const [stopIndex, setStopIndex] = useState(0);
+  const minMonth = useMemo(() => periodStartMonth(CHRONICLE_PERIODS[0]), []);
+  const maxMonth = useMemo(
+    () => periodEndMonth(CHRONICLE_PERIODS[CHRONICLE_PERIODS.length - 1]),
+    [],
+  );
+  const events = useMemo(() => buildChronicleEvents(CHRONICLE_PERIODS), []);
+  const [month, setMonth] = useState(minMonth);
   const [selectedWarId, setSelectedWarId] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<PlaySpeed>(1);
+  const [hover, setHover] = useState<ChronicleHover | null>(null);
   const [layers, setLayers] = useState<LayerVisibility>({
     territory: true,
     capitals: true,
@@ -40,40 +51,48 @@ export function TerritoryChroniclePage() {
     modernLabels: true,
   });
 
-  const stop = stops[stopIndex];
-  const year = stop.year;
-  const period = CHRONICLE_PERIODS[stop.periodIndex];
-  const autoWar = useMemo(() => latestWarAtOrBefore(period, year), [period, year]);
+  const periodIndex = getPeriodIndexForMonth(CHRONICLE_PERIODS, month);
+  const period = CHRONICLE_PERIODS[periodIndex];
+  const resolved = useMemo(() => resolvePeriodAt(period, month), [period, month]);
+  const autoWar = useMemo(() => latestWarAtOrBeforeMonth(period, month), [period, month]);
   const selectedWar = selectedWarId
     ? (period.wars.find((war) => war.id === selectedWarId) ?? null)
     : null;
   const activeWar = selectedWar ?? autoWar;
   const pastWars = useMemo(
-    () => pastWarsAtOrBefore(period, year, activeWar?.id ?? null),
-    [period, year, activeWar],
+    () => pastWarsAtOrBeforeMonth(period, month, activeWar?.id ?? null),
+    [period, month, activeWar],
   );
-  const periodIndex = getPeriodIndexForYear(CHRONICLE_PERIODS, year);
+  const annals = useMemo(() => annalsAtOrBefore(period, month), [period, month]);
+  const date = fromMonthIndex(month);
 
-  // 标签标题跟随当前年份读数。
+  const clampMonth = useCallback(
+    (value: number) => Math.max(minMonth, Math.min(maxMonth, value)),
+    [minMonth, maxMonth],
+  );
+
+  // 标签标题跟随当前年月读数。
   useEffect(() => {
     const focus = activeWar ? activeWar.name : period.name;
-    const yearText = year < 0 ? `前${-year}` : `${year}`;
-    document.title = `${yearText} ${focus} · 历代疆域编年 · 中国古代全览`;
-  }, [period, activeWar, year]);
+    document.title = `${formatYearMonth(date)} ${focus} · 历代疆域编年 · 中国古代全览`;
+  }, [period, activeWar, date]);
 
-  // 自动播放：逐停止点推进，播到最后一站自动停（沙盘语义，hover 不暂停）。
+  // 自动播放：按月推进（1× = 1 年/秒），播到最后一月自动停。
   useEffect(() => {
     if (!playing) return;
-    if (stopIndex >= stops.length - 1) {
-      setPlaying(false);
-      return;
-    }
-    const timer = window.setTimeout(
-      () => setStopIndex((current) => Math.min(current + 1, stops.length - 1)),
-      PLAY_STOP_MS / speed,
+    const monthsPerTick = Math.max(
+      1,
+      Math.round((BASE_MONTHS_PER_SECOND * speed * PLAY_TICK_MS) / 1000),
     );
-    return () => window.clearTimeout(timer);
-  }, [playing, stopIndex, speed, stops.length]);
+    const timer = window.setInterval(() => {
+      setMonth((current) => Math.min(maxMonth, current + monthsPerTick));
+    }, PLAY_TICK_MS);
+    return () => window.clearInterval(timer);
+  }, [playing, speed, maxMonth]);
+
+  useEffect(() => {
+    if (month >= maxMonth) setPlaying(false);
+  }, [month, maxMonth]);
 
   // 页面隐藏时暂停播放（后台标签页不推进）。
   useEffect(() => {
@@ -85,7 +104,7 @@ export function TerritoryChroniclePage() {
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [playing]);
 
-  // 键盘：←/→ 逐停止点推进、Space 播放暂停；焦点在控件上时让位给控件自身行为。
+  // 键盘：←/→ 逐月推进、Space 播放暂停；焦点在控件上时让位给控件自身行为。
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const element = event.target as HTMLElement | null;
@@ -100,11 +119,13 @@ export function TerritoryChroniclePage() {
       if (event.key === "ArrowLeft") {
         event.preventDefault();
         setPlaying(false);
-        setStopIndex((current) => Math.max(0, current - 1));
+        setSelectedWarId(null);
+        setMonth((current) => Math.max(minMonth, current - 1));
       } else if (event.key === "ArrowRight") {
         event.preventDefault();
         setPlaying(false);
-        setStopIndex((current) => Math.min(stops.length - 1, current + 1));
+        setSelectedWarId(null);
+        setMonth((current) => Math.min(maxMonth, current + 1));
       } else if (event.code === "Space") {
         event.preventDefault();
         setPlaying((current) => !current);
@@ -112,36 +133,54 @@ export function TerritoryChroniclePage() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [stops.length]);
+  }, [minMonth, maxMonth]);
 
-  const seekStop = useCallback(
-    (index: number) => {
-      setStopIndex(Math.max(0, Math.min(stops.length - 1, index)));
+  const seekMonth = useCallback(
+    (value: number) => {
+      setPlaying(false);
+      setSelectedWarId(null);
+      setMonth(clampMonth(value));
     },
-    [stops.length],
+    [clampMonth],
+  );
+
+  const stepMonth = useCallback(
+    (delta: number) => {
+      setPlaying(false);
+      setSelectedWarId(null);
+      setMonth((current) => clampMonth(current + delta));
+    },
+    [clampMonth],
   );
 
   const selectPeriod = useCallback(
     (index: number) => {
+      const target = CHRONICLE_PERIODS[index];
+      if (!target) return;
       setPlaying(false);
       setSelectedWarId(null);
-      // 定位到该期的疆域切换停止点
-      const target = stops.findIndex(
-        (entry) => entry.kind === "period" && entry.periodIndex === index,
-      );
-      if (target >= 0) setStopIndex(target);
+      setMonth(clampMonth(periodStartMonth(target)));
     },
-    [stops],
+    [clampMonth],
   );
 
   const selectWar = useCallback(
     (warId: string | null) => {
+      if (!warId) {
+        setSelectedWarId(null);
+        return;
+      }
+      const war = period.wars.find((entry) => entry.id === warId);
+      if (!war) return;
+      setPlaying(false);
       setSelectedWarId(warId);
-      if (!warId) return;
-      const target = stops.findIndex((entry) => entry.kind === "war" && entry.warId === warId);
-      if (target >= 0) setStopIndex(target);
+      // 战争开始月份可能落在边界年份的另一侧（如夏末「约前1600」的鸣条之战
+      // 与商期同起点），夹在本期的有效区间内才不会让选中战役因换期而丢失。
+      const next = CHRONICLE_PERIODS[periodIndex + 1];
+      const upper = next ? periodStartMonth(next) - 1 : periodEndMonth(period);
+      setMonth(clampMonth(Math.min(upper, Math.max(periodStartMonth(period), warStartMonth(war)))));
     },
-    [stops],
+    [clampMonth, period, periodIndex],
   );
 
   const toggleLayer = useCallback((key: keyof LayerVisibility) => {
@@ -154,7 +193,7 @@ export function TerritoryChroniclePage() {
         <div className="tch-header-title">
           <h1>历代疆域编年 · 卫星战争沙盘</h1>
           <p>
-            卫星影像之上按年份逐期推演疆域、都城、区划与战争｜所有边界为示意范围（据谭其骧《中国历史地图集》概化），非实测边界
+            卫星影像之上按月推演疆域、都城、区划与战争｜所有边界为示意范围（据谭其骧《中国历史地图集》概化），非实测边界
           </p>
         </div>
         <fieldset className="tch-layer-chips">
@@ -195,6 +234,10 @@ export function TerritoryChroniclePage() {
             <i className="tch-legend-line" />
             边防
           </span>
+          <span>
+            <i className="tch-legend-old" />
+            旧疆
+          </span>
         </div>
       </header>
 
@@ -202,32 +245,38 @@ export function TerritoryChroniclePage() {
         <ChronicleMenu periodIndex={periodIndex} onSelect={selectPeriod} />
         <ChronicleMapPanel
           period={period}
+          month={month}
+          resolved={resolved}
           activeWar={activeWar}
           pastWars={pastWars}
           selectedWar={selectedWar}
           layers={layers}
           onWarElementClick={(warId) => selectWar(warId)}
+          onPolityHover={(info) => setHover(info ? { kind: "polity", info } : null)}
+          onWarOpHover={(info) => setHover(info ? { kind: "war", info } : null)}
         />
         <PeriodDetail
           period={period}
+          month={month}
+          resolved={resolved}
+          annals={annals}
+          hover={hover}
           selectedWarId={selectedWarId}
-          currentYear={year}
           onSelectWar={(warId) => selectWar(warId === selectedWarId ? null : warId)}
         />
       </div>
 
       <ChronicleTimeline
-        stops={stops}
-        stopIndex={stopIndex}
+        periods={CHRONICLE_PERIODS}
+        events={events}
+        minMonth={minMonth}
+        maxMonth={maxMonth}
+        month={month}
         playing={playing}
         speed={speed}
-        onSeek={seekStop}
+        onSeek={seekMonth}
+        onStep={stepMonth}
         onTogglePlay={() => setPlaying((current) => !current)}
-        onStep={(delta) => {
-          setPlaying(false);
-          setSelectedWarId(null);
-          seekStop(stopIndex + delta);
-        }}
         onSpeedChange={setSpeed}
       />
     </article>

@@ -1,13 +1,22 @@
-import { useEffect, useRef, useState } from "react";
-import { createTerritoryScene, type TerritoryLayerKey, type TerritoryScene } from "./leaflet-scene";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { controlSignature, type ResolvedPeriod } from "./chronicle-control";
+import { formatYearMonth, fromMonthIndex } from "./chronicle-time";
+import {
+  createTerritoryScene,
+  type PolityHoverInfo,
+  type TerritoryLayerKey,
+  type TerritoryScene,
+  type WarOpHoverInfo,
+} from "./leaflet-scene";
 import type { ChroniclePeriod, WarEvent } from "./types";
 
 /**
  * 地图宿主：命令式 Leaflet 场景的唯一 React 触点。
  * 场景实例入 state（与 use-rank-tree-scene 同构），让每个同步 effect
  * 在首次创建与后续更新时都会执行；容器尺寸由 Leaflet 自行接管。
- * 年度推进：疆域层随 period 重建，战争层随 activeWar/pastWars 重建，
- * 显式选中的战争触发 flyTo 聚焦；带推进图记的战争弹小窗。
+ * 控制图只在「控制签名」变化时重建（月份推进但归属没变时不重绘），
+ * 战争层随 activeWar/pastWars 重建；显式选中的战争触发 flyTo 聚焦。
  */
 
 export interface LayerVisibility {
@@ -29,34 +38,51 @@ const LAYER_KEYS: readonly TerritoryLayerKey[] = [
 
 interface ChronicleMapPanelProps {
   period: ChroniclePeriod;
+  /** 当前月份序号。 */
+  month: number;
+  /** 当前月份的控制解析结果。 */
+  resolved: ResolvedPeriod;
   activeWar: WarEvent | null;
   pastWars: readonly WarEvent[];
   /** 用户显式点选的战争（非年度自动上线）——只对它做 flyTo 聚焦。 */
   selectedWar: WarEvent | null;
   layers: LayerVisibility;
   onWarElementClick: (warId: string) => void;
+  onPolityHover: (info: PolityHoverInfo | null) => void;
+  onWarOpHover: (info: WarOpHoverInfo | null) => void;
 }
 
 export function ChronicleMapPanel({
   period,
+  month,
+  resolved,
   activeWar,
   pastWars,
   selectedWar,
   layers,
   onWarElementClick,
+  onPolityHover,
+  onWarOpHover,
 }: ChronicleMapPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   // 场景实例入 state：同步 effect 依赖 scene，创建完成即触发首次 setPeriod。
   const [scene, setScene] = useState<TerritoryScene | null>(null);
-  const [briefingOpen, setBriefingOpen] = useState(true);
+  // 记录「用户收起小窗」对应的战役；换战役后自动重新展开，无需额外 effect。
+  const [closedBriefingFor, setClosedBriefingFor] = useState<string | null>(null);
   const clickRef = useRef(onWarElementClick);
   clickRef.current = onWarElementClick;
+  const polityHoverRef = useRef(onPolityHover);
+  polityHoverRef.current = onPolityHover;
+  const warOpHoverRef = useRef(onWarOpHover);
+  warOpHoverRef.current = onWarOpHover;
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const instance = createTerritoryScene(container, {
       onWarElementClick: (warId) => clickRef.current(warId),
+      onPolityHover: (info) => polityHoverRef.current(info),
+      onWarOpHover: (info) => warOpHoverRef.current(info),
     });
     setScene(instance);
     return () => {
@@ -65,20 +91,33 @@ export function ChronicleMapPanel({
     };
   }, []);
 
-  // 切期重建疆域覆盖层：首帧不动画（直接落位），此后切换带飞行。
+  // 控制图签名：月份推进但归属没变时不重建覆盖层（避免播放时每帧重绘）。
+  const signature = useMemo(() => controlSignature(resolved), [resolved]);
   const firstPeriodRef = useRef(true);
+  const lastSignatureRef = useRef<string | null>(null);
+  const lastPeriodRef = useRef<ChroniclePeriod | null>(null);
   useEffect(() => {
     if (!scene) return;
+    const periodChanged = lastPeriodRef.current?.id !== period.id;
+    const signatureChanged = lastSignatureRef.current !== signature;
+    if (!periodChanged && !signatureChanged) return;
     const animate = !firstPeriodRef.current && !prefersReducedMotion();
     firstPeriodRef.current = false;
-    scene.setPeriod(period, animate);
-  }, [scene, period]);
+    lastPeriodRef.current = period;
+    lastSignatureRef.current = signature;
+    scene.setPeriod(period, month, animate);
+  }, [scene, period, month, signature]);
 
-  // 年度推进的战争层：部署箭头随年份上线，历史战场累积保留。
+  // 年度推进的战争层：部署箭头随月份上线，历史战场累积保留。
+  // 只有 activeWar / 历史战场集合变化时才重建（月份推进本身不重绘图层）。
+  const warSignature = `${activeWar?.id ?? ""}|${pastWars.map((war) => war.id).join(",")}`;
+  const lastWarSignatureRef = useRef<string | null>(null);
   useEffect(() => {
     if (!scene) return;
-    scene.setWarState(activeWar, pastWars);
-  }, [scene, activeWar, pastWars]);
+    if (lastWarSignatureRef.current === warSignature) return;
+    lastWarSignatureRef.current = warSignature;
+    scene.setWarState(activeWar, pastWars, month);
+  }, [scene, activeWar, pastWars, month, warSignature]);
 
   // 显式选中的战争才飞行聚焦（年度自动上线不打断浏览视角）。
   const lastFlownRef = useRef<string | null>(null);
@@ -100,11 +139,8 @@ export function ChronicleMapPanel({
     scene.setModernLabels(layers.modernLabels);
   }, [scene, layers]);
 
-  // 换战争时重置小窗展开状态
-  useEffect(() => {
-    setBriefingOpen(true);
-  }, []);
-
+  const date = fromMonthIndex(month);
+  const briefingOpen = closedBriefingFor !== (activeWar?.id ?? null);
   return (
     <section className="tch-map-panel" aria-label="疆域沙盘地图">
       <div ref={containerRef} className="tch-map-container" />
@@ -116,21 +152,54 @@ export function ChronicleMapPanel({
       >
         复位视角
       </button>
+      <div className="tch-control-strip" aria-hidden="true">
+        <span className="tch-control-date">{formatYearMonth(date)}</span>
+        {resolved.activePolities.map((entry) => (
+          <span key={entry.polity.id} className="tch-control-chip">
+            <i style={{ background: entry.polity.color }} />
+            {entry.polity.name}
+            {entry.absorbedNames.length > 0 ? <em>+{entry.absorbedNames.length}</em> : null}
+          </span>
+        ))}
+      </div>
       {activeWar?.phases?.length && briefingOpen ? (
-        <WarBriefing war={activeWar} onClose={() => setBriefingOpen(false)} />
+        <WarBriefing
+          war={activeWar}
+          month={month}
+          onClose={() => setClosedBriefingFor(activeWar?.id ?? null)}
+          onFocus={() => onWarElementClick(activeWar.id)}
+        />
       ) : null}
     </section>
   );
 }
 
-/** 战役推进小窗：有 phases 的战争在地图左下角浮出，按时间列推进节点。 */
-function WarBriefing({ war, onClose }: { war: WarEvent; onClose: () => void }) {
+/** 战役推进小窗：有 phases 的战争在地图右侧浮出（不压左侧目录与底部时间轴）。 */
+function WarBriefing({
+  war,
+  month,
+  onClose,
+  onFocus,
+}: {
+  war: WarEvent;
+  month: number;
+  onClose: () => void;
+  onFocus: () => void;
+}) {
+  const currentYear = fromMonthIndex(month).year;
+  const phases = war.phases ?? [];
+  // 当前月份已推进到的阶段（按阶段年份粗略匹配；阶段年份是文本，能解析则高亮）
+  const currentPhaseIndex = phases.reduce((last, phase, index) => {
+    const match = /(-?\d+)/.exec(phase.year.replace("前", "-"));
+    if (match && Number(match[1]) <= currentYear) return index;
+    return last;
+  }, -1);
   return (
     <aside className="tch-briefing" aria-label={`${war.name}战役推进`}>
       <header className="tch-briefing-head">
         <h3>
           ⚔ {war.name}
-          <span className="tch-briefing-year">{formatYearRange(war.year)}</span>
+          <span className="tch-briefing-year">（{war.year}）</span>
         </h3>
         <button
           type="button"
@@ -144,20 +213,28 @@ function WarBriefing({ war, onClose }: { war: WarEvent; onClose: () => void }) {
       <p className="tch-briefing-sides">
         {war.sideA} <i>vs</i> {war.sideB}
       </p>
+      <p className="tch-briefing-brief">{war.brief}</p>
       <ol className="tch-briefing-phases">
-        {war.phases?.map((phase) => (
-          <li key={phase.year + phase.text}>
+        {phases.map((phase, index) => (
+          <li
+            key={phase.year + phase.text}
+            className={index === currentPhaseIndex ? "is-current" : undefined}
+          >
             <span className="tch-phase-year">{phase.year}</span>
             <span className="tch-phase-text">{phase.text}</span>
           </li>
         ))}
       </ol>
+      <div className="tch-briefing-detail">
+        <p>{war.detail}</p>
+        <p className="tch-briefing-outcome">结局：{war.outcome}</p>
+        <p className="tch-briefing-sources">出处：{war.sources.join("；")}</p>
+      </div>
+      <button type="button" className="tch-briefing-focus" onClick={onFocus}>
+        在地图上聚焦战场
+      </button>
     </aside>
   );
-}
-
-function formatYearRange(year: string): string {
-  return `（${year}）`;
 }
 
 function prefersReducedMotion(): boolean {
