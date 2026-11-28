@@ -1,0 +1,42 @@
+import { MING_QING_PERIODS } from "./era-ming-qing";
+import { PRE_QIN_PERIODS } from "./era-pre-qin";
+import { QIN_HAN_PERIODS } from "./era-qin-han";
+import { SONG_YUAN_PERIODS } from "./era-song-yuan";
+import { SUI_TANG_PERIODS } from "./era-sui-tang";
+import { WEI_JIN_PERIODS } from "./era-wei-jin";
+import type { ChronicleEra, ChroniclePeriod } from "./types";
+
+/**
+ * 历代疆域编年总注册表：20 期按编年排序（startYear 升序）。
+ * 各时代文件按上述顺序拼接，测试锁定编年有序性，因此这里的顺序就是时间轴顺序。
+ */
+export const CHRONICLE_PERIODS: readonly ChroniclePeriod[] = [
+  ...PRE_QIN_PERIODS,
+  ...QIN_HAN_PERIODS,
+  ...WEI_JIN_PERIODS,
+  ...SUI_TANG_PERIODS,
+  ...SONG_YUAN_PERIODS,
+  ...MING_QING_PERIODS,
+];
+
+/** 按时代分组（左侧编年目录的分组结构，组内保持编年顺序）。 */
+export const CHRONICLE_ERAS: readonly ChronicleEra[] = [
+  "pre-qin",
+  "qin-han",
+  "wei-jin",
+  "sui-tang",
+  "song-yuan",
+  "ming-qing",
+];
+
+export function periodsOfEra(era: ChronicleEra): ChroniclePeriod[] {
+  return CHRONICLE_PERIODS.filter((period) => period.era === era);
+}
+
+export function getChroniclePeriod(id: string): ChroniclePeriod {
+  const period = CHRONICLE_PERIODS.find((entry) => entry.id === id);
+  if (!period) {
+    throw new Error(`未知编年时期: ${id}`);
+  }
+  return period;
+}
