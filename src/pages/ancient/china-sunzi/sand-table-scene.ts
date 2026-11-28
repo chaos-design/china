@@ -11,6 +11,7 @@ import {
   sideColor,
   unitFacing,
 } from "./sand-table-figures";
+import { type LabelCandidate, resolveLabelOffsets } from "./sand-table-labels";
 import {
   BOARD_DEPTH,
   BOARD_WIDTH,
@@ -19,6 +20,10 @@ import {
   surfaceHeight,
 } from "./sand-table-terrain";
 import type { BattleStep, MapScene } from "./types";
+
+/** 3D 名牌宽度（世界单位）与优先级：数字越小越固定，重叠时低优先级牌让位。 */
+const LABEL_WIDTH = { move: 1.9, place: 2, unit: 2.1 } as const;
+const LABEL_RANK = { move: 1, place: 0, unit: 2 } as const;
 
 export interface SceneData {
   battle: MapScene;
@@ -148,6 +153,11 @@ export function createSandTableScene(
     return sandMap;
   };
   const unitGroups = new Map<string, THREE.Group>();
+  /** 本幕全部名牌的布局输入；renderNext 重建后跑一次确定性避让再落位。 */
+  const labelPlacements: Array<{ candidate: LabelCandidate; sprite: THREE.Sprite }> = [];
+  const placeLabel = (sprite: THREE.Sprite, x: number, z: number, width: number, rank: number) => {
+    labelPlacements.push({ candidate: { halfWidth: width / 2, rank, x, z }, sprite });
+  };
   const flowMarkers: Array<{
     mesh: THREE.Mesh;
     curve: THREE.QuadraticBezierCurve3;
@@ -579,9 +589,10 @@ export function createSandTableScene(
       stronghold.position.set(world.x, height + 0.02, world.z);
       content.add(stronghold);
 
-      const label = labelSprite(place.name, sideColor(placeSide(place), colors), 2);
+      const label = labelSprite(place.name, sideColor(placeSide(place), colors), LABEL_WIDTH.place);
       label.position.set(world.x, height + 1.25, world.z);
       content.add(label);
+      placeLabel(label, world.x, world.z, LABEL_WIDTH.place, LABEL_RANK.place);
     }
   }
 
@@ -595,10 +606,11 @@ export function createSandTableScene(
       content.add(soldier);
       unitGroups.set(unit.id, soldier);
 
-      // 部队名牌压在脚下，与城池名牌分层，避免斜视镜头下叠成一团。
-      const label = labelSprite(unit.label, sideColor(unit.side, colors), 2.1);
+      // 部队名牌压在脚下，与城池名牌分层，再由避让把贴营的牌推开。
+      const label = labelSprite(unit.label, sideColor(unit.side, colors), LABEL_WIDTH.unit);
       label.position.set(world.x, height + 0.55, world.z);
       content.add(label);
+      placeLabel(label, world.x, world.z, LABEL_WIDTH.unit, LABEL_RANK.unit);
     }
   }
 
@@ -611,9 +623,10 @@ export function createSandTableScene(
       const deltaZ = to.z - from.z;
       const midpointX = (from.x + to.x) / 2 - deltaZ * 0.075;
       const midpointZ = (from.z + to.z) / 2 + deltaX * 0.075;
-      const label = labelSprite(moveLabel(move), sideColor(move.side, colors), 1.9);
+      const label = labelSprite(moveLabel(move), sideColor(move.side, colors), LABEL_WIDTH.move);
       label.position.set(midpointX, surfaceHeight(midpointX, midpointZ) + 1.05, midpointZ);
       content.add(label);
+      placeLabel(label, midpointX, midpointZ, LABEL_WIDTH.move, LABEL_RANK.move);
 
       // 沿路线流转的光点，只示意推进方向，不冒充真实行军轨迹。
       const start = new THREE.Vector3(from.x, surfaceHeight(from.x, from.z) + 0.68, from.z);
@@ -642,6 +655,7 @@ export function createSandTableScene(
   function renderNext() {
     stopAnimation();
     unitGroups.clear();
+    labelPlacements.length = 0;
     flowMarkers.length = 0;
     clashRings.length = 0;
     disposeContent();
@@ -656,7 +670,19 @@ export function createSandTableScene(
     buildUnits(data, colors);
     buildMoves(data, colors);
     buildClashes(data, colors);
+    applyLabelOffsets();
     setCamera(data.view, data.zoom);
+  }
+
+  /** 名牌避让按换幕后的终局位置计算；补间期间牌不动，落位即正确。 */
+  function applyLabelOffsets() {
+    const offsets = resolveLabelOffsets(labelPlacements.map((item) => item.candidate));
+    for (const { candidate, sprite } of labelPlacements) {
+      const offset = offsets.get(candidate);
+      if (!offset) continue;
+      sprite.position.x += offset.dx;
+      sprite.position.z += offset.dz;
+    }
   }
 
   let appliedView: SceneData["view"] | null = null;
