@@ -152,6 +152,16 @@ describe("TerritoryChroniclePage", () => {
     expect(Number((slider as HTMLInputElement).value)).toBe(firstMonth + 40);
   });
 
+  it("clicking a dynasty band on the progress track seeks to that period", async () => {
+    renderPage();
+    await waitFor(() => expect(mocks.setPeriod).toHaveBeenCalled());
+    const zhanguo = CHRONICLE_PERIODS.find((period) => period.id === "zhanguo")!;
+    const slider = screen.getByRole("slider", { name: /推进时间轴/ });
+    fireEvent.click(screen.getByRole("button", { name: /跳到战国七雄/ }));
+    expect(Number((slider as HTMLInputElement).value)).toBe(periodStartMonth(zhanguo));
+    expect(mocks.setPeriod.mock.calls[mocks.setPeriod.mock.calls.length - 1][0].id).toBe("zhanguo");
+  });
+
   it("toggles layer chips and forwards visibility to the scene", async () => {
     renderPage();
     await waitFor(() => expect(mocks.create).toHaveBeenCalled());
@@ -192,7 +202,7 @@ describe("TerritoryChroniclePage", () => {
       }
       const yearText = document.querySelector(".tch-year")?.textContent ?? "";
       expect(yearText).toMatch(/^前\d+年\d+月$/);
-      expect(yearText).not.toBe("前2070年1月");
+      expect(yearText).not.toBe("前2070年01月");
       fireEvent.click(screen.getByRole("button", { name: "暂停" }));
       expect(screen.getByRole("button", { name: "播放" })).toBeInTheDocument();
     } finally {
@@ -250,6 +260,20 @@ describe("TerritoryChroniclePage", () => {
     expect(within(detail).getByRole("region", { name: "人物动态" })).toHaveTextContent("商鞅");
     expect(screen.getByRole("region", { name: "此刻控制" })).toBeInTheDocument();
     expect(periodStartMonth(zhanguo)).toBeLessThan(toMonthIndex(-356, 1));
+  });
+
+  it("shows enriched biographies with birth year and month in the folded figure list", async () => {
+    renderPage();
+    await waitFor(() => expect(mocks.setPeriod).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: /跳到秦（/ }));
+    const detail = screen.getByRole("complementary", { name: "当朝详情" });
+    const figures = within(detail).getByRole("group", { name: "人物志" });
+    fireEvent.click(figures.querySelector("summary")!);
+    expect(figures).toHaveTextContent("生：前259年01月");
+    expect(figures).toHaveTextContent("卒：前210年07月");
+    // 增补人物也进入人物志（王室 / 朝堂 / 意难平）
+    expect(figures).toHaveTextContent("胡亥");
+    expect(figures).toHaveTextContent("王翦");
   });
 
   it("collapses and restores the chronicle menu with persisted state", async () => {

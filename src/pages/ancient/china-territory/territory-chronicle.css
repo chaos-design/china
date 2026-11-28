@@ -119,6 +119,12 @@
   border: 4px solid transparent;
   border-left: 7px solid #ff6b52;
 }
+.tch-legend-arrow.is-side2 {
+  border-top-color: #4aa3ff;
+}
+.tch-legend-arrow.is-side2::after {
+  border-left-color: #4aa3ff;
+}
 
 /* ---------- 主体：全幅地图 + 悬浮面板 ---------- */
 .tch-body {
@@ -127,14 +133,14 @@
   min-height: 0;
   position: relative;
 }
-/* 编年目录悬浮于地图左上，不占布局列；可整体收起为 chip */
+/* 编年目录悬浮于地图左下，不压住地图上方内容；可整体收起为 chip */
 .tch-menu {
   position: absolute;
-  top: 10px;
+  bottom: 10px;
   left: 10px;
   z-index: 600;
   width: 216px;
-  max-height: calc(100% - 76px);
+  max-height: calc(100% - 24px);
   background: rgba(13, 17, 23, 0.92);
   border: 1px solid var(--tch-border);
   border-radius: 8px;
@@ -172,7 +178,7 @@
 }
 .tch-menu-toggle {
   position: absolute;
-  top: 10px;
+  bottom: 10px;
   left: 10px;
   z-index: 600;
   padding: 5px 12px;
@@ -538,6 +544,27 @@
   border-left: 2px solid var(--tch-blue);
   border-radius: 0 4px 4px 0;
 }
+.tch-division-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tch-division-group h4 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  color: var(--tch-accent-2);
+  padding-bottom: 3px;
+  border-bottom: 1px dashed var(--tch-border);
+}
+.tch-division-group h4 em {
+  font-style: normal;
+  font-size: 9px;
+  color: var(--tch-muted);
+  font-family: Consolas, Monaco, monospace;
+}
 /* ---------- 折叠块（默认收起） ---------- */
 .tch-fold {
   margin-top: 12px;
@@ -677,6 +704,14 @@
 }
 .tch-figure-role.is-notable {
   background: var(--tch-blue);
+}
+.tch-figure-dates {
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #c9a05a;
+  font-family: Consolas, Monaco, monospace;
+  font-variant-numeric: tabular-nums;
 }
 .tch-figure-life,
 .tch-figure-fate,
@@ -881,34 +916,35 @@
   color: var(--tch-muted);
 }
 
-/* ---------- 底部月度时间轴 ---------- */
+/* ---------- 底部月度时间轴（紧凑单行，播放控件只留图标） ---------- */
 .tch-timeline {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 6px 12px 8px;
+  gap: 8px;
+  padding: 3px 10px 5px;
   background: var(--tch-panel-2);
   border-top: 1px solid var(--tch-border);
-  min-height: 66px;
+  min-height: 46px;
 }
 .tch-timeline-controls {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
   flex-shrink: 0;
 }
 .tch-tool-btn {
-  height: 28px;
-  padding: 0 10px;
-  font-size: 12px;
-  text-align: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: #c9d1d9;
   background: #21262d;
   border: 1px solid var(--tch-border);
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: pointer;
-  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 .tch-tool-btn:hover:not(:disabled) {
@@ -920,21 +956,16 @@
   cursor: default;
 }
 .tch-step-btn {
-  min-width: 58px;
   color: var(--tch-muted);
 }
-.tch-play-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-width: 76px;
-  color: var(--tch-text);
-}
+.tch-step-btn svg,
 .tch-play-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
+}
+.tch-play-btn {
+  color: var(--tch-text);
 }
 .tch-play-btn.is-playing {
   background: var(--tch-accent);
@@ -942,40 +973,40 @@
   color: #fff;
 }
 .tch-speed select {
-  height: 28px;
-  padding: 0 4px;
-  font-size: 11px;
+  height: 26px;
+  padding: 0 2px;
+  font-size: 10px;
   color: #c9d1d9;
   background: #21262d;
   border: 1px solid var(--tch-border);
-  border-radius: 6px;
+  border-radius: 5px;
   font-variant-numeric: tabular-nums;
 }
 .tch-timeline-track {
   flex: 1;
   min-width: 0;
   position: relative;
-  height: 54px;
+  height: 40px;
 }
-/* 时代名单独一行，按色带宽度居中裁切，不会互相压字 */
+/* 时代名独占一行（11px），朝代色带紧随其后，均不写长名在轨道上 */
 .tch-era-labels {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 13px;
+  height: 11px;
   pointer-events: none;
 }
 .tch-era-label {
   position: absolute;
   top: 0;
-  height: 13px;
-  padding: 0 2px;
+  height: 11px;
+  padding: 0 1px;
   background: none;
   border: 0;
   font-family: inherit;
-  font-size: 10px;
-  line-height: 13px;
+  font-size: 9px;
+  line-height: 11px;
   letter-spacing: 1px;
   text-align: center;
   white-space: nowrap;
@@ -984,18 +1015,18 @@
   pointer-events: auto;
   cursor: default;
 }
-/* 朝代色带：每期一条，起止由 left/width 表达；当前期高亮 */
+/* 朝代色带：每期一条，起止由 left/width 表达；点击跳到该期 */
 .tch-period-bands {
   position: absolute;
-  top: 13px;
+  top: 11px;
   left: 0;
   right: 0;
-  height: 7px;
+  height: 6px;
 }
 .tch-period-band {
   position: absolute;
   top: 0;
-  height: 7px;
+  height: 6px;
   min-width: 2px;
   border-radius: 2px;
   border: 0;
@@ -1004,11 +1035,11 @@
   background: var(--era-color, var(--tch-accent));
   opacity: 0.42;
   pointer-events: auto;
-  cursor: default;
+  cursor: pointer;
   transition: opacity 0.15s;
 }
 .tch-period-band:hover {
-  opacity: 0.9;
+  opacity: 0.95;
 }
 .tch-period-band.is-current {
   opacity: 0.95;
@@ -1016,10 +1047,10 @@
 }
 .tch-range {
   position: absolute;
-  top: 19px;
+  top: 17px;
   left: 0;
   width: 100%;
-  height: 20px;
+  height: 16px;
   margin: 0;
   background: transparent;
   -webkit-appearance: none;
@@ -1029,50 +1060,48 @@
   z-index: 3;
 }
 .tch-range::-webkit-slider-runnable-track {
-  height: 6px;
+  height: 4px;
   background: transparent;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 .tch-range::-moz-range-track {
-  height: 6px;
+  height: 4px;
   background: transparent;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 .tch-range::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -4px;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
   border-radius: 50%;
-  background: var(--tch-accent);
-  border: 2px solid #fff;
-  box-shadow: 0 0 8px rgba(255, 92, 71, 0.8);
+  background: transparent;
+  border: 0;
 }
 .tch-range::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border: 2px solid #fff;
+  width: 4px;
+  height: 4px;
+  border: 0;
   border-radius: 50%;
-  background: var(--tch-accent);
-  box-shadow: 0 0 8px rgba(255, 92, 71, 0.8);
+  background: transparent;
 }
 .tch-ticks {
   position: absolute;
-  top: 40px;
+  top: 33px;
   left: 0;
   right: 0;
-  height: 10px;
+  height: 7px;
   pointer-events: none;
 }
 .tch-tick {
   position: absolute;
   top: 0;
-  width: 9px;
-  height: 10px;
+  width: 8px;
+  height: 7px;
   padding: 0;
   border: 0;
   background: transparent;
-  transform: translateX(-4.5px);
+  transform: translateX(-4px);
   pointer-events: auto;
   cursor: default;
 }
@@ -1082,62 +1111,79 @@
   left: 50%;
   top: 1px;
   width: 1.5px;
-  height: 6px;
+  height: 5px;
   transform: translateX(-50%);
   background: #4a5568;
   border-radius: 1px;
 }
 .tch-tick.is-war::before {
-  width: 5px;
-  height: 5px;
-  top: 2px;
+  width: 4px;
+  height: 4px;
+  top: 1px;
   border-radius: 50%;
   background: #b3543f;
 }
 .tch-tick.is-control::before {
-  width: 5px;
-  height: 5px;
-  top: 2px;
+  width: 4px;
+  height: 4px;
+  top: 1px;
   border-radius: 1px;
   transform: translateX(-50%) rotate(45deg);
   background: var(--tch-accent);
 }
 .tch-tick.is-city::before {
-  width: 4px;
-  height: 4px;
-  top: 2px;
+  width: 3px;
+  height: 3px;
+  top: 1px;
   border-radius: 1px;
   background: var(--tch-blue);
 }
 .tch-tick.is-period::before {
-  height: 8px;
+  height: 6px;
   background: #8b949e;
 }
 .tch-tick.is-current::before {
   background: var(--tch-accent);
   box-shadow: 0 0 5px rgba(255, 92, 71, 0.9);
 }
+/* 游标圆点：明显、带光晕，位置平滑过渡，避免播放时抖动 */
 .tch-cursor {
   position: absolute;
-  top: 19px;
-  bottom: 8px;
-  width: 1px;
-  background: linear-gradient(180deg, var(--tch-accent), rgba(255, 92, 71, 0.15));
-  transform: translateX(-0.5px);
+  top: 17px;
+  bottom: 5px;
+  width: 2px;
+  background: linear-gradient(180deg, var(--tch-accent), rgba(255, 92, 71, 0.25));
+  transform: translateX(-1px);
   pointer-events: none;
   z-index: 2;
+  transition: left 90ms linear;
+}
+.tch-cursor::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--tch-accent);
+  border: 2px solid #fff;
+  box-shadow:
+    0 0 0 3px rgba(255, 92, 71, 0.24),
+    0 0 10px rgba(255, 92, 71, 0.9);
 }
 .tch-timeline-tip {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 6px);
   transform: translateX(-50%);
   z-index: 30;
   min-width: 150px;
   max-width: 250px;
-  padding: 6px 9px;
+  padding: 5px 8px;
   background: rgba(13, 17, 23, 0.97);
   border: 1px solid var(--tch-border);
-  border-radius: 6px;
+  border-radius: 5px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
   pointer-events: none;
 }
@@ -1155,15 +1201,17 @@
 }
 .tch-timeline-readout {
   flex-shrink: 0;
-  min-width: 168px;
+  width: 136px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 1px;
+  gap: 0;
   text-align: right;
 }
 .tch-timeline-readout .tch-year {
-  font-size: 15px;
+  font-size: 13px;
+  line-height: 16px;
+  min-width: 132px;
   color: var(--tch-accent);
   font-family: Consolas, Monaco, monospace;
   font-variant-numeric: tabular-nums;
@@ -1172,9 +1220,12 @@
 .tch-timeline-readout .tch-stop-label {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 5px;
-  max-width: 190px;
-  font-size: 10.5px;
+  height: 14px;
+  max-width: 136px;
+  font-size: 10px;
+  line-height: 14px;
   color: var(--tch-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -1188,6 +1239,10 @@
   box-shadow: 0 0 5px rgba(255, 92, 71, 0.9);
   animation: tch-pulse 1.1s ease-in-out infinite;
   flex-shrink: 0;
+}
+.tch-live-dot.is-hidden {
+  visibility: hidden;
+  animation: none;
 }
 @keyframes tch-pulse {
   50% {
@@ -1303,6 +1358,37 @@
   box-shadow: 0 0 4px rgba(255, 210, 122, 0.8);
   flex-shrink: 0;
 }
+.tch-division em {
+  font-style: normal;
+  font-size: 9px;
+  opacity: 0.7;
+}
+/* 州府按古制分层：郡州 / 道路 / 府省 / 军镇，形状与颜色都不同 */
+.tch-division.is-jun i {
+  border-radius: 1px;
+  transform: none;
+  background: #ffd27a;
+}
+.tch-division.is-dao i {
+  border-radius: 0;
+  transform: rotate(45deg);
+  background: #7ab8ff;
+  box-shadow: 0 0 4px rgba(122, 184, 255, 0.8);
+}
+.tch-division.is-fu i {
+  border-radius: 2px;
+  background: #c58cff;
+  box-shadow: 0 0 4px rgba(197, 140, 255, 0.8);
+}
+.tch-division.is-zhen i {
+  border-radius: 50%;
+  background: #ff8f6b;
+  box-shadow: 0 0 4px rgba(255, 143, 107, 0.8);
+}
+.tch-division.is-other i {
+  background: #9fb0c3;
+  box-shadow: none;
+}
 .tch-defense-point {
   display: inline-flex;
   align-items: center;
@@ -1340,20 +1426,67 @@
 .tch-battle.is-side2 {
   background: #3477c9;
 }
+/* 推进方向：短箭头 + 流动虚线，红=甲方、蓝=乙方，尖端呼吸闪烁 */
+.tch-arrow-guide {
+  animation: tch-flow 1.1s linear infinite;
+}
+.tch-arrow-guide.is-side1 {
+  filter: drop-shadow(0 0 2px rgba(255, 92, 71, 0.5));
+}
+.tch-arrow-guide.is-side2 {
+  filter: drop-shadow(0 0 2px rgba(74, 163, 255, 0.5));
+}
+.tch-arrow-primary,
+.tch-arrow-secondary {
+  animation: tch-arrow-breathe 1.8s ease-in-out infinite;
+}
+.tch-arrow-line {
+  animation: tch-flow 0.9s linear infinite;
+}
+@keyframes tch-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+@keyframes tch-arrow-breathe {
+  0%,
+  100% {
+    opacity: 0.82;
+  }
+  50% {
+    opacity: 1;
+  }
+}
 .tch-arrow-tip {
   width: 0;
   height: 0;
-  border: 6px solid transparent;
-  border-bottom-width: 10px;
+  border: 5px solid transparent;
+  border-bottom-width: 9px;
   border-top: 0;
+  transform: translate(-50%, -50%) rotate(var(--tip-angle, 0deg));
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.85));
+  animation: tch-tip-pulse 1.4s ease-in-out infinite;
+}
+.tch-arrow-tip.is-secondary {
+  transform-origin: center;
+  opacity: 0.85;
 }
 .tch-arrow-tip.is-side1 {
-  border-bottom-color: #ff6b52;
-  filter: drop-shadow(0 0 3px rgba(255, 107, 82, 0.8));
+  border-bottom-color: #ff5c47;
+  filter: drop-shadow(0 0 4px rgba(255, 92, 71, 0.9));
 }
 .tch-arrow-tip.is-side2 {
-  border-bottom-color: #59a7ff;
-  filter: drop-shadow(0 0 3px rgba(89, 167, 255, 0.8));
+  border-bottom-color: #4aa3ff;
+  filter: drop-shadow(0 0 4px rgba(74, 163, 255, 0.9));
+}
+@keyframes tch-tip-pulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--tip-angle, 0deg)) scale(0.88);
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(var(--tip-angle, 0deg)) scale(1.12);
+  }
 }
 
 /* ---------- 战役推进小窗（地图右侧，不压左侧目录与底部时间轴） ---------- */
@@ -1522,24 +1655,30 @@
     flex-direction: column;
     overflow-y: auto;
   }
-  /* 悬浮菜单在窄屏改为文档流内的可折叠块 */
+  /* 窄屏：地图在上、编年目录在下（文档流内可折叠块），详情最后 */
   .tch-menu {
     position: static;
+    order: 2;
     width: 100%;
     max-height: 34vh;
     border-radius: 0;
     border: none;
-    border-bottom: 1px solid var(--tch-border);
+    border-top: 1px solid var(--tch-border);
     box-shadow: none;
   }
   .tch-menu-toggle {
     position: static;
+    order: 2;
     align-self: flex-start;
     margin: 8px;
   }
   .tch-map-panel {
+    order: 1;
     min-height: 52vh;
     flex: none;
+  }
+  .tch-detail {
+    order: 3;
   }
   .tch-control-strip {
     max-width: calc(100% - 24px);
@@ -1559,6 +1698,9 @@
     flex-wrap: wrap;
   }
   .tch-timeline-readout {
-    min-width: 130px;
+    width: 124px;
+  }
+  .tch-timeline-readout .tch-year {
+    min-width: 120px;
   }
 }

@@ -171,25 +171,44 @@ function ringBounds(ring: readonly (readonly [number, number])[]): {
   return { s, w, n, e };
 }
 
+/**
+ * 轻微内收：曲线化会向外鼓出，分裂期相邻示意环容易压在一起。按包围盒中心
+ * 做极小比例内收（默认 1.2%），既消除大部分视觉重叠，又不改变政权四至口径。
+ */
+export function insetRing(
+  ring: readonly (readonly [number, number])[],
+  factor = 0.988,
+): Array<[number, number]> {
+  if (ring.length === 0) return [];
+  const b = ringBounds(ring);
+  const cx = (b.w + b.e) / 2;
+  const cy = (b.s + b.n) / 2;
+  return ring.map(([lng, lat]) => [cx + (lng - cx) * factor, cy + (lat - cy) * factor]);
+}
+
 /** 一期的全部政权图层规格（当前月份的控制图：主疆域 + 已并入 + 羁縻 + 名称标注）。 */
 export function buildPolitySpecs(period: ChroniclePeriod, month?: number): PolitySpec[] {
   const resolved = resolvePeriodAt(period, month ?? periodStartMonth(period));
   return resolved.activePolities.map((entry) => {
     const polity = entry.polity;
-    const ownRing = smoothRing(polity.territory, {
-      seed: `${period.id}/${polity.id}`,
-      wobble: 0.03,
-    });
+    const ownRing = insetRing(
+      smoothRing(polity.territory, {
+        seed: `${period.id}/${polity.id}`,
+        wobble: 0.012,
+      }),
+    );
     return {
       id: polity.id,
       name: polity.name,
       color: polity.color,
       note: polity.note,
       rings: entry.rings.map((ring) => ({
-        ring: smoothRing(ring.ring, {
-          seed: `${period.id}/${ring.fromPolity?.id ?? polity.id}`,
-          wobble: 0.03,
-        }).map(toLatLng),
+        ring: insetRing(
+          smoothRing(ring.ring, {
+            seed: `${period.id}/${ring.fromPolity?.id ?? polity.id}`,
+            wobble: 0.018,
+          }),
+        ).map(toLatLng),
         kind: ring.kind,
         fromName: ring.fromPolity?.name,
         sinceYear: ring.sinceYear,
@@ -313,10 +332,44 @@ export interface WarSpecOptions {
    * （缩放时视觉宽度稳定，不会在放大后变成巨箭）；缺省用固定度数。
    */
   pxPerDegree?: number;
-  /** 主攻箭头目标屏幕宽度（px，默认 18）。 */
+  /** 主攻箭头目标屏幕宽度（px，默认 9）。 */
   primaryWidthPx?: number;
-  /** 次要箭头目标屏幕宽度（px，默认 11）。 */
+  /** 次要箭头目标屏幕宽度（px，默认 6）。 */
   secondaryWidthPx?: number;
+}
+
+/**
+ * 把完整行军路线压缩成「指向箭头」：只取路线中段一小截，明确方向即可，
+ * 不再把箭尖画到具体城池（用户口径「指向就行，不需要指到具体的位置」）。
+ */
+export function directionIndicator(points: readonly LngLat[]): {
+  path: [LngLat, LngLat];
+  tip: LngLat;
+  angle: number;
+} {
+  const cum = [0];
+  for (let i = 1; i < points.length; i += 1) {
+    cum.push(
+      cum[i - 1] + Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]),
+    );
+  }
+  const total = cum[cum.length - 1];
+  const at = (distance: number): LngLat => {
+    let seg = 1;
+    while (seg < cum.length - 1 && cum[seg] < distance) seg += 1;
+    const t = (distance - cum[seg - 1]) / Math.max(1e-9, cum[seg] - cum[seg - 1]);
+    return [
+      points[seg - 1][0] + (points[seg][0] - points[seg - 1][0]) * t,
+      points[seg - 1][1] + (points[seg][1] - points[seg - 1][1]) * t,
+    ];
+  };
+  const startDistance = total * 0.38;
+  const indicatorLength = Math.min(2.6, Math.max(0.5, total * 0.26));
+  const endDistance = Math.min(total, startDistance + indicatorLength);
+  const start = at(startDistance);
+  const tip = at(endDistance);
+  const angle = (Math.atan2(tip[0] - start[0], tip[1] - start[1]) * 180) / Math.PI;
+  return { path: [start, tip], tip, angle };
 }
 
 /** 战争图层规格：军事推进箭头（锥形多边形）、战场、包围圈、flyTo 包围盒、战役阶段。 */
@@ -324,28 +377,24 @@ export function buildWarSpec(war: WarEvent, options: WarSpecOptions = {}): WarSp
   const arrows: WarArrowSpec[] = [];
   const battles: WarSpec["battles"] = [];
   const encircles: WarSpec["encircles"] = [];
-  const primaryWidthPx = options.primaryWidthPx ?? 18;
-  const secondaryWidthPx = options.secondaryWidthPx ?? 11;
+  const primaryWidthPx = options.primaryWidthPx ?? 9;
+  const secondaryWidthPx = options.secondaryWidthPx ?? 6;
   const pxPerDegree = options.pxPerDegree;
   let arrowIndex = 0;
   for (const op of war.ops ?? []) {
     if (op.kind === "arrow" || op.kind === "retreat") {
       const points = op.points ?? [];
       if (points.length < 2) continue;
-      const tip = points[points.length - 1];
-      const prev = points[points.length - 2];
       // divIcon 三角形默认朝上（北），旋转角按屏幕坐标（x 右、y 下）计算
-      const dLng = tip[0] - prev[0];
-      const dLat = tip[1] - prev[1];
-      const angle = (Math.atan2(dLng, dLat) * 180) / Math.PI;
+      const indicator = directionIndicator(points);
       const kind: "advance" | "retreat" = op.kind === "retreat" ? "retreat" : "advance";
       const priority: 1 | 2 = arrowIndex === 0 ? 1 : 2;
       arrowIndex += 1;
       // 屏幕像素宽度 → 度（经度方向 1° 的像素数在 Web 墨卡托下与纬度无关）
       const widthPx = priority === 1 ? primaryWidthPx : secondaryWidthPx;
-      const tailWidth = pxPerDegree ? widthPx / pxPerDegree : priority === 1 ? 0.26 : 0.16;
-      const headWidth = tailWidth * 0.42;
-      const barbLength = tailWidth * 1.7;
+      const tailWidth = pxPerDegree ? widthPx / pxPerDegree : priority === 1 ? 0.09 : 0.06;
+      const headWidth = tailWidth * 0.62;
+      const barbLength = tailWidth * 2.1;
       arrows.push({
         name: op.name,
         side: op.side,
@@ -353,7 +402,7 @@ export function buildWarSpec(war: WarEvent, options: WarSpecOptions = {}): WarSp
         priority,
         ring:
           kind === "advance"
-            ? buildArrowPolygon(points, {
+            ? buildArrowPolygon(indicator.path, {
                 seed: `${war.id}/${op.name}`,
                 tailWidth,
                 headWidth,
@@ -361,8 +410,8 @@ export function buildWarSpec(war: WarEvent, options: WarSpecOptions = {}): WarSp
               }).map(toLatLng)
             : undefined,
         path: points.map(toLatLng),
-        tipAt: toLatLng(tip),
-        tipAngleDeg: angle,
+        tipAt: toLatLng(indicator.tip),
+        tipAngleDeg: indicator.angle,
         note: op.note,
       });
     } else if (op.kind === "battle") {

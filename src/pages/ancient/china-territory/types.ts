@@ -140,6 +140,9 @@ export interface ChronicleFigure {
   stance: "loyal" | "treacherous" | "notable";
   /** 生年 / 卒年（负数 = 公元前），用于播放时标注「在世 / 登场」。 */
   birthYear?: number;
+  /** 生卒月份（1–12）；史籍无载时留空，界面标注「月无考」而不伪造。 */
+  birthMonth?: number;
+  deathMonth?: number;
   deathYear?: number;
   /** 补充说明（史实争议、传说性质等）。 */
   note?: string;

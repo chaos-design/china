@@ -14,8 +14,10 @@ import {
   buildWarSpec,
   DEFENSE_ZOOM,
   DIVISION_ZOOM,
+  directionIndicator,
   findRingSelfIntersection,
   getPeriodBounds,
+  insetRing,
   latestWarAtOrBefore,
   parseWarYearRange,
   pastWarsAtOrBefore,
@@ -114,6 +116,44 @@ describe("territory-overlays", () => {
     const ming = buildDefenseSpecs(getChroniclePeriod("ming"));
     // 九边 = 边墙 1 条 + 九镇 9 点
     expect(ming.filter((d) => d.kind === "边镇")).toHaveLength(9);
+  });
+
+  it("insetRing keeps the ring closed and strictly inside the original bounds", () => {
+    const ring: Array<[number, number]> = [
+      [110, 30],
+      [114, 30],
+      [114, 34],
+      [110, 34],
+      [110, 30],
+    ];
+    const inset = insetRing(ring);
+    expect(inset[0]).toEqual(inset[inset.length - 1]);
+    for (const [lng, lat] of inset) {
+      expect(lng).toBeGreaterThanOrEqual(110);
+      expect(lng).toBeLessThanOrEqual(114);
+      expect(lat).toBeGreaterThanOrEqual(30);
+      expect(lat).toBeLessThanOrEqual(34);
+    }
+    expect(inset[0][0]).toBeGreaterThan(110);
+  });
+
+  it("direction indicators point along the route without reaching the target city", () => {
+    const path: Array<[number, number]> = [
+      [110, 35],
+      [114, 34],
+      [118, 32],
+      [120, 30],
+    ];
+    const indicator = directionIndicator(path);
+    expect(indicator.path).toHaveLength(2);
+    expect(indicator.tip).not.toEqual(path[path.length - 1]);
+    expect(indicator.tip[0]).toBeGreaterThan(path[0][0]);
+    expect(indicator.tip[1]).toBeLessThan(path[0][1]);
+    expect(Number.isFinite(indicator.angle)).toBe(true);
+    // 箭头只占路线中段一小截（经度跨度远小于全路径）
+    expect(indicator.tip[0] - indicator.path[0][0]).toBeLessThan(
+      path[path.length - 1][0] - path[0][0],
+    );
   });
 
   it("war spec derives arrow polygons with tips, battles, encircles and a padded bounds box", () => {

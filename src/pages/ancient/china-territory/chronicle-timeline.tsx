@@ -96,7 +96,7 @@ export function ChronicleTimeline({
           aria-label="上一个月"
           title="上一个月（←）"
         >
-          −1 月
+          <PrevIcon />
         </button>
         <button
           type="button"
@@ -106,7 +106,6 @@ export function ChronicleTimeline({
           title={playing ? "暂停（空格）" : "播放（空格）"}
         >
           {playing ? <PauseIcon /> : <PlayIcon />}
-          <span>{playing ? "暂停" : "播放"}</span>
         </button>
         <button
           type="button"
@@ -116,7 +115,7 @@ export function ChronicleTimeline({
           aria-label="下一个月"
           title="下一个月（→）"
         >
-          +1 月
+          <NextIcon />
         </button>
         <label className="tch-speed">
           <span className="sr-only">播放速度</span>
@@ -148,6 +147,8 @@ export function ChronicleTimeline({
                   fromMonthIndex(band.startMonth).year,
                 )} — ${formatYear(fromMonthIndex(band.endMonth).year)}`}
                 className="tch-era-label"
+                title={`跳到${ERA_LABELS[band.era]}`}
+                onClick={() => onSeek(band.startMonth)}
                 style={{
                   left: `${left}%`,
                   width: `${Math.max(width, 0)}%`,
@@ -182,9 +183,11 @@ export function ChronicleTimeline({
                 key={band.period.id}
                 type="button"
                 tabIndex={-1}
-                aria-label={`${band.period.display ?? band.period.name} ${band.period.yearLabel}`}
+                aria-label={`跳到${band.period.display ?? band.period.name}（${band.period.yearLabel}）`}
+                title={`跳到${band.period.display ?? band.period.name} · ${band.period.yearLabel}`}
                 className={cn("tch-period-band", isCurrent && "is-current")}
                 data-era={band.era}
+                onClick={() => onSeek(band.startMonth)}
                 style={{
                   left: `${left}%`,
                   width: `${Math.max(width, 0.2)}%`,
@@ -263,12 +266,30 @@ export function ChronicleTimeline({
       <div className="tch-timeline-readout">
         <strong className="tch-year">{formatYearMonth(date)}</strong>
         <span className="tch-stop-label">
-          {playing ? <i className="tch-live-dot" aria-hidden="true" /> : null}
+          <i className={cn("tch-live-dot", !playing && "is-hidden")} aria-hidden="true" />
           {period.display ?? period.name}
           {currentEvent ? ` · ${currentEvent.label}` : ""}
         </span>
       </div>
     </footer>
+  );
+}
+
+function PrevIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M17 5.5v13L7 12l10-6.5z" fill="currentColor" />
+      <rect x="4" y="5" width="2.6" height="14" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function NextIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M7 5.5v13L17 12 7 5.5z" fill="currentColor" />
+      <rect x="17.4" y="5" width="2.6" height="14" rx="1" fill="currentColor" />
+    </svg>
   );
 }
 

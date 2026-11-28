@@ -347,6 +347,14 @@ describe("chronicle data invariants", () => {
         if (figure.birthYear != null && figure.deathYear != null) {
           expect(figure.deathYear).toBeGreaterThan(figure.birthYear);
         }
+        if (figure.birthMonth != null) {
+          expect(figure.birthMonth).toBeGreaterThanOrEqual(1);
+          expect(figure.birthMonth).toBeLessThanOrEqual(12);
+        }
+        if (figure.deathMonth != null) {
+          expect(figure.deathMonth).toBeGreaterThanOrEqual(1);
+          expect(figure.deathMonth).toBeLessThanOrEqual(12);
+        }
       }
       // 正统与乱政两端都要有选例（先秦等无「奸臣」概念者用 notable 兜底）
       expect(new Set(figures.map((figure) => figure.stance)).size).toBeGreaterThanOrEqual(2);

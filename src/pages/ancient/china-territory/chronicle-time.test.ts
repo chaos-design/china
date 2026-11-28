@@ -5,6 +5,7 @@ import {
   buildChronicleEvents,
   buildEraBands,
   buildPeriodBands,
+  formatBirthDeath,
   formatYear,
   formatYearMonth,
   fromMonthIndex,
@@ -37,7 +38,11 @@ describe("chronicle time model", () => {
   it("formats years without a year zero", () => {
     expect(formatYear(-2070)).toBe("前2070");
     expect(formatYear(1840)).toBe("1840");
-    expect(formatYearMonth({ year: -221, month: 3 })).toBe("前221年3月");
+    expect(formatYearMonth({ year: -221, month: 3 })).toBe("前221年03月");
+    expect(formatYearMonth({ year: 1840, month: 12 })).toBe("1840年12月");
+    expect(formatBirthDeath(-259, 5)).toBe("前259年05月");
+    expect(formatBirthDeath(181)).toBe("181年（月无考）");
+    expect(formatBirthDeath(undefined, 3)).toBe("生卒年无考");
   });
 
   it("parses war start years with BCE, CE and approximate prefixes", () => {

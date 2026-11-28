@@ -36,9 +36,18 @@ export function formatYear(year: number): string {
   return year < 0 ? `前${-year}` : `${year}`;
 }
 
-/** 年月显示（前 2070 年 1 月 / 1840 年 12 月）。 */
+/** 年月显示（前2070年01月 / 1840年12月）：月份固定两位，播放读数不抖。 */
 export function formatYearMonth(date: ChronicleDate): string {
-  return `${formatYear(date.year)}年${date.month}月`;
+  const month = String(date.month).padStart(2, "0");
+  return `${formatYear(date.year)}年${month}月`;
+}
+
+/** 人物生卒显示：有月份写「前259年05月」，无考写「前259年（月无考）」。 */
+export function formatBirthDeath(year: number | undefined, month?: number): string {
+  if (year == null) return "生卒年无考";
+  return month != null
+    ? `${formatYear(year)}年${String(month).padStart(2, "0")}月`
+    : `${formatYear(year)}年（月无考）`;
 }
 
 /** 年 + 可选月 → 月份序号。 */

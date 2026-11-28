@@ -15,6 +15,9 @@ import {
 } from "./territory-overlays";
 import type { ChroniclePeriod, WarEvent } from "./types";
 
+/** 敌我双色：红 = 甲方（sideA），蓝 = 乙方（sideB），箭头与图例共用。 */
+const SIDE_COLORS: Record<1 | 2, string> = { 1: "#ff5c47", 2: "#4aa3ff" };
+
 /**
  * Leaflet 场景层（命令式，jsdom 无真实瓦片环境，coverage 排除）。
  * React 侧只通过这一层操作地图：按月份重建控制图、选战争飞行聚焦、
@@ -132,10 +135,20 @@ function cityIcon(name: string, color: string, changed: boolean): L.DivIcon {
   });
 }
 
-function divisionIcon(name: string): L.DivIcon {
+/** 古代政区层级按「郡州 / 道路 / 府省 / 军镇」分色分符号，避免混成一片。 */
+function divisionKindClass(kind: string): string {
+  if (/郡|县|州/.test(kind)) return "jun";
+  if (/道|路/.test(kind)) return "dao";
+  if (/府|省|京/.test(kind)) return "fu";
+  if (/节度|经略|都护|军镇|将军|司/.test(kind)) return "zhen";
+  return "other";
+}
+
+function divisionIcon(name: string, kind: string): L.DivIcon {
+  const cls = divisionKindClass(kind);
   return L.divIcon({
     className: "tch-label-anchor",
-    html: `<span class="tch-division"><i></i>${escapeHtml(name)}</span>`,
+    html: `<span class="tch-division is-${cls}"><i></i>${escapeHtml(name)}<em>${escapeHtml(kind)}</em></span>`,
   });
 }
 
@@ -156,7 +169,7 @@ function battleIcon(side: 1 | 2): L.DivIcon {
 function arrowTipIcon(side: 1 | 2, angleDeg: number, priority: 1 | 2): L.DivIcon {
   return L.divIcon({
     className: "tch-label-anchor",
-    html: `<span class="tch-arrow-tip is-side${side}${priority === 2 ? " is-secondary" : ""}" style="transform:translate(-50%,-50%) rotate(${angleDeg.toFixed(1)}deg)"></span>`,
+    html: `<span class="tch-arrow-tip is-side${side}${priority === 2 ? " is-secondary" : ""}" style="--tip-angle:${angleDeg.toFixed(1)}deg"></span>`,
   });
 }
 
@@ -256,24 +269,39 @@ export function createTerritoryScene(
     hasWarContent = true;
     const spec = buildWarSpec(activeWar, {
       pxPerDegree: pxPerDegree(map),
-      primaryWidthPx: 12,
-      secondaryWidthPx: 8,
+      primaryWidthPx: 9,
+      secondaryWidthPx: 6,
     });
-    // 军事推进箭头：advance 为锥形箭杆 + 倒钩箭头的多边形；retreat 为虚线撤退线
+    // 军事推进：细虚线只示方向沿完整路线流动，短箭头在中段指向、
+    // 不落到具体城池；红=甲方、蓝=乙方，尖端带呼吸动画便于辨认。
     for (const arrow of spec.arrows) {
-      const color = arrow.side === 1 ? "#ff6b52" : "#59a7ff";
+      const color = SIDE_COLORS[arrow.side];
       const primary = arrow.priority === 1;
+      const sideLabel = arrow.side === 1 ? `甲方 ${spec.sideA}` : `乙方 ${spec.sideB}`;
+      const detailMeta = `${sideLabel} · ${primary ? "主攻" : "次要"}${
+        arrow.kind === "retreat" ? "撤退" : "方向"
+      }`;
+      const guide = L.polyline(arrow.path, {
+        pane: "tchWarPane",
+        color,
+        weight: primary ? 1.4 : 1,
+        opacity: primary ? 0.62 : 0.46,
+        dashArray: "5 7",
+        interactive: false,
+        className: `tch-arrow-guide is-side${arrow.side}`,
+      });
+      warGroup.addLayer(guide);
       if (arrow.kind === "advance" && arrow.ring) {
         const polygon = L.polygon(arrow.ring, {
           pane: "tchWarPane",
           color,
-          weight: primary ? 1.6 : 1.1,
-          opacity: primary ? 0.95 : 0.78,
+          weight: primary ? 1.4 : 1,
+          opacity: primary ? 0.95 : 0.8,
           fillColor: color,
-          fillOpacity: primary ? 0.82 : 0.62,
-          className: primary ? "tch-arrow tch-arrow-primary" : "tch-arrow tch-arrow-secondary",
+          fillOpacity: primary ? 0.9 : 0.75,
+          className: `tch-arrow is-side${arrow.side} ${primary ? "tch-arrow-primary" : "tch-arrow-secondary"}`,
         });
-        polygon.bindTooltip(tooltipHtml(arrow.name, undefined, primary ? "主攻方向" : "次要方向"), {
+        polygon.bindTooltip(tooltipHtml(arrow.name, arrow.note, detailMeta), {
           className: "tch-tip",
           sticky: true,
           direction: "bottom",
@@ -296,12 +324,12 @@ export function createTerritoryScene(
         const line = L.polyline(arrow.path, {
           pane: "tchWarPane",
           color,
-          weight: primary ? 2.6 : 1.7,
-          opacity: primary ? 0.9 : 0.72,
-          dashArray: arrow.kind === "retreat" ? "7 6" : undefined,
-          className: "tch-arrow tch-arrow-line",
+          weight: primary ? 2 : 1.4,
+          opacity: primary ? 0.9 : 0.75,
+          dashArray: "7 6",
+          className: `tch-arrow-line is-side${arrow.side}`,
         });
-        line.bindTooltip(tooltipHtml(arrow.name, undefined, "撤退路线"), {
+        line.bindTooltip(tooltipHtml(arrow.name, arrow.note, detailMeta), {
           className: "tch-tip",
           direction: "bottom",
           offset: [0, 10],
@@ -319,12 +347,12 @@ export function createTerritoryScene(
         );
         line.on("mouseout", () => callbacks.onWarOpHover?.(null));
         warGroup.addLayer(line);
-        const tip = L.marker(arrow.tipAt, {
-          icon: arrowTipIcon(arrow.side, arrow.tipAngleDeg, arrow.priority),
-          interactive: false,
-        });
-        warGroup.addLayer(tip);
       }
+      const tip = L.marker(arrow.tipAt, {
+        icon: arrowTipIcon(arrow.side, arrow.tipAngleDeg, arrow.priority),
+        interactive: false,
+      });
+      warGroup.addLayer(tip);
     }
     for (const encircle of spec.encircles) {
       const ring = L.polygon(encircle.latlngs, {
@@ -383,7 +411,20 @@ export function createTerritoryScene(
     defenseGroup.clearLayers();
     divisionGroup.clearLayers();
 
-    for (const polity of buildPolitySpecs(period, month)) {
+    // 大环先画、小环后画：相邻示意疆域重叠时，小国边界不被大国填充盖住。
+    const politySpecs = buildPolitySpecs(period, month)
+      .slice()
+      .sort((a, b) => {
+        const area = (ring: Array<[number, number]>): number => {
+          let sum = 0;
+          for (let i = 1; i < ring.length; i += 1) {
+            sum += ring[i - 1][1] * ring[i][0] - ring[i][1] * ring[i - 1][0];
+          }
+          return Math.abs(sum / 2);
+        };
+        return area(b.ring) - area(a.ring);
+      });
+    for (const polity of politySpecs) {
       for (const ring of polity.rings) {
         const absorbed = ring.kind === "absorbed";
         const polygon = L.polygon(ring.ring, {
@@ -535,7 +576,9 @@ export function createTerritoryScene(
     }
 
     for (const division of buildDivisionSpecs(period)) {
-      const marker = L.marker(division.latlng, { icon: divisionIcon(division.name) });
+      const marker = L.marker(division.latlng, {
+        icon: divisionIcon(division.name, division.kind),
+      });
       marker.bindTooltip(
         tooltipHtml(`${division.name} · ${division.kind}`, clampText(division.note, 42)),
         { className: "tch-tip", direction: "bottom", offset: [0, 8], opacity: 1 },

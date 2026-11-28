@@ -223,9 +223,13 @@ export function TerritoryChroniclePage() {
           <span>
             <i className="tch-legend-star">★</i>都城
           </span>
-          <span>
-            <i className="tch-legend-arrow" />
-            推进
+          <span title="红色 = 甲方（sideA）">
+            <i className="tch-legend-arrow is-side1" />
+            甲方
+          </span>
+          <span title="蓝色 = 乙方（sideB）">
+            <i className="tch-legend-arrow is-side2" />
+            乙方
           </span>
           <span>
             <i className="tch-legend-cross">⚔</i>战场

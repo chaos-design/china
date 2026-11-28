@@ -1,3 +1,4 @@
+import { EXTRA_PERIOD_FIGURES } from "./chronicle-figures-extra";
 import { PERIOD_ANNALS, PERIOD_FIGURES } from "./chronicle-people";
 import { MING_QING_PERIODS } from "./era-ming-qing";
 import { PRE_QIN_PERIODS } from "./era-pre-qin";
@@ -25,7 +26,14 @@ const BASE_PERIODS: readonly ChroniclePeriod[] = [
 export const CHRONICLE_PERIODS: readonly ChroniclePeriod[] = BASE_PERIODS.map((period) => ({
   ...period,
   annals: period.annals ?? PERIOD_ANNALS[period.id] ?? [],
-  figures: period.figures ?? PERIOD_FIGURES[period.id] ?? [],
+  // 主档案 + 朝堂 / 王室 / 意难平增补；同期内同名以主档案为准。
+  figures: (() => {
+    const names = new Set((PERIOD_FIGURES[period.id] ?? []).map((figure) => figure.name));
+    const extra = (EXTRA_PERIOD_FIGURES[period.id] ?? []).filter(
+      (figure) => !names.has(figure.name),
+    );
+    return [...(PERIOD_FIGURES[period.id] ?? []), ...extra];
+  })(),
 }));
 
 /** 按时代分组（左侧编年目录的分组结构，组内保持编年顺序）。 */

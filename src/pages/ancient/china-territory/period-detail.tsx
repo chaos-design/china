@@ -1,7 +1,13 @@
 import { cn } from "../../../lib/utils";
 import type { ResolvedPeriod } from "./chronicle-control";
 import type { AnnalView } from "./chronicle-time";
-import { formatYear, formatYearMonth, fromMonthIndex, toMonthIndex } from "./chronicle-time";
+import {
+  formatBirthDeath,
+  formatYear,
+  formatYearMonth,
+  fromMonthIndex,
+  toMonthIndex,
+} from "./chronicle-time";
 import type { PolityHoverInfo, WarOpHoverInfo } from "./leaflet-scene";
 import { buildWarList } from "./territory-overlays";
 import { type ChronicleFigure, type ChroniclePeriod, ERA_LABELS } from "./types";
@@ -93,6 +99,13 @@ export function PeriodDetail({
       items: ChronicleFigure[];
     }>
   ).filter((group) => group.items.length > 0);
+  // 州府按古制层级分组呈现（郡 / 州 / 道 / 路 / 府 / 省 / 军镇…），不再混作一栏。
+  const divisionGroups = new Map<string, Array<(typeof period.divisions)[number]>>();
+  for (const division of period.divisions) {
+    const list = divisionGroups.get(division.kind) ?? [];
+    list.push(division);
+    divisionGroups.set(division.kind, list);
+  }
 
   return (
     <aside className="tch-detail" aria-label="当朝详情">
@@ -161,7 +174,7 @@ export function PeriodDetail({
             </h3>
             <ul className="tch-live-figures">
               {livingFigures.slice(0, 8).map((figure) => (
-                <li key={figure.name} className={cn("is-" + figure.stance)}>
+                <li key={figure.name} className={cn(`is-${figure.stance}`)}>
                   <strong>{figure.name}</strong>
                   <span>{figure.role}</span>
                 </li>
@@ -273,15 +286,23 @@ export function PeriodDetail({
           <summary>
             行政区划（采样） <em>{period.divisions.length}</em>
           </summary>
-          <ul className="tch-division-list">
-            {period.divisions.map((division) => (
-              <li key={division.name}>
-                <strong>{division.name}</strong>
-                <span className="tch-tag is-kind">{division.kind}</span>
-                <span className="tch-point-note">{division.note}</span>
-              </li>
+          <div className="tch-division-groups">
+            {[...divisionGroups.entries()].map(([kind, items]) => (
+              <section key={kind} className="tch-division-group">
+                <h4>
+                  {kind} <em>{items.length}</em>
+                </h4>
+                <ul className="tch-division-list">
+                  {items.map((division) => (
+                    <li key={division.name}>
+                      <strong>{division.name}</strong>
+                      <span className="tch-point-note">{division.note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
           <p className="tch-caliber-note">放大地图（≥6 级）可在沙盘上看到这些治所点位。</p>
         </details>
 
@@ -369,6 +390,12 @@ export function PeriodDetail({
                               {living ? " · 在世" : ""}
                             </span>
                           </div>
+                          <p className="tch-figure-dates">
+                            生：{formatBirthDeath(figure.birthYear, figure.birthMonth)}
+                            {figure.deathYear != null
+                              ? ` · 卒：${formatBirthDeath(figure.deathYear, figure.deathMonth)}`
+                              : ""}
+                          </p>
                           <p className="tch-figure-life">{figure.life}</p>
                           <p className="tch-figure-fate">结局：{figure.fate}</p>
                           {figure.note ? (
